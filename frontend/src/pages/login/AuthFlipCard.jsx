@@ -5,6 +5,7 @@ import OrganicBackdrop from '../../components/OrganicBackdrop';
 import LoginFormContent from '../../components/auth/LoginFormContent';
 import RegisterFormContent from '../../components/auth/RegisterFormContent';
 import { theme } from '../../theme';
+import loginImage from '../../assets/login.png';
 
 const t = theme;
 
@@ -46,86 +47,53 @@ export default function AuthFlipCard({ startFlipped = false }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: t.bg, display: 'flex', fontFamily: t.fontBody }}>
-      {/* Left panel — branding, fixed and unchanged regardless of flip state */}
-      <div
-        style={{
-          flex: '0 0 42%',
-          position: 'relative',
-          overflow: 'hidden',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: '48px',
-        }}
-        className="hidden md:flex"
-      >
-        <OrganicBackdrop tone="deep" />
+    <div 
+      style={{ 
+        minHeight: '100vh', 
+        background: '#1A1A1A',
+        display: 'flex', 
+        fontFamily: 'var(--font-body, Inter, sans-serif)'
+      }}
+    >
+      {/* Left panel — Image background */}
+      <div className="hidden lg:flex relative w-[38%] overflow-hidden flex-col justify-between p-12">
+        {/* Background image */}
+        <img
+          src={loginImage}
+          alt="DiaBuddy"
+          className="absolute inset-0 h-full w-full object-fit
+          "
+        />
+        
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-black/40" />
 
-        {/* Logo */}
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <Logo size={40} textSize={21} variant="light" />
         </div>
 
-        {/* Center content */}
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{
-            display: 'inline-block', background: 'rgba(247,243,236,0.12)',
-            border: '1px solid rgba(247,243,236,0.2)', borderRadius: '20px',
-            padding: '4px 12px', marginBottom: '22px',
-          }}>
-            <span style={{ color: '#F3DFD4', fontSize: '12px', fontWeight: '500', letterSpacing: '0.5px' }}>
-              TRUSTED BY 12,000+ PATIENTS
-            </span>
-          </div>
-          <h2 style={{ color: '#F7F3EC', fontSize: '34px', fontWeight: '500', lineHeight: '1.25', marginBottom: '16px', letterSpacing: '-0.3px', fontFamily: t.fontDisplay }}>
-            Your health,<br />gently in check.
-          </h2>
-          <p style={{ color: 'rgba(247,243,236,0.65)', fontSize: '15px', lineHeight: '1.7', maxWidth: '290px' }}>
-            Track glucose, medication, meals and activity — all in one calm place, made for everyday life with diabetes.
-          </p>
-
-          {/* Stats row */}
-          <div style={{ display: 'flex', gap: '32px', marginTop: '40px' }}>
-            {[['98%', 'Adherence rate'], ['4.9★', 'App rating'], ['24/7', 'Support']].map(([val, lbl]) => (
-              <div key={lbl}>
-                <div style={{ color: '#F7F3EC', fontSize: '21px', fontWeight: '600', fontFamily: t.fontDisplay }}>{val}</div>
-                <div style={{ color: 'rgba(247,243,236,0.5)', fontSize: '12px', marginTop: '2px' }}>{lbl}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom quote */}
-        <div style={{ position: 'relative', zIndex: 1, borderTop: '1px solid rgba(247,243,236,0.15)', paddingTop: '24px' }}>
-          <p style={{ color: 'rgba(247,243,236,0.7)', fontSize: '13px', fontStyle: 'italic', lineHeight: '1.6', fontFamily: t.fontDisplay }}>
-            "DiaBuddy helped me lower my A1C by 1.2 points in 3 months."
-          </p>
-          <p style={{ color: 'rgba(247,243,236,0.4)', fontSize: '12px', marginTop: '8px' }}>— Sarah M., Type 2 Diabetic</p>
-        </div>
-      </div>
-
-      {/* Right panel — the flipping auth card */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', background: t.bg }}>
-        <div style={{ width: '100%', maxWidth: '440px' }}>
-          {/* Mobile logo — sits above the card, outside the flip */}
-          <div style={{ marginBottom: '28px' }} className="md:hidden">
-            <Logo size={36} textSize={19} />
+        
+    
+      {/* Right panel — warm flip cards */}
+      <div className="flex-1 flex items-center justify-center p-10 bg-[#efe7e0ce]">
+        <div className="w-full max-w-[440px]">
+          {/* Mobile logo */}
+          <div className="mb-7 md:hidden">
+            <Logo size={36} textSize={19} variant="light" />
           </div>
 
-          {/* Perspective wrapper: gives the 3D rotation depth */}
-          <div className="flip-perspective" style={{ width: '100%' }}>
+          {/* Perspective wrapper */}
+          <div className="flip-perspective w-full">
             <div
               className={`flip-card-inner${isFlipped ? ' is-flipped' : ''}${!hasInteracted ? ' flip-no-transition' : ''}`}
               style={{ minHeight: '600px' }}
             >
-              {/* Front face — Login */}
+              {/* Front face — Login - Sage Green */}
               <div
                 className="flip-face flip-face-front"
                 style={{
-                  background: t.surface,
-                  border: `1px solid ${t.line}`,
-                  borderRadius: '18px',
-                  boxShadow: t.shadowLifted,
+                  background: 'linear-gradient(145deg, #C9D3C4 0%, #E7EFE2 50%, #F1F5EE 100%)',
+                  border: '1px solid rgba(168, 184, 154, 0.3)',
+                  borderRadius: 'var(--radius, 16px)',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.5)',
                   padding: '36px 32px',
                 }}
               >
@@ -136,14 +104,14 @@ export default function AuthFlipCard({ startFlipped = false }) {
                 />
               </div>
 
-              {/* Back face — Register */}
+              {/* Back face — Register - Butter Yellow */}
               <div
                 className="flip-face flip-face-back"
                 style={{
-                  background: t.surface,
-                  border: `1px solid ${t.line}`,
-                  borderRadius: '18px',
-                  boxShadow: t.shadowLifted,
+                  background: 'linear-gradient(145deg, #f1eee4 0%, #e8e5dd 30%, #e7eac5 100%)',
+                  border: '1px solid rgba(232, 207, 122, 0.3)',
+                  borderRadius: 'var(--radius, 16px)',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.6)',
                   padding: '36px 32px',
                 }}
               >

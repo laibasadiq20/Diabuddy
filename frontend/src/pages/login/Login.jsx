@@ -8,5 +8,5 @@ import AuthFlipCard from './AuthFlipCard';
  * linkable, refreshable URL.
  */
 export default function Login() {
-  return React.createElement(AuthFlipCard, { startFlipped: false });
+  return <AuthFlipCard startFlipped={false} />;
 }

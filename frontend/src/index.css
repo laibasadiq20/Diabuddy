@@ -1,71 +1,180 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-html, body, #root {
-  height: 100%;
+/* =========================
+   GOOGLE FONTS
+========================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+
+/* =========================
+   DIABUDDY DESIGN TOKENS
+========================= */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+:root {
+  --sage: #A8B89A;
+  --sage-light: #C9D3C4;
+  --sage-soft: #E7EFE2;
+  --sage-tint: #F1F5EE;
+  --sage-deep: #7D8F6F;
+
+  --olive: #6B7550;
+
+  --butter: #E8CF7A;
+
+  --cream: #F0E7D2;
+  --cream-soft: #F6EFDD;
+
+  --brown: #3A2E24;
+  --brown-soft: #6B5645;
+
+  --rust: #C56A3E;
+  --pink: #E8B5A5;
+  --sand: #D9C8A7;
+
+  --ink: #2B2A28;
+  --ink-soft: #6D675F;
+  --ink-faint: #9C958B;
+
+  --bg: #F7F3EC;
+
+  --line: rgba(58,46,36,0.14);
+
+  --radius: 16px;
 }
 
-body {
-  margin: 0;
-  background: #F7F3EC;
-  color: #2B2A28;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
 
-* {
+/* =========================
+   GLOBAL RESET
+========================= */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-/* Custom focus ring — warm, not browser-default blue */
+html,
+body,
+#root {
+  min-height: 100%;
+}
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top, #F8FBF6 0%, #EEF6E6 40%, #E8F1DC 100%);
+  color: var(--brown);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =========================
+   TYPOGRAPHY
+========================= */
+
+.font-display,
+.font-serif {
+  font-family: 'Fraunces', serif;
+}
+
+.font-body {
+  font-family: 'Inter', sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: 'Fraunces', serif;
+  letter-spacing: -0.03em;
+}
+
+p {
+  font-family: 'Inter', sans-serif;
+}
+/* =========================
+   FOCUS STATES
+========================= */
+
 input:focus-visible,
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid #5E87A0;
+  outline: 2px solid var(--sage-deep);
   outline-offset: 2px;
 }
 
+
+/* =========================
+   ANIMATIONS
+========================= */
+
 @keyframes db-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes db-progress {
-  from { transform: scaleX(0); transform-origin: left; }
-  to { transform: scaleX(1); transform-origin: left; }
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  to {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
 }
 
 @keyframes db-fade-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .db-animate-in {
   animation: db-fade-up 0.4s ease both;
 }
 
-/* Responsive visibility utilities used across pages.
-   Written by hand (mirrors Tailwind's hidden/md:flex/lg:hidden etc.) so the
-   small set of utility classes this app relies on don't depend on the
-   Tailwind CLI/oxide binary being present in every environment. Tailwind's
-   own utility classes still work normally wherever the build toolchain has it. */
-.hidden { display: none; }
 
-@media (min-width: 768px) {
-  .md\:flex { display: flex; }
-  .md\:block { display: block; }
-  .md\:hidden { display: none; }
+/* =========================
+   SCROLLBAR
+========================= */
+
+::-webkit-scrollbar {
+  width: 10px;
 }
 
-@media (min-width: 1024px) {
-  .lg\:flex { display: flex; }
-  .lg\:hidden { display: none; }
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-/* 3D flip-card utilities for the auth card (Login <-> Register).
-   Tailwind 4's default utility set doesn't ship perspective/backface-visibility
-   helpers, so these are added by hand and used as plain classNames just like
-   any other Tailwind utility (e.g. className="flip-card-inner"). */
+::-webkit-scrollbar-thumb {
+  background: #D3CBB9;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A39E92;
+}
+
+
+/* =========================
+   FLIP CARD SUPPORT
+========================= */
+
 .flip-perspective {
   perspective: 1800px;
 }
@@ -74,7 +183,7 @@ a:focus-visible {
   position: relative;
   width: 100%;
   height: 100%;
-  transition: transform 700ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 700ms cubic-bezier(0.4,0,0.2,1);
   transform-style: preserve-3d;
 }
 
@@ -82,43 +191,24 @@ a:focus-visible {
   transform: rotateY(180deg);
 }
 
-.flip-card-inner.flip-no-transition {
-  transition: none;
-}
-
 .flip-face {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  overflow-y: auto;
 }
 
 .flip-face-back {
   transform: rotateY(180deg);
 }
 
-/* Respect reduced-motion preferences: skip the rotation, just cross-fade */
+
+/* =========================
+   REDUCED MOTION
+========================= */
+
 @media (prefers-reduced-motion: reduce) {
   .flip-card-inner {
     transition: none;
   }
-}
-
-/* Custom scrollbar — quiet, paper-toned */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #D3CBB9;
-  border-radius: 6px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #A39E92;
 }

@@ -91,26 +91,21 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
-        const response = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+        
+       const response = await fetch('/api/auth/me', {
+  credentials: 'include'
+});
+     
         if (response.ok) {
           const resData = await response.json();
-          if (resData.status === 'success' && resData.data) {
-            setUser(resData.data);
-          } else {
-            localStorage.removeItem('token');
-            navigate('/login');
-          }
-        } else {
-          localStorage.removeItem('token');
-          navigate('/login');
-        }
-      } catch {
-        localStorage.removeItem('token');
+         
+        if (resData.status === 'success' && resData.data) {
+  setUser(resData.data);
+} else {
+  navigate('/login');
+}
+      } }catch {
+        
         navigate('/login');
       } finally {
         setLoading(false);
@@ -119,7 +114,14 @@ export default function Dashboard() {
     fetchUser();
   }, [navigate]);
 
-  const handleLogout = () => { localStorage.removeItem('token'); navigate('/login'); };
+const handleLogout = async () => {
+  await fetch('/api/auth/logout', {
+    method: 'POST',
+    credentials: 'include'
+  });
+
+  navigate('/login');
+};
 
   if (loading) {
     return (
@@ -198,6 +200,13 @@ export default function Dashboard() {
               <p style={{ color: t.ink, fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name || user?.fullName}</p>
               <p style={{ color: t.inkFaint, fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</p>
             </div>
+            <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.inkFaint, padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+              onMouseEnter={e => e.currentTarget.style.color = t.sky}
+              onMouseLeave={e => e.currentTarget.style.color = t.inkFaint}
+              title="Back to home page"
+            >
+              <Home size={15} />
+            </button>
             <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.inkFaint, padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
               onMouseEnter={e => e.currentTarget.style.color = t.clay}
               onMouseLeave={e => e.currentTarget.style.color = t.inkFaint}
@@ -251,6 +260,11 @@ export default function Dashboard() {
               <span style={{ position: 'absolute', top: '6px', right: '6px', width: '7px', height: '7px', background: t.clay, borderRadius: '50%', border: `1.5px solid ${t.surfaceRaised}` }} />
             </button>
 
+            {/* Mobile back to home */}
+            <button onClick={() => navigate('/')} className="lg:hidden" style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.inkSoft, padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }} title="Back to home page">
+              <Home size={18} />
+            </button>
+
             {/* Mobile logout */}
             <button onClick={handleLogout} className="lg:hidden" style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.clay, padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
               <LogOut size={18} />
@@ -272,18 +286,32 @@ export default function Dashboard() {
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · Here's your health snapshot
                 </p>
               </div>
-              <button style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '10px 18px', background: t.sky,
-                border: 'none', borderRadius: '10px', color: '#fff',
-                fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
-                transition: 'background 0.15s',
-              }}
-                onMouseEnter={e => e.currentTarget.style.background = t.skyDeep}
-                onMouseLeave={e => e.currentTarget.style.background = t.sky}
-              >
-                <Plus size={15} /> New log
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button onClick={() => navigate('/')} style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '10px 16px', background: t.surface,
+                  border: `1.5px solid ${t.line}`, borderRadius: '10px', color: t.inkSoft,
+                  fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'all 0.15s',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = t.sky; e.currentTarget.style.color = t.skyDeep; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = t.line; e.currentTarget.style.color = t.inkSoft; }}
+                >
+                  <Home size={15} /> Back to home
+                </button>
+                <button style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '10px 18px', background: t.sky,
+                  border: 'none', borderRadius: '10px', color: '#fff',
+                  fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'background 0.15s',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.background = t.skyDeep}
+                  onMouseLeave={e => e.currentTarget.style.background = t.sky}
+                >
+                  <Plus size={15} /> New log
+                </button>
+              </div>
             </div>
           </div>
 

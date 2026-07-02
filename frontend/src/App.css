@@ -182,3 +182,42 @@
     border-right-color: var(--border);
   }
 }
+
+@keyframes borderPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(47, 106, 79, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(47, 106, 79, 0.06);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(47, 106, 79, 0);
+  }
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-borderPulse {
+  animation: borderPulse 3s infinite ease-in-out;
+}
+
+.card-float {
+  transition: all 0.4s ease;
+}
+
+.card-float:hover {
+  transform: translateY(-10px) rotate(0.5deg);
+  box-shadow: 0 30px 60px rgba(95, 168, 138, 0.18);
+}

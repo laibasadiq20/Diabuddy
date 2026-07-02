@@ -62,8 +62,8 @@ const register = async (req, res) => {
       if (localRes.reason === 'disposable') {
         reason = 'Disposable/temporary email domains are not allowed';
       } else if (localRes.reason === 'typo') {
-        reason = `Did you mean ${localRes.validators.typo.valid}?`;
-      }
+  reason = `Did you mean ${localRes.validators.typo.reason}?`;
+}
       return res.status(400).json({
         status: 'error',
         message: reason,
@@ -337,19 +337,29 @@ const login = async (req, res) => {
     }
 
     // 4. Return user profile and token
-    return res.json({
-      status: 'success',
-      message: 'Login successful',
-      data: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        glucoseUnit: user.glucoseUnit,
-        targetRanges: user.targetRanges,
-        token: generateToken(user._id),
-      },
-    });
+    const token = generateToken(user._id);
+
+res.cookie("token", token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+});
+
+return res.json({
+  status: 'success',
+  message: 'Login successful',
+  data: {
+    user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      glucoseUnit: user.glucoseUnit,
+      targetRanges: user.targetRanges,
+    }
+  }
+});
   } catch (err) {
     console.error('Login error:', err);
     return res.status(500).json({

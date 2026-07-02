@@ -7,10 +7,11 @@ const t = theme;
 
 const inputStyle = {
   width: '100%', boxSizing: 'border-box',
-  paddingLeft: '42px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px',
-  background: t.surfaceSunken, border: `1.5px solid ${t.line}`,
-  borderRadius: '10px', color: t.ink, fontSize: '14px', outline: 'none',
+  paddingLeft: '34px', paddingRight: '14px', paddingTop: '8px', paddingBottom: '8px',
+  background: '#F5F5F5', border: '1.5px solid rgba(0, 0, 0, 0.25)',
+  borderRadius: '8px', color: '#1A1A1A', fontSize: '13px', outline: 'none',
   transition: 'border-color 0.2s, background 0.2s', fontFamily: 'inherit',
+  fontWeight: '500',
 };
 
 export default function ForgotPassword() {
@@ -63,40 +64,71 @@ export default function ForgotPassword() {
     }
   };
 
-  const focus = (e) => { e.target.style.borderColor = t.sky; e.target.style.background = t.surface; };
-  const blur = (e) => { e.target.style.borderColor = t.line; e.target.style.background = t.surfaceSunken; };
+  const focus = (e) => { e.target.style.borderColor = t.sageDeep; e.target.style.background = '#FFFFFF'; };
+  const blur = (e) => { e.target.style.borderColor = 'rgba(0, 0, 0, 0.25)'; e.target.style.background = '#F5F5F5'; };
 
   return (
-    <div style={{ minHeight: '100vh', background: t.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px', fontFamily: t.fontBody }}>
-      <div style={{ width: '100%', maxWidth: '420px', position: 'relative' }} className="db-animate-in">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '28px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: t.sky, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <HeartPulse size={18} color="#fff" />
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      padding: '40px 16px', 
+      fontFamily: t.fontBody,
+      background: 'radial-gradient(ellipse at center, #e2ecdb 0%, #92a87c 45%, #819175 70%, #485e3d 100%)',
+    }}>
+      {/* Ambient glow overlay */}
+      <div style={{ 
+        position: 'fixed', 
+        top: '50%', 
+        left: '50%', 
+        transform: 'translate(-50%, -50%)', 
+        width: '700px', 
+        height: '700px', 
+        background: 'radial-gradient(circle, rgba(125, 143, 111, 0.3) 0%, transparent 70%)', 
+        borderRadius: '50%', 
+        pointerEvents: 'none' 
+      }} />
+
+      <div style={{ width: '100%', maxWidth: '400px', position: 'relative' }} className="db-animate-in">
+        {/* Logo - Light version for dark background */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <HeartPulse size={16} color={t.sageDeep} />
           </div>
-          <span style={{ color: t.ink, fontSize: '19px', fontWeight: '600', fontFamily: t.fontDisplay }}>DiaBuddy</span>
+          <span style={{ color: '#FFFFFF', fontSize: '17px', fontWeight: '600', fontFamily: t.fontDisplay }}>DiaBuddy</span>
         </div>
 
-        <div style={{ background: t.surface, border: `1px solid ${t.line}`, borderRadius: '18px', padding: '36px 30px', boxShadow: t.shadowLifted }}>
-          <h1 style={{ color: t.ink, fontSize: '24px', fontWeight: '500', marginBottom: '6px', fontFamily: t.fontDisplay }}>Reset your password</h1>
-          <p style={{ color: t.inkSoft, fontSize: '13px', marginBottom: '26px' }}>Enter the email address for your DiaBuddy account.</p>
+        {/* Card - Compact */}
+        <div style={{ 
+          background: 'rgba(255, 255, 255, 0.95)', 
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: '2px solid rgba(0, 0, 0, 0.3)', 
+          borderRadius: '16px', 
+          padding: '28px 24px', 
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+        }}>
+          <h1 style={{ color: '#1A1A1A', fontSize: '20px', fontWeight: '700', marginBottom: '4px', fontFamily: t.fontDisplay }}>Reset password</h1>
+          <p style={{ color: '#333333', fontSize: '12px', marginBottom: '18px', fontWeight: '500' }}>Enter your email to receive a reset code</p>
 
           {error && (
-            <div style={{ background: t.clayTint, border: `1px solid ${t.clay}35`, borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', color: t.clayDeep, fontSize: '13px' }}>
+            <div style={{ background: t.clayTint, border: `1px solid ${t.clay}35`, borderRadius: '8px', padding: '8px 12px', marginBottom: '14px', color: '#8B0000', fontSize: '11px', fontWeight: '600' }}>
               {error}
             </div>
           )}
 
           {success && (
-            <div style={{ background: t.sageTint, border: `1px solid ${t.sage}35`, borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', color: t.sageDeep, fontSize: '13px' }}>
+            <div style={{ background: t.sageTint, border: `1px solid ${t.sage}35`, borderRadius: '8px', padding: '8px 12px', marginBottom: '14px', color: t.sageDeep, fontSize: '11px', fontWeight: '600' }}>
               {success}
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', color: t.inkSoft, fontSize: '12px', fontWeight: '600', marginBottom: '8px', letterSpacing: '0.4px' }}>EMAIL ADDRESS</label>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', color: '#333333', fontSize: '11px', fontWeight: '700', marginBottom: '4px', letterSpacing: '0.3px' }}>EMAIL</label>
               <div style={{ position: 'relative' }}>
-                <Mail size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: t.inkFaint }} />
+                <Mail size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666666' }} />
                 <input
                   type='email'
                   value={email}
@@ -114,39 +146,42 @@ export default function ForgotPassword() {
               type='submit'
               disabled={loading}
               style={{
-                width: '100%', padding: '13px',
-                background: loading ? t.surfaceSunken : t.sky,
-                border: 'none', borderRadius: '10px',
-                color: loading ? t.inkFaint : '#fff',
-                fontSize: '14px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                width: '100%', padding: '10px',
+                background: loading ? '#E0E0E0' : t.sageDeep,
+                border: '2px solid rgba(0, 0, 0, 0.25)',
+                borderRadius: '8px',
+                color: loading ? '#666666' : '#FFFFFF',
+                fontSize: '13px', fontWeight: '700',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                 transition: 'all 0.2s', fontFamily: 'inherit',
               }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = t.skyDeep; }}
-              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = t.sky; }}
+              onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = t.olive; } }}
+              onMouseLeave={(e) => { if (!loading) { e.currentTarget.style.background = t.sageDeep; } }}
             >
-              {loading ? 'Sending…' : <>Send reset code <ArrowRight size={16} /></>}
+              {loading ? 'Sending…' : <>Send code <ArrowRight size={12} /></>}
             </button>
           </form>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '24px 0' }}>
-            <div style={{ flex: 1, height: '1px', background: t.line }} />
-            <span style={{ color: t.inkFaint, fontSize: '12px' }}>remembered it?</span>
-            <div style={{ flex: 1, height: '1px', background: t.line }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '16px 0' }}>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(0, 0, 0, 0.2)' }} />
+            <span style={{ color: '#666666', fontSize: '10px', fontWeight: '500' }}>remembered it?</span>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(0, 0, 0, 0.2)' }} />
           </div>
 
           <Link
             to='/login'
             style={{
-              display: 'block', textAlign: 'center', padding: '12px',
-              border: `1.5px solid ${t.line}`, borderRadius: '10px',
-              color: t.inkSoft, fontSize: '14px', fontWeight: '500',
+              display: 'block', textAlign: 'center', padding: '10px',
+              border: '2px solid rgba(0, 0, 0, 0.25)',
+              borderRadius: '8px',
+              color: '#333333', fontSize: '12px', fontWeight: '600',
               textDecoration: 'none', transition: 'all 0.2s',
             }}
-            onMouseEnter={(e) => { e.target.style.borderColor = t.sky; e.target.style.color = t.skyDeep; }}
-            onMouseLeave={(e) => { e.target.style.borderColor = t.line; e.target.style.color = t.inkSoft; }}
+            onMouseEnter={(e) => { e.target.style.borderColor = t.sageDeep; e.target.style.color = t.sageDeep; }}
+            onMouseLeave={(e) => { e.target.style.borderColor = 'rgba(0, 0, 0, 0.25)'; e.target.style.color = '#333333'; }}
           >
-            Back to sign in
+            Sign in
           </Link>
         </div>
       </div>

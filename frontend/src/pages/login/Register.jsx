@@ -8,5 +8,5 @@ import AuthFlipCard from './AuthFlipCard';
  * the right form immediately.
  */
 export default function Register() {
-  return React.createElement(AuthFlipCard, { startFlipped: true });
+  return <AuthFlipCard startFlipped={true} />;
 }

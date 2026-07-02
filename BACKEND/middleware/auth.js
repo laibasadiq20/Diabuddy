@@ -7,49 +7,59 @@ const User = require('../models/User');
 const protect = async (req, res, next) => {
   let token;
 
-  // Check for token in Authorization header
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    try {
-      // Get token from header (Format: Bearer <token>)
+  try {
+    // 1. Check for token in cookies
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    }
+
+    // 2. Check for token in Authorization header
+    if (
+      !token &&
+      req.headers.authorization &&
+      req.headers.authorization.startsWith('Bearer')
+    ) {
       token = req.headers.authorization.split(' ')[1];
+    }
 
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Get user from the database (excluding passwordHash)
-      req.user = await User.findById(decoded.id).select('-passwordHash');
-
-      if (!req.user) {
-        return res.status(401).json({
-          status: 'error',
-          message: 'User not found / Authorization denied',
-        });
-      }
-
-      if (!req.user.isActive) {
-        return res.status(403).json({
-          status: 'error',
-          message: 'This account has been deactivated',
-        });
-      }
-
-      next();
-    } catch (err) {
-      console.error('Auth verification error:', err.message);
+    // 3. If no token exists
+    if (!token) {
       return res.status(401).json({
         status: 'error',
-        message: 'Not authorized, token failed',
+        message: 'Not authorized, no token provided',
       });
     }
-  }
 
-  if (!token) {
+    // 4. Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // 5. Get user from database (excluding passwordHash)
+    req.user = await User.findById(decoded.id).select('-passwordHash');
+
+    // 6. User not found
+    if (!req.user) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'User not found',
+      });
+    }
+
+    // 7. Check if account is active
+    if (req.user.isActive === false) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'This account has been deactivated',
+      });
+    }
+
+    // Continue to next middleware
+    next();
+  } catch (err) {
+    console.error('Auth verification error:', err.message);
+
     return res.status(401).json({
       status: 'error',
-      message: 'Not authorized, no token provided',
+      message: 'Not authorized, token failed',
     });
   }
 };
@@ -59,13 +69,13 @@ const protect = async (req, res, next) => {
  */
 const adminOnly = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    return res.status(403).json({
-      status: 'error',
-      message: 'Access denied: Admin role required',
-    });
+    return next();
   }
+
+  return res.status(403).json({
+    status: 'error',
+    message: 'Access denied: Admin role required',
+  });
 };
 
 module.exports = {
