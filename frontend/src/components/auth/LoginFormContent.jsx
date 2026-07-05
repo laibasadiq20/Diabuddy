@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { theme } from '../../theme';
+import { useAuth } from '../../context/AuthContext';
 
 const t = theme;
 
@@ -36,6 +37,7 @@ export default function LoginFormContent({
   onForgotPassword,
   onSwitchToRegister,
 }) {
+  const { fetchUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -76,6 +78,7 @@ export default function LoginFormContent({
       console.log('Login response:', data);
 
       if (response.ok) {
+        await fetchUser();   // ← hydrate AuthContext so Navbar shows avatar
         navigate('/dashboard');
       } else {
         setError(data.message || 'Login failed. Check your credentials.');

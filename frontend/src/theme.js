@@ -30,6 +30,7 @@ export const theme = {
   // Sage — wellness actions: meds, meals, exercise, success states
   sage: '#7C9470',
   sageDeep: '#62795A',
+  olive: '#4C5A26',       // darker olive used for hover state on sage buttons
   sageSoft: '#E3E8DA',
   sageTint: '#EFF2E9',
 
@@ -53,8 +54,8 @@ export const theme = {
   goldTint: '#FAF5E3',
 
   // Fonts
-  fontDisplay: "'Fraunces', Georgia, serif",
-  fontBody: "'Inter', system-ui, -apple-system, sans-serif",
+  fontDisplay: "'Playfair Display', Georgia, serif",
+  fontBody: "'DM Sans', system-ui, -apple-system, sans-serif",
 
   // Shadows — soft, warm, paper-like (never harsh black)
   shadowCard: '0 1px 2px rgba(43,42,40,0.04), 0 8px 24px rgba(43,42,40,0.06)',

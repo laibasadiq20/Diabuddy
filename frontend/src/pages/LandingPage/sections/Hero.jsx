@@ -1,7 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import heroImage from '../../../assets/hero-illustration.png';
 
 const Hero = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   return (
     <section
       id="home"
@@ -53,27 +57,39 @@ const Hero = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 w-full sm:w-auto">
-            <button
-              onClick={() =>
-                document.getElementById("community")?.scrollIntoView({
-                  behavior: "smooth",
-                })
-              }
-              className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#1E2A24] px-8 py-4 text-[1rem] font-semibold text-white transition-all duration-300 hover:bg-[#C56A3E] hover:-translate-y-0.5"
-            >
-              Join our community ↗
-            </button>
+            {user ? (
+              <>
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#1E2A24] px-8 py-4 text-[1rem] font-semibold text-white transition-all duration-300 hover:bg-[#C56A3E] hover:-translate-y-0.5"
+                >
+                  Go to Dashboard 📊
+                </button>
 
-            <button
-              onClick={() =>
-                document.getElementById("about")?.scrollIntoView({
-                  behavior: "smooth",
-                })
-              }
-              className="text-[0.88rem] uppercase tracking-[2px] text-[#1E2A24] transition-colors duration-300 hover:text-[#C56A3E]"
-            >
-              Learn how it works →
-            </button>
+                <button
+                  onClick={() => navigate('/community')}
+                  className="inline-flex items-center justify-center w-full sm:w-auto rounded-full border border-black/15 bg-white/40 backdrop-blur px-8 py-4 text-[1rem] font-semibold text-[#1E2A24] transition-all duration-300 hover:bg-black/5 hover:-translate-y-0.5"
+                >
+                  Community Forum 👥
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#1E2A24] px-8 py-4 text-[1rem] font-semibold text-white transition-all duration-300 hover:bg-[#C56A3E] hover:-translate-y-0.5"
+                >
+                  Join our community ↗
+                </button>
+
+                <button
+                  onClick={() => navigate('/learn/risk-assessment')}
+                  className="inline-flex items-center justify-center w-full sm:w-auto rounded-full border-2 border-[#1E2A24]/30 bg-[#1E2A24]/8 backdrop-blur px-8 py-4 text-[1rem] font-semibold text-[#1E2A24] transition-all duration-300 hover:border-[#C56A3E] hover:text-[#C56A3E] hover:-translate-y-0.5"
+                >
+                  Take the Risk Test →
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

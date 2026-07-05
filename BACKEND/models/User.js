@@ -9,6 +9,16 @@ const userSchema = new mongoose.Schema(
       minlength: [2, 'Name must be at least 2 characters'],
       maxlength: [50, 'Name cannot exceed 50 characters'],
     },
+    username: {
+      type: String,
+      required: [true, 'Username is required'],
+      unique: true,
+      trim: true,
+      lowercase: true,
+      minlength: [3, 'Username must be at least 3 characters'],
+      maxlength: [30, 'Username cannot exceed 30 characters'],
+      match: [/^[a-z0-9_]+$/, 'Username can only contain lowercase letters, numbers, and underscores'],
+    },
     email: {
       type: String,
       required: [true, 'Email is required'],
@@ -76,6 +86,62 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    bio: {
+  type: String,
+  maxlength: [300, 'Bio cannot exceed 300 characters'],
+  default: '',
+},
+
+location: {
+  type: String,
+  maxlength: [100, 'Location cannot exceed 100 characters'],
+  default: '',
+},
+
+diagnosisYear: {
+  type: Number,
+  min: [1900, 'Diagnosis year is invalid'],
+  max: [new Date().getFullYear(), 'Diagnosis year cannot be in the future'],
+  default: null,
+  // used to compute the "T1D · 7y" style badge on the profile card
+},
+
+isVerifiedProfessional: {
+  type: Boolean,
+  default: false,
+  // shows the "Verified pro" badge (e.g. Dr. Aisha Rahman) next to name on posts
+},
+
+reputationScore: {
+  type: Number,
+  default: 0,
+  // distinct from likesReceived — weighted score shown as "REP" on profile card
+},
+
+postsCount: {
+  type: Number,
+  default: 0,
+},
+
+commentsCount: {
+  type: Number,
+  default: 0,
+},
+
+likesReceived: {
+  type: Number,
+  default: 0,
+},
+
+isOnline: {
+  type: Boolean,
+  default: false,
+},
+
+lastSeen: {
+  type: Date,
+  default: null,
+},
   },
   {
     timestamps: true,

@@ -3,11 +3,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle, Clock, ArrowRight, HeartPulse, RefreshCw, Mail } from 'lucide-react';
 import { theme } from '../../theme';
 import { API_URL } from "../../config/api";
+import { useAuth } from '../../context/AuthContext';
 const t = theme;
 
 export default function VerifyOtp() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { fetchUser } = useAuth();
   const email = location.state?.email || '';
   const isLoginFlow = location.state?.mode === 'login';
   const password = location.state?.password || '';
@@ -76,9 +78,10 @@ const payload = {
       const data = await response.json();
       if (response.ok) {
         setSuccess(true);
+        await fetchUser();   // hydrate AuthContext so Navbar shows avatar
         setTimeout(() => {
           navigate('/dashboard');
-        }, 2000);
+        }, 1500);
       } else {
         setError(data.message || 'Incorrect code. Try again.');
       }

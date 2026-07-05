@@ -391,10 +391,47 @@ const getMe = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Search/List other users
+ * @route   GET /api/auth/users
+ * @access  Private
+ */
+const searchUsers = async (req, res) => {
+  try {
+    const { search } = req.query;
+    const query = { _id: { $ne: req.user.id }, isVerified: true, isActive: true }; // Exclude self, must be verified/active
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { username: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const users = await User.find(query)
+      .select('name username email profileImageUrl diabetesType diagnosisYear isVerifiedProfessional')
+      .limit(20);
+
+    return res.json({
+      status: 'success',
+      data: users,
+    });
+  } catch (err) {
+    console.error('User search error:', err);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Server error searching users',
+    });
+  }
+};
+
 module.exports = {
   register,
   verifyEmail,
   resendVerificationCode,
   login,
   getMe,
+  searchUsers,
 };
+

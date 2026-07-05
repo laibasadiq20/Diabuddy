@@ -16,6 +16,9 @@
   "dependencies": {
     "@fontsource/fraunces": "^5.2.9",
     "@fontsource/inter": "^5.2.8",
+    "cloudinary": "^1.41.3",
+    "multer": "^2.2.0",
+    "multer-storage-cloudinary": "^4.0.0",
     "recharts": "^3.9.1"
   }
 }

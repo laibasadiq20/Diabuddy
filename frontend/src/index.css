@@ -4,7 +4,7 @@
    GOOGLE FONTS
 ========================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap');
+/* Fonts are loaded in index.html via <link> tags for performance */
 
 
 /* =========================
@@ -68,7 +68,7 @@ body {
   background:
     radial-gradient(circle at top, #F8FBF6 0%, #EEF6E6 40%, #E8F1DC 100%);
   color: var(--brown);
-  font-family: 'Inter', sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -78,20 +78,20 @@ body {
 
 .font-display,
 .font-serif {
-  font-family: 'Fraunces', serif;
+  font-family: 'Playfair Display', Georgia, serif;
 }
 
 .font-body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'DM Sans', system-ui, sans-serif;
 }
 
 h1, h2, h3 {
-  font-family: 'Fraunces', serif;
-  letter-spacing: -0.03em;
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: -0.02em;
 }
 
 p {
-  font-family: 'Inter', sans-serif;
+  font-family: 'DM Sans', system-ui, sans-serif;
 }
 /* =========================
    FOCUS STATES

@@ -24,6 +24,13 @@ const learnLinks = [
 ];
 
   const scrollToSection = (id) => {
+  // If the user is logged in and clicks "Community", go to the community feed
+  if (id === 'community' && user) {
+    navigate('/community');
+    setOpen(false);
+    return;
+  }
+
   // If we're not on the homepage, the section doesn't exist on this page yet.
   // Navigate home first, then scroll once it has mounted.
   if (window.location.pathname !== "/") {
@@ -76,7 +83,7 @@ const learnLinks = [
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
 
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <div onClick={() => navigate(user ? "/dashboard" : "/")} className="flex items-center gap-2 cursor-pointer">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white">
               ♥
             </span>
@@ -98,6 +105,15 @@ const learnLinks = [
       {link.label}
     </button>
   ))}
+
+  {user && (
+    <button
+      onClick={() => navigate('/dashboard')}
+      className="text-sm text-[#5C524B] hover:text-black font-semibold transition"
+    >
+      Dashboard
+    </button>
+  )}
 
   {/* Learn Dropdown */}
   <div className="relative" ref={learnRef}>
@@ -147,7 +163,7 @@ const learnLinks = [
             {user && (
               <button
                 onClick={() => setProfileOpen(true)}
-                className="hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-black text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white"
               >
                 {user?.name?.charAt(0).toUpperCase()}
               </button>
@@ -195,6 +211,36 @@ const learnLinks = [
     </button>
   ))}
 
+  {user && (
+    <>
+      <button
+        onClick={() => { navigate('/dashboard'); setOpen(false); }}
+        className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition font-semibold"
+      >
+        📊 My Dashboard
+      </button>
+      <button
+        onClick={() => { navigate('/community'); setOpen(false); }}
+        className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition font-semibold"
+      >
+        👥 Community Forum
+      </button>
+      <button
+        onClick={() => { navigate('/messages'); setOpen(false); }}
+        className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition font-semibold"
+      >
+        💬 Direct Messages
+      </button>
+      {user?.role === 'admin' && (
+        <button
+          onClick={() => { navigate('/admin/reports'); setOpen(false); }}
+          className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition font-semibold text-red-600"
+        >
+          🛡️ Moderation Queue
+        </button>
+      )}
+    </>
+  )}
 
   <div className="mt-4 border-t border-black/10 pt-4">
   <p className="px-3 text-xs uppercase tracking-[2px] text-gray-400 mb-2">
@@ -217,12 +263,21 @@ const learnLinks = [
 </div>
 
           <div className="absolute bottom-6 left-6 right-6">
-            <button
-              onClick={() => navigate("/login")}
-              className="w-full rounded-xl bg-black py-3 text-white font-semibold"
-            >
-              Get Started
-            </button>
+            {user ? (
+              <button
+                onClick={() => { logout(); setOpen(false); }}
+                className="w-full rounded-xl bg-black py-3 text-white font-semibold"
+              >
+                Log out
+              </button>
+            ) : (
+              <button
+                onClick={() => { navigate("/login"); setOpen(false); }}
+                className="w-full rounded-xl bg-black py-3 text-white font-semibold"
+              >
+                Get Started
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -267,13 +322,14 @@ const learnLinks = [
             {/* Menu */}
             <div className="mt-6 flex flex-col gap-2">
               {[
-                { label: "My Dashboard", icon: "📊" },
-                { label: "Community", icon: "👥" },
-                { label: "Health Insights", icon: "🧠" },
-                { label: "Settings", icon: "⚙️" },
+                { label: "My Dashboard", icon: "📊", path: "/dashboard" },
+                { label: "Community Forum", icon: "👥", path: "/community" },
+                { label: "Direct Messages", icon: "💬", path: "/messages" },
+                ...(user?.role === 'admin' ? [{ label: "Moderation Queue", icon: "🛡️", path: "/admin/reports" }] : []),
               ].map((item) => (
                 <button
                   key={item.label}
+                  onClick={() => { navigate(item.path); setProfileOpen(false); }}
                   className="flex items-center gap-3 rounded-xl px-4 py-3 text-left hover:bg-black/5 transition"
                 >
                   <span>{item.icon}</span>

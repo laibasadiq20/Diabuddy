@@ -1,12 +1,7 @@
 import React from "react";
 import RiskAssessment from "../RiskAssessment";
 
-const RiskAssessmentPage = () => {
-  return (
-    <div className="risk-assessment">
-      <RiskAssessment showHeader={false} />
-    </div>
-  );
-};
+// The section itself contains the Navbar and full page layout.
+const RiskAssessmentPage = () => <RiskAssessment />;
 
 export default RiskAssessmentPage;

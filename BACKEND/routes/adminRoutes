@@ -1,0 +1,9 @@
+const express = require('express');
+const router = express.Router();
+const { protect, adminOnly } = require('../middleware/auth');
+const moderationController = require('../controllers/moderationController.js');
+
+router.get('/reports', protect, adminOnly, moderationController.getReportQueue);
+router.put('/reports/:id', protect, adminOnly, moderationController.resolveReport);
+
+module.exports = router;

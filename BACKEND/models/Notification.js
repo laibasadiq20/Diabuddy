@@ -2,27 +2,41 @@ const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema(
   {
-    userId: {
+    recipientId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'User ID is required'],
+      required: true,
       index: true,
     },
+
+    senderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+
     type: {
       type: String,
-      enum: ['Reminder', 'NewComment', 'NewMessage', 'SystemAlert'],
-      required: [true, 'Notification type is required'],
+      enum: [
+        'post_like',
+        'comment_like',
+        'comment_reply',
+        'new_comment',
+        'new_message',
+        'mention',
+        'best_answer_selected',
+      ],
+      required: true,
     },
+
     referenceId: {
       type: mongoose.Schema.Types.ObjectId,
-      default: null,
-      // Points to the related post, comment, message, or reminder
     },
+
     message: {
       type: String,
-      required: [true, 'Notification message is required'],
-      maxlength: [300, 'Message cannot exceed 300 characters'],
+      required: true,
     },
+
     isRead: {
       type: Boolean,
       default: false,
@@ -33,7 +47,9 @@ const notificationSchema = new mongoose.Schema(
   }
 );
 
-// Index for fetching unread notifications (newest first)
-notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index({
+  recipientId: 1,
+  isRead: 1,
+});
 
 module.exports = mongoose.model('Notification', notificationSchema);

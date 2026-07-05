@@ -1,0 +1,9 @@
+const express = require('express');
+const router = express.Router();
+const { protect } = require('../middleware/auth');
+const reactionController = require('../controllers/reactionController');
+
+router.post('/', protect, reactionController.toggleLike);
+router.get('/mine', protect, reactionController.getMyReaction);
+
+module.exports = router;

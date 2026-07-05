@@ -1,0 +1,8 @@
+const express = require('express');
+const router = express.Router();
+const { protect } = require('../middleware/auth');
+const moderationController = require('../controllers/moderationController.js');
+
+router.post('/', protect, moderationController.fileReport);
+
+module.exports = router;

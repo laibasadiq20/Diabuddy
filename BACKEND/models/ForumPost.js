@@ -2,38 +2,100 @@ const mongoose = require('mongoose');
 
 const forumPostSchema = new mongoose.Schema(
   {
-    userId: {
+    authorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'User ID is required'],
+      required: true,
       index: true,
     },
+
+    topicId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Topic',
+      required: true,
+      index: true,
+    },
+
     title: {
       type: String,
-      required: [true, 'Post title is required'],
+      required: true,
       trim: true,
-      minlength: [3, 'Title must be at least 3 characters'],
       maxlength: [200, 'Title cannot exceed 200 characters'],
     },
+
     content: {
       type: String,
-      required: [true, 'Post content is required'],
-      minlength: [10, 'Content must be at least 10 characters'],
-      maxlength: [5000, 'Content cannot exceed 5000 characters'],
+      required: true,
+      maxlength: [10000, 'Content cannot exceed 10000 characters'],
     },
-    tags: {
-      type: [String],
-      default: [],
-      // e.g., ['Type1', 'Diet', 'Exercise', 'Insulin', 'Technology']
+
+    tags: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
+    images: [
+      {
+        type: String,
+      },
+    ],
+
+    type: {
+      type: String,
+      enum: ['text', 'image', 'poll'],
+      default: 'text',
+      // 'poll' type expects a corresponding Poll document with postId = this _id
     },
-    commentCount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    isDeleted: {
+
+    isDraft: {
       type: Boolean,
       default: false,
+      // "Save draft" button in the composer — drafts are excluded from feed queries
+    },
+
+    isAnonymous: {
+      type: Boolean,
+      default: false,
+    },
+
+    bestAnswerCommentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Comment',
+      default: null,
+      // set when the author (or a mod) marks a comment as the best answer
+    },
+
+    likesCount: {
+      type: Number,
+      default: 0,
+    },
+
+    commentsCount: {
+      type: Number,
+      default: 0,
+    },
+
+    viewsCount: {
+      type: Number,
+      default: 0,
+    },
+
+    isPinned: {
+      type: Boolean,
+      default: false,
+    },
+
+    isLocked: {
+      type: Boolean,
+      default: false,
+    },
+
+    status: {
+      type: String,
+      enum: ['active', 'hidden', 'deleted', 'reported'],
+      default: 'active',
     },
   },
   {
@@ -41,10 +103,20 @@ const forumPostSchema = new mongoose.Schema(
   }
 );
 
-// Index for listing posts (newest first), excluding soft-deleted
-forumPostSchema.index({ isDeleted: 1, createdAt: -1 });
+forumPostSchema.index({
+  title: 'text',
+  content: 'text',
+  tags: 'text',
+});
 
-// Index for tag-based filtering
-forumPostSchema.index({ tags: 1 });
+forumPostSchema.index({
+  topicId: 1,
+  createdAt: -1,
+});
+
+forumPostSchema.index({
+  authorId: 1,
+  isDraft: 1,
+});
 
 module.exports = mongoose.model('ForumPost', forumPostSchema);

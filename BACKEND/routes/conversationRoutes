@@ -1,0 +1,15 @@
+const express = require('express');
+const router = express.Router();
+const { protect } = require('../middleware/auth');
+const conversationController = require('../controllers/conversationController.js');
+const messageController = require('../controllers/messageController');
+
+router.get('/', protect, conversationController.getMyConversations);
+router.post('/', protect, conversationController.createConversation);
+router.get('/:id', protect, conversationController.getConversationById);
+
+router.get('/:id/messages', protect, messageController.getMessages);
+router.post('/:id/messages', protect, messageController.sendMessage);
+router.put('/:id/read', protect, messageController.markAsRead);
+
+module.exports = router;

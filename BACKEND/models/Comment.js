@@ -5,29 +5,50 @@ const commentSchema = new mongoose.Schema(
     postId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'ForumPost',
-      required: [true, 'Post ID is required'],
+      required: true,
       index: true,
     },
-    userId: {
+
+    authorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'User ID is required'],
+      required: true,
+      index: true,
     },
+
+    content: {
+      type: String,
+      required: true,
+      maxlength: [3000, 'Comment cannot exceed 3000 characters'],
+    },
+
     parentCommentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Comment',
       default: null,
-      // null = top-level comment, ObjectId = threaded reply
     },
-    comment: {
-      type: String,
-      required: [true, 'Comment text is required'],
-      minlength: [1, 'Comment cannot be empty'],
-      maxlength: [2000, 'Comment cannot exceed 2000 characters'],
+
+    likesCount: {
+      type: Number,
+      default: 0,
     },
-    isDeleted: {
+
+    isEdited: {
       type: Boolean,
       default: false,
+    },
+
+    isBestAnswer: {
+      type: Boolean,
+      default: false,
+      // mirrors ForumPost.bestAnswerCommentId — keep both in sync in the controller
+      // when a best answer is set/unset (one write to Comment, one to ForumPost)
+    },
+
+    status: {
+      type: String,
+      enum: ['active', 'deleted', 'reported'],
+      default: 'active',
     },
   },
   {
@@ -35,7 +56,9 @@ const commentSchema = new mongoose.Schema(
   }
 );
 
-// Index for fetching all comments on a post (newest first)
-commentSchema.index({ postId: 1, createdAt: 1 });
+commentSchema.index({
+  postId: 1,
+  createdAt: 1,
+});
 
 module.exports = mongoose.model('Comment', commentSchema);
