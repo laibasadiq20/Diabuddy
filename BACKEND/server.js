@@ -2,6 +2,11 @@ require('dotenv').config();
 
 const dns = require('dns');
 
+// Prefer IPv4 (Railway often cannot reach external SMTP over IPv6)
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 // Force Node to use public DNS servers for SRV lookups
 dns.setServers([
   '8.8.8.8',

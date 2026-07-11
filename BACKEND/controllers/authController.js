@@ -162,9 +162,12 @@ const register = async (req, res) => {
     });
   } catch (err) {
     console.error('Registration error:', err);
+    const isMailError = /smtp|email|gmail|enetunreach/i.test(err.message || '');
     return res.status(500).json({
       status: 'error',
-      message: 'Server error during registration',
+      message: isMailError
+        ? err.message
+        : 'Server error during registration',
       error: err.message,
     });
   }

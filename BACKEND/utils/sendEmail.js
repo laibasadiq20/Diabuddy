@@ -1,7 +1,13 @@
+const dns = require('dns');
 const nodemailer = require('nodemailer');
 
 const PLACEHOLDER_USER = 'your_gmail_address@gmail.com';
 const PLACEHOLDER_PASS = 'your_gmail_app_password';
+
+// Prefer IPv4 — Railway often cannot reach Gmail over IPv6 (ENETUNREACH)
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 const getEmailConfig = () => {
   const user = (process.env.EMAIL_USER || '').trim();
@@ -21,10 +27,28 @@ const getEmailConfig = () => {
  */
 const isEmailConfigured = () => getEmailConfig().configured;
 
+/** Force A-record (IPv4) lookups so nodemailer never dials Gmail AAAA. */
+const ipv4Lookup = (hostname, _options, callback) => {
+  dns.lookup(hostname, { family: 4 }, callback);
+};
+
+const createTransporter = (user, pass, { port, secure }) =>
+  nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port,
+    secure,
+    auth: { user, pass },
+    lookup: ipv4Lookup,
+    family: 4,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
+    tls: { servername: 'smtp.gmail.com' },
+  });
+
 /**
- * Send email via Gmail SMTP.
+ * Send email via Gmail SMTP over IPv4.
  * Falls back to console logging only when credentials are missing locally.
- * In production/Railway, missing credentials throw so deploys fail loudly.
  */
 const sendEmail = async ({ to, subject, html, text }) => {
   const { user, pass, configured } = getEmailConfig();
@@ -48,35 +72,40 @@ const sendEmail = async ({ to, subject, html, text }) => {
     return { mock: true, message: 'Mock email printed to console' };
   }
 
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: { user, pass },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
-  });
-
-  try {
-    await transporter.verify();
-  } catch (verifyErr) {
-    console.error('SMTP verify failed:', verifyErr.message);
-    throw new Error(
-      `Gmail SMTP login failed: ${verifyErr.message}. Check EMAIL_USER and EMAIL_PASS (App Password) on Railway.`
-    );
-  }
-
-  const info = await transporter.sendMail({
+  const mailOptions = {
     from: `"DiaBuddy Support" <${user}>`,
     to,
     subject,
     text,
     html,
-  });
+  };
 
-  console.log(`📨 Real email sent to ${to}: ${info.messageId}`);
-  return { mock: false, messageId: info.messageId };
+  // Try SSL 465 first, then STARTTLS 587 (both forced to IPv4)
+  const attempts = [
+    { port: 465, secure: true, label: '465/SSL' },
+    { port: 587, secure: false, label: '587/STARTTLS' },
+  ];
+
+  let lastError;
+
+  for (const attempt of attempts) {
+    const transporter = createTransporter(user, pass, attempt);
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`📨 Email sent via ${attempt.label} to ${to}: ${info.messageId}`);
+      return { mock: false, messageId: info.messageId, via: attempt.label };
+    } catch (err) {
+      lastError = err;
+      console.error(`SMTP ${attempt.label} failed:`, err.message);
+    } finally {
+      transporter.close();
+    }
+  }
+
+  const detail = lastError?.message || 'Unknown SMTP error';
+  throw new Error(
+    `Gmail SMTP failed (${detail}). If this is ENETUNREACH/IPv6, redeploy with the IPv4 mailer fix. Also verify EMAIL_USER and EMAIL_PASS (App Password) on Railway.`
+  );
 };
 
 module.exports = sendEmail;
