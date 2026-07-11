@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
+const { isEmailConfigured } = require('../utils/sendEmail');
 
 /**
  * Generate a JWT token
@@ -53,6 +54,14 @@ const register = async (req, res) => {
       return res.status(400).json({
         status: 'error',
         message: 'Please enter a valid email address',
+      });
+    }
+
+    if (!isEmailConfigured()) {
+      return res.status(503).json({
+        status: 'error',
+        message:
+          'Email service is not configured on the server. Set EMAIL_USER and EMAIL_PASS (Gmail App Password) in Railway Variables, then redeploy.',
       });
     }
 
@@ -135,21 +144,16 @@ const register = async (req, res) => {
       verificationCodeExpires: otpExpiry,
     });
 
-    // 8. Send Verification Email (do not fail registration if SMTP hangs)
-    try {
-      await sendEmail({
-        to: email,
-        subject: 'DiaBuddy - Verify Your Account',
-        text: `Welcome to DiaBuddy, ${name}! Your 6-digit verification code is: ${otpCode}. It is valid for 15 minutes.`,
-        html: `<h3>Welcome to DiaBuddy, ${name}!</h3>
-               <p>Thank you for signing up. Please enter the following 6-digit verification code to complete your registration:</p>
-               <p style="font-size: 24px; font-weight: bold; letter-spacing: 2px;">${otpCode}</p>
-               <p>This code is valid for 15 minutes.</p>`,
-      });
-    } catch (emailErr) {
-      console.error('Verification email failed (user still created):', emailErr.message);
-      console.log(`[OTP FALLBACK] ${email} => ${otpCode}`);
-    }
+    // 8. Send Verification Email
+    await sendEmail({
+      to: email,
+      subject: 'DiaBuddy - Verify Your Account',
+      text: `Welcome to DiaBuddy, ${name}! Your 6-digit verification code is: ${otpCode}. It is valid for 15 minutes.`,
+      html: `<h3>Welcome to DiaBuddy, ${name}!</h3>
+             <p>Thank you for signing up. Please enter the following 6-digit verification code to complete your registration:</p>
+             <p style="font-size: 24px; font-weight: bold; letter-spacing: 2px;">${otpCode}</p>
+             <p>This code is valid for 15 minutes.</p>`,
+    });
 
     // 9. Return response
     return res.status(201).json({
@@ -158,6 +162,7 @@ const register = async (req, res) => {
       data: {
         email: newUser.email,
         isVerified: false,
+        emailSent: true,
       },
     });
   } catch (err) {
@@ -451,6 +456,14 @@ const forgotPassword = async (req, res) => {
       });
     }
 
+    if (!isEmailConfigured()) {
+      return res.status(503).json({
+        status: 'error',
+        message:
+          'Email service is not configured on the server. Set EMAIL_USER and EMAIL_PASS (Gmail App Password) in Railway Variables, then redeploy.',
+      });
+    }
+
     const user = await User.findOne({ email });
 
     // Always return success-looking response to avoid email enumeration
@@ -466,30 +479,25 @@ const forgotPassword = async (req, res) => {
     user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
     await user.save();
 
-    try {
-      await sendEmail({
-        to: email,
-        subject: 'DiaBuddy - Password Reset Code',
-        text: `Your password reset code is: ${resetCode}. It is valid for 15 minutes.`,
-        html: `<h3>Password reset</h3>
-               <p>Your 6-digit reset code is: <strong>${resetCode}</strong></p>
-               <p>It is valid for 15 minutes. If you did not request this, you can ignore this email.</p>`,
-      });
-    } catch (emailErr) {
-      console.error('Reset email failed:', emailErr.message);
-      console.log(`[RESET OTP FALLBACK] ${email} => ${resetCode}`);
-    }
+    await sendEmail({
+      to: email,
+      subject: 'DiaBuddy - Password Reset Code',
+      text: `Your password reset code is: ${resetCode}. It is valid for 15 minutes.`,
+      html: `<h3>Password reset</h3>
+             <p>Your 6-digit reset code is: <strong>${resetCode}</strong></p>
+             <p>It is valid for 15 minutes. If you did not request this, you can ignore this email.</p>`,
+    });
 
     return res.json({
       status: 'success',
       message: 'If an account exists for that email, a reset code has been sent.',
+      data: { emailSent: true },
     });
   } catch (err) {
     console.error('Forgot password error:', err);
     return res.status(500).json({
       status: 'error',
-      message: 'Server error sending reset code',
-      error: err.message,
+      message: err.message || 'Server error sending reset code',
     });
   }
 };

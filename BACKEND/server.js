@@ -22,6 +22,10 @@ const app = express();
 console.log('__dirname:', __dirname);
 console.log('MONGO_URI =', process.env.MONGO_URI ? 'Loaded ✅' : 'Missing ❌');
 console.log('JWT_SECRET =', process.env.JWT_SECRET ? 'Loaded ✅' : 'Missing ❌');
+console.log(
+  'EMAIL SMTP =',
+  require('./utils/sendEmail').isEmailConfigured() ? 'Configured ✅' : 'Missing ❌ (set EMAIL_USER + EMAIL_PASS on Railway)'
+);
 
 // Connect to MongoDB then seed defaults
 connectDB().then(() => seedTopics()).catch(err => console.error('DB/Seed error:', err));
@@ -80,11 +84,12 @@ app.use('/api/admin', adminRoutes);
 const uploadRoutes = require('./routes/uploadRoutes');
 app.use('/api/upload', uploadRoutes);
 
-// Test route
+// Test / health routes
 app.get('/api/test', (req, res) => {
   res.json({
     status: 'ok',
     message: 'DiaBuddy backend is running',
+    emailConfigured: require('./utils/sendEmail').isEmailConfigured(),
   });
 });
 
