@@ -1,13 +1,9 @@
-const dns = require('dns');
+const dns = require('dns').promises;
 const nodemailer = require('nodemailer');
 
 const PLACEHOLDER_USER = 'your_gmail_address@gmail.com';
 const PLACEHOLDER_PASS = 'your_gmail_app_password';
-
-// Prefer IPv4 — Railway often cannot reach Gmail over IPv6 (ENETUNREACH)
-if (typeof dns.setDefaultResultOrder === 'function') {
-  dns.setDefaultResultOrder('ipv4first');
-}
+const SMTP_HOST = 'smtp.gmail.com';
 
 const getEmailConfig = () => {
   const user = (process.env.EMAIL_USER || '').trim();
@@ -27,28 +23,39 @@ const getEmailConfig = () => {
  */
 const isEmailConfigured = () => getEmailConfig().configured;
 
-/** Force A-record (IPv4) lookups so nodemailer never dials Gmail AAAA. */
-const ipv4Lookup = (hostname, _options, callback) => {
-  dns.lookup(hostname, { family: 4 }, callback);
+/**
+ * Resolve smtp.gmail.com to an IPv4 address only.
+ * Nodemailer otherwise may dial AAAA and fail on Railway with ENETUNREACH.
+ * Uses dns.lookup (OS resolver) — more reliable than resolve4 on Railway.
+ */
+const resolveSmtpIpv4 = async () => {
+  const { address, family } = await dns.lookup(SMTP_HOST, { family: 4 });
+  if (!address || family !== 4) {
+    throw new Error(`No IPv4 address found for ${SMTP_HOST}`);
+  }
+  return address;
 };
 
-const createTransporter = (user, pass, { port, secure }) =>
+const createTransporter = (user, pass, ipv4, { port, secure }) =>
   nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    // Connect by IPv4 literal so Nodemailer does no AAAA lookup
+    host: ipv4,
     port,
     secure,
     auth: { user, pass },
-    lookup: ipv4Lookup,
-    family: 4,
     connectionTimeout: 15000,
     greetingTimeout: 15000,
     socketTimeout: 20000,
-    tls: { servername: 'smtp.gmail.com' },
+    tls: {
+      // Required when host is an IP — validates cert for smtp.gmail.com
+      servername: SMTP_HOST,
+      rejectUnauthorized: true,
+      minVersion: 'TLSv1.2',
+    },
   });
 
 /**
- * Send email via Gmail SMTP over IPv4.
- * Falls back to console logging only when credentials are missing locally.
+ * Send email via Gmail SMTP over IPv4 only.
  */
 const sendEmail = async ({ to, subject, html, text }) => {
   const { user, pass, configured } = getEmailConfig();
@@ -72,6 +79,9 @@ const sendEmail = async ({ to, subject, html, text }) => {
     return { mock: true, message: 'Mock email printed to console' };
   }
 
+  const ipv4 = await resolveSmtpIpv4();
+  console.log(`SMTP resolving ${SMTP_HOST} -> ${ipv4} (IPv4)`);
+
   const mailOptions = {
     from: `"DiaBuddy Support" <${user}>`,
     to,
@@ -80,7 +90,6 @@ const sendEmail = async ({ to, subject, html, text }) => {
     html,
   };
 
-  // Try SSL 465 first, then STARTTLS 587 (both forced to IPv4)
   const attempts = [
     { port: 465, secure: true, label: '465/SSL' },
     { port: 587, secure: false, label: '587/STARTTLS' },
@@ -89,23 +98,21 @@ const sendEmail = async ({ to, subject, html, text }) => {
   let lastError;
 
   for (const attempt of attempts) {
-    const transporter = createTransporter(user, pass, attempt);
+    const transporter = createTransporter(user, pass, ipv4, attempt);
     try {
       const info = await transporter.sendMail(mailOptions);
-      console.log(`📨 Email sent via ${attempt.label} to ${to}: ${info.messageId}`);
-      return { mock: false, messageId: info.messageId, via: attempt.label };
+      console.log(`📨 Email sent via ${attempt.label} (${ipv4}) to ${to}: ${info.messageId}`);
+      return { mock: false, messageId: info.messageId, via: attempt.label, ip: ipv4 };
     } catch (err) {
       lastError = err;
-      console.error(`SMTP ${attempt.label} failed:`, err.message);
+      console.error(`SMTP ${attempt.label} via ${ipv4} failed:`, err.message);
     } finally {
       transporter.close();
     }
   }
 
   const detail = lastError?.message || 'Unknown SMTP error';
-  throw new Error(
-    `Gmail SMTP failed (${detail}). If this is ENETUNREACH/IPv6, redeploy with the IPv4 mailer fix. Also verify EMAIL_USER and EMAIL_PASS (App Password) on Railway.`
-  );
+  throw new Error(`Gmail SMTP failed over IPv4 (${ipv4}): ${detail}`);
 };
 
 module.exports = sendEmail;
