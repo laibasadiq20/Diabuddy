@@ -61,7 +61,7 @@ const register = async (req, res) => {
       return res.status(503).json({
         status: 'error',
         message:
-          'Email is not configured for Railway. Set RESEND_API_KEY (or BREVO_API_KEY) in Railway Variables — Gmail SMTP ports are blocked on Railway.',
+          'Email is not configured for Railway. Nodemailer/Gmail SMTP is blocked there — set GMAIL_SCRIPT_URL (Apps Script, no domain) or BREVO_API_KEY. See BACKEND/EMAIL_SETUP.md',
       });
     }
 
@@ -458,7 +458,7 @@ const forgotPassword = async (req, res) => {
       return res.status(503).json({
         status: 'error',
         message:
-          'Email is not configured for Railway. Set RESEND_API_KEY (or BREVO_API_KEY) in Railway Variables — Gmail SMTP ports are blocked on Railway.',
+          'Email is not configured for Railway. Nodemailer/Gmail SMTP is blocked there — set GMAIL_SCRIPT_URL (Apps Script, no domain) or BREVO_API_KEY. See BACKEND/EMAIL_SETUP.md',
       });
     }
 

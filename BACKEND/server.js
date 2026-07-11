@@ -30,8 +30,16 @@ console.log('JWT_SECRET =', process.env.JWT_SECRET ? 'Loaded ✅' : 'Missing ❌
 console.log(
   'EMAIL =',
   require('./utils/sendEmail').isEmailConfigured()
-    ? `Configured ✅ (${process.env.RESEND_API_KEY ? 'Resend' : process.env.BREVO_API_KEY ? 'Brevo' : 'Gmail SMTP'})`
-    : 'Missing ❌ (on Railway set RESEND_API_KEY or BREVO_API_KEY)'
+    ? `Configured ✅ (${
+        process.env.GMAIL_SCRIPT_URL
+          ? 'Gmail Apps Script'
+          : process.env.BREVO_API_KEY
+            ? 'Brevo'
+            : process.env.RESEND_API_KEY
+              ? 'Resend'
+              : 'Nodemailer SMTP'
+      })`
+    : 'Missing ❌ (on Railway set GMAIL_SCRIPT_URL — see BACKEND/EMAIL_SETUP.md)'
 );
 
 // Connect to MongoDB then seed defaults

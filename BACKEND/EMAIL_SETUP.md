@@ -1,36 +1,90 @@
-# Email setup (Railway)
+# Email setup (no domain needed)
 
-Railway **blocks outbound SMTP** (ports 465/587). Gmail App Passwords will time out on Railway.
+## Why Nodemailer alone fails on Railway
 
-Use an HTTPS email API instead.
+On your laptop, Nodemailer + Gmail App Password works.
 
-## Option A — Resend (recommended)
+On **Railway**, outbound SMTP ports **465/587 are blocked**, so the same
+`EMAIL_USER` / `EMAIL_PASS` time out. That is a Railway network limit, not a bad password.
 
-1. Create a free account at https://resend.com
-2. Create an API key
-3. In Railway → Variables, add:
-   - `RESEND_API_KEY=re_...`
-4. Optional: verify your domain and set:
-   - `EMAIL_FROM=DiaBuddy <noreply@yourdomain.com>`
-5. Redeploy
+## Recommended for Railway (no domain): Google Apps Script
 
-Until a domain is verified, Resend may only allow sending to your own signup email when using `onboarding@resend.dev`.
+Uses your Gmail over **HTTPS**. No DNS / domain access needed.
 
-## Option B — Brevo
+### 1) Create the script
+1. Open https://script.google.com → **New project**
+2. Paste this code:
 
-1. Create a free account at https://www.brevo.com
-2. Verify a sender email (can be your Gmail)
-3. Create an API key (SMTP & API)
-4. In Railway → Variables, add:
-   - `BREVO_API_KEY=xkeysib-...`
-   - `EMAIL_USER=your_verified_sender@gmail.com`
-5. Redeploy
+```javascript
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var expected = PropertiesService.getScriptProperties().getProperty('SECRET');
 
-## Local development
+    if (!data.secret || data.secret !== expected) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ ok: false, error: 'Unauthorized' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
-Gmail SMTP still works on your laptop:
+    if (!data.to || !data.subject) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ ok: false, error: 'Missing to/subject' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    GmailApp.sendEmail(data.to, data.subject, data.text || '', {
+      htmlBody: data.html || data.text || '',
+      name: 'DiaBuddy Support',
+    });
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+```
+
+3. **Project Settings** (gear) → **Script properties** → Add:
+   - Property: `SECRET`
+   - Value: any long random string (e.g. `diabuddy_mail_7f3a9c`)
+
+4. **Deploy** → **New deployment** → type **Web app**
+   - Execute as: **Me**
+   - Who has access: **Anyone**
+5. Copy the **Web app URL**
+
+### 2) Add Railway variables
+```
+GMAIL_SCRIPT_URL=https://script.google.com/macros/s/XXXX/exec
+GMAIL_SCRIPT_SECRET=diabuddy_mail_7f3a9c
+```
+(use the same secret as in Script properties)
+
+### 3) Redeploy the backend
+
+OTP / reset emails will send from the Google account that owns the Apps Script.
+
+---
+
+## Local development (Nodemailer)
 
 ```env
-EMAIL_USER=your_gmail@gmail.com
-EMAIL_PASS=your_16_char_app_password
+EMAIL_USER=laiba18113@gmail.com
+EMAIL_PASS=your_gmail_app_password
 ```
+
+---
+
+## Alternatives
+
+| Provider | Domain needed? | Notes |
+|----------|----------------|-------|
+| Apps Script | No | Best match for “use my Gmail” on Railway |
+| Brevo API | No | Verify one sender email in Brevo dashboard |
+| Resend | Yes (for other people) | Without domain, only mails your own inbox |
+| Nodemailer SMTP | N/A | Works locally only |

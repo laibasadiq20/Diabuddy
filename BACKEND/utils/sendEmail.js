@@ -1,3 +1,16 @@
+/**
+ * DiaBuddy email helper
+ *
+ * Railway BLOCKS outbound SMTP (465/587), so plain Nodemailer → Gmail
+ * times out on Railway even with a valid App Password.
+ *
+ * Supported providers (first match wins):
+ * 1. GMAIL_SCRIPT_URL  — Google Apps Script webhook (uses your Gmail, no domain)
+ * 2. BREVO_API_KEY      — Brevo HTTPS API (verify sender email only, no domain)
+ * 3. RESEND_API_KEY     — Resend HTTPS API (needs verified domain for other inboxes)
+ * 4. EMAIL_USER/PASS    — Nodemailer Gmail SMTP (local/dev only)
+ */
+
 const dns = require('dns').promises;
 const nodemailer = require('nodemailer');
 
@@ -23,17 +36,16 @@ const getSmtpConfig = () => {
   return { user, pass, configured };
 };
 
-const getResendKey = () => (process.env.RESEND_API_KEY || '').trim();
+const getScriptUrl = () => (process.env.GMAIL_SCRIPT_URL || '').trim();
+const getScriptSecret = () => (process.env.GMAIL_SCRIPT_SECRET || '').trim();
 const getBrevoKey = () => (process.env.BREVO_API_KEY || '').trim();
+const getResendKey = () => (process.env.RESEND_API_KEY || '').trim();
 
-/**
- * True when any working email provider is configured.
- * On Railway, SMTP is blocked — only HTTPS APIs (Resend/Brevo) count.
- */
 const isEmailConfigured = () => {
-  if (getResendKey() || getBrevoKey()) return true;
-  // Gmail SMTP works locally, but Railway blocks outbound 465/587
-  if (isRailway()) return false;
+  if (getScriptUrl()) return true;
+  if (getBrevoKey()) return true;
+  if (getResendKey()) return true;
+  if (isRailway()) return false; // SMTP blocked on Railway
   return getSmtpConfig().configured;
 };
 
@@ -43,6 +55,75 @@ const resolveSmtpIpv4 = async () => {
     throw new Error(`No IPv4 address found for ${SMTP_HOST}`);
   }
   return address;
+};
+
+/** Send via Google Apps Script (HTTPS → GmailApp). No custom domain needed. */
+const sendViaGmailScript = async ({ to, subject, html, text }) => {
+  const url = getScriptUrl();
+  const secret = getScriptSecret();
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      secret,
+      to,
+      subject,
+      text: text || '',
+      html: html || '',
+    }),
+    redirect: 'follow',
+  });
+
+  const bodyText = await response.text();
+  let data = {};
+  try {
+    data = JSON.parse(bodyText);
+  } catch {
+    data = { raw: bodyText };
+  }
+
+  if (!response.ok || data.ok === false) {
+    throw new Error(data.error || data.raw || `Gmail script HTTP ${response.status}`);
+  }
+
+  console.log(`📨 Email sent via Gmail Apps Script to ${to}`);
+  return { mock: false, provider: 'gmail-apps-script' };
+};
+
+const sendViaBrevo = async ({ to, subject, html, text }) => {
+  const apiKey = getBrevoKey();
+  const senderEmail =
+    (process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER || '').trim();
+  const senderName = (process.env.EMAIL_FROM_NAME || 'DiaBuddy').trim();
+
+  if (!senderEmail) {
+    throw new Error('Set EMAIL_USER to your Brevo-verified sender email.');
+  }
+
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'api-key': apiKey,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      textContent: text,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message || `Brevo HTTP ${response.status}`);
+  }
+
+  console.log(`📨 Email sent via Brevo to ${to}`);
+  return { mock: false, provider: 'brevo', messageId: data.messageId };
 };
 
 const sendViaResend = async ({ to, subject, html, text }) => {
@@ -69,52 +150,14 @@ const sendViaResend = async ({ to, subject, html, text }) => {
   return { mock: false, provider: 'resend', messageId: data.id };
 };
 
-const sendViaBrevo = async ({ to, subject, html, text }) => {
-  const apiKey = getBrevoKey();
-  const senderEmail =
-    (process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER || '').trim();
-  const senderName = (process.env.EMAIL_FROM_NAME || 'DiaBuddy').trim();
-
-  if (!senderEmail) {
-    throw new Error(
-      'Set EMAIL_USER (or EMAIL_FROM_ADDRESS) to your verified Brevo sender email.'
-    );
-  }
-
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: {
-      accept: 'application/json',
-      'api-key': apiKey,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      sender: { name: senderName, email: senderEmail },
-      to: [{ email: to }],
-      subject,
-      htmlContent: html,
-      textContent: text,
-    }),
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.message || `Brevo HTTP ${response.status}`);
-  }
-
-  console.log(`📨 Email sent via Brevo to ${to}: ${data.messageId || 'ok'}`);
-  return { mock: false, provider: 'brevo', messageId: data.messageId };
-};
-
-const sendViaGmailSmtp = async ({ to, subject, html, text }) => {
+/** Nodemailer → Gmail SMTP. Works locally; blocked on Railway. */
+const sendViaNodemailerGmail = async ({ to, subject, html, text }) => {
   const { user, pass, configured } = getSmtpConfig();
   if (!configured) {
-    throw new Error('Gmail SMTP credentials are not configured.');
+    throw new Error('EMAIL_USER / EMAIL_PASS are not set.');
   }
 
   const ipv4 = await resolveSmtpIpv4();
-  console.log(`SMTP resolving ${SMTP_HOST} -> ${ipv4} (IPv4)`);
-
   const mailOptions = {
     from: `"DiaBuddy Support" <${user}>`,
     to,
@@ -147,51 +190,52 @@ const sendViaGmailSmtp = async ({ to, subject, html, text }) => {
 
     try {
       const info = await transporter.sendMail(mailOptions);
-      console.log(`📨 Email sent via Gmail ${attempt.label} to ${to}: ${info.messageId}`);
-      return { mock: false, provider: 'gmail-smtp', messageId: info.messageId };
+      console.log(`📨 Email sent via Nodemailer ${attempt.label} to ${to}: ${info.messageId}`);
+      return { mock: false, provider: 'nodemailer-gmail', messageId: info.messageId };
     } catch (err) {
       lastError = err;
-      console.error(`SMTP ${attempt.label} via ${ipv4} failed:`, err.message);
+      console.error(`Nodemailer ${attempt.label} failed:`, err.message);
     } finally {
       transporter.close();
     }
   }
 
-  throw new Error(lastError?.message || 'Gmail SMTP failed');
+  throw new Error(lastError?.message || 'Nodemailer Gmail SMTP failed');
 };
 
-/**
- * Send email.
- * Prefer HTTPS providers on Railway (SMTP ports are blocked there).
- * Order: Resend → Brevo → Gmail SMTP (local only).
- */
 const sendEmail = async ({ to, subject, html, text }) => {
   const payload = { to, subject, html, text };
 
-  if (getResendKey()) {
-    return sendViaResend(payload);
+  // 1) Apps Script — best Railway option without a domain
+  if (getScriptUrl()) {
+    return sendViaGmailScript(payload);
   }
 
+  // 2) Brevo — verify one sender email, no domain DNS
   if (getBrevoKey()) {
     return sendViaBrevo(payload);
   }
 
+  // 3) Resend — needs domain to mail anyone except your own inbox
+  if (getResendKey()) {
+    return sendViaResend(payload);
+  }
+
+  // 4) Nodemailer SMTP — local only
   if (isRailway()) {
-    const msg =
-      'Railway blocks Gmail SMTP (ports 465/587 time out). Set RESEND_API_KEY or BREVO_API_KEY in Railway Variables.';
-    console.error(`\n❌ [EMAIL] ${msg}`);
-    console.error(`Would have sent to: ${to} | ${subject}\n${text || html}\n`);
-    throw new Error(msg);
+    throw new Error(
+      'Railway blocks Nodemailer/Gmail SMTP (ports 465/587). Set GMAIL_SCRIPT_URL (Apps Script) or BREVO_API_KEY — no domain required. See BACKEND/EMAIL_SETUP.md'
+    );
   }
 
   const { configured } = getSmtpConfig();
   if (!configured) {
-    console.error('\n❌ [EMAIL NOT CONFIGURED] Set RESEND_API_KEY, BREVO_API_KEY, or EMAIL_USER/EMAIL_PASS');
-    console.error(`Would have sent to: ${to} | ${subject}\n${text || html}\n`);
-    return { mock: true, message: 'Mock email printed to console' };
+    console.error('[EMAIL] Not configured — printing mock email');
+    console.error(`To: ${to}\nSubject: ${subject}\n${text || html}`);
+    return { mock: true };
   }
 
-  return sendViaGmailSmtp(payload);
+  return sendViaNodemailerGmail(payload);
 };
 
 module.exports = sendEmail;
