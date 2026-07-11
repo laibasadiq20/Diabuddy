@@ -59,32 +59,74 @@ const resolveSmtpIpv4 = async () => {
 
 /** Send via Google Apps Script (HTTPS → GmailApp). No custom domain needed. */
 const sendViaGmailScript = async ({ to, subject, html, text }) => {
-  const url = getScriptUrl();
+  let url = getScriptUrl();
   const secret = getScriptSecret();
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      secret,
-      to,
-      subject,
-      text: text || '',
-      html: html || '',
-    }),
-    redirect: 'follow',
+  // Normalize common mistakes
+  url = url.replace(/\/dev\/?$/, '/exec').replace(/\/+$/, '');
+  if (!url.endsWith('/exec')) {
+    url = `${url}/exec`;
+  }
+
+  if (!url.includes('script.google.com/macros/s/')) {
+    throw new Error(
+      'GMAIL_SCRIPT_URL looks wrong. Use the Web app URL from Deploy → Web app (must look like https://script.google.com/macros/s/.../exec).'
+    );
+  }
+
+  if (!secret) {
+    throw new Error('GMAIL_SCRIPT_SECRET is missing on Railway (must match Script property SECRET).');
+  }
+
+  const payload = JSON.stringify({
+    secret,
+    to,
+    subject,
+    text: text || '',
+    html: html || '',
   });
+  const headers = { 'Content-Type': 'application/json' };
+
+  // Apps Script redirects POST → googleusercontent. Following with redirect:'follow'
+  // turns it into GET and returns a Google Drive "Page Not Found" HTML page.
+  let response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: payload,
+    redirect: 'manual',
+  });
+
+  if ([301, 302, 303, 307, 308].includes(response.status)) {
+    const location = response.headers.get('location');
+    if (!location) {
+      throw new Error('Apps Script returned a redirect without a Location header. Redeploy the Web app.');
+    }
+    response = await fetch(location, {
+      method: 'POST',
+      headers,
+      body: payload,
+      redirect: 'follow',
+    });
+  }
 
   const bodyText = await response.text();
   let data = {};
   try {
     data = JSON.parse(bodyText);
   } catch {
-    data = { raw: bodyText };
+    const looksLikeGoogleHtml =
+      bodyText.includes('Page Not Found') ||
+      bodyText.includes('unable to open the file') ||
+      bodyText.includes('<!DOCTYPE html>');
+    throw new Error(
+      looksLikeGoogleHtml
+        ? 'Apps Script URL is invalid or not deployed as a Web app. In script.google.com: Deploy → Manage deployments → copy the URL ending in /exec (not /dev). Set Who has access = Anyone, then update GMAIL_SCRIPT_URL on Railway.'
+        : `Gmail script returned non-JSON (HTTP ${response.status}).`
+    );
   }
 
   if (!response.ok || data.ok === false) {
-    throw new Error(data.error || data.raw || `Gmail script HTTP ${response.status}`);
+    throw new Error(data.error || `Gmail script HTTP ${response.status}`);
   }
 
   console.log(`📨 Email sent via Gmail Apps Script to ${to}`);

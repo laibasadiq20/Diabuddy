@@ -56,7 +56,11 @@ function doPost(e) {
 4. **Deploy** → **New deployment** → type **Web app**
    - Execute as: **Me**
    - Who has access: **Anyone**
-5. Copy the **Web app URL**
+5. Authorize the app when Google asks
+6. Copy the **Web app URL** — it MUST look like:
+   `https://script.google.com/macros/s/AKfycb.../exec`
+   - Must end with **`/exec`** (not `/dev`)
+   - Do **not** use the editor URL (`script.google.com/home/projects/...`)
 
 ### 2) Add Railway variables
 ```
@@ -65,9 +69,13 @@ GMAIL_SCRIPT_SECRET=diabuddy_mail_7f3a9c
 ```
 (use the same secret as in Script properties)
 
+If you change the script later: **Deploy → Manage deployments → Edit (pencil) → New version → Deploy**, then keep the same URL.
+
 ### 3) Redeploy the backend
 
 OTP / reset emails will send from the Google account that owns the Apps Script.
+
+**If you see "Page Not Found" / Drive HTML in Railway logs:** the URL is wrong or access is not "Anyone". Fix the Web app URL and redeploy Railway.
 
 ---
 
