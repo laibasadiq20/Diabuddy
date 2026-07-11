@@ -59,13 +59,17 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
     if (formData.password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setLoading(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: formData.fullName, email: formData.email, password: formData.password }),
+        signal: controller.signal,
       });
-      const data = await response.json();
+      clearTimeout(timeoutId);
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
         navigate('/verify-otp', { state: { email: formData.email } });
       } else {
@@ -73,7 +77,7 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
       }
     } catch (err) {
       console.error('Register connection error:', err);
-      setError('Connection error. Please try again.');
+      setError(err.name === 'AbortError' ? 'Request timed out. Please try again.' : 'Connection error. Please try again.');
     } finally {
       setLoading(false);
     }

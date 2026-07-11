@@ -3,6 +3,7 @@ const nodemailer = require('nodemailer');
 /**
  * Utility to send email via Gmail SMTP
  * Falls back to console logging if credentials are not configured.
+ * Times out after 12s so auth requests never hang on Railway.
  */
 const sendEmail = async ({ to, subject, html, text }) => {
   const isConfigured =
@@ -21,16 +22,17 @@ const sendEmail = async ({ to, subject, html, text }) => {
     return { mock: true, message: 'Mock email printed to console' };
   }
 
-  // Create transporter
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS, // Needs to be a Gmail App Password
+      pass: process.env.EMAIL_PASS,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 12000,
   });
 
-  // Mail options
   const mailOptions = {
     from: `"DiaBuddy Support" <${process.env.EMAIL_USER}>`,
     to,
@@ -39,8 +41,12 @@ const sendEmail = async ({ to, subject, html, text }) => {
     html,
   };
 
-  // Send mail
-  const info = await transporter.sendMail(mailOptions);
+  const sendPromise = transporter.sendMail(mailOptions);
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Email send timed out')), 12000);
+  });
+
+  const info = await Promise.race([sendPromise, timeoutPromise]);
   console.log(`📨 Real email sent: %s`, info.messageId);
   return info;
 };

@@ -56,6 +56,8 @@ export default function ForgotPassword() {
         setTimeout(() => {
           navigate('/reset-password', { state: { email: normalizedEmail } });
         }, 1400);
+      } else if (response.status === 404) {
+        setError('Reset password is not available on the server yet. Please redeploy the backend.');
       } else {
         setError(data.message || 'Failed to send reset code.');
       }

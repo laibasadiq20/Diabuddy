@@ -1,6 +1,5 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const validateEmail = require('deep-email-validator').validate;
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 
@@ -19,6 +18,8 @@ const generateToken = (id) => {
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
+
+const isValidEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
 
 /**
  * @desc    Register a new user (with email OTP verification)
@@ -47,26 +48,11 @@ const register = async (req, res) => {
       });
     }
 
-    // 2. Syntax / Domain checks on email
-    const localRes = await validateEmail({
-      email,
-      validateRegex: true,
-      validateMx: true,
-      validateTypo: true,
-      validateDisposable: true,
-      validateSMTP: false, // Turned off to avoid local ISP blocks
-    });
-
-    if (!localRes.valid) {
-      let reason = 'Invalid email address or domain name';
-      if (localRes.reason === 'disposable') {
-        reason = 'Disposable/temporary email domains are not allowed';
-      } else if (localRes.reason === 'typo') {
-  reason = `Did you mean ${localRes.validators.typo.reason}?`;
-}
+    // 2. Fast format check only (avoid MX lookups that hang on Railway)
+    if (!isValidEmail(email)) {
       return res.status(400).json({
         status: 'error',
-        message: reason,
+        message: 'Please enter a valid email address',
       });
     }
 
@@ -80,14 +66,19 @@ const register = async (req, res) => {
         userExists.verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
         await userExists.save();
 
-        await sendEmail({
-          to: email,
-          subject: 'DiaBuddy - Verify Your Account',
-          text: `Welcome back to DiaBuddy, ${name}! Your 6-digit verification code is: ${newCode}. It is valid for 15 minutes.`,
-          html: `<h3>Welcome back to DiaBuddy, ${name}!</h3>
-                 <p>Your 6-digit verification code is: <strong>${newCode}</strong></p>
-                 <p>It is valid for 15 minutes.</p>`,
-        });
+        try {
+          await sendEmail({
+            to: email,
+            subject: 'DiaBuddy - Verify Your Account',
+            text: `Welcome back to DiaBuddy, ${name}! Your 6-digit verification code is: ${newCode}. It is valid for 15 minutes.`,
+            html: `<h3>Welcome back to DiaBuddy, ${name}!</h3>
+                   <p>Your 6-digit verification code is: <strong>${newCode}</strong></p>
+                   <p>It is valid for 15 minutes.</p>`,
+          });
+        } catch (emailErr) {
+          console.error('Resend verification email failed:', emailErr.message);
+          console.log(`[OTP FALLBACK] ${email} => ${newCode}`);
+        }
 
         return res.status(200).json({
           status: 'success',
@@ -144,16 +135,21 @@ const register = async (req, res) => {
       verificationCodeExpires: otpExpiry,
     });
 
-    // 8. Send Verification Email
-    await sendEmail({
-      to: email,
-      subject: 'DiaBuddy - Verify Your Account',
-      text: `Welcome to DiaBuddy, ${name}! Your 6-digit verification code is: ${otpCode}. It is valid for 15 minutes.`,
-      html: `<h3>Welcome to DiaBuddy, ${name}!</h3>
-             <p>Thank you for signing up. Please enter the following 6-digit verification code to complete your registration:</p>
-             <p style="font-size: 24px; font-weight: bold; letter-spacing: 2px;">${otpCode}</p>
-             <p>This code is valid for 15 minutes.</p>`,
-    });
+    // 8. Send Verification Email (do not fail registration if SMTP hangs)
+    try {
+      await sendEmail({
+        to: email,
+        subject: 'DiaBuddy - Verify Your Account',
+        text: `Welcome to DiaBuddy, ${name}! Your 6-digit verification code is: ${otpCode}. It is valid for 15 minutes.`,
+        html: `<h3>Welcome to DiaBuddy, ${name}!</h3>
+               <p>Thank you for signing up. Please enter the following 6-digit verification code to complete your registration:</p>
+               <p style="font-size: 24px; font-weight: bold; letter-spacing: 2px;">${otpCode}</p>
+               <p>This code is valid for 15 minutes.</p>`,
+      });
+    } catch (emailErr) {
+      console.error('Verification email failed (user still created):', emailErr.message);
+      console.log(`[OTP FALLBACK] ${email} => ${otpCode}`);
+    }
 
     // 9. Return response
     return res.status(201).json({
@@ -470,14 +466,19 @@ const forgotPassword = async (req, res) => {
     user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
     await user.save();
 
-    await sendEmail({
-      to: email,
-      subject: 'DiaBuddy - Password Reset Code',
-      text: `Your password reset code is: ${resetCode}. It is valid for 15 minutes.`,
-      html: `<h3>Password reset</h3>
-             <p>Your 6-digit reset code is: <strong>${resetCode}</strong></p>
-             <p>It is valid for 15 minutes. If you did not request this, you can ignore this email.</p>`,
-    });
+    try {
+      await sendEmail({
+        to: email,
+        subject: 'DiaBuddy - Password Reset Code',
+        text: `Your password reset code is: ${resetCode}. It is valid for 15 minutes.`,
+        html: `<h3>Password reset</h3>
+               <p>Your 6-digit reset code is: <strong>${resetCode}</strong></p>
+               <p>It is valid for 15 minutes. If you did not request this, you can ignore this email.</p>`,
+      });
+    } catch (emailErr) {
+      console.error('Reset email failed:', emailErr.message);
+      console.log(`[RESET OTP FALLBACK] ${email} => ${resetCode}`);
+    }
 
     return res.json({
       status: 'success',
