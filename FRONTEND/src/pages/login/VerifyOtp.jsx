@@ -18,7 +18,7 @@ export default function VerifyOtp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300);
+  const [timeLeft, setTimeLeft] = useState(30);
   const [resending, setResending] = useState(false);
   const inputRefs = useRef([]);
 
@@ -105,7 +105,7 @@ const payload = {
         });
         const data = await response.json();
         if (response.ok) {
-          setTimeLeft(300);
+          setTimeLeft(30);
           setOtp(['', '', '', '', '', '']);
           inputRefs.current[0]?.focus();
         } else {
@@ -123,7 +123,7 @@ const payload = {
 });
         const data = await response.json();
         if (response.ok) {
-          setTimeLeft(300);
+          setTimeLeft(30);
           setOtp(['', '', '', '', '', '']);
           inputRefs.current[0]?.focus();
         } else {
