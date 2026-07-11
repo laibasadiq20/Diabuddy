@@ -92,8 +92,11 @@ const sendViaGmailScript = async ({ to, subject, html, text }) => {
     'User-Agent': 'DiaBuddy-Backend/1.0',
   };
 
-  // Apps Script redirects POST → googleusercontent. Following with redirect:'follow'
-  // turns it into GET and returns a Google Drive HTML error page.
+  // Apps Script flow:
+  // 1) POST to .../exec  (doPost runs here, email is sent)
+  // 2) Google responds 302 → script.googleusercontent.com/macros/echo?...
+  // 3) GET that Location to read the JSON result
+  // Re-POSTing the echo URL returns 405 and breaks everything.
   let response = await fetch(url, {
     method: 'POST',
     headers,
@@ -101,10 +104,9 @@ const sendViaGmailScript = async ({ to, subject, html, text }) => {
     redirect: 'manual',
   });
 
-  // 401 HTML = Web app access is not "Anyone" (anonymous)
   if (response.status === 401) {
     throw new Error(
-      'Google Apps Script returned 401. Open script.google.com → Deploy → Manage deployments → Edit: set Who has access to "Anyone" (not "Anyone with a Google account"), Execute as "Me", then New version → Deploy, click Authorize, and update GMAIL_SCRIPT_URL if it changed.'
+      'Google Apps Script returned 401. Deploy → Manage deployments → Who has access must be "Anyone" (not "Anyone with a Google account"), then New version + Authorize.'
     );
   }
 
@@ -114,10 +116,9 @@ const sendViaGmailScript = async ({ to, subject, html, text }) => {
       throw new Error('Apps Script returned a redirect without a Location header. Redeploy the Web app.');
     }
     response = await fetch(location, {
-      method: 'POST',
-      headers,
-      body: payload,
+      method: 'GET',
       redirect: 'follow',
+      headers: { 'User-Agent': 'DiaBuddy-Backend/1.0' },
     });
   }
 
@@ -134,7 +135,7 @@ const sendViaGmailScript = async ({ to, subject, html, text }) => {
   } catch {
     const snippet = bodyText.replace(/\s+/g, ' ').slice(0, 120);
     throw new Error(
-      `Apps Script did not return JSON (HTTP ${response.status}). Usually wrong access setting or old deployment. Body starts with: ${snippet}`
+      `Apps Script did not return JSON (HTTP ${response.status}). Body starts with: ${snippet}`
     );
   }
 
