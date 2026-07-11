@@ -28,8 +28,10 @@ console.log('__dirname:', __dirname);
 console.log('MONGO_URI =', process.env.MONGO_URI ? 'Loaded ✅' : 'Missing ❌');
 console.log('JWT_SECRET =', process.env.JWT_SECRET ? 'Loaded ✅' : 'Missing ❌');
 console.log(
-  'EMAIL SMTP =',
-  require('./utils/sendEmail').isEmailConfigured() ? 'Configured ✅' : 'Missing ❌ (set EMAIL_USER + EMAIL_PASS on Railway)'
+  'EMAIL =',
+  require('./utils/sendEmail').isEmailConfigured()
+    ? `Configured ✅ (${process.env.RESEND_API_KEY ? 'Resend' : process.env.BREVO_API_KEY ? 'Brevo' : 'Gmail SMTP'})`
+    : 'Missing ❌ (on Railway set RESEND_API_KEY or BREVO_API_KEY)'
 );
 
 // Connect to MongoDB then seed defaults
