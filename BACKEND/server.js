@@ -20,6 +20,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const seedTopics = require('./seedTopics');
+const seedForumPosts = require('./seedForumPosts');
 
 const app = express();
 
@@ -43,7 +44,12 @@ console.log(
 );
 
 // Connect to MongoDB then seed defaults
-connectDB().then(() => seedTopics()).catch(err => console.error('DB/Seed error:', err));
+connectDB()
+  .then(async () => {
+    await seedTopics();
+    await seedForumPosts();
+  })
+  .catch(err => console.error('DB/Seed error:', err));
 
 
 // Middleware
