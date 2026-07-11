@@ -5,6 +5,7 @@ const {
   verifyEmail,
   resendVerificationCode,
   login,
+  logout,
   getMe,
   searchUsers,
   forgotPassword,
@@ -23,6 +24,9 @@ router.post('/resend-code', resendVerificationCode);
 
 // Login route (public)
 router.post('/login', login);
+
+// Logout (clears cookie)
+router.post('/logout', logout);
 
 // Password reset (public)
 router.post('/forgot-password', forgotPassword);

@@ -3,9 +3,21 @@ import { API_URL } from "../config/api";
 
 const AuthContext = createContext();
 
+const normalizeUser = (raw) => {
+  if (!raw) return null;
+  const id = raw._id || raw.id;
+  return {
+    ...raw,
+    _id: id,
+    id,
+  };
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUserState] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const setUser = (raw) => setUserState(normalizeUser(raw));
 
   const fetchUser = async () => {
     try {
@@ -14,14 +26,17 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (!res.ok) {
-        setUser(null);
-        return;
+        setUserState(null);
+        return null;
       }
 
       const data = await res.json();
-      setUser(data.data);
+      const normalized = normalizeUser(data.data);
+      setUserState(normalized);
+      return normalized;
     } catch (err) {
-      setUser(null);
+      setUserState(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -37,10 +52,10 @@ export const AuthProvider = ({ children }) => {
         method: "POST",
         credentials: "include",
       });
-
-      setUser(null);
     } catch (err) {
       console.log(err);
+    } finally {
+      setUserState(null);
     }
   };
 

@@ -9,7 +9,7 @@ const t = theme;
 export default function VerifyOtp() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { fetchUser } = useAuth();
+  const { fetchUser, setUser } = useAuth();
   const email = location.state?.email || '';
   const isLoginFlow = location.state?.mode === 'login';
   const password = location.state?.password || '';
@@ -18,7 +18,8 @@ export default function VerifyOtp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [resendLeft, setResendLeft] = useState(30);
+  const [expireLeft, setExpireLeft] = useState(5 * 60);
   const [resending, setResending] = useState(false);
   const inputRefs = useRef([]);
 
@@ -27,10 +28,16 @@ export default function VerifyOtp() {
 }, []);
 
   useEffect(() => {
-    if (timeLeft <= 0) return;
-    const timer = setTimeout(() => setTimeLeft(tm => tm - 1), 1000);
+    if (resendLeft <= 0) return;
+    const timer = setTimeout(() => setResendLeft((t) => t - 1), 1000);
     return () => clearTimeout(timer);
-  }, [timeLeft]);
+  }, [resendLeft]);
+
+  useEffect(() => {
+    if (expireLeft <= 0) return;
+    const timer = setTimeout(() => setExpireLeft((t) => t - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [expireLeft]);
 
   const handleChange = (value, index) => {
     if (!/^\d?$/.test(value)) return;
@@ -78,7 +85,10 @@ const payload = {
       const data = await response.json();
       if (response.ok) {
         setSuccess(true);
-        await fetchUser();   // hydrate AuthContext so Navbar shows avatar
+        if (data?.data) {
+          setUser(data.data);
+        }
+        await fetchUser();
         setTimeout(() => {
           navigate('/dashboard');
         }, 1500);
@@ -105,7 +115,8 @@ const payload = {
         });
         const data = await response.json();
         if (response.ok) {
-          setTimeLeft(30);
+          setResendLeft(30);
+          setExpireLeft(5 * 60);
           setOtp(['', '', '', '', '', '']);
           inputRefs.current[0]?.focus();
         } else {
@@ -123,7 +134,8 @@ const payload = {
 });
         const data = await response.json();
         if (response.ok) {
-          setTimeLeft(30);
+          setResendLeft(30);
+          setExpireLeft(5 * 60);
           setOtp(['', '', '', '', '', '']);
           inputRefs.current[0]?.focus();
         } else {
@@ -254,9 +266,9 @@ const payload = {
 
                 {/* Timer - Compact */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginBottom: '16px' }}>
-                  <Clock size={12} color={timeLeft <= 60 ? '#8B0000' : '#333333'} />
-                  <span style={{ fontSize: '12px', color: timeLeft <= 60 ? '#8B0000' : '#333333', fontWeight: '600' }}>
-                    Code expires in {formatTime(timeLeft)}
+                  <Clock size={12} color={expireLeft <= 60 ? '#8B0000' : '#333333'} />
+                  <span style={{ fontSize: '12px', color: expireLeft <= 60 ? '#8B0000' : '#333333', fontWeight: '600' }}>
+                    Code expires in {formatTime(expireLeft)}
                   </span>
                 </div>
 
@@ -286,17 +298,17 @@ const payload = {
                 <p style={{ color: '#333333', fontSize: '11px', marginBottom: '8px', fontWeight: '500' }}>Didn't receive it?</p>
                 <button
                   onClick={handleResend}
-                  disabled={timeLeft > 0 || resending}
+                  disabled={resendLeft > 0 || resending}
                   style={{
-                    background: 'none', border: 'none', cursor: timeLeft > 0 ? 'not-allowed' : 'pointer',
-                    color: timeLeft > 0 ? '#999999' : t.sageDeep,
+                    background: 'none', border: 'none', cursor: resendLeft > 0 ? 'not-allowed' : 'pointer',
+                    color: resendLeft > 0 ? '#999999' : t.sageDeep,
                     fontSize: '12px', fontWeight: '700',
                     display: 'inline-flex', alignItems: 'center', gap: '5px',
                     fontFamily: 'inherit', padding: 0,
                   }}
                 >
                   <RefreshCw size={12} className={resending ? 'animate-spin' : ''} />
-                  {timeLeft > 0 ? `Resend in ${formatTime(timeLeft)}` : resending ? 'Sending…' : 'Resend code'}
+                  {resendLeft > 0 ? `Resend in ${formatTime(resendLeft)}` : resending ? 'Sending…' : 'Resend code'}
                 </button>
               </div>
 

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
 import { API_URL } from '../../config/api';
 import { 
   MessageSquare, 
@@ -295,36 +294,37 @@ export default function Messages() {
   const activeConv = conversations.find(c => c._id === activeConvId);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: t.bg }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#F4F1EC', overflow: 'hidden' }}>
       <Navbar />
       
-      <main style={{ flexGrow: 1, paddingTop: '90px', paddingBottom: '30px', fontFamily: t.fontBody }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', height: 'calc(100vh - 160px)', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flexGrow: 1, paddingTop: '76px', fontFamily: t.fontBody, minHeight: 0, display: 'flex' }}>
+        <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           
-          {/* Main Card Wrapper */}
+          {/* App-like DM shell — edge to edge under navbar */}
           <div style={{
             background: t.surface,
-            border: `1.5px solid ${t.line}`,
-            borderRadius: '24px',
-            boxShadow: t.shadowCard,
+            borderTop: `1px solid ${t.line}`,
             flexGrow: 1,
             display: 'flex',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            minHeight: 0,
           }}>
             
             {/* Sidebar (Left column) */}
             <div style={{ 
-              width: '320px', 
-              borderRight: `1.5px solid ${t.line}`, 
+              width: '340px', 
+              maxWidth: '40%',
+              borderRight: `1px solid ${t.line}`, 
               display: 'flex', 
               flexDirection: 'column',
-              background: t.surfaceRaised
+              background: '#FAF8F5',
+              minHeight: 0,
             }}>
               
               {/* Header inside sidebar */}
-              <div style={{ padding: '20px', borderBottom: `1.5px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: '700', color: t.ink, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MessageSquare size={18} color={t.sageDeep} /> Direct Messages
+              <div style={{ padding: '16px 18px', borderBottom: `1px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                <h2 style={{ fontSize: '17px', fontWeight: '700', color: t.ink, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontFamily: t.fontDisplay }}>
+                  Messages
                 </h2>
                 
                 <button
@@ -333,17 +333,17 @@ export default function Messages() {
                     setModalOpen(true);
                   }}
                   style={{
-                    background: t.sageTint,
-                    border: `1.5px solid ${t.sage}30`,
-                    borderRadius: '8px',
-                    padding: '6px 10px',
+                    background: t.sageDeep,
+                    border: 'none',
+                    borderRadius: '999px',
+                    padding: '8px 12px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
                     fontSize: '12px',
                     fontWeight: '600',
-                    color: t.sageDeep
+                    color: '#fff'
                   }}
                 >
                   <UserPlus size={14} /> New
@@ -867,8 +867,6 @@ export default function Messages() {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }

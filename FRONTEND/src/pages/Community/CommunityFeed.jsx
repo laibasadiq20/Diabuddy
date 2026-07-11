@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
 import { API_URL } from '../../config/api';
 import { 
   Search, 
@@ -139,130 +138,98 @@ export default function CommunityFeed() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: t.bg }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, #F7F3EC 0%, #EFE8DF 100%)' }}>
       <Navbar />
       
-      <main style={{ flexGrow: 1, paddingTop: '100px', paddingBottom: '60px', fontFamily: t.fontBody }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px' }}>
+      <main style={{ flexGrow: 1, paddingTop: '96px', paddingBottom: '80px', fontFamily: t.fontBody }}>
+        <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '0 24px' }}>
           
-          {/* Forum Header Banner */}
+          {/* Forum Header */}
           <div style={{ 
-            background: 'linear-gradient(135deg, #27392E 0%, #162119 100%)',
-            borderRadius: '24px',
-            padding: '36px 32px',
-            color: '#FFFFFF',
-            marginBottom: '32px',
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: t.shadowLifted
+            marginBottom: '28px',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            gap: '20px',
+            flexWrap: 'wrap',
           }}>
-            <div style={{ position: 'relative', zIndex: 2 }}>
-              <div style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '8px', 
-                background: 'rgba(255,255,255,0.1)', 
-                padding: '6px 12px', 
-                borderRadius: '20px',
+            <div>
+              <p style={{ 
+                margin: '0 0 8px',
                 fontSize: '12px',
-                fontWeight: '600',
-                letterSpacing: '1px',
+                fontWeight: 600,
+                letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: t.sageSoft,
-                marginBottom: '16px'
+                color: t.sageDeep,
               }}>
-                <FolderOpen size={13} /> DiaBuddy Support Network
-              </div>
-              <h1 style={{ fontFamily: t.fontDisplay, fontSize: '38px', margin: 0, fontWeight: '500' }}>
-                DiaBuddy Community Forum
+                Community
+              </p>
+              <h1 style={{ fontFamily: t.fontDisplay, fontSize: 'clamp(28px, 4vw, 40px)', margin: 0, fontWeight: 500, color: t.ink, letterSpacing: '-0.02em' }}>
+                Forum
               </h1>
-              <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '15px', marginTop: '8px', margin: '8px 0 0 0', maxWidth: '600px', lineHeight: '1.5' }}>
-                A respectful, secure space to exchange medical questions, lifestyle logs, recipes, and personal tips for diabetes management.
+              <p style={{ color: t.inkSoft, fontSize: '15px', margin: '8px 0 0', maxWidth: '480px', lineHeight: 1.55 }}>
+                Ask questions, share routines, and learn with people who get it.
               </p>
             </div>
-            
-            {/* Background design elements */}
-            <div style={{ 
-              position: 'absolute', 
-              right: '-10%', 
-              bottom: '-20%', 
-              width: '300px', 
-              height: '300px', 
-              background: 'radial-gradient(circle, rgba(124, 148, 112, 0.2) 0%, transparent 70%)',
-              borderRadius: '50%'
-            }} />
+            <button 
+              onClick={() => navigate('/community/new-post')}
+              style={{
+                background: t.sageDeep,
+                color: '#FFF',
+                border: 'none',
+                borderRadius: '999px',
+                padding: '12px 20px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 10px 24px rgba(61, 90, 64, 0.22)',
+              }}
+            >
+              <PlusCircle size={16} /> New post
+            </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px', gridTemplateRows: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
             
-            {/* Columns Layout */}
-            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '32px', alignItems: 'start' }} className="db-responsive-grid">
+            <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '28px', alignItems: 'start' }} className="db-responsive-grid">
               
-              {/* Left Column: Topics Sidebar */}
-              <aside style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                
-                <button 
-                  onClick={() => navigate('/community/new-post')}
-                  style={{
-                    background: t.sageDeep,
-                    color: '#FFF',
-                    border: 'none',
-                    borderRadius: '14px',
-                    padding: '14px 20px',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    boxShadow: t.shadowCard,
-                    transition: 'transform 0.2s',
-                    width: '100%'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                >
-                  <PlusCircle size={16} /> Compose New Post
-                </button>
-
+              {/* Left Column: Topics */}
+              <aside style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '100px' }}>
                 <div style={{ 
-                  background: t.surface, 
-                  borderRadius: '20px', 
-                  padding: '24px', 
-                  border: `1.5px solid ${t.line}`,
-                  boxShadow: t.shadowCard
+                  background: 'rgba(255,255,255,0.72)', 
+                  borderRadius: '18px', 
+                  padding: '18px', 
+                  border: `1px solid ${t.line}`,
                 }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: '700', color: t.ink, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 16px 0', borderBottom: `1px solid ${t.line}`, paddingBottom: '10px' }}>
-                    Discussion Topics
+                  <h3 style={{ fontSize: '12px', fontWeight: 700, color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>
+                    Topics
                   </h3>
                   
                   {loading ? (
                     <div style={{ padding: '20px 0', textAlign: 'center', color: t.inkFaint }}><RefreshCw className="animate-spin" size={20} style={{ margin: '0 auto' }} /></div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <button 
                         onClick={() => handleTopicSelect('')}
                         style={{
-                          background: selectedTopic === '' ? t.surfaceSunken : 'none',
+                          background: selectedTopic === '' ? t.sageTint : 'transparent',
                           border: 'none',
                           borderRadius: '10px',
                           padding: '10px 12px',
                           textAlign: 'left',
-                          fontSize: '14px',
-                          fontWeight: selectedTopic === '' ? '600' : '500',
-                          color: selectedTopic === '' ? t.ink : t.inkSoft,
+                          fontSize: '13px',
+                          fontWeight: selectedTopic === '' ? 600 : 500,
+                          color: selectedTopic === '' ? t.sageDeep : t.inkSoft,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          transition: 'all 0.2s'
                         }}
                       >
-                        <span>🌐 All categories</span>
-                        <span style={{ fontSize: '11px', background: t.lineStrong, padding: '2px 6px', borderRadius: '10px', color: t.inkSoft }}>
-                          {posts.length ? `${posts.length}+` : '0'}
-                        </span>
+                        <span>All</span>
                       </button>
                       
                       {topics.map(topic => (
@@ -270,26 +237,25 @@ export default function CommunityFeed() {
                           key={topic._id}
                           onClick={() => handleTopicSelect(topic._id)}
                           style={{
-                            background: selectedTopic === topic._id ? t.surfaceSunken : 'none',
+                            background: selectedTopic === topic._id ? t.sageTint : 'transparent',
                             border: 'none',
                             borderRadius: '10px',
                             padding: '10px 12px',
                             textAlign: 'left',
-                            fontSize: '14px',
-                            fontWeight: selectedTopic === topic._id ? '600' : '500',
-                            color: selectedTopic === topic._id ? t.ink : t.inkSoft,
+                            fontSize: '13px',
+                            fontWeight: selectedTopic === topic._id ? 600 : 500,
+                            color: selectedTopic === topic._id ? t.sageDeep : t.inkSoft,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            transition: 'all 0.2s',
                           }}
                         >
                           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: topic.color || t.sage }} />
+                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: topic.color || t.sage }} />
                             {topic.name}
                           </span>
-                          <span style={{ fontSize: '11px', background: t.lineStrong, padding: '2px 6px', borderRadius: '10px', color: t.inkSoft }}>
+                          <span style={{ fontSize: '11px', color: t.inkFaint }}>
                             {topic.postsCount || 0}
                           </span>
                         </button>
@@ -299,45 +265,39 @@ export default function CommunityFeed() {
                 </div>
               </aside>
               
-              {/* Right Column: Search, Filter, Posts List */}
-              <section style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Right Column */}
+              <section style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 
-                {/* Search & Sort Panel */}
                 <div style={{ 
-                  background: t.surface, 
-                  borderRadius: '20px', 
-                  padding: '18px 24px', 
-                  border: `1.5px solid ${t.line}`,
-                  boxShadow: t.shadowCard,
+                  background: 'rgba(255,255,255,0.8)', 
+                  borderRadius: '16px', 
+                  padding: '12px 14px', 
+                  border: `1px solid ${t.line}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '16px',
+                  gap: '12px',
                   flexWrap: 'wrap'
                 }}>
-                  {/* Search Form */}
-                  <form onSubmit={handleSearchSubmit} style={{ flexGrow: 1, position: 'relative', minWidth: '240px' }}>
-                    <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: t.inkFaint }} />
+                  <form onSubmit={handleSearchSubmit} style={{ flexGrow: 1, position: 'relative', minWidth: '220px' }}>
+                    <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: t.inkFaint }} />
                     <input 
                       type="text" 
                       value={searchInputValue}
                       onChange={e => setSearchInputValue(e.target.value)}
-                      placeholder="Search discussions, tags, titles..."
+                      placeholder="Search discussions..."
                       style={{
                         width: '100%',
                         boxSizing: 'border-box',
-                        padding: '10px 16px 10px 40px',
+                        padding: '10px 14px 10px 36px',
                         background: t.bg,
-                        border: `1.5px solid ${t.line}`,
+                        border: `1px solid ${t.line}`,
                         borderRadius: '12px',
-                        fontSize: '14px',
+                        fontSize: '13px',
                         color: t.ink,
                         outline: 'none',
-                        transition: 'all 0.2s',
                         fontFamily: t.fontBody
                       }}
-                      onFocus={e => e.target.style.borderColor = t.sageDeep}
-                      onBlur={e => e.target.style.borderColor = t.line}
                     />
                   </form>
                   
@@ -345,7 +305,7 @@ export default function CommunityFeed() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Filter size={14} color={t.inkSoft} />
                     <span style={{ fontSize: '13px', color: t.inkSoft, fontWeight: '500' }}>Sort:</span>
-                    <div style={{ display: 'flex', background: t.bg, padding: '4px', borderRadius: '10px', border: `1.5px solid ${t.line}` }}>
+                    <div style={{ display: 'flex', background: t.bg, padding: '4px', borderRadius: '10px', border: `1px solid ${t.line}` }}>
                       {[
                         ['latest', 'Latest'],
                         ['most_commented', 'Activity'],
@@ -402,7 +362,7 @@ export default function CommunityFeed() {
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {posts.map(post => {
                       const postTopicColor = post.topicId?.color || t.sage;
                       const hasBestAnswer = !!post.bestAnswerCommentId;
@@ -412,23 +372,24 @@ export default function CommunityFeed() {
                           key={post._id}
                           onClick={() => navigate(`/community/posts/${post._id}`)}
                           style={{
-                            background: t.surface,
-                            border: `1.5px solid ${t.line}`,
-                            borderRadius: '20px',
-                            padding: '24px',
-                            boxShadow: t.shadowCard,
+                            background: 'rgba(255,255,255,0.88)',
+                            border: `1px solid ${t.line}`,
+                            borderRadius: '16px',
+                            padding: '20px 22px',
                             cursor: 'pointer',
-                            transition: 'all 0.2s',
+                            transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
                             position: 'relative',
                             overflow: 'hidden'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = t.sage;
+                            e.currentTarget.style.borderColor = `${t.sage}66`;
                             e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 14px 30px rgba(55,45,35,0.08)';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.borderColor = t.line;
                             e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = 'none';
                           }}
                         >
                           {/* Thread badges (Pin, Lock, Best Answer) */}
@@ -624,8 +585,6 @@ export default function CommunityFeed() {
           
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

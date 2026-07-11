@@ -20,6 +20,25 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const setAuthCookie = (res, token) => {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+};
+
+const clearAuthCookie = (res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+  });
+};
+
 const isValidEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
 
 /**
@@ -72,7 +91,7 @@ const register = async (req, res) => {
       if (!userExists.isVerified) {
         const newCode = generateOTP();
         userExists.verificationCode = newCode;
-        userExists.verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+        userExists.verificationCodeExpires = new Date(Date.now() + OTP_TTL_MS); // 5 mins
         await userExists.save();
 
         await sendEmail({
@@ -115,7 +134,7 @@ const register = async (req, res) => {
 
     // 6. Generate Verification OTP code
     const otpCode = generateOTP();
-    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
+    const otpExpiry = new Date(Date.now() + OTP_TTL_MS); // 5 minutes expiry
 
     // 7. Create user (unverified by default)
     const newUser = await User.create({
@@ -226,15 +245,19 @@ const verifyEmail = async (req, res) => {
     user.verificationCodeExpires = null;
     await user.save();
 
+    const token = generateToken(user._id);
+    setAuthCookie(res, token);
+
     return res.json({
       status: 'success',
       message: 'Email verified successfully. You can now log in.',
       data: {
         _id: user._id,
+        id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
-        token: generateToken(user._id), // Return JWT directly after verification
+        token,
       },
     });
   } catch (err) {
@@ -280,7 +303,7 @@ const resendVerificationCode = async (req, res) => {
     // Generate new OTP
     const newCode = generateOTP();
     user.verificationCode = newCode;
-    user.verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    user.verificationCodeExpires = new Date(Date.now() + OTP_TTL_MS); // 5 mins
     await user.save();
 
     // Send code
@@ -348,30 +371,24 @@ const login = async (req, res) => {
       });
     }
 
-    // 4. Return user profile and token
     const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
-res.cookie("token", token, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none",
-  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-});
-
-return res.json({
-  status: 'success',
-  message: 'Login successful',
-  data: {
-    user: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      glucoseUnit: user.glucoseUnit,
-      targetRanges: user.targetRanges,
-    }
-  }
-});
+    return res.json({
+      status: 'success',
+      message: 'Login successful',
+      data: {
+        user: {
+          _id: user._id,
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          glucoseUnit: user.glucoseUnit,
+          targetRanges: user.targetRanges,
+        }
+      }
+    });
   } catch (err) {
     console.error('Login error:', err);
     return res.status(500).json({
@@ -389,10 +406,14 @@ return res.json({
  */
 const getMe = async (req, res) => {
   try {
-    // req.user is set by authentication middleware
+    const u = req.user.toObject ? req.user.toObject() : req.user;
     return res.json({
       status: 'success',
-      data: req.user,
+      data: {
+        ...u,
+        id: u._id,
+        _id: u._id,
+      },
     });
   } catch (err) {
     console.error('Profile fetch error:', err);
@@ -401,6 +422,19 @@ const getMe = async (req, res) => {
       message: 'Server error fetching user profile',
     });
   }
+};
+
+/**
+ * @desc    Logout — clear auth cookie
+ * @route   POST /api/auth/logout
+ * @access  Public
+ */
+const logout = async (req, res) => {
+  clearAuthCookie(res);
+  return res.json({
+    status: 'success',
+    message: 'Logged out',
+  });
 };
 
 /**
@@ -474,7 +508,7 @@ const forgotPassword = async (req, res) => {
 
     const resetCode = generateOTP();
     user.resetPasswordCode = resetCode;
-    user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
+    user.resetPasswordExpires = new Date(Date.now() + OTP_TTL_MS);
     await user.save();
 
     await sendEmail({
@@ -571,6 +605,7 @@ module.exports = {
   verifyEmail,
   resendVerificationCode,
   login,
+  logout,
   getMe,
   searchUsers,
   forgotPassword,

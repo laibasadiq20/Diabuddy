@@ -36,7 +36,7 @@ function doPost(e) {
 
     GmailApp.sendEmail(data.to, data.subject, data.text || '', {
       htmlBody: data.html || data.text || '',
-      name: 'DiaBuddy Support',
+      name: 'DiaBuddy',
     });
 
     return ContentService

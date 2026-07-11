@@ -38,7 +38,7 @@ export default function LoginFormContent({
   onForgotPassword,
   onSwitchToRegister,
 }) {
-  const { fetchUser } = useAuth();
+  const { fetchUser, setUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -79,7 +79,10 @@ export default function LoginFormContent({
       console.log('Login response:', data);
 
       if (response.ok) {
-        await fetchUser();   // ← hydrate AuthContext so Navbar shows avatar
+        if (data?.data?.user) {
+          setUser(data.data.user);
+        }
+        await fetchUser();
         navigate('/dashboard');
       } else {
         setError(data.message || 'Login failed. Check your credentials.');
