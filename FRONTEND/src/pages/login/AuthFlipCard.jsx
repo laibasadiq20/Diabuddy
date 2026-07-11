@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/Logo';
 import OrganicBackdrop from '../../components/OrganicBackdrop';
@@ -25,7 +25,17 @@ const t = theme;
 export default function AuthFlipCard({ startFlipped = false }) {
   const [isFlipped, setIsFlipped] = useState(startFlipped);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [cardHeight, setCardHeight] = useState('auto');
+  const frontRef = useRef(null);
+  const backRef = useRef(null);
   const navigate = useNavigate();
+
+  const syncCardHeight = () => {
+    const el = isFlipped ? backRef.current : frontRef.current;
+    if (el) {
+      setCardHeight(`${el.offsetHeight}px`);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -33,6 +43,18 @@ export default function AuthFlipCard({ startFlipped = false }) {
       navigate('/dashboard');
     }
   }, [navigate]);
+
+  useEffect(() => {
+    syncCardHeight();
+    const front = frontRef.current;
+    const back = backRef.current;
+    if (!front || !back || typeof ResizeObserver === 'undefined') return undefined;
+
+    const observer = new ResizeObserver(() => syncCardHeight());
+    observer.observe(front);
+    observer.observe(back);
+    return () => observer.disconnect();
+  }, [isFlipped]);
 
   const goToRegister = () => {
     setHasInteracted(true);
@@ -84,10 +106,11 @@ export default function AuthFlipCard({ startFlipped = false }) {
           <div className="flip-perspective w-full">
             <div
               className={`flip-card-inner${isFlipped ? ' is-flipped' : ''}${!hasInteracted ? ' flip-no-transition' : ''}`}
-              style={{ minHeight: '600px' }}
+              style={{ height: cardHeight === 'auto' ? undefined : cardHeight, minHeight: cardHeight === 'auto' ? '520px' : undefined }}
             >
               {/* Front face — Login - Sage Green */}
               <div
+                ref={frontRef}
                 className="flip-face flip-face-front"
                 style={{
                   background: 'linear-gradient(145deg, #C9D3C4 0%, #E7EFE2 50%, #F1F5EE 100%)',
@@ -106,6 +129,7 @@ export default function AuthFlipCard({ startFlipped = false }) {
 
               {/* Back face — Register - Butter Yellow */}
               <div
+                ref={backRef}
                 className="flip-face flip-face-back"
                 style={{
                   background: 'linear-gradient(145deg, #f1eee4 0%, #e8e5dd 30%, #e7eac5 100%)',

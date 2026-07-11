@@ -113,11 +113,11 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
         Start managing your diabetes
       </p>
 
-      {error && (
+      {error ? (
         <div style={{ background: t.clayTint, border: `1px solid ${t.clay}35`, borderRadius: '8px', padding: '6px 12px', marginBottom: '12px', color: t.clayDeep, fontSize: '11px' }}>
           {error}
         </div>
-      )}
+      ) : null}
 
       <form onSubmit={handleSubmit}>
         <Field label="Full name" icon={User}>

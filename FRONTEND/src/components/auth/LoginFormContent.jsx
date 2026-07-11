@@ -340,7 +340,7 @@ export default function LoginFormContent({
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          margin: '28px 0',
+          margin: '20px 0',
         }}
       >
         <div
@@ -406,7 +406,8 @@ export default function LoginFormContent({
           color: t.inkFaint,
           fontSize: '12px',
           textAlign: 'center',
-          marginTop: '24px',
+          marginTop: '16px',
+          marginBottom: 0,
         }}
       >
         By signing in you agree to our{' '}
