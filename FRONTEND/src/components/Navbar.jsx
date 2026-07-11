@@ -107,12 +107,27 @@ const learnLinks = [
   ))}
 
   {user && (
-    <button
-      onClick={() => navigate('/dashboard')}
-      className="text-sm text-[#5C524B] hover:text-black font-semibold transition"
-    >
-      Dashboard
-    </button>
+    <>
+      <button
+        onClick={() => navigate('/dashboard')}
+        className="text-sm text-[#5C524B] hover:text-black font-semibold transition"
+      >
+        Dashboard
+      </button>
+      <button
+        onClick={() => navigate('/messages')}
+        className="text-sm text-[#2F2A25] hover:text-black font-semibold transition inline-flex items-center gap-1.5"
+      >
+        <span aria-hidden>💬</span>
+        Messages
+      </button>
+      <button
+        onClick={() => navigate('/account')}
+        className="text-sm text-[#5C524B] hover:text-black font-semibold transition"
+      >
+        Account
+      </button>
+    </>
   )}
 
   {/* Learn Dropdown */}
@@ -159,14 +174,22 @@ const learnLinks = [
               </button>
             )}
 
-            {/* PROFILE ICON (only if logged in) */}
             {user && (
-              <button
-                onClick={() => setProfileOpen(true)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white"
-              >
-                {user?.name?.charAt(0).toUpperCase()}
-              </button>
+              <>
+                <button
+                  onClick={() => navigate('/messages')}
+                  className="hidden md:inline-flex items-center gap-2 rounded-full bg-[#27392E] px-3.5 py-2 text-sm font-semibold text-white hover:bg-[#162119] transition"
+                >
+                  Messages
+                </button>
+                <button
+                  onClick={() => setProfileOpen(true)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#27392E] text-white"
+                  title={user?.name || 'Profile'}
+                >
+                  {user?.name?.charAt(0).toUpperCase()}
+                </button>
+              </>
             )}
 
             {/* Hamburger */}
@@ -227,9 +250,15 @@ const learnLinks = [
       </button>
       <button
         onClick={() => { navigate('/messages'); setOpen(false); }}
-        className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition font-semibold"
+        className="text-left rounded-xl px-3 py-3 text-[#27392E] hover:bg-black/5 transition font-bold"
       >
         💬 Direct Messages
+      </button>
+      <button
+        onClick={() => { navigate('/account'); setOpen(false); }}
+        className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition font-semibold"
+      >
+        👤 My Account
       </button>
       {user?.role === 'admin' && (
         <button
@@ -325,6 +354,7 @@ const learnLinks = [
                 { label: "My Dashboard", icon: "📊", path: "/dashboard" },
                 { label: "Community Forum", icon: "👥", path: "/community" },
                 { label: "Direct Messages", icon: "💬", path: "/messages" },
+                { label: "My Account", icon: "👤", path: "/account" },
                 ...(user?.role === 'admin' ? [{ label: "Moderation Queue", icon: "🛡️", path: "/admin/reports" }] : []),
               ].map((item) => (
                 <button

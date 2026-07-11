@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
-import Navbar from '../../components/Navbar';
+import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
 import { 
   MessageSquare, 
@@ -20,7 +20,7 @@ import {
 const t = theme;
 
 export default function Messages() {
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
 
   // Conversations & Messages State
@@ -53,7 +53,10 @@ export default function Messages() {
   // Fetch all my conversations
   const fetchConversations = async (autoSelectId = null) => {
     try {
-      const res = await fetch(`${API_URL}/conversations`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/conversations`, {
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
       if (res.ok) {
         const data = await res.json();
         setConversations(data);
@@ -95,7 +98,10 @@ export default function Messages() {
       setMsgLoading(true);
       try {
         // 1. Fetch messages
-        const res = await fetch(`${API_URL}/conversations/${activeConvId}/messages`, { credentials: 'include' });
+        const res = await fetch(`${API_URL}/conversations/${activeConvId}/messages`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
         if (res.ok) {
           const data = await res.json();
           setMessages(data);
@@ -104,7 +110,8 @@ export default function Messages() {
         // 2. Mark as read
         await fetch(`${API_URL}/conversations/${activeConvId}/read`, { 
           method: 'PUT',
-          credentials: 'include' 
+          credentials: 'include',
+          headers: { ...authHeaders() },
         });
 
         // 3. Refresh conversations to clear unread counts on list
@@ -132,7 +139,10 @@ export default function Messages() {
   const fetchMessagesSilent = async () => {
     if (!activeConvId) return;
     try {
-      const res = await fetch(`${API_URL}/conversations/${activeConvId}/messages`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/conversations/${activeConvId}/messages`, {
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
       if (res.ok) {
         const data = await res.json();
         setMessages(data);
@@ -154,7 +164,7 @@ export default function Messages() {
       const res = await fetch(`${API_URL}/conversations/${activeConvId}/messages`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ content: text })
       });
       const newMsg = await res.json();
@@ -189,7 +199,10 @@ export default function Messages() {
       setSearchLoading(true);
       setModalError('');
       try {
-        const res = await fetch(`${API_URL}/auth/users?search=${encodeURIComponent(searchQuery)}`, { credentials: 'include' });
+        const res = await fetch(`${API_URL}/auth/users?search=${encodeURIComponent(searchQuery)}`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
         const data = await res.json();
         if (res.ok) {
           setSearchResults(data.data || []);
@@ -239,7 +252,7 @@ export default function Messages() {
       const res = await fetch(`${API_URL}/conversations`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           memberIds: selectedUserIds,
           isGroup: isGroup || selectedUserIds.length > 1,
@@ -294,16 +307,16 @@ export default function Messages() {
   const activeConv = conversations.find(c => c._id === activeConvId);
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#F4F1EC', overflow: 'hidden' }}>
-      <Navbar />
+    <div style={{ height: '100vh', display: 'flex', background: '#E8E0D4', overflow: 'hidden' }}>
+      <AppSidebar />
       
-      <main style={{ flexGrow: 1, paddingTop: '76px', fontFamily: t.fontBody, minHeight: 0, display: 'flex' }}>
-        <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <main style={{ flexGrow: 1, fontFamily: t.fontBody, minHeight: 0, display: 'flex', minWidth: 0 }}>
+        <div style={{ width: '100%', margin: '0 auto', padding: '0', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           
-          {/* App-like DM shell — edge to edge under navbar */}
+          {/* App-like DM shell */}
           <div style={{
             background: t.surface,
-            borderTop: `1px solid ${t.line}`,
+            borderLeft: `1px solid ${t.lineStrong}`,
             flexGrow: 1,
             display: 'flex',
             overflow: 'hidden',

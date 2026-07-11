@@ -20,6 +20,7 @@ import CommunityFeed from './pages/Community/CommunityFeed';
 import PostDetails from './pages/Community/PostDetails';
 import NewPost from './pages/Community/NewPost';
 import Messages from './pages/Messages/Messages';
+import Account from './pages/Account/Account';
 import AdminReports from './pages/Admin/AdminReports';
 
 // ProtectedRoute wrapper to guard private paths
@@ -67,6 +68,7 @@ function App() {
         <Route path="/community/new-post" element={<ProtectedRoute><NewPost /></ProtectedRoute>} />
         <Route path="/community/posts/:id" element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+        <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         
         {/* Admin Moderation Queue */}
         <Route path="/admin/reports" element={<ProtectedRoute adminOnly={true}><AdminReports /></ProtectedRoute>} />

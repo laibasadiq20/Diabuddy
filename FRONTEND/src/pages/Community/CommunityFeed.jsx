@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
-import Navbar from '../../components/Navbar';
+import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
 import { 
   Search, 
@@ -21,7 +21,7 @@ import {
 const t = theme;
 
 export default function CommunityFeed() {
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -45,7 +45,10 @@ export default function CommunityFeed() {
   useEffect(() => {
     const fetchTopics = async () => {
       try {
-        const res = await fetch(`${API_URL}/topics`, { credentials: 'include' });
+        const res = await fetch(`${API_URL}/topics`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
         if (res.ok) {
           const data = await res.json();
           setTopics(data);
@@ -73,7 +76,10 @@ export default function CommunityFeed() {
         if (selectedTopic) queryParams.append('topic', selectedTopic);
         if (searchQuery) queryParams.append('search', searchQuery);
 
-        const res = await fetch(`${API_URL}/posts?${queryParams.toString()}`, { credentials: 'include' });
+        const res = await fetch(`${API_URL}/posts?${queryParams.toString()}`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
         const data = await res.json();
         
         if (res.ok) {
@@ -138,15 +144,15 @@ export default function CommunityFeed() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, #F7F3EC 0%, #EFE8DF 100%)' }}>
-      <Navbar />
+    <div style={{ minHeight: '100vh', display: 'flex', background: '#E8E0D4', fontFamily: t.fontBody }}>
+      <AppSidebar />
       
-      <main style={{ flexGrow: 1, paddingTop: '96px', paddingBottom: '80px', fontFamily: t.fontBody }}>
-        <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '0 24px' }}>
+      <main style={{ flexGrow: 1, minWidth: 0, padding: '28px 24px 72px' }}>
+        <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
           
           {/* Forum Header */}
           <div style={{ 
-            marginBottom: '28px',
+            marginBottom: '24px',
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'space-between',
@@ -157,27 +163,27 @@ export default function CommunityFeed() {
               <p style={{ 
                 margin: '0 0 8px',
                 fontSize: '12px',
-                fontWeight: 600,
+                fontWeight: 700,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: t.sageDeep,
+                color: t.forest,
               }}>
                 Community
               </p>
               <h1 style={{ fontFamily: t.fontDisplay, fontSize: 'clamp(28px, 4vw, 40px)', margin: 0, fontWeight: 500, color: t.ink, letterSpacing: '-0.02em' }}>
                 Forum
               </h1>
-              <p style={{ color: t.inkSoft, fontSize: '15px', margin: '8px 0 0', maxWidth: '480px', lineHeight: 1.55 }}>
+              <p style={{ color: t.inkSoft, fontSize: '15px', margin: '8px 0 0', maxWidth: '480px', lineHeight: 1.55, fontWeight: 500 }}>
                 Ask questions, share routines, and learn with people who get it.
               </p>
             </div>
             <button 
               onClick={() => navigate('/community/new-post')}
               style={{
-                background: t.sageDeep,
+                background: t.forest,
                 color: '#FFF',
                 border: 'none',
-                borderRadius: '999px',
+                borderRadius: '12px',
                 padding: '12px 20px',
                 fontSize: '14px',
                 fontWeight: 600,
@@ -185,7 +191,7 @@ export default function CommunityFeed() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 10px 24px rgba(61, 90, 64, 0.22)',
+                boxShadow: '0 10px 24px rgba(22, 33, 25, 0.22)',
               }}
             >
               <PlusCircle size={16} /> New post
@@ -194,17 +200,18 @@ export default function CommunityFeed() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '28px', alignItems: 'start' }} className="db-responsive-grid">
+            <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '20px', alignItems: 'start' }} className="db-responsive-grid">
               
               {/* Left Column: Topics */}
-              <aside style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '100px' }}>
+              <aside style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '24px' }}>
                 <div style={{ 
-                  background: 'rgba(255,255,255,0.72)', 
-                  borderRadius: '18px', 
+                  background: '#FFF', 
+                  borderRadius: '16px', 
                   padding: '18px', 
-                  border: `1px solid ${t.line}`,
+                  border: `1.5px solid ${t.lineStrong}`,
+                  boxShadow: t.shadowCard,
                 }}>
-                  <h3 style={{ fontSize: '12px', fontWeight: 700, color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>
+                  <h3 style={{ fontSize: '12px', fontWeight: 700, color: t.ink, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>
                     Topics
                   </h3>
                   
@@ -215,14 +222,14 @@ export default function CommunityFeed() {
                       <button 
                         onClick={() => handleTopicSelect('')}
                         style={{
-                          background: selectedTopic === '' ? t.sageTint : 'transparent',
+                          background: selectedTopic === '' ? t.forest : 'transparent',
                           border: 'none',
                           borderRadius: '10px',
                           padding: '10px 12px',
                           textAlign: 'left',
                           fontSize: '13px',
-                          fontWeight: selectedTopic === '' ? 600 : 500,
-                          color: selectedTopic === '' ? t.sageDeep : t.inkSoft,
+                          fontWeight: selectedTopic === '' ? 700 : 600,
+                          color: selectedTopic === '' ? '#FFF' : t.ink,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -237,14 +244,14 @@ export default function CommunityFeed() {
                           key={topic._id}
                           onClick={() => handleTopicSelect(topic._id)}
                           style={{
-                            background: selectedTopic === topic._id ? t.sageTint : 'transparent',
+                            background: selectedTopic === topic._id ? t.forest : 'transparent',
                             border: 'none',
                             borderRadius: '10px',
                             padding: '10px 12px',
                             textAlign: 'left',
                             fontSize: '13px',
-                            fontWeight: selectedTopic === topic._id ? 600 : 500,
-                            color: selectedTopic === topic._id ? t.sageDeep : t.inkSoft,
+                            fontWeight: selectedTopic === topic._id ? 700 : 600,
+                            color: selectedTopic === topic._id ? '#FFF' : t.ink,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -252,10 +259,10 @@ export default function CommunityFeed() {
                           }}
                         >
                           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: topic.color || t.sage }} />
+                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: selectedTopic === topic._id ? t.peach : (topic.color || t.sage) }} />
                             {topic.name}
                           </span>
-                          <span style={{ fontSize: '11px', color: t.inkFaint }}>
+                          <span style={{ fontSize: '11px', color: selectedTopic === topic._id ? 'rgba(255,255,255,0.7)' : t.inkFaint, fontWeight: 600 }}>
                             {topic.postsCount || 0}
                           </span>
                         </button>
@@ -269,10 +276,11 @@ export default function CommunityFeed() {
               <section style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 
                 <div style={{ 
-                  background: 'rgba(255,255,255,0.8)', 
+                  background: '#FFF', 
                   borderRadius: '16px', 
                   padding: '12px 14px', 
-                  border: `1px solid ${t.line}`,
+                  border: `1.5px solid ${t.lineStrong}`,
+                  boxShadow: t.shadowCard,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -280,7 +288,7 @@ export default function CommunityFeed() {
                   flexWrap: 'wrap'
                 }}>
                   <form onSubmit={handleSearchSubmit} style={{ flexGrow: 1, position: 'relative', minWidth: '220px' }}>
-                    <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: t.inkFaint }} />
+                    <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: t.inkSoft }} />
                     <input 
                       type="text" 
                       value={searchInputValue}
@@ -290,11 +298,12 @@ export default function CommunityFeed() {
                         width: '100%',
                         boxSizing: 'border-box',
                         padding: '10px 14px 10px 36px',
-                        background: t.bg,
-                        border: `1px solid ${t.line}`,
+                        background: t.surfaceSunken,
+                        border: `1.5px solid ${t.lineStrong}`,
                         borderRadius: '12px',
                         fontSize: '13px',
                         color: t.ink,
+                        fontWeight: 500,
                         outline: 'none',
                         fontFamily: t.fontBody
                       }}
@@ -303,9 +312,9 @@ export default function CommunityFeed() {
                   
                   {/* Sort Controls */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Filter size={14} color={t.inkSoft} />
-                    <span style={{ fontSize: '13px', color: t.inkSoft, fontWeight: '500' }}>Sort:</span>
-                    <div style={{ display: 'flex', background: t.bg, padding: '4px', borderRadius: '10px', border: `1px solid ${t.line}` }}>
+                    <Filter size={14} color={t.ink} />
+                    <span style={{ fontSize: '13px', color: t.ink, fontWeight: '600' }}>Sort:</span>
+                    <div style={{ display: 'flex', background: t.surfaceSunken, padding: '4px', borderRadius: '10px', border: `1.5px solid ${t.lineStrong}` }}>
                       {[
                         ['latest', 'Latest'],
                         ['most_commented', 'Activity'],
@@ -315,15 +324,14 @@ export default function CommunityFeed() {
                           key={type}
                           onClick={() => handleSortChange(type)}
                           style={{
-                            background: sortBy === type ? t.surface : 'none',
+                            background: sortBy === type ? t.forest : 'none',
                             border: 'none',
                             borderRadius: '8px',
                             padding: '6px 12px',
                             fontSize: '12px',
-                            fontWeight: sortBy === type ? '600' : '500',
-                            color: sortBy === type ? t.ink : t.inkSoft,
+                            fontWeight: sortBy === type ? '700' : '600',
+                            color: sortBy === type ? '#FFF' : t.inkSoft,
                             cursor: 'pointer',
-                            boxShadow: sortBy === type ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
                             transition: 'all 0.2s'
                           }}
                         >
@@ -372,24 +380,25 @@ export default function CommunityFeed() {
                           key={post._id}
                           onClick={() => navigate(`/community/posts/${post._id}`)}
                           style={{
-                            background: 'rgba(255,255,255,0.88)',
-                            border: `1px solid ${t.line}`,
+                            background: '#FFF',
+                            border: `1.5px solid ${t.lineStrong}`,
                             borderRadius: '16px',
                             padding: '20px 22px',
                             cursor: 'pointer',
                             transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
                             position: 'relative',
-                            overflow: 'hidden'
+                            overflow: 'hidden',
+                            boxShadow: t.shadowCard,
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = `${t.sage}66`;
+                            e.currentTarget.style.borderColor = t.forest;
                             e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 14px 30px rgba(55,45,35,0.08)';
+                            e.currentTarget.style.boxShadow = '0 14px 30px rgba(55,45,35,0.12)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = t.line;
+                            e.currentTarget.style.borderColor = t.lineStrong;
                             e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.boxShadow = t.shadowCard;
                           }}
                         >
                           {/* Thread badges (Pin, Lock, Best Answer) */}
@@ -428,7 +437,7 @@ export default function CommunityFeed() {
                           <h2 style={{ 
                             fontSize: '19px', 
                             color: t.ink, 
-                            fontWeight: '600', 
+                            fontWeight: '700', 
                             margin: '0 0 10px 0',
                             fontFamily: t.fontBody,
                             lineHeight: '1.3'
@@ -441,7 +450,8 @@ export default function CommunityFeed() {
                             fontSize: '14px', 
                             color: t.inkSoft, 
                             margin: '0 0 20px 0', 
-                            lineHeight: '1.5',
+                            lineHeight: '1.55',
+                            fontWeight: 500,
                             overflow: 'hidden',
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
@@ -585,6 +595,11 @@ export default function CommunityFeed() {
           
         </div>
       </main>
+      <style>{`
+        @media (max-width: 860px) {
+          .db-responsive-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -38,7 +38,7 @@ export default function LoginFormContent({
   onForgotPassword,
   onSwitchToRegister,
 }) {
-  const { fetchUser, setUser } = useAuth();
+  const { fetchUser, setUser, saveSession } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -79,10 +79,16 @@ export default function LoginFormContent({
       console.log('Login response:', data);
 
       if (response.ok) {
-        if (data?.data?.user) {
-          setUser(data.data.user);
+        const loggedInUser = data?.data?.user;
+        const token = data?.data?.token;
+  // Prefer login payload — never let a stale cookie overwrite the new user
+        if (token && loggedInUser) {
+          saveSession(token, loggedInUser);
+        } else if (loggedInUser) {
+          setUser(loggedInUser);
         }
-        await fetchUser();
+        // Clear any leftover local display cache
+        try { localStorage.removeItem('diabuddy_user'); } catch (_) {}
         navigate('/dashboard');
       } else {
         setError(data.message || 'Login failed. Check your credentials.');

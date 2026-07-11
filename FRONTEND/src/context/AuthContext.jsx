@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { API_URL } from "../config/api";
 
 const AuthContext = createContext();
+const TOKEN_KEY = "diabuddy_token";
 
 const normalizeUser = (raw) => {
   if (!raw) return null;
@@ -13,20 +14,38 @@ const normalizeUser = (raw) => {
   };
 };
 
+const authHeaders = () => {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUserState] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const setUser = (raw) => setUserState(normalizeUser(raw));
 
+  const saveSession = (token, userPayload) => {
+    if (token) sessionStorage.setItem(TOKEN_KEY, token);
+    if (userPayload) setUserState(normalizeUser(userPayload));
+  };
+
+  const clearSession = () => {
+    sessionStorage.removeItem(TOKEN_KEY);
+    setUserState(null);
+  };
+
   const fetchUser = async () => {
     try {
       const res = await fetch(`${API_URL}/auth/me`, {
         credentials: "include",
+        headers: {
+          ...authHeaders(),
+        },
       });
 
       if (!res.ok) {
-        setUserState(null);
+        clearSession();
         return null;
       }
 
@@ -35,7 +54,7 @@ export const AuthProvider = ({ children }) => {
       setUserState(normalized);
       return normalized;
     } catch (err) {
-      setUserState(null);
+      clearSession();
       return null;
     } finally {
       setLoading(false);
@@ -51,16 +70,29 @@ export const AuthProvider = ({ children }) => {
       await fetch(`${API_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
+        headers: {
+          ...authHeaders(),
+        },
       });
     } catch (err) {
       console.log(err);
     } finally {
-      setUserState(null);
+      clearSession();
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, fetchUser, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        loading,
+        fetchUser,
+        logout,
+        saveSession,
+        authHeaders,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

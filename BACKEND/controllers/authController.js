@@ -23,10 +23,12 @@ const generateOTP = () => {
 const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 const setAuthCookie = (res, token) => {
+  // Same-origin via Vercel /api proxy — use lax (none often fails to stick)
   res.cookie('token', token, {
     httpOnly: true,
     secure: true,
-    sameSite: 'none',
+    sameSite: 'lax',
+    path: '/',
     maxAge: 30 * 24 * 60 * 60 * 1000,
   });
 };
@@ -35,7 +37,8 @@ const clearAuthCookie = (res) => {
   res.clearCookie('token', {
     httpOnly: true,
     secure: true,
-    sameSite: 'none',
+    sameSite: 'lax',
+    path: '/',
   });
 };
 
@@ -378,6 +381,7 @@ const login = async (req, res) => {
       status: 'success',
       message: 'Login successful',
       data: {
+        token,
         user: {
           _id: user._id,
           id: user._id,
@@ -386,6 +390,12 @@ const login = async (req, res) => {
           role: user.role,
           glucoseUnit: user.glucoseUnit,
           targetRanges: user.targetRanges,
+          bio: user.bio,
+          location: user.location,
+          diabetesType: user.diabetesType,
+          profileImageUrl: user.profileImageUrl,
+          postsCount: user.postsCount,
+          reputationScore: user.reputationScore,
         }
       }
     });
@@ -600,6 +610,47 @@ const resetPassword = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Update current user profile
+ * @route   PUT /api/auth/me
+ * @access  Private
+ */
+const updateProfile = async (req, res) => {
+  try {
+    const allowed = ['name', 'bio', 'location', 'diabetesType', 'gender', 'age', 'glucoseUnit'];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    if (updates.name && String(updates.name).trim().length < 2) {
+      return res.status(400).json({ status: 'error', message: 'Name must be at least 2 characters' });
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+      new: true,
+      runValidators: true,
+    }).select('-passwordHash');
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    const u = user.toObject();
+    return res.json({
+      status: 'success',
+      message: 'Profile updated',
+      data: { ...u, id: u._id, _id: u._id },
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    return res.status(500).json({
+      status: 'error',
+      message: err.message || 'Server error updating profile',
+    });
+  }
+};
+
 module.exports = {
   register,
   verifyEmail,
@@ -607,6 +658,7 @@ module.exports = {
   login,
   logout,
   getMe,
+  updateProfile,
   searchUsers,
   forgotPassword,
   resetPassword,

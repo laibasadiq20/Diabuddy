@@ -12,14 +12,14 @@ export const theme = {
   surfaceSunken: '#EFEAE0', // input backgrounds, insets
   surfaceRaised: '#FCFAF5', // sidebar / subtly lifted panels
 
-  // Text
-  ink: '#2B2A28',       // primary text — warm near-black
-  inkSoft: '#6B6660',   // secondary text
-  inkFaint: '#A39E92',  // tertiary / placeholder text
+  // Text — kept darker for readable contrast on parchment
+  ink: '#1F1E1C',       // primary text — warm near-black
+  inkSoft: '#4F4A44',   // secondary text
+  inkFaint: '#7A746A',  // tertiary / placeholder text
 
   // Lines
-  line: '#E3DDD0',
-  lineStrong: '#D3CBB9',
+  line: '#D6CFC0',
+  lineStrong: '#C4BBA8',
 
   // Sky — data, glucose, primary brand
   sky: '#5E87A0',

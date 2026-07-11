@@ -9,7 +9,7 @@ const t = theme;
 export default function VerifyOtp() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { fetchUser, setUser } = useAuth();
+  const { fetchUser, setUser, saveSession } = useAuth();
   const email = location.state?.email || '';
   const isLoginFlow = location.state?.mode === 'login';
   const password = location.state?.password || '';
@@ -86,12 +86,12 @@ const payload = {
       if (response.ok) {
         setSuccess(true);
         if (data?.data) {
-          setUser(data.data);
+          const { token, ...userPayload } = data.data;
+          saveSession(token, userPayload);
         }
-        await fetchUser();
         setTimeout(() => {
           navigate('/dashboard');
-        }, 1500);
+        }, 1200);
       } else {
         setError(data.message || 'Incorrect code. Try again.');
       }

@@ -8,18 +8,14 @@ const protect = async (req, res, next) => {
   let token;
 
   try {
-    // 1. Check for token in cookies
-    if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    }
-
-    // 2. Check for token in Authorization header
+    // Prefer Bearer over cookie so a fresh login isn't overwritten by a stale cookie
     if (
-      !token &&
       req.headers.authorization &&
       req.headers.authorization.startsWith('Bearer')
     ) {
       token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
     }
 
     // 3. If no token exists
