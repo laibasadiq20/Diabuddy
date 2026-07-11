@@ -439,6 +439,126 @@ const searchUsers = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Send password reset OTP
+ * @route   POST /api/auth/forgot-password
+ * @access  Public
+ */
+const forgotPassword = async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Email is required',
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Always return success-looking response to avoid email enumeration
+    if (!user) {
+      return res.json({
+        status: 'success',
+        message: 'If an account exists for that email, a reset code has been sent.',
+      });
+    }
+
+    const resetCode = generateOTP();
+    user.resetPasswordCode = resetCode;
+    user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save();
+
+    await sendEmail({
+      to: email,
+      subject: 'DiaBuddy - Password Reset Code',
+      text: `Your password reset code is: ${resetCode}. It is valid for 15 minutes.`,
+      html: `<h3>Password reset</h3>
+             <p>Your 6-digit reset code is: <strong>${resetCode}</strong></p>
+             <p>It is valid for 15 minutes. If you did not request this, you can ignore this email.</p>`,
+    });
+
+    return res.json({
+      status: 'success',
+      message: 'If an account exists for that email, a reset code has been sent.',
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Server error sending reset code',
+      error: err.message,
+    });
+  }
+};
+
+/**
+ * @desc    Reset password using OTP
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
+const resetPassword = async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    const { code, password } = req.body;
+
+    if (!email || !code || !password) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Email, reset code, and new password are required',
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Password must be at least 8 characters',
+      });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || !user.resetPasswordCode) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid or expired reset code',
+      });
+    }
+
+    if (user.resetPasswordCode !== String(code).trim()) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid or expired reset code',
+      });
+    }
+
+    if (!user.resetPasswordExpires || new Date() > user.resetPasswordExpires) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Reset code has expired. Please request a new one.',
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.passwordHash = await bcrypt.hash(password, salt);
+    user.resetPasswordCode = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    return res.json({
+      status: 'success',
+      message: 'Password reset successful. You can now sign in.',
+    });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Server error resetting password',
+      error: err.message,
+    });
+  }
+};
+
 module.exports = {
   register,
   verifyEmail,
@@ -446,5 +566,7 @@ module.exports = {
   login,
   getMe,
   searchUsers,
+  forgotPassword,
+  resetPassword,
 };
 

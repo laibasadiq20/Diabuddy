@@ -1,6 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { register, verifyEmail, resendVerificationCode, login, getMe, searchUsers } = require('../controllers/authController');
+const {
+  register,
+  verifyEmail,
+  resendVerificationCode,
+  login,
+  getMe,
+  searchUsers,
+  forgotPassword,
+  resetPassword,
+} = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
 // Register route (public)
@@ -15,6 +24,10 @@ router.post('/resend-code', resendVerificationCode);
 // Login route (public)
 router.post('/login', login);
 
+// Password reset (public)
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
+
 // Profile route (private/protected)
 router.get('/me', protect, getMe);
 
@@ -22,4 +35,3 @@ router.get('/me', protect, getMe);
 router.get('/users', protect, searchUsers);
 
 module.exports = router;
-

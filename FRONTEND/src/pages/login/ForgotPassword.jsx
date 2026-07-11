@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, ArrowRight, HeartPulse } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mail, ArrowRight, ArrowLeft, HeartPulse } from 'lucide-react';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 
@@ -50,7 +50,7 @@ export default function ForgotPassword() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: normalizedEmail }),
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
         setSuccess('A reset code has been sent to your email.');
         setTimeout(() => {
@@ -111,6 +111,31 @@ export default function ForgotPassword() {
           padding: '28px 24px', 
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         }}>
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            aria-label="Back to sign in"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '12px',
+              padding: 0,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#555555',
+              fontSize: '12px',
+              fontWeight: 600,
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = t.sageDeep; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#555555'; }}
+          >
+            <ArrowLeft size={16} />
+            Sign in
+          </button>
+
           <h1 style={{ color: '#1A1A1A', fontSize: '20px', fontWeight: '700', marginBottom: '4px', fontFamily: t.fontDisplay }}>Reset password</h1>
           <p style={{ color: '#333333', fontSize: '12px', marginBottom: '18px', fontWeight: '500' }}>Enter your email to receive a reset code</p>
 
@@ -164,27 +189,6 @@ export default function ForgotPassword() {
               {loading ? 'Sending…' : <>Send code <ArrowRight size={12} /></>}
             </button>
           </form>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '16px 0' }}>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(0, 0, 0, 0.2)' }} />
-            <span style={{ color: '#666666', fontSize: '10px', fontWeight: '500' }}>remembered it?</span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(0, 0, 0, 0.2)' }} />
-          </div>
-
-          <Link
-            to='/login'
-            style={{
-              display: 'block', textAlign: 'center', padding: '10px',
-              border: '2px solid rgba(0, 0, 0, 0.25)',
-              borderRadius: '8px',
-              color: '#333333', fontSize: '12px', fontWeight: '600',
-              textDecoration: 'none', transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => { e.target.style.borderColor = t.sageDeep; e.target.style.color = t.sageDeep; }}
-            onMouseLeave={(e) => { e.target.style.borderColor = 'rgba(0, 0, 0, 0.25)'; e.target.style.color = '#333333'; }}
-          >
-            Sign in
-          </Link>
         </div>
       </div>
     </div>

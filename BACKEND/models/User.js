@@ -86,6 +86,14 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    resetPasswordCode: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+    },
     bio: {
   type: String,
   maxlength: [300, 'Bio cannot exceed 300 characters'],

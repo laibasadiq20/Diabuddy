@@ -1,23 +1,44 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, ArrowRight, HeartPulse } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff, HeartPulse } from 'lucide-react';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 
 const t = theme;
 
-export default function ForgotPassword() {
-  const [email, setEmail] = useState('');
+const inputStyle = {
+  width: '100%',
+  boxSizing: 'border-box',
+  paddingLeft: '34px',
+  paddingRight: '14px',
+  paddingTop: '8px',
+  paddingBottom: '8px',
+  background: '#F5F5F5',
+  border: '1.5px solid rgba(0, 0, 0, 0.25)',
+  borderRadius: '8px',
+  color: '#1A1A1A',
+  fontSize: '13px',
+  outline: 'none',
+  transition: 'border-color 0.2s, background 0.2s',
+  fontFamily: 'inherit',
+  fontWeight: '500',
+};
+
+export default function ResetPassword() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [email, setEmail] = useState(location.state?.email || '');
+  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      navigate('/dashboard');
-    }
+    if (token) navigate('/dashboard');
   }, [navigate]);
 
   const handleSubmit = async (e) => {
@@ -26,29 +47,38 @@ export default function ForgotPassword() {
     setSuccess('');
 
     const normalizedEmail = email.trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(normalizedEmail)) {
-      setError('Please enter a valid email address.');
+    if (!normalizedEmail || !code.trim() || !password) {
+      setError('Email, reset code, and new password are required.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail }),
+        body: JSON.stringify({
+          email: normalizedEmail,
+          code: code.trim(),
+          password,
+        }),
       });
-      const data = await response.json();
+
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
-        setSuccess('A reset code has been sent to your email.');
-        setTimeout(() => {
-          navigate('/reset-password', { state: { email: normalizedEmail } });
-        }, 1400);
+        setSuccess(data.message || 'Password reset successful.');
+        setTimeout(() => navigate('/login'), 1400);
       } else {
-        setError(data.message || 'Failed to send reset code.');
+        setError(data.message || 'Failed to reset password.');
       }
     } catch {
       setError('Connection error. Please try again.');
@@ -57,85 +87,167 @@ export default function ForgotPassword() {
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center p-10 font-body" style={{ 
-      background: 'radial-gradient(ellipse at center, #e2ecdb 0%, #92a87c 45%, #819175 70%, #485e3d 100%)' 
-    }}>
-      {/* Ambient glow overlay */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full pointer-events-none" style={{ 
-        background: 'radial-gradient(circle, rgba(125, 143, 111, 0.3) 0%, transparent 70%)' 
-      }} />
+  const focus = (e) => {
+    e.target.style.borderColor = t.sageDeep;
+    e.target.style.background = '#FFFFFF';
+  };
+  const blur = (e) => {
+    e.target.style.borderColor = 'rgba(0, 0, 0, 0.25)';
+    e.target.style.background = '#F5F5F5';
+  };
 
-      <div className="w-full max-w-[400px] relative db-animate-in">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 16px',
+        fontFamily: t.fontBody,
+        background: 'radial-gradient(ellipse at center, #e2ecdb 0%, #92a87c 45%, #819175 70%, #485e3d 100%)',
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: '400px', position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <HeartPulse size={16} color={t.sageDeep} />
           </div>
-          <span className="text-white text-[17px] font-semibold font-display">DiaBuddy</span>
+          <span style={{ color: '#FFFFFF', fontSize: '17px', fontWeight: '600', fontFamily: t.fontDisplay }}>DiaBuddy</span>
         </div>
 
-        {/* Card */}
-        <div className="bg-white/95 backdrop-blur-[10px] border-2 border-black/30 rounded-2xl p-7 shadow-2xl">
-          <h1 className="text-[#1A1A1A] text-xl font-bold mb-1 font-display">Reset password</h1>
-          <p className="text-[#333333] text-xs font-medium mb-5">Enter your email to receive a reset code</p>
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.95)',
+            border: '2px solid rgba(0, 0, 0, 0.3)',
+            borderRadius: '16px',
+            padding: '28px 24px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => navigate('/forgot-password')}
+            aria-label="Back"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '12px',
+              padding: 0,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#555',
+              fontSize: '12px',
+              fontWeight: 600,
+              fontFamily: 'inherit',
+            }}
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+
+          <h1 style={{ color: '#1A1A1A', fontSize: '20px', fontWeight: '700', marginBottom: '4px', fontFamily: t.fontDisplay }}>
+            Set new password
+          </h1>
+          <p style={{ color: '#333333', fontSize: '12px', marginBottom: '18px', fontWeight: '500' }}>
+            Enter the code from your email and choose a new password
+          </p>
 
           {error && (
-            <div className="bg-[#FDE8E8] border border-red-200 rounded-lg px-3 py-2 mb-4 text-[#8B0000] text-xs font-semibold">
+            <div style={{ background: t.clayTint, border: `1px solid ${t.clay}35`, borderRadius: '8px', padding: '8px 12px', marginBottom: '14px', color: '#8B0000', fontSize: '11px', fontWeight: '600' }}>
               {error}
             </div>
           )}
-
           {success && (
-            <div className="bg-[#E8F5E9] border border-green-200 rounded-lg px-3 py-2 mb-4 text-[#2E7D32] text-xs font-semibold">
+            <div style={{ background: t.sageTint, border: `1px solid ${t.sage}35`, borderRadius: '8px', padding: '8px 12px', marginBottom: '14px', color: t.sageDeep, fontSize: '11px', fontWeight: '600' }}>
               {success}
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block text-[#333333] text-[11px] font-bold mb-1 tracking-wide">EMAIL</label>
-              <div className="relative">
-                <Mail size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#666666]" />
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>EMAIL</label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} onFocus={focus} onBlur={blur} />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>RESET CODE</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="6-digit code"
+                required
+                style={{ ...inputStyle, paddingLeft: '14px' }}
+                onFocus={focus}
+                onBlur={blur}
+              />
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>NEW PASSWORD</label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
                 <input
-                  type='email'
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder='you@example.com'
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full pl-[34px] pr-3 py-2 bg-[#F5F5F5] border-[1.5px] border-black/25 rounded-lg text-[#1A1A1A] text-[13px] font-medium outline-none transition-all duration-200 focus:border-[#7D8F6F] focus:bg-white"
+                  style={{ ...inputStyle, paddingRight: '38px' }}
+                  onFocus={focus}
+                  onBlur={blur}
+                />
+                <button type="button" tabIndex={-1} onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#666', padding: 0 }}>
+                  {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>CONFIRM PASSWORD</label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  style={inputStyle}
+                  onFocus={focus}
+                  onBlur={blur}
                 />
               </div>
             </div>
 
             <button
-              type='submit'
+              type="submit"
               disabled={loading}
-              className="w-full py-2.5 border-2 border-black/25 rounded-lg text-[13px] font-bold flex items-center justify-center gap-1.5 transition-all duration-200"
               style={{
+                width: '100%',
+                padding: '10px',
                 background: loading ? '#E0E0E0' : t.sageDeep,
-                color: loading ? '#666666' : '#FFFFFF',
+                border: '2px solid rgba(0, 0, 0, 0.25)',
+                borderRadius: '8px',
+                color: loading ? '#666' : '#fff',
+                fontSize: '13px',
+                fontWeight: 700,
                 cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                fontFamily: 'inherit',
               }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = t.olive; }}
-              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = t.sageDeep; }}
             >
-              {loading ? 'Sending…' : <>Send code <ArrowRight size={12} /></>}
+              {loading ? 'Saving…' : <>Reset password <ArrowRight size={12} /></>}
             </button>
           </form>
-
-          <div className="flex items-center gap-2.5 my-4">
-            <div className="flex-1 h-px bg-black/20" />
-            <span className="text-[#666666] text-[10px] font-medium">remembered it?</span>
-            <div className="flex-1 h-px bg-black/20" />
-          </div>
-
-          <Link
-            to='/login'
-            className="block text-center py-2.5 border-2 border-black/25 rounded-lg text-[#333333] text-xs font-semibold no-underline transition-all duration-200 hover:border-[#7D8F6F] hover:text-[#7D8F6F]"
-          >
-            Sign in
-          </Link>
         </div>
       </div>
     </div>
