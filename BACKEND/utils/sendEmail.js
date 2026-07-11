@@ -63,7 +63,7 @@ const sendViaGmailScript = async ({ to, subject, html, text }) => {
   const secret = getScriptSecret();
 
   // Normalize common mistakes
-  url = url.replace(/\/dev\/?$/, '/exec').replace(/\/+$/, '');
+  url = url.trim().replace(/\/dev\/?$/, '/exec').replace(/\/+$/, '');
   if (!url.endsWith('/exec')) {
     url = `${url}/exec`;
   }
@@ -85,16 +85,28 @@ const sendViaGmailScript = async ({ to, subject, html, text }) => {
     text: text || '',
     html: html || '',
   });
-  const headers = { 'Content-Type': 'application/json' };
+
+  // text/plain avoids some Google CORS/preflight quirks with external servers
+  const headers = {
+    'Content-Type': 'text/plain;charset=utf-8',
+    'User-Agent': 'DiaBuddy-Backend/1.0',
+  };
 
   // Apps Script redirects POST → googleusercontent. Following with redirect:'follow'
-  // turns it into GET and returns a Google Drive "Page Not Found" HTML page.
+  // turns it into GET and returns a Google Drive HTML error page.
   let response = await fetch(url, {
     method: 'POST',
     headers,
     body: payload,
     redirect: 'manual',
   });
+
+  // 401 HTML = Web app access is not "Anyone" (anonymous)
+  if (response.status === 401) {
+    throw new Error(
+      'Google Apps Script returned 401. Open script.google.com → Deploy → Manage deployments → Edit: set Who has access to "Anyone" (not "Anyone with a Google account"), Execute as "Me", then New version → Deploy, click Authorize, and update GMAIL_SCRIPT_URL if it changed.'
+    );
+  }
 
   if ([301, 302, 303, 307, 308].includes(response.status)) {
     const location = response.headers.get('location');
@@ -109,19 +121,20 @@ const sendViaGmailScript = async ({ to, subject, html, text }) => {
     });
   }
 
+  if (response.status === 401) {
+    throw new Error(
+      'Google Apps Script returned 401 after redirect. Who has access must be "Anyone", and you must Authorize the deployment.'
+    );
+  }
+
   const bodyText = await response.text();
   let data = {};
   try {
     data = JSON.parse(bodyText);
   } catch {
-    const looksLikeGoogleHtml =
-      bodyText.includes('Page Not Found') ||
-      bodyText.includes('unable to open the file') ||
-      bodyText.includes('<!DOCTYPE html>');
+    const snippet = bodyText.replace(/\s+/g, ' ').slice(0, 120);
     throw new Error(
-      looksLikeGoogleHtml
-        ? 'Apps Script URL is invalid or not deployed as a Web app. In script.google.com: Deploy → Manage deployments → copy the URL ending in /exec (not /dev). Set Who has access = Anyone, then update GMAIL_SCRIPT_URL on Railway.'
-        : `Gmail script returned non-JSON (HTTP ${response.status}).`
+      `Apps Script did not return JSON (HTTP ${response.status}). Usually wrong access setting or old deployment. Body starts with: ${snippet}`
     );
   }
 

@@ -7,9 +7,9 @@ On your laptop, Nodemailer + Gmail App Password works.
 On **Railway**, outbound SMTP ports **465/587 are blocked**, so the same
 `EMAIL_USER` / `EMAIL_PASS` time out. That is a Railway network limit, not a bad password.
 
-## Recommended for Railway (no domain): Google Apps Script
+---
 
-Uses your Gmail over **HTTPS**. No DNS / domain access needed.
+## Option A — Google Apps Script (uses your Gmail)
 
 ### 1) Create the script
 1. Open https://script.google.com → **New project**
@@ -18,7 +18,8 @@ Uses your Gmail over **HTTPS**. No DNS / domain access needed.
 ```javascript
 function doPost(e) {
   try {
-    var data = JSON.parse(e.postData.contents);
+    var raw = (e && e.postData && e.postData.contents) ? e.postData.contents : '{}';
+    var data = JSON.parse(raw);
     var expected = PropertiesService.getScriptProperties().getProperty('SECRET');
 
     if (!data.secret || data.secret !== expected) {
@@ -47,6 +48,13 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
+
+// Open the /exec URL in a browser — should show {"ok":true,"ping":true}
+function doGet() {
+  return ContentService
+    .createTextOutput(JSON.stringify({ ok: true, ping: true }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
 ```
 
 3. **Project Settings** (gear) → **Script properties** → Add:
@@ -55,44 +63,50 @@ function doPost(e) {
 
 4. **Deploy** → **New deployment** → type **Web app**
    - Execute as: **Me**
-   - Who has access: **Anyone**
-5. Authorize the app when Google asks
-6. Copy the **Web app URL** — it MUST look like:
-   `https://script.google.com/macros/s/AKfycb.../exec`
-   - Must end with **`/exec`** (not `/dev`)
-   - Do **not** use the editor URL (`script.google.com/home/projects/...`)
+   - Who has access: **Anyone** ← must be exactly this  
+     (NOT "Anyone with a Google account" — that causes 401 from Railway)
+5. Click **Authorize access** → your Google account → **Advanced** → Go to project (unsafe) → **Allow**
+6. Copy the Web app URL ending in `/exec`
 
-### 2) Add Railway variables
+### Test in browser (important)
+Paste the `/exec` URL in Chrome. You must see:
+
+```json
+{"ok":true,"ping":true}
+```
+
+If you see Google login, Drive error, or unauthorized HTML → access is still wrong.  
+Edit deployment again: **Anyone** + **New version** + Authorize.
+
+### Railway variables
 ```
 GMAIL_SCRIPT_URL=https://script.google.com/macros/s/XXXX/exec
 GMAIL_SCRIPT_SECRET=diabuddy_mail_7f3a9c
 ```
-(use the same secret as in Script properties)
 
-If you change the script later: **Deploy → Manage deployments → Edit (pencil) → New version → Deploy**, then keep the same URL.
+Then redeploy Railway.
 
-### 3) Redeploy the backend
+---
 
-OTP / reset emails will send from the Google account that owns the Apps Script.
+## Option B — Brevo (easier if Apps Script keeps failing)
 
-**If you see "Page Not Found" / Drive HTML in Railway logs:** the URL is wrong or access is not "Anyone". Fix the Web app URL and redeploy Railway.
+No domain. No Apps Script.
+
+1. Sign up at https://www.brevo.com (free)
+2. Verify your Gmail as sender (click email link)
+3. Create an API key
+4. Railway variables:
+   ```
+   BREVO_API_KEY=xkeysib-...
+   EMAIL_USER=your_gmail@gmail.com
+   ```
+5. Clear `GMAIL_SCRIPT_URL` (or leave unused) and redeploy
 
 ---
 
 ## Local development (Nodemailer)
 
 ```env
-EMAIL_USER=laiba18113@gmail.com
+EMAIL_USER=your_gmail@gmail.com
 EMAIL_PASS=your_gmail_app_password
 ```
-
----
-
-## Alternatives
-
-| Provider | Domain needed? | Notes |
-|----------|----------------|-------|
-| Apps Script | No | Best match for “use my Gmail” on Railway |
-| Brevo API | No | Verify one sender email in Brevo dashboard |
-| Resend | Yes (for other people) | Without domain, only mails your own inbox |
-| Nodemailer SMTP | N/A | Works locally only |
