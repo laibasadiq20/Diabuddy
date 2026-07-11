@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { theme } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
+import { API_URL } from '../../config/api';
 
 const t = theme;
 
@@ -61,7 +62,7 @@ export default function LoginFormContent({
 
     try {
 
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
   method: 'POST',
   credentials: 'include',
   headers: {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import { theme } from '../../theme';
+import { API_URL } from '../../config/api';
 
 const t = theme;
 
@@ -58,8 +59,9 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
     if (formData.password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: formData.fullName, email: formData.email, password: formData.password }),
       });
@@ -69,7 +71,8 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
       } else {
         setError(data.message || 'Registration failed');
       }
-    } catch {
+    } catch (err) {
+      console.error('Register connection error:', err);
       setError('Connection error. Please try again.');
     } finally {
       setLoading(false);

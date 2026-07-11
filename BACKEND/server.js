@@ -28,8 +28,21 @@ connectDB().then(() => seedTopics()).catch(err => console.error('DB/Seed error:'
 
 
 // Middleware
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'https://diabuddy-backend.vercel.app',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+].filter(Boolean);
+
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin(origin, callback) {
+    // Allow same-origin / non-browser tools (no Origin header)
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   credentials: true,
 }));
 

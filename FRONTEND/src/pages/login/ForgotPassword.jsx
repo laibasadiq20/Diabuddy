@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight, HeartPulse } from 'lucide-react';
 import { theme } from '../../theme';
+import { API_URL } from '../../config/api';
 
 const t = theme;
 
@@ -43,8 +44,9 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: normalizedEmail }),
       });

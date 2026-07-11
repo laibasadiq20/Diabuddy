@@ -106,13 +106,26 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // 5. Generate Verification OTP code
+    // 5. Generate a unique username from email local-part
+    const emailLocal = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+    let baseUsername = (emailLocal || name.toLowerCase().replace(/[^a-z0-9_]/g, '') || 'user').slice(0, 20);
+    if (baseUsername.length < 3) baseUsername = `user${baseUsername}`.padEnd(3, '0');
+
+    let username = baseUsername;
+    let suffix = 0;
+    while (await User.findOne({ username })) {
+      suffix += 1;
+      username = `${baseUsername.slice(0, 24)}${suffix}`;
+    }
+
+    // 6. Generate Verification OTP code
     const otpCode = generateOTP();
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
 
-    // 6. Create user (unverified by default)
+    // 7. Create user (unverified by default)
     const newUser = await User.create({
       name,
+      username,
       email,
       passwordHash,
       age,
@@ -131,7 +144,7 @@ const register = async (req, res) => {
       verificationCodeExpires: otpExpiry,
     });
 
-    // 7. Send Verification Email
+    // 8. Send Verification Email
     await sendEmail({
       to: email,
       subject: 'DiaBuddy - Verify Your Account',
@@ -142,7 +155,7 @@ const register = async (req, res) => {
              <p>This code is valid for 15 minutes.</p>`,
     });
 
-    // 8. Return response
+    // 9. Return response
     return res.status(201).json({
       status: 'success',
       message: 'Registration successful. A 6-digit verification code has been sent to your email.',
@@ -341,8 +354,8 @@ const login = async (req, res) => {
 
 res.cookie("token", token, {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
+  secure: true,
+  sameSite: "none",
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
 });
 
