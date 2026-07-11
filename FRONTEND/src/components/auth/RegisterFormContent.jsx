@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
+import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 
@@ -81,6 +81,31 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
 
   return (
     <div style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+      <button
+        type="button"
+        onClick={onSwitchToLogin}
+        aria-label="Back to sign in"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          marginBottom: '12px',
+          padding: 0,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: t.inkSoft,
+          fontSize: '12px',
+          fontWeight: 500,
+          fontFamily: t.fontBody,
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = t.sageDeep; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = t.inkSoft; }}
+      >
+        <ArrowLeft size={16} />
+        Sign in
+      </button>
+
       <h1 style={{ color: t.ink, fontSize: '20px', fontWeight: '500', marginBottom: '2px', letterSpacing: '-0.2px', fontFamily: t.fontDisplay }}>
         Create account
       </h1>
@@ -160,28 +185,6 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
           {loading ? 'Creating…' : <>Create account <ArrowRight size={12} /></>}
         </button>
       </form>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '12px 0' }}>
-        <div style={{ flex: 1, height: '1px', background: t.line }} />
-        <span style={{ color: t.inkFaint, fontSize: '10px' }}>have an account?</span>
-        <div style={{ flex: 1, height: '1px', background: t.line }} />
-      </div>
-
-      <button
-        type="button"
-        onClick={onSwitchToLogin}
-        style={{
-          display: 'block', width: '100%', boxSizing: 'border-box',
-          padding: '9px', textAlign: 'center',
-          border: `1.5px solid ${t.line}`, borderRadius: '8px',
-          color: t.inkSoft, fontSize: '12px', fontWeight: '500',
-          background: 'none', cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.sageDeep; e.currentTarget.style.color = t.sageDeep; }}
-        onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.line; e.currentTarget.style.color = t.inkSoft; }}
-      >
-        Sign In
-      </button>
     </div>
   );
 }

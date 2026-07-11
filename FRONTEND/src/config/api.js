@@ -1,1 +1,2 @@
-export const API_URL = "https://backend-production-f8f9.up.railway.app/api";
+// Same-origin /api — Vite proxies locally, Vercel rewrites to Railway in production
+export const API_URL = "/api";
