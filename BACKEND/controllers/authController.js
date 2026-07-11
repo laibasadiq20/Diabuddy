@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
-const { isEmailConfigured } = require('../utils/sendEmail');
+const { isEmailConfigured } = sendEmail;
 
 /**
  * Generate a JWT token
@@ -75,24 +75,19 @@ const register = async (req, res) => {
         userExists.verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
         await userExists.save();
 
-        try {
-          await sendEmail({
-            to: email,
-            subject: 'DiaBuddy - Verify Your Account',
-            text: `Welcome back to DiaBuddy, ${name}! Your 6-digit verification code is: ${newCode}. It is valid for 15 minutes.`,
-            html: `<h3>Welcome back to DiaBuddy, ${name}!</h3>
-                   <p>Your 6-digit verification code is: <strong>${newCode}</strong></p>
-                   <p>It is valid for 15 minutes.</p>`,
-          });
-        } catch (emailErr) {
-          console.error('Resend verification email failed:', emailErr.message);
-          console.log(`[OTP FALLBACK] ${email} => ${newCode}`);
-        }
+        await sendEmail({
+          to: email,
+          subject: 'DiaBuddy - Verify Your Account',
+          text: `Welcome back to DiaBuddy, ${name}! Your 6-digit verification code is: ${newCode}. It is valid for 15 minutes.`,
+          html: `<h3>Welcome back to DiaBuddy, ${name}!</h3>
+                 <p>Your 6-digit verification code is: <strong>${newCode}</strong></p>
+                 <p>It is valid for 15 minutes.</p>`,
+        });
 
         return res.status(200).json({
           status: 'success',
           message: 'This email is registered but unverified. A new verification code has been sent to your inbox.',
-          data: { email: userExists.email, isVerified: false },
+          data: { email: userExists.email, isVerified: false, emailSent: true },
         });
       }
 
