@@ -1,0 +1,18 @@
+HTTP/1.1 302 Moved Temporarily
+Content-Type: text/html; charset=UTF-8
+Access-Control-Allow-Origin: *
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: Mon, 01 Jan 1990 00:00:00 GMT
+Date: Sat, 11 Jul 2026 23:00:31 GMT
+Location: https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnSVpg9n6Bk19Rso3fvzS9FtFWgBBimVhF3V8wovB1V0CXdo4R1GaLWQl2n2_DdvEidFu_4LFqvWmXawWptZuWl2xkLbJKd0vnL8rbpC1hjUb1L9pUcXWS0JF-w76CKFV4hABiNs1efMQeoj46fIfs-iSvpxRLkEYz4Jl9gOSTOH9klTPIefO60ka-_7wnL_j7BYeQBSZqLzErTokzln5ubIdUF85mj6NRkoZPtmb3LpBcoGh21KbK52zrCEppg7eYKXl-mM4YzWb08pSgJk3u5wMek6CA&lib=MOIgwfAKb7nsFn4RBchlxJTfwbGZGOD4k
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Content-Security-Policy: frame-ancestors 'self'
+X-XSS-Protection: 1; mode=block
+Server: GSE
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Accept-Ranges: none
+Vary: Accept-Encoding
+Transfer-Encoding: chunked
+
