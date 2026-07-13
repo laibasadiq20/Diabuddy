@@ -33,7 +33,7 @@ const modules = [
   {
     key: 'toolbox',
     title: 'Toolbox',
-    desc: 'BMI, blood pressure & calculators',
+    desc: 'Glucose, carbs, HbA1c & more',
     path: '/toolbox',
     icon: Wrench,
     area: 'toolbox',
