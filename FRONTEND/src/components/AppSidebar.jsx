@@ -58,7 +58,7 @@ export default function AppSidebar() {
       <div style={{ padding: '28px 22px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <button
           type="button"
-          onClick={() => go('/dashboard')}
+          onClick={() => go('/')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -277,7 +277,21 @@ export default function AppSidebar() {
         >
           <Menu size={22} />
         </button>
-        <span style={{ fontFamily: t.fontDisplay, fontSize: 18 }}>Diabuddy</span>
+        <button
+          type="button"
+          onClick={() => go('/')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'inherit',
+            cursor: 'pointer',
+            padding: 0,
+            fontFamily: t.fontDisplay,
+            fontSize: 18,
+          }}
+        >
+          Diabuddy
+        </button>
         <button
           type="button"
           onClick={() => go('/messages')}

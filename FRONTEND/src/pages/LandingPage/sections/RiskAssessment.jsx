@@ -572,16 +572,16 @@ const RiskAssessment = () => {
                 {/* Quiz complete — score summary inside the card */}
                 {quizComplete && (
                   <div style={{ textAlign: "center" }}>
-                    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "24px", fontWeight: "700", color: "#022D20", margin: "0 0 8px 0" }}>Assessment complete!</h2>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 20px 0" }}>
-                      Your ADA-style risk score: <strong style={{ color: "#022D20", fontSize: "20px" }}>{score}/{MAX_SCORE}</strong>
-                      {score >= 5 ? " — higher risk; ask about screening." : " — under the high-risk cutoff of 5."}
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: "700", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9CA3AF", margin: "0 0 8px" }}>
+                      Score
                     </p>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#9CA3AF" }}>See your personalized advice on the left</p>
+                    <p style={{ fontFamily: "'Playfair Display', serif", fontSize: "48px", fontWeight: "700", color: "#022D20", margin: "0 0 24px" }}>
+                      {score}/{MAX_SCORE}
+                    </p>
                     <button
                       onClick={resetAssessment}
                       style={{
-                        marginTop: "24px", background: "transparent", color: "#6B7280",
+                        background: "transparent", color: "#6B7280",
                         border: "1.5px solid #E5E7EB", borderRadius: "50px", padding: "10px 24px",
                         fontSize: "14px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
                       }}

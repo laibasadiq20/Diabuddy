@@ -11,7 +11,6 @@ import {
   Bell,
   ArrowUpRight,
   MessageSquare,
-  Sparkles,
 } from 'lucide-react';
 
 const t = theme;
@@ -20,57 +19,58 @@ const modules = [
   {
     key: 'community',
     title: 'Community',
-    desc: 'Forum threads and peer support',
+    desc: 'Ask questions, share wins, find people who get it.',
     path: '/community',
     icon: Users,
-    span: 'wide',
-    gradient: `linear-gradient(135deg, ${t.forestDeep} 0%, ${t.forest} 55%, #3d5c4a 100%)`,
+    area: 'community',
+    bg: `linear-gradient(145deg, ${t.forestDeep} 0%, ${t.forest} 50%, #3a5748 100%)`,
     text: '#F7F3EC',
-    muted: 'rgba(247,243,236,0.7)',
-    iconBg: 'rgba(232,184,154,0.22)',
+    muted: 'rgba(247,243,236,0.68)',
+    iconBg: 'rgba(232,184,154,0.2)',
     iconColor: t.peach,
+    dark: true,
   },
   {
     key: 'toolbox',
     title: 'Toolbox',
-    desc: 'BMI, blood pressure & more',
+    desc: 'BMI, blood pressure & calculators',
     path: '/toolbox',
     icon: Wrench,
-    span: 'normal',
-    gradient: `linear-gradient(160deg, ${t.skyTint} 0%, #FFF 70%)`,
+    area: 'toolbox',
+    bg: `linear-gradient(165deg, #dce8ec 0%, #f7fbfc 55%, #fff 100%)`,
     text: t.ink,
     muted: t.inkSoft,
     iconBg: t.skySoft,
     iconColor: t.skyDeep,
-    border: t.sky + '40',
+    ring: t.sky + '45',
   },
   {
     key: 'logs',
     title: 'Logs',
-    desc: 'Meals, insulin, glucose',
+    desc: 'Meals · insulin · glucose',
     path: '/logs',
     icon: ClipboardList,
-    span: 'normal',
-    gradient: `linear-gradient(160deg, ${t.clayTint} 0%, #FFF 70%)`,
+    area: 'logs',
+    bg: `linear-gradient(165deg, ${t.clayTint} 0%, #fff 70%)`,
     text: t.ink,
     muted: t.inkSoft,
     iconBg: t.claySoft,
     iconColor: t.clay,
-    border: t.clay + '35',
+    ring: t.clay + '40',
   },
   {
     key: 'fitbit',
     title: 'Fitbit',
-    desc: 'Sync your wearable',
+    desc: 'Connect your wearable',
     path: '/fitbit',
     icon: Watch,
-    span: 'normal',
-    gradient: `linear-gradient(160deg, ${t.sageTint} 0%, #FFF 70%)`,
+    area: 'fitbit',
+    bg: `linear-gradient(165deg, ${t.sageTint} 0%, #fff 70%)`,
     text: t.ink,
     muted: t.inkSoft,
     iconBg: t.sageSoft,
     iconColor: t.sageDeep,
-    border: t.sage + '40',
+    ring: t.sage + '45',
   },
   {
     key: 'reminders',
@@ -78,15 +78,29 @@ const modules = [
     desc: 'Soft daily nudges',
     path: '/reminders',
     icon: Bell,
-    span: 'normal',
-    gradient: `linear-gradient(160deg, ${t.goldTint} 0%, #FFF 70%)`,
+    area: 'reminders',
+    bg: `linear-gradient(165deg, ${t.goldTint} 0%, #fff 70%)`,
     text: t.ink,
     muted: t.inkSoft,
     iconBg: t.goldSoft,
     iconColor: t.gold,
-    border: t.gold + '40',
+    ring: t.gold + '45',
   },
 ];
+
+function Blob({ style }) {
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: 'absolute',
+        borderRadius: '50%',
+        pointerEvents: 'none',
+        ...style,
+      }}
+    />
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -94,6 +108,11 @@ export default function Dashboard() {
   const firstName = user?.name?.split(' ')[0] || 'Buddy';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
 
   return (
     <div
@@ -112,175 +131,178 @@ export default function Dashboard() {
           inset: 0,
           pointerEvents: 'none',
           background: `
-            radial-gradient(ellipse 60% 40% at 10% -10%, rgba(125,143,111,0.18), transparent 55%),
-            radial-gradient(ellipse 50% 35% at 100% 0%, rgba(194,114,79,0.12), transparent 50%),
-            radial-gradient(ellipse 40% 30% at 80% 100%, rgba(94,135,160,0.12), transparent 45%)
+            radial-gradient(ellipse 55% 40% at 0% 0%, rgba(125,143,111,0.22), transparent 55%),
+            radial-gradient(ellipse 45% 35% at 100% 5%, rgba(194,114,79,0.14), transparent 50%),
+            radial-gradient(ellipse 40% 30% at 70% 100%, rgba(94,135,160,0.14), transparent 45%)
           `,
         }}
       />
 
       <AppSidebar />
 
-      <main style={{ flex: 1, minWidth: 0, padding: '28px 20px 64px', position: 'relative' }}>
-        <div style={{ maxWidth: 880, margin: '0 auto' }}>
-          {/* Hero strip */}
-          <section
-            style={{
-              position: 'relative',
-              overflow: 'hidden',
-              borderRadius: 28,
-              padding: '32px 28px',
-              marginBottom: 22,
-              background: `linear-gradient(120deg, ${t.forestDeep} 0%, ${t.forest} 42%, #355544 100%)`,
-              color: '#F7F3EC',
-              boxShadow: '0 20px 48px rgba(22,33,25,0.28)',
-            }}
-          >
-            <div
-              aria-hidden
-              style={{
-                position: 'absolute',
-                right: -30,
-                top: -50,
-                width: 200,
-                height: 200,
-                borderRadius: '50%',
-                background: 'rgba(232,184,154,0.18)',
-              }}
-            />
-            <div
-              aria-hidden
-              style={{
-                position: 'absolute',
-                right: 70,
-                bottom: -70,
-                width: 160,
-                height: 160,
-                borderRadius: '50%',
-                background: 'rgba(94,135,160,0.2)',
-              }}
-            />
+      <main style={{ flex: 1, minWidth: 0, padding: '24px 18px 72px', position: 'relative' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto' }}>
 
-            <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-end', justifyContent: 'space-between' }}>
-              <div>
-                <p style={{ margin: '0 0 8px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(247,243,236,0.55)' }}>
-                  <Sparkles size={13} /> {greeting}
-                </p>
-                <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(30px, 5vw, 40px)', fontWeight: 500, letterSpacing: '-0.02em' }}>
-                  {firstName}
-                </h1>
-                <p style={{ margin: '10px 0 0', maxWidth: 360, fontSize: 15, lineHeight: 1.55, color: 'rgba(247,243,236,0.72)' }}>
-                  Your companion for community, tools, logs, and gentle reminders.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => navigate('/messages')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '12px 18px',
-                  borderRadius: 999,
-                  border: '1px solid rgba(255,255,255,0.22)',
-                  background: 'rgba(255,255,255,0.12)',
-                  color: '#F7F3EC',
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  fontFamily: t.fontBody,
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <MessageSquare size={15} />
-                Messages
-              </button>
-            </div>
-          </section>
-
-          {/* Bento modules */}
+          {/* Greeting bar */}
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-              gap: 14,
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              gap: 16,
+              marginBottom: 20,
             }}
-            className="db-dash-grid"
           >
+            <div>
+              <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
+                {today}
+              </p>
+              <h1
+                style={{
+                  margin: 0,
+                  fontFamily: t.fontDisplay,
+                  fontSize: 'clamp(32px, 5vw, 44px)',
+                  fontWeight: 500,
+                  color: t.ink,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.05,
+                }}
+              >
+                {greeting},{' '}
+                <em style={{ fontStyle: 'italic', color: t.sageDeep }}>{firstName}</em>
+              </h1>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/messages')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '12px 18px',
+                borderRadius: 999,
+                border: `1.5px solid ${t.lineStrong}`,
+                background: '#FFF',
+                color: t.ink,
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+                fontFamily: t.fontBody,
+                boxShadow: t.shadowCard,
+              }}
+            >
+              <MessageSquare size={15} />
+              Messages
+            </button>
+          </div>
+
+          {/* Asymmetric bento */}
+          <div className="db-bento">
             {modules.map((m) => {
               const Icon = m.icon;
-              const isWide = m.span === 'wide';
               return (
                 <button
                   key={m.key}
                   type="button"
                   onClick={() => navigate(m.path)}
-                  className={isWide ? 'db-dash-wide' : undefined}
+                  className={`db-tile db-tile-${m.area}`}
                   style={{
-                    gridColumn: isWide ? '1 / -1' : 'auto',
                     position: 'relative',
                     overflow: 'hidden',
-                    minHeight: isWide ? 148 : 150,
-                    padding: isWide ? '26px 24px' : '22px 20px',
-                    borderRadius: 24,
-                    border: m.border ? `1.5px solid ${m.border}` : '1px solid transparent',
-                    background: m.gradient,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    padding: 22,
+                    borderRadius: 26,
+                    border: m.ring ? `1.5px solid ${m.ring}` : '1px solid transparent',
+                    background: m.bg,
                     color: m.text,
                     cursor: 'pointer',
                     textAlign: 'left',
-                    boxShadow: t.shadowCard,
+                    boxShadow: m.dark
+                      ? '0 18px 40px rgba(22,33,25,0.28)'
+                      : t.shadowCard,
                     fontFamily: t.fontBody,
                     transition: 'transform 0.18s ease, box-shadow 0.18s ease',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-3px)';
+                    e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)';
                     e.currentTarget.style.boxShadow = t.shadowLifted;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = t.shadowCard;
+                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                    e.currentTarget.style.boxShadow = m.dark
+                      ? '0 18px 40px rgba(22,33,25,0.28)'
+                      : t.shadowCard;
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, height: '100%' }}>
-                    <div>
-                      <span
-                        style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 16,
-                          background: m.iconBg,
-                          color: m.iconColor,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginBottom: 14,
-                        }}
-                      >
-                        <Icon size={22} strokeWidth={1.75} />
-                      </span>
-                      <p style={{ margin: 0, fontSize: isWide ? 24 : 18, fontWeight: 700, letterSpacing: '-0.02em' }}>
-                        {m.title}
-                      </p>
-                      <p style={{ margin: '6px 0 0', fontSize: 13, color: m.muted, lineHeight: 1.45, maxWidth: isWide ? 320 : 180 }}>
-                        {m.desc}
-                      </p>
-                    </div>
+                  {m.dark && (
+                    <>
+                      <Blob style={{ right: -40, top: -50, width: 180, height: 180, background: 'rgba(232,184,154,0.16)' }} />
+                      <Blob style={{ right: 50, bottom: -60, width: 140, height: 140, background: 'rgba(94,135,160,0.18)' }} />
+                    </>
+                  )}
+                  {!m.dark && (
+                    <Blob
+                      style={{
+                        right: -24,
+                        bottom: -28,
+                        width: 110,
+                        height: 110,
+                        background: m.iconBg,
+                        opacity: 0.7,
+                      }}
+                    />
+                  )}
+
+                  <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span
                       style={{
-                        width: 34,
-                        height: 34,
+                        width: 48,
+                        height: 48,
+                        borderRadius: 16,
+                        background: m.iconBg,
+                        color: m.iconColor,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Icon size={22} strokeWidth={1.75} />
+                    </span>
+                    <span
+                      style={{
+                        width: 32,
+                        height: 32,
                         borderRadius: '50%',
-                        background: isWide ? 'rgba(255,255,255,0.12)' : 'rgba(31,30,28,0.05)',
+                        background: m.dark ? 'rgba(255,255,255,0.12)' : 'rgba(31,30,28,0.06)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: isWide ? '#F7F3EC' : t.inkSoft,
-                        flexShrink: 0,
+                        color: m.dark ? '#F7F3EC' : t.inkSoft,
                       }}
                     >
-                      <ArrowUpRight size={16} />
+                      <ArrowUpRight size={15} />
                     </span>
+                  </div>
+
+                  <div style={{ position: 'relative', marginTop: 28 }}>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontFamily: m.dark ? t.fontDisplay : t.fontBody,
+                        fontSize: m.area === 'community' ? 28 : 18,
+                        fontWeight: m.dark ? 500 : 700,
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {m.title}
+                    </p>
+                    <p style={{ margin: '8px 0 0', fontSize: 13, color: m.muted, lineHeight: 1.5, maxWidth: m.area === 'community' ? 340 : 200 }}>
+                      {m.desc}
+                    </p>
                   </div>
                 </button>
               );
@@ -288,9 +310,33 @@ export default function Dashboard() {
           </div>
 
           <style>{`
-            @media (max-width: 640px) {
-              .db-dash-grid { grid-template-columns: 1fr !important; }
-              .db-dash-wide { grid-column: auto !important; }
+            .db-bento {
+              display: grid;
+              grid-template-columns: repeat(12, 1fr);
+              grid-auto-rows: minmax(140px, auto);
+              gap: 14px;
+            }
+            .db-tile-community { grid-column: span 7; grid-row: span 2; min-height: 280px; }
+            .db-tile-toolbox { grid-column: span 5; grid-row: span 2; min-height: 280px; }
+            .db-tile-logs { grid-column: span 4; min-height: 160px; }
+            .db-tile-fitbit { grid-column: span 4; min-height: 160px; }
+            .db-tile-reminders { grid-column: span 4; min-height: 160px; }
+
+            @media (max-width: 800px) {
+              .db-bento { grid-template-columns: 1fr 1fr; }
+              .db-tile-community,
+              .db-tile-toolbox { grid-column: span 2; grid-row: span 1; min-height: 180px; }
+              .db-tile-logs,
+              .db-tile-fitbit,
+              .db-tile-reminders { grid-column: span 1; min-height: 150px; }
+            }
+            @media (max-width: 520px) {
+              .db-bento { grid-template-columns: 1fr; }
+              .db-tile-community,
+              .db-tile-toolbox,
+              .db-tile-logs,
+              .db-tile-fitbit,
+              .db-tile-reminders { grid-column: span 1; min-height: 140px; }
             }
           `}</style>
         </div>
