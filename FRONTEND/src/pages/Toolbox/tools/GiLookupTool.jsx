@@ -1,14 +1,31 @@
 import React, { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { theme as t } from '../../../theme';
-import { fieldStyle, resultPanel, eyebrow, ResultBadge } from '../toolboxStyles';
-import { GI_FOODS, giLabel } from '../data/pakistaniGiFoods';
+import { fieldStyle } from '../toolboxStyles';
+import { GI_FOODS } from '../data/pakistaniGiFoods';
 
-const CATEGORY_COLORS = {
-  sage: t.sageDeep,
-  gold: t.gold,
-  clay: t.clay,
+const ZONE = {
+  low: { label: 'Low', color: t.sageDeep, bg: t.sageTint, hint: 'Raises blood sugar more slowly' },
+  medium: { label: 'Medium', color: t.gold, bg: t.goldTint, hint: 'Moderate rise — watch portion size' },
+  high: { label: 'High', color: t.clay, bg: t.clayTint, hint: 'Faster rise — prefer a lower-GI swap' },
 };
+
+function GiScale({ gi, color }) {
+  const pct = Math.min(100, Math.max(0, (gi / 100) * 100));
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ height: 6, borderRadius: 999, background: t.surfaceSunken, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: color }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, fontWeight: 600, color: t.inkFaint }}>
+        <span>0 Low</span>
+        <span>55</span>
+        <span>70</span>
+        <span>100 High</span>
+      </div>
+    </div>
+  );
+}
 
 export default function GiLookupTool() {
   const [query, setQuery] = useState('');
@@ -50,7 +67,7 @@ export default function GiLookupTool() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <p style={{ margin: 0, fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-        Search common Pakistani foods for glycemic index (GI). Lower GI foods raise blood sugar more slowly.
+        Glycemic index (GI) ranks how quickly a food raises blood sugar. Lower is gentler.
       </p>
 
       <div style={{ position: 'relative' }}>
@@ -66,45 +83,108 @@ export default function GiLookupTool() {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {chip('all', 'All')}
-        {chip('low', 'Low GI')}
+        {chip('low', 'Low ≤55')}
         {chip('medium', 'Medium')}
-        {chip('high', 'High')}
+        {chip('high', 'High ≥70')}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 420, overflowY: 'auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 440, overflowY: 'auto' }}>
         {results.length === 0 && (
           <p style={{ margin: 0, fontSize: 13, color: t.inkFaint }}>No foods match that search.</p>
         )}
         {results.map((food) => {
-          const meta = giLabel(food.category);
-          const color = CATEGORY_COLORS[meta.colorKey];
+          const zone = ZONE[food.category];
+          const showSwap = food.category !== 'low' && food.alternatives?.length > 0;
+
           return (
-            <div key={food.name} style={{ ...resultPanel, background: '#FFF' }}>
+            <div
+              key={food.name}
+              style={{
+                padding: 16,
+                borderRadius: 16,
+                background: '#FFF',
+                border: `1px solid ${t.line}`,
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                <div>
-                  <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: t.ink }}>{food.name}</p>
-                  <p style={{ margin: '4px 0 0', fontFamily: t.fontDisplay, fontSize: 22, color: t.ink, fontWeight: 600 }}>
-                    GI {food.gi}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: t.ink, lineHeight: 1.35 }}>
+                    {food.name}
                   </p>
+                  <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>{zone.hint}</p>
                 </div>
-                <ResultBadge label={meta.label} color={color} />
-              </div>
-              {food.alternatives?.length > 0 && (
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${t.line}` }}>
-                  <p style={{ ...eyebrow, marginBottom: 4 }}>Better alternatives</p>
-                  <p style={{ margin: 0, fontSize: 13, color: t.inkSoft, lineHeight: 1.45 }}>
-                    {food.alternatives.join(' · ')}
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <p style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 28, fontWeight: 600, color: t.ink, lineHeight: 1 }}>
+                    {food.gi}
                   </p>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      marginTop: 6,
+                      padding: '3px 9px',
+                      borderRadius: 999,
+                      background: zone.bg,
+                      color: zone.color,
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {zone.label} GI
+                  </span>
+                </div>
+              </div>
+
+              <GiScale gi={food.gi} color={zone.color} />
+
+              {food.category === 'low' && (
+                <p style={{ margin: '12px 0 0', fontSize: 12, color: t.sageDeep, fontWeight: 600 }}>
+                  Good choice for steadier glucose
+                </p>
+              )}
+
+              {showSwap && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: '10px 12px',
+                    borderRadius: 12,
+                    background: t.surfaceSunken,
+                  }}
+                >
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: t.inkFaint }}>
+                    Lower-GI swap
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {food.alternatives.map((alt) => (
+                      <button
+                        key={alt}
+                        type="button"
+                        onClick={() => {
+                          setQuery(alt);
+                          setFilter('all');
+                        }}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: 999,
+                          border: `1px solid ${t.lineStrong}`,
+                          background: '#FFF',
+                          color: t.inkSoft,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontFamily: t.fontBody,
+                        }}
+                      >
+                        {alt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           );
         })}
       </div>
-
-      <p style={{ margin: 0, fontSize: 12, color: t.inkFaint, lineHeight: 1.45 }}>
-        Low ≤55 · Medium 56–69 · High ≥70. Portion size and cooking method still matter.
-      </p>
     </div>
   );
 }
