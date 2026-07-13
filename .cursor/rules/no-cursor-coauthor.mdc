@@ -1,0 +1,10 @@
+---
+description: Never add Cursor co-author trailers to git commits
+alwaysApply: true
+---
+
+# Git commits
+
+- Never add `Co-authored-by: Cursor` or any Cursor/agent co-author trailer to commits.
+- Commit messages should only contain the user's intended message text.
+- If a trailer is auto-appended, strip it before finishing (amend only when safe per commit rules; otherwise fix on the next commit without re-adding it).
