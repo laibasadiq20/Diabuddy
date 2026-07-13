@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 const learnLinks = [
   { label: 'Warning signs', to: '/learn/warning-signs' },
-  { label: 'Four kinds', to: '/learn/diabetes-types' },
+  { label: 'Types of diabetes', to: '/learn/diabetes-types' },
   { label: 'Risk check', to: '/learn/risk-assessment' },
   { label: 'Blog', to: '/learn/blog' },
 ];

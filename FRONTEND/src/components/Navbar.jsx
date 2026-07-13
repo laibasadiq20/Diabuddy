@@ -76,7 +76,22 @@ const Navbar = () => {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <button
             type="button"
-            onClick={() => navigate(user ? '/dashboard' : '/')}
+            onClick={() => {
+              if (window.location.pathname !== '/') {
+                navigate('/');
+                setTimeout(() => {
+                  document.getElementById('home')?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                  });
+                }, 300);
+                return;
+              }
+              document.getElementById('home')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              });
+            }}
             className="flex items-center gap-2"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white">

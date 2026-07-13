@@ -10,7 +10,7 @@ const exploreItems = [
   },
   {
     to: '/learn/diabetes-types',
-    title: 'Four kinds of diabetes',
+    title: 'Types of diabetes',
     description: 'Type 1, Type 2, gestational, and prediabetes — calmly explained.',
   },
   {

@@ -363,7 +363,7 @@ const Symptoms = ({
                     Informational only — not a substitute for medical advice.
                   </span>
                   <Link
-                    to="/assessment"
+                    to="/learn/risk-assessment"
                     className={`dbx-text-link inline-flex items-center gap-2 font-sans text-sm font-bold no-underline transition-transform duration-200 ease-out hover:translate-x-1 ${active.accent}`}
                   >
                     Take the risk assessment
@@ -390,24 +390,17 @@ const Symptoms = ({
                   </em>
                 </h2>
                 <p className="my-[18px] max-w-[52ch] font-sans text-base font-semibold leading-relaxed text-[var(--cream)] opacity-85">
-                  Take our quick self-assessment or talk to a healthcare
-                  professional — it only takes a couple of minutes.
+                  Take our quick self-assessment — it only takes a couple of minutes.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-3 md:col-span-5 md:justify-end">
                 <Link
-                  to="/assessment"
+                  to="/learn/risk-assessment"
                   className="dbx-cta-solid inline-flex items-center gap-2 rounded-full bg-[var(--cream)] px-6 py-3 font-sans text-sm font-bold tracking-[0.04em] text-[var(--sage-deep)] no-underline transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(42,33,23,0.28)]"
                 >
                   Take Assessment
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-                <Link
-                  to="/contact"
-                  className="dbx-cta-outline inline-flex items-center gap-2 rounded-full border-2 border-[var(--cream)] bg-transparent px-6 py-3 font-sans text-sm font-bold tracking-[0.04em] text-[var(--cream)] no-underline transition-all duration-200 ease-out hover:-translate-y-1 hover:bg-[var(--cream)] hover:text-[var(--sage-deep)]"
-                >
-                  Talk to a professional
                 </Link>
               </div>
             </div>

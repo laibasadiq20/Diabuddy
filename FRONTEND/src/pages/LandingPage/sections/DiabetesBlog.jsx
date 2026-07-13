@@ -234,7 +234,7 @@ const DiabetesBlog = ({ showHeader = true }) => {
             return (
               <article
                 key={blog.id}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--line)] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_-24px_rgba(58,46,36,0.35)]"
+                className="group flex flex-col overflow-hidden rounded-2xl border-2 border-[var(--brown)]/20 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-[var(--sage-deep)]/40 hover:shadow-[0_18px_40px_-24px_rgba(58,46,36,0.35)]"
               >
                 <div className="relative h-44 overflow-hidden">
                   <span className="absolute left-4 top-4 z-10 rounded-full border border-[var(--line)] bg-white/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--brown)]">
