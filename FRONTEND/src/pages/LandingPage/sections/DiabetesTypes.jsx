@@ -68,14 +68,14 @@ const DiabetesTypes = ({ showHeader = true }) => {
         {showHeader && (
           <header className="mb-14 grid gap-6 md:grid-cols-[1.2fr_0.8fr] items-end">
             <div>
-              <span className="inline-flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.24em] text-ink-soft before:h-px before:w-7 before:bg-current before:opacity-55">
+              <span className="inline-flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.24em] text-[var(--brown-soft)] before:h-px before:w-7 before:bg-current before:opacity-55">
                 Know the types
               </span>
-              <h2 className="mt-4 font-display text-[2.2rem] sm:text-[3.2rem] font-light leading-[1.05] text-ink">
-                Four types of diabetes, <em className="italic font-light text-sage-deep">gently explained.</em>
+              <h2 className="mt-4 font-display text-[2.2rem] sm:text-[3.2rem] font-light leading-[1.05] text-[var(--brown)]">
+                Four types of diabetes, <em className="italic font-light text-[var(--sage-deep)]">gently explained.</em>
               </h2>
             </div>
-            <p className="max-w-[32ch] text-[1rem] leading-[1.65] text-ink-soft md:justify-self-end">
+            <p className="max-w-[32ch] text-[1rem] leading-[1.65] text-[var(--brown-soft)] md:justify-self-end">
               Each type begins differently and asks for different care. Here's a calm,
               side-by-side look — no jargon, no alarm.
             </p>

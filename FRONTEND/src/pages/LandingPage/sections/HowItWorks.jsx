@@ -1,29 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  Activity, 
-  Users, 
-  MessageSquare, 
-  HeartPulse, 
-  Plus, 
-  ArrowRight, 
-  Send, 
-  CheckCircle2, 
-  TrendingUp, 
-  Award 
-} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, ArrowRight, Send, Award } from 'lucide-react';
 
 const steps = [
   {
     number: '01',
     title: 'Discover & Risk Assessment',
     tag: 'LEARN',
-    description: 'Learn about diabetes types, warning signs, and estimate your risk levels using our evidence-based calculator.',
+    description: 'Learn about diabetes types, warning signs, and estimate your risk with our calm, evidence-based assessment.',
   },
   {
     number: '02',
     title: 'Health Companion Dashboard',
     tag: 'LOG',
-    description: 'Keep track of daily glucose values, meal macro percentages, and health goals in your personal local dashboard.',
+    description: 'Keep track of daily glucose values, meal macro percentages, and health goals in your personal dashboard.',
   },
   {
     number: '03',
@@ -35,27 +25,13 @@ const steps = [
     number: '04',
     title: 'Secure Peer-to-Peer Chat',
     tag: 'SUPPORT',
-    description: 'Start one-on-one or group private messages to coordinate with others who understand the journey.',
+    description: 'Start one-on-one or group private messages with others who understand the journey.',
   },
 ];
 
 const HowItWorks = () => {
+  const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
-
-  /* --- Mock Calculator State (Step 1) --- */
-  const [age, setAge] = useState(40);
-  const [hasHistory, setHasHistory] = useState(false);
-  const [isActive, setIsActive] = useState(true);
-  const [riskResult, setRiskResult] = useState(null);
-
-  const calculateRisk = () => {
-    let score = 2;
-    if (age > 45) score += 3;
-    else if (age > 35) score += 1;
-    if (hasHistory) score += 3;
-    if (!isActive) score += 2;
-    setRiskResult(score);
-  };
 
   /* --- Mock Dashboard State (Step 2) --- */
   const [mockSteps, setMockSteps] = useState(5500);
@@ -164,102 +140,49 @@ const HowItWorks = () => {
               {/* Top Bar Decoration */}
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#C56A3E]" />
 
-              {/* STEP 1: Discover & Risk Assessment Mockup */}
+              {/* STEP 1: Risk Assessment — links to full page */}
               {activeStep === 0 && (
-                <div className="flex flex-col h-full justify-between">
+                <div className="flex h-full flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-black/5">
-                      <span className="text-xs uppercase tracking-wider text-gray-400 font-bold">DiaBuddy Health Hub</span>
-                      <span className="flex h-2 w-2 rounded-full bg-[#BDCAA1] animate-pulse" />
+                    <div className="mb-4 flex items-center justify-between border-b border-black/5 pb-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                        Learn
+                      </span>
+                      <span className="rounded bg-[#1E2A24] px-2 py-0.5 text-[10px] font-bold text-[#BDCAA1]">
+                        Full page
+                      </span>
                     </div>
 
-                    <h4 className="font-serif text-lg text-gray-900 font-semibold mb-2">Diabetes Risk Calculator</h4>
-                    <p className="text-xs text-gray-500 mb-5">Answer 3 simple questions to calculate a general estimate.</p>
+                    <h4 className="mb-2 font-serif text-xl font-semibold text-gray-900">
+                      Know your diabetes risk
+                    </h4>
+                    <p className="mb-6 text-sm leading-relaxed text-gray-500">
+                      Five calm questions. Personalized next steps. No sign-up
+                      needed — open the full assessment whenever you are ready.
+                    </p>
 
-                    <div className="flex flex-col gap-4">
-                      {/* Age Field */}
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-gray-700">Age: {age} years</label>
-                        <input 
-                          type="range" 
-                          min="20" 
-                          max="80" 
-                          value={age} 
-                          onChange={(e) => setAge(parseInt(e.target.value))} 
-                          className="w-32 accent-[#1E2A24]"
-                        />
-                      </div>
-
-                      {/* Family History Field */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-700">Family History of Diabetes?</span>
-                        <div className="flex gap-2">
-                          <button 
-                            type="button"
-                            onClick={() => setHasHistory(true)}
-                            className={`px-3 py-1 rounded-lg text-xs font-semibold border ${hasHistory ? 'bg-[#1E2A24] text-white border-black' : 'bg-white border-gray-300 text-gray-700'}`}
-                          >
-                            Yes
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => setHasHistory(false)}
-                            className={`px-3 py-1 rounded-lg text-xs font-semibold border ${!hasHistory ? 'bg-[#1E2A24] text-white border-black' : 'bg-white border-gray-300 text-gray-700'}`}
-                          >
-                            No
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Physical Activity Field */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-700">Physically Active (30m+/day)?</span>
-                        <div className="flex gap-2">
-                          <button 
-                            type="button"
-                            onClick={() => setIsActive(true)}
-                            className={`px-3 py-1 rounded-lg text-xs font-semibold border ${isActive ? 'bg-[#1E2A24] text-white border-black' : 'bg-white border-gray-300 text-gray-700'}`}
-                          >
-                            Yes
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => setIsActive(false)}
-                            className={`px-3 py-1 rounded-lg text-xs font-semibold border ${!isActive ? 'bg-[#1E2A24] text-white border-black' : 'bg-white border-gray-300 text-gray-700'}`}
-                          >
-                            No
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <ul className="space-y-3 text-sm text-gray-700">
+                      {[
+                        'Age, family history, activity, and more',
+                        'Clear risk level with practical advice',
+                        'Takes about 60 seconds',
+                      ].map((item) => (
+                        <li key={item} className="flex items-start gap-2">
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#BDCAA1]" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-black/5">
-                    {riskResult !== null ? (
-                      <div className={`p-4 rounded-2xl border text-center transition-all ${
-                        riskResult > 5 
-                          ? 'bg-[#E9CCCC]/60 border-[#C56A3E]/30 text-red-950' 
-                          : 'bg-[#E2ECDB]/60 border-[#BDCAA1]/30 text-green-950'
-                      }`}>
-                        <p className="text-xs font-bold uppercase tracking-wider mb-1">Estimated Risk Level</p>
-                        <p className="text-lg font-serif font-bold">
-                          {riskResult > 5 ? 'Elevated Risk' : 'Low to Normal Risk'} ({riskResult}/10)
-                        </p>
-                        <p className="text-[10px] mt-1 opacity-80">
-                          {riskResult > 5 
-                            ? 'Tip: Chat with our community about dietitian advice & CGM tips!' 
-                            : 'Tip: Great job! Stay active and keep reading our blog.'}
-                        </p>
-                      </div>
-                    ) : (
-                      <button 
-                        onClick={calculateRisk}
-                        className="w-full rounded-full bg-[#1E2A24] text-white py-3 text-sm font-semibold transition hover:bg-[#C56A3E]"
-                      >
-                        Estimate Risk Score
-                      </button>
-                    )}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/learn/risk-assessment')}
+                    className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#1E2A24] py-3.5 text-sm font-semibold text-white transition hover:bg-[#C56A3E]"
+                  >
+                    Take the risk assessment
+                    <ArrowRight size={16} />
+                  </button>
                 </div>
               )}
 

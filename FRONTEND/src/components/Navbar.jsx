@@ -1,379 +1,339 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const navigate = useNavigate();
-
   const [learnOpen, setLearnOpen] = useState(false);
   const learnRef = useRef(null);
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-const links = [
-  { label: "Home", id: "home" },
-  { label: "Features", id: "features" },
-  { label: "About", id: "about" },
-  { label: "Community", id: "community" },
-];
-const learnLinks = [
-  { label: "Warning Signs", path: "/learn/warning-signs" },
-  { label: "Risk Assessment", path: "/learn/risk-assessment" },
-  { label: "Diabetes Types", path: "/learn/diabetes-types" },
-  { label: "Blog", path: "/learn/blog" },
-];
+  const links = [
+    { label: 'Features', id: 'features' },
+    { label: 'How it works', id: 'about' },
+    { label: 'Community', id: 'community' },
+  ];
+
+  const learnLinks = [
+    { label: 'Warning Signs', path: '/learn/warning-signs' },
+    { label: 'Risk Assessment', path: '/learn/risk-assessment' },
+    { label: 'Diabetes Types', path: '/learn/diabetes-types' },
+    { label: 'Blog', path: '/learn/blog' },
+  ];
+
+  const profileLinks = [
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'Community', path: '/community' },
+    { label: 'Messages', path: '/messages' },
+    { label: 'Account', path: '/account' },
+    ...(user?.role === 'admin'
+      ? [{ label: 'Moderation', path: '/admin/reports' }]
+      : []),
+  ];
 
   const scrollToSection = (id) => {
-  // If the user is logged in and clicks "Community", go to the community feed
-  if (id === 'community' && user) {
-    navigate('/community');
-    setOpen(false);
-    return;
-  }
+    if (id === 'community' && user) {
+      navigate('/community');
+      setOpen(false);
+      return;
+    }
 
-  // If we're not on the homepage, the section doesn't exist on this page yet.
-  // Navigate home first, then scroll once it has mounted.
-  if (window.location.pathname !== "/") {
-    navigate("/");
-    setOpen(false);
-    setTimeout(() => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 300);
-    return;
-  }
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      setOpen(false);
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 300);
+      return;
+    }
 
-  const el = document.getElementById(id);
-
-  if (el) {
-    el.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
+    document.getElementById(id)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
     });
-
     setOpen(false);
-  }
-};
+  };
 
-  // Close the Learn dropdown when clicking anywhere outside it
   useEffect(() => {
     if (!learnOpen) return;
-
     const handleClickOutside = (e) => {
       if (learnRef.current && !learnRef.current.contains(e.target)) {
         setLearnOpen(false);
       }
     };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [learnOpen]);
-
-  const goToLearnPage = (path) => {
-    setLearnOpen(false);
-    navigate(path);
-  };
 
   return (
     <>
-      {/* NAVBAR */}
       <header className="fixed top-0 left-0 z-50 w-full border-b border-black/5 bg-[#F6F3EE]/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-
-          {/* Logo */}
-          <div onClick={() => navigate(user ? "/dashboard" : "/")} className="flex items-center gap-2 cursor-pointer">
+          <button
+            type="button"
+            onClick={() => navigate(user ? '/dashboard' : '/')}
+            className="flex items-center gap-2"
+          >
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white">
               ♥
             </span>
-
-            <span className="font-serif text-xl text-[#2F2A25] tracking-wide">
+            <span className="font-serif text-xl tracking-wide text-[#2F2A25]">
               Diabuddy
             </span>
-          </div>
+          </button>
 
-          {/* Desktop Links */}
-        
-<nav className="hidden md:flex items-center gap-8">
-  {links.map((link) => (
-    <button
-      key={link.id}
-      onClick={() => scrollToSection(link.id)}
-      className="text-sm text-[#5C524B] hover:text-black transition"
-    >
-      {link.label}
-    </button>
-  ))}
-
-  {user && (
-    <>
-      <button
-        onClick={() => navigate('/dashboard')}
-        className="text-sm text-[#5C524B] hover:text-black font-semibold transition"
-      >
-        Dashboard
-      </button>
-      <button
-        onClick={() => navigate('/messages')}
-        className="text-sm text-[#2F2A25] hover:text-black font-semibold transition inline-flex items-center gap-1.5"
-      >
-        <span aria-hidden>💬</span>
-        Messages
-      </button>
-      <button
-        onClick={() => navigate('/account')}
-        className="text-sm text-[#5C524B] hover:text-black font-semibold transition"
-      >
-        Account
-      </button>
-    </>
-  )}
-
-  {/* Learn Dropdown */}
-  <div className="relative" ref={learnRef}>
-    <button
-      onClick={() => setLearnOpen((v) => !v)}
-      className="flex items-center gap-1 text-sm text-[#5C524B] hover:text-black transition"
-    >
-      Learn
-      <span className={`transition-transform duration-200 ${learnOpen ? "rotate-180" : ""}`}>
-        ▼
-      </span>
-    </button>
-
-    <div
-      className={`absolute top-8 left-0 w-56 rounded-2xl border border-black/10 bg-white p-2 shadow-xl transition-all duration-200 ${
-        learnOpen
-          ? "visible translate-y-0 opacity-100"
-          : "invisible -translate-y-2 opacity-0 pointer-events-none"
-      }`}
-    >
-      {learnLinks.map((item) => (
-        <button
-          key={item.path}
-          onClick={() => goToLearnPage(item.path)}
-          className="w-full rounded-xl px-4 py-3 text-left text-sm text-[#5C524B] hover:bg-black/5 transition"
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
-  </div>
-</nav>
-          {/* RIGHT SIDE */}
-          <div className="flex items-center gap-4">
-
-            {/* SIGN IN (only if NOT logged in) */}
-            {!user && (
+          <nav className="hidden items-center gap-7 md:flex">
+            {links.map((link) => (
               <button
-                onClick={() => navigate("/login")}
-                className="hidden md:inline-flex rounded-full border border-black/10 px-4 py-2 text-sm hover:bg-black/5 transition"
+                key={link.id}
+                type="button"
+                onClick={() => scrollToSection(link.id)}
+                className="text-sm text-[#5C524B] transition hover:text-black"
+              >
+                {link.label}
+              </button>
+            ))}
+
+            <div className="relative" ref={learnRef}>
+              <button
+                type="button"
+                onClick={() => setLearnOpen((v) => !v)}
+                className="flex items-center gap-1 text-sm text-[#5C524B] transition hover:text-black"
+              >
+                Learn
+                <span
+                  className={`text-[10px] transition-transform duration-200 ${
+                    learnOpen ? 'rotate-180' : ''
+                  }`}
+                >
+                  ▼
+                </span>
+              </button>
+
+              <div
+                className={`absolute top-8 left-0 w-52 rounded-2xl border border-black/10 bg-white p-2 shadow-xl transition-all duration-200 ${
+                  learnOpen
+                    ? 'visible translate-y-0 opacity-100'
+                    : 'invisible pointer-events-none -translate-y-2 opacity-0'
+                }`}
+              >
+                {learnLinks.map((item) => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => {
+                      setLearnOpen(false);
+                      navigate(item.path);
+                    }}
+                    className="w-full rounded-xl px-4 py-2.5 text-left text-sm text-[#5C524B] transition hover:bg-black/5"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            {!user ? (
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="hidden rounded-full border border-black/10 px-4 py-2 text-sm transition hover:bg-black/5 md:inline-flex"
               >
                 Sign in
               </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setProfileOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#27392E] text-sm font-semibold text-white"
+                title={user?.name || 'Profile'}
+              >
+                {user?.name?.charAt(0).toUpperCase()}
+              </button>
             )}
 
-            {user && (
-              <>
-                <button
-                  onClick={() => navigate('/messages')}
-                  className="hidden md:inline-flex items-center gap-2 rounded-full bg-[#27392E] px-3.5 py-2 text-sm font-semibold text-white hover:bg-[#162119] transition"
-                >
-                  Messages
-                </button>
-                <button
-                  onClick={() => setProfileOpen(true)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#27392E] text-white"
-                  title={user?.name || 'Profile'}
-                >
-                  {user?.name?.charAt(0).toUpperCase()}
-                </button>
-              </>
-            )}
-
-            {/* Hamburger */}
             <button
+              type="button"
               onClick={() => setOpen(true)}
-              className="md:hidden flex flex-col gap-1"
+              className="flex flex-col gap-1 md:hidden"
+              aria-label="Open menu"
             >
-              <span className="h-0.5 w-6 bg-black"></span>
-              <span className="h-0.5 w-6 bg-black"></span>
-              <span className="h-0.5 w-6 bg-black"></span>
+              <span className="h-0.5 w-6 bg-black" />
+              <span className="h-0.5 w-6 bg-black" />
+              <span className="h-0.5 w-6 bg-black" />
             </button>
-
           </div>
         </div>
       </header>
 
-      {/* MOBILE MENU */}
-      <div className={`fixed inset-0 z-50 transition ${open ? 'visible opacity-100' : 'invisible opacity-0'}`}>
+      {/* Mobile menu */}
+      <div
+        className={`fixed inset-0 z-50 transition ${
+          open ? 'visible opacity-100' : 'invisible opacity-0'
+        }`}
+      >
         <div
           onClick={() => setOpen(false)}
           className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         />
-
         <div
-          className={`absolute right-0 top-0 h-full w-[82%] max-w-sm bg-[#F6F3EE] shadow-2xl transform transition-transform duration-300 ${
+          className={`absolute right-0 top-0 h-full w-[82%] max-w-sm bg-[#F6F3EE] shadow-2xl transition-transform duration-300 ${
             open ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
           <div className="flex items-center justify-between border-b border-black/10 p-6">
             <span className="font-serif text-lg text-[#2F2A25]">Menu</span>
-            <button onClick={() => setOpen(false)} className="text-2xl">✕</button>
+            <button type="button" onClick={() => setOpen(false)} className="text-2xl">
+              ✕
+            </button>
           </div>
 
-         <div className="flex flex-col gap-2 p-6">
-  {links.map((link) => (
-    <button
-      key={link.id}
-      onClick={() => scrollToSection(link.id)}
-      className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition"
-    >
-      {link.label}
-    </button>
-  ))}
+          <div className="flex flex-col gap-1 p-6">
+            {links.map((link) => (
+              <button
+                key={link.id}
+                type="button"
+                onClick={() => scrollToSection(link.id)}
+                className="rounded-xl px-3 py-3 text-left text-[#5C524B] transition hover:bg-black/5"
+              >
+                {link.label}
+              </button>
+            ))}
 
-  {user && (
-    <>
-      <button
-        onClick={() => { navigate('/dashboard'); setOpen(false); }}
-        className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition font-semibold"
-      >
-        📊 My Dashboard
-      </button>
-      <button
-        onClick={() => { navigate('/community'); setOpen(false); }}
-        className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition font-semibold"
-      >
-        👥 Community Forum
-      </button>
-      <button
-        onClick={() => { navigate('/messages'); setOpen(false); }}
-        className="text-left rounded-xl px-3 py-3 text-[#27392E] hover:bg-black/5 transition font-bold"
-      >
-        💬 Direct Messages
-      </button>
-      <button
-        onClick={() => { navigate('/account'); setOpen(false); }}
-        className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition font-semibold"
-      >
-        👤 My Account
-      </button>
-      {user?.role === 'admin' && (
-        <button
-          onClick={() => { navigate('/admin/reports'); setOpen(false); }}
-          className="text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition font-semibold text-red-600"
-        >
-          🛡️ Moderation Queue
-        </button>
-      )}
-    </>
-  )}
+            <div className="mt-4 border-t border-black/10 pt-4">
+              <p className="mb-2 px-3 text-xs uppercase tracking-[2px] text-gray-400">
+                Learn
+              </p>
+              {learnLinks.map((item) => (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => {
+                    navigate(item.path);
+                    setOpen(false);
+                  }}
+                  className="w-full rounded-xl px-3 py-3 text-left text-[#5C524B] transition hover:bg-black/5"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
 
-  <div className="mt-4 border-t border-black/10 pt-4">
-  <p className="px-3 text-xs uppercase tracking-[2px] text-gray-400 mb-2">
-    Learn
-  </p>
-
-  {learnLinks.map((item) => (
-    <button
-      key={item.path}
-      onClick={() => {
-        navigate(item.path);
-        setOpen(false);
-      }}
-      className="w-full text-left rounded-xl px-3 py-3 text-[#5C524B] hover:bg-black/5 transition"
-    >
-      {item.label}
-    </button>
-  ))}
-</div>
-</div>
+            {user && (
+              <div className="mt-4 border-t border-black/10 pt-4">
+                <p className="mb-2 px-3 text-xs uppercase tracking-[2px] text-gray-400">
+                  Account
+                </p>
+                {profileLinks.map((item) => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => {
+                      navigate(item.path);
+                      setOpen(false);
+                    }}
+                    className="w-full rounded-xl px-3 py-3 text-left text-[#5C524B] transition hover:bg-black/5"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="absolute bottom-6 left-6 right-6">
             {user ? (
               <button
-                onClick={() => { logout(); setOpen(false); }}
-                className="w-full rounded-xl bg-black py-3 text-white font-semibold"
+                type="button"
+                onClick={() => {
+                  logout();
+                  setOpen(false);
+                }}
+                className="w-full rounded-xl bg-black py-3 font-semibold text-white"
               >
                 Log out
               </button>
             ) : (
               <button
-                onClick={() => { navigate("/login"); setOpen(false); }}
-                className="w-full rounded-xl bg-black py-3 text-white font-semibold"
+                type="button"
+                onClick={() => {
+                  navigate('/login');
+                  setOpen(false);
+                }}
+                className="w-full rounded-xl bg-black py-3 font-semibold text-white"
               >
-                Get Started
+                Sign in
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* PROFILE DRAWER */}
-      <div className={`fixed inset-0 z-50 transition ${profileOpen ? 'visible opacity-100' : 'invisible opacity-0'}`}>
+      {/* Profile drawer */}
+      <div
+        className={`fixed inset-0 z-50 transition ${
+          profileOpen ? 'visible opacity-100' : 'invisible opacity-0'
+        }`}
+      >
         <div
           onClick={() => setProfileOpen(false)}
           className="absolute inset-0 bg-black/30"
         />
-
         <div
-          className={`absolute right-0 top-0 h-full w-[82%] max-w-sm bg-white shadow-2xl transform transition-transform duration-300 ${
+          className={`absolute right-0 top-0 h-full w-[82%] max-w-sm bg-white shadow-2xl transition-transform duration-300 ${
             profileOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          {/* Header */}
           <div className="flex items-center justify-between border-b p-6">
             <div>
               <p className="font-semibold">My Profile</p>
               <p className="text-xs text-gray-500">Account & settings</p>
             </div>
-
-            <button onClick={() => setProfileOpen(false)} className="text-2xl">
+            <button type="button" onClick={() => setProfileOpen(false)} className="text-2xl">
               ✕
             </button>
           </div>
 
-          {/* REAL USER DATA (NO DUMMY) */}
           <div className="p-6">
             <div className="flex items-center gap-4 rounded-2xl border p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black text-white">
                 {user?.name?.charAt(0).toUpperCase()}
               </div>
-
               <div>
                 <p className="font-semibold text-black">{user?.name}</p>
                 <p className="text-xs text-gray-500">{user?.email}</p>
               </div>
             </div>
 
-            {/* Menu */}
-            <div className="mt-6 flex flex-col gap-2">
-              {[
-                { label: "My Dashboard", icon: "📊", path: "/dashboard" },
-                { label: "Community Forum", icon: "👥", path: "/community" },
-                { label: "Direct Messages", icon: "💬", path: "/messages" },
-                { label: "My Account", icon: "👤", path: "/account" },
-                ...(user?.role === 'admin' ? [{ label: "Moderation Queue", icon: "🛡️", path: "/admin/reports" }] : []),
-              ].map((item) => (
+            <div className="mt-6 flex flex-col gap-1">
+              {profileLinks.map((item) => (
                 <button
-                  key={item.label}
-                  onClick={() => { navigate(item.path); setProfileOpen(false); }}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-left hover:bg-black/5 transition"
+                  key={item.path}
+                  type="button"
+                  onClick={() => {
+                    navigate(item.path);
+                    setProfileOpen(false);
+                  }}
+                  className="rounded-xl px-4 py-3 text-left transition hover:bg-black/5"
                 >
-                  <span>{item.icon}</span>
                   {item.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* LOGOUT (REAL) */}
           <div className="absolute bottom-6 left-6 right-6">
             <button
+              type="button"
               onClick={logout}
-              className="w-full rounded-xl bg-black text-white py-3 font-semibold"
+              className="w-full rounded-xl bg-black py-3 font-semibold text-white"
             >
               Log out
             </button>

@@ -181,7 +181,7 @@ const RESULT_DATA = {
 };
 
 /* ── subcomponents ── */
-const AdviceCard = ({ emoji, title, body, accentColor }) => (
+const AdviceCard = ({ title, body, accentColor }) => (
   <div style={{
     background: "#fff",
     borderRadius: "16px",
@@ -197,11 +197,10 @@ const AdviceCard = ({ emoji, title, body, accentColor }) => (
     onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; }}
   >
     <div style={{
-      width: "44px", height: "44px", borderRadius: "12px",
-      background: accentColor + "18",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: "22px", flexShrink: 0,
-    }}>{emoji}</div>
+      width: "10px", height: "10px", borderRadius: "50%",
+      background: accentColor,
+      marginTop: "6px", flexShrink: 0,
+    }} />
     <div>
       <p style={{ margin: "0 0 6px 0", fontWeight: "600", fontSize: "15px", color: "#1F2937", fontFamily: "'Playfair Display', serif" }}>{title}</p>
       <p style={{ margin: 0, fontSize: "13px", color: "#6B7280", lineHeight: "1.7", fontFamily: "'DM Sans', sans-serif" }}>{body}</p>
@@ -260,7 +259,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
           onMouseEnter={e => { e.currentTarget.style.background = "#C56A3E"; e.currentTarget.style.transform = "translateY(-2px)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "#022D20"; e.currentTarget.style.transform = "translateY(0)"; }}
         >
-          Join DiaBuddy Community ↗
+          Join DiaBuddy Community
         </button>
         <button
           onClick={onRetake}
@@ -348,7 +347,7 @@ const RiskAssessment = () => {
     <>
       <Navbar />
 
-      <section style={{ background: "linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 50%, #F0F9FF 100%)", minHeight: "100vh", paddingTop: "88px", paddingBottom: "64px" }}>
+      <section style={{ background: "var(--cream-soft, #F6EFDD)", minHeight: "100vh", paddingTop: "88px", paddingBottom: "64px" }}>
         <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
 
           {/* Page header */}
@@ -434,7 +433,6 @@ const RiskAssessment = () => {
                 {/* Intro screen */}
                 {currentQuestion === -1 && !showAlreadyDiagnosed && (
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "48px", marginBottom: "16px" }}>🩺</div>
                     <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "26px", fontWeight: "700", color: "#022D20", margin: "0 0 12px 0" }}>Ready to check your risk?</h2>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 28px 0", lineHeight: "1.7" }}>5 simple questions, completely anonymous. We'll give you personalized advice based on your answers.</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

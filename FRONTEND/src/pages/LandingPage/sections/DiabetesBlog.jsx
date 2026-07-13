@@ -3,7 +3,6 @@ import {
   Calendar,
   Clock,
   ArrowRight,
-  BookOpen,
   Leaf,
   Utensils,
   Bike,
@@ -211,88 +210,69 @@ const DiabetesBlog = ({ showHeader = true }) => {
       className={`px-6 ${
         showHeader ? "py-20 sm:py-24" : "pt-8 pb-20"
       } relative`}
-      style={{
-        background: 'linear-gradient(135deg, #E8E0D6 0%, #D5CCC0 30%, #C5BAAE 60%, #B8ADA0 100%)',
-      }}
+      style={{ background: 'var(--cream-soft)' }}
     >
-      {/* Darker background overlay for depth */}
-      <div className="absolute inset-0 bg-black/5 pointer-events-none" />
-      
       <div className="container relative z-10">
         {showHeader && (
-          <header className="mx-auto mb-16 max-w-3xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm px-4 py-2 text-sm font-semibold text-[var(--sage-deep)] border border-black/10">
-              <BookOpen className="w-4 h-4" />
-              Education Portal
-            </div>
-            <h2 className="mt-4 text-4xl sm:text-5xl font-bold text-[var(--brown)] font-display">
-              Latest Diabetes Resource Blog
+          <header className="mb-14 max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
+              Education
+            </p>
+            <h2 className="mt-3 font-display text-4xl font-light leading-[1.1] text-[var(--brown)] sm:text-5xl">
+              Diabetes resource{' '}
+              <span className="italic text-[var(--sage-deep)]">blog.</span>
             </h2>
-            <p className="mt-4 text-lg leading-relaxed text-[var(--brown-soft)] max-w-2xl mx-auto">
-              Stay informed with research-backed guides, nutritional recipes,
-              and lifestyle counseling prepared by certified health coaches.
+            <p className="mt-4 text-base leading-relaxed text-[var(--brown-soft)]">
+              Research-backed guides, recipes, and lifestyle tips — calm and clear.
             </p>
           </header>
         )}
 
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {blogsData.map((blog, index) => {
-            const IconComponent = blog.icon;
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {blogsData.map((blog) => {
             return (
               <article
                 key={blog.id}
-                className="group flex flex-col overflow-hidden rounded-2xl border-2 border-black/20 bg-white/95 backdrop-blur-sm shadow-xl transition-all duration-400 hover:-translate-y-3 hover:shadow-2xl"
-                style={{
-                  animationDelay: `${index * 100}ms`,
-                }}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--line)] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_-24px_rgba(58,46,36,0.35)]"
               >
-                <div className="relative h-56 overflow-hidden">
-                  <span
-                    className={`absolute left-4 top-4 z-10 rounded-full bg-white/95 backdrop-blur-sm px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-[var(--brown)] shadow-md border border-black/10`}
-                  >
+                <div className="relative h-44 overflow-hidden">
+                  <span className="absolute left-4 top-4 z-10 rounded-full border border-[var(--line)] bg-white/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--brown)]">
                     {blog.category}
                   </span>
-                  <div className="h-full w-full transition-transform duration-500 group-hover:scale-110">
+                  <div className="h-full w-full">
                     <BlogArtwork category={blog.category} />
                   </div>
-                  {/* Darker overlay gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                 </div>
 
-                <div className="flex flex-1 flex-col p-7">
-                  <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-[var(--ink-soft)]">
-                    <span className="flex items-center gap-1.5 bg-[var(--sage-tint)]/80 px-3 py-1 rounded-full border border-black/10">
-                      <Calendar size={14} />
+                <div className="flex flex-1 flex-col p-6">
+                  <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-soft)]">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Calendar size={13} />
                       {blog.date}
                     </span>
-                    <span className="flex items-center gap-1.5 bg-[var(--sage-tint)]/80 px-3 py-1 rounded-full border border-black/10">
-                      <Clock size={14} />
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock size={13} />
                       {blog.readTime}
                     </span>
                   </div>
 
-                  <h3 className="mb-3 text-xl font-bold text-[var(--brown)] transition-colors group-hover:text-[var(--sage-deep)] font-display leading-tight">
+                  <h3 className="mb-2 font-display text-lg font-semibold leading-snug text-[var(--brown)] transition-colors group-hover:text-[var(--sage-deep)]">
                     {blog.title}
                   </h3>
 
-                  <p className="mb-6 flex-1 text-[var(--ink-soft)] leading-relaxed">
+                  <p className="mb-5 flex-1 text-sm leading-relaxed text-[var(--ink-soft)]">
                     {blog.desc}
                   </p>
 
-                  <div className="border-t-2 border-black/15 pt-5">
-                    <a
-                      href={blog.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 font-semibold text-[var(--brown)] transition-all hover:text-[var(--sage-deep)] group/link"
-                    >
-                      <span>Read Article</span>
-                      <ArrowRight 
-                        size={16} 
-                        className="transition-transform duration-300 group-hover/link:translate-x-1" 
-                      />
-                    </a>
-                  </div>
+                  <a
+                    href={blog.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--sage-deep)] transition-all group-hover:gap-3"
+                  >
+                    Read article
+                    <ArrowRight size={15} />
+                  </a>
                 </div>
               </article>
             );

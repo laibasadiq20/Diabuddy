@@ -141,3 +141,10 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Local HTTP dump / scratch files
+/*.txt
+/body*.txt
+/headers*.txt
+/b_ck*.txt
+/h_ck*.txt

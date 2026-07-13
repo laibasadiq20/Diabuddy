@@ -4,10 +4,11 @@ import Navbar from "../../../../components/Navbar";
 
 const BlogPage = () => {
   return (
-    <div className="learn-page pt-24">
+    <div className="min-h-screen bg-[var(--cream-soft)]">
       <Navbar />
-
-      <DiabetesBlog showHeader={false} />
+      <div className="pt-[76px]">
+        <DiabetesBlog showHeader />
+      </div>
     </div>
   );
 };

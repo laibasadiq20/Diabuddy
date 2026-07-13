@@ -155,15 +155,12 @@ const Symptoms = ({
 
       <section
         className="dbx-symptoms relative overflow-hidden pb-[120px] font-sans text-[var(--brown)]"
-        style={{
-          background:
-            'radial-gradient(circle at top, #e5ebde 0%, #d6e3c7 100%, #cbd3c3 100%)',
-        }}
+        style={{ background: 'var(--cream-soft)' }}
       >
         {/* Back button */}
         <Link
           to={backTo}
-          className="dbx-back-link absolute left-6 top-6 z-10 inline-flex items-center gap-2 font-sans text-sm font-bold tracking-[0.02em] text-[var(--brown)] no-underline transition-transform duration-200 ease-out hover:-translate-x-1 hover:opacity-75"
+          className="dbx-back-link absolute left-6 top-[88px] z-10 inline-flex items-center gap-2 font-sans text-sm font-bold tracking-[0.02em] text-[var(--brown)] no-underline transition-transform duration-200 ease-out hover:-translate-x-1 hover:opacity-75"
         >
           <ArrowLeft size={16} strokeWidth={2.5} />
           {backLabel}
@@ -171,7 +168,7 @@ const Symptoms = ({
 
         <div
           className="container relative"
-          style={{ paddingTop: '180px' }}
+          style={{ paddingTop: '140px' }}
         >
           {showHeader && (
             <header
