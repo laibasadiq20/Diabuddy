@@ -263,19 +263,24 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
 
       {/* Result hero banner */}
       <div style={{
-        background: bgColor,
+        position: "relative",
+        overflow: "hidden",
+        background: "linear-gradient(145deg, #1F3A2E 0%, #32493B 60%, #3d5c4a 100%)",
         borderRadius: "24px",
         padding: "40px",
         marginBottom: "32px",
         textAlign: "center",
-        border: `2px solid ${color}30`,
+        color: "#F7F3EC",
+        boxShadow: "0 16px 40px rgba(22,33,25,0.22)",
       }}>
-        <div style={{ color, marginBottom: "16px" }}><Icon /></div>
-        <div style={{ display: "inline-block", background: color, color: "#fff", borderRadius: "20px", padding: "4px 16px", fontSize: "12px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "16px" }}>
+        <div aria-hidden style={{ position: "absolute", right: -30, top: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(232,184,154,0.16)" }} />
+        <div aria-hidden style={{ position: "absolute", left: -20, bottom: -40, width: 130, height: 130, borderRadius: "50%", background: "rgba(168,184,154,0.18)" }} />
+        <div style={{ position: "relative", color: "#BDCAA1", marginBottom: "16px" }}><Icon /></div>
+        <div style={{ position: "relative", display: "inline-block", background: "rgba(247,243,236,0.12)", color: "#E8CF7A", border: "1px solid rgba(232,207,122,0.35)", borderRadius: "20px", padding: "4px 16px", fontSize: "12px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "16px" }}>
           Score {score}
         </div>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(24px, 4vw, 36px)", fontWeight: "700", color: "#1F2937", margin: "0 0 12px 0", lineHeight: "1.2" }}>{title}</h2>
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", color: "#4B5563", maxWidth: "540px", margin: "0 auto", lineHeight: "1.7" }}>{subtitle}</p>
+        <h2 style={{ position: "relative", fontFamily: "'Playfair Display', serif", fontSize: "clamp(24px, 4vw, 36px)", fontWeight: "700", color: "#F7F3EC", margin: "0 0 12px 0", lineHeight: "1.2" }}>{title}</h2>
+        <p style={{ position: "relative", fontFamily: "'DM Sans', sans-serif", fontSize: "16px", color: "rgba(247,243,236,0.72)", maxWidth: "540px", margin: "0 auto", lineHeight: "1.7" }}>{subtitle}</p>
       </div>
 
       {/* Advice heading */}
@@ -571,19 +576,95 @@ const RiskAssessment = () => {
 
                 {/* Quiz complete — score summary inside the card */}
                 {quizComplete && (
-                  <div style={{ textAlign: "center" }}>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: "700", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9CA3AF", margin: "0 0 8px" }}>
+                  <div
+                    style={{
+                      position: "relative",
+                      overflow: "hidden",
+                      borderRadius: "24px",
+                      padding: "40px 28px",
+                      textAlign: "center",
+                      background: "linear-gradient(145deg, #1F3A2E 0%, #32493B 55%, #3d5c4a 100%)",
+                      color: "#F7F3EC",
+                      boxShadow: "0 16px 40px rgba(22,33,25,0.25)",
+                    }}
+                  >
+                    <div
+                      aria-hidden
+                      style={{
+                        position: "absolute",
+                        right: -36,
+                        top: -40,
+                        width: 140,
+                        height: 140,
+                        borderRadius: "50%",
+                        background: "rgba(232,184,154,0.18)",
+                      }}
+                    />
+                    <div
+                      aria-hidden
+                      style={{
+                        position: "absolute",
+                        left: -30,
+                        bottom: -50,
+                        width: 120,
+                        height: 120,
+                        borderRadius: "50%",
+                        background: "rgba(168,184,154,0.2)",
+                      }}
+                    />
+
+                    <p
+                      style={{
+                        position: "relative",
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        letterSpacing: "0.22em",
+                        textTransform: "uppercase",
+                        color: "#BDCAA1",
+                        margin: "0 0 12px",
+                      }}
+                    >
                       Score
                     </p>
-                    <p style={{ fontFamily: "'Playfair Display', serif", fontSize: "56px", fontWeight: "700", color: "#022D20", margin: "0 0 24px" }}>
+                    <p
+                      style={{
+                        position: "relative",
+                        fontFamily: "'Playfair Display', serif",
+                        fontSize: "72px",
+                        fontWeight: "600",
+                        color: score >= 5 ? "#E8CF7A" : "#F7F3EC",
+                        margin: "0 0 8px",
+                        lineHeight: 1,
+                        letterSpacing: "-0.03em",
+                      }}
+                    >
                       {score}
+                    </p>
+                    <p
+                      style={{
+                        position: "relative",
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: "13px",
+                        color: "rgba(247,243,236,0.65)",
+                        margin: "0 0 28px",
+                      }}
+                    >
+                      {score >= 5 ? "Higher risk" : score >= 3 ? "Borderline" : "Lower risk"}
                     </p>
                     <button
                       onClick={resetAssessment}
                       style={{
-                        background: "transparent", color: "#6B7280",
-                        border: "1.5px solid #E5E7EB", borderRadius: "50px", padding: "10px 24px",
-                        fontSize: "14px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                        position: "relative",
+                        background: "#F7F3EC",
+                        color: "#1F3A2E",
+                        border: "none",
+                        borderRadius: "50px",
+                        padding: "12px 28px",
+                        fontSize: "14px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
                       }}
                     >
                       Take again
