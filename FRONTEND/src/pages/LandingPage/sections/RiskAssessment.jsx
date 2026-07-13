@@ -272,7 +272,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
       }}>
         <div style={{ color, marginBottom: "16px" }}><Icon /></div>
         <div style={{ display: "inline-block", background: color, color: "#fff", borderRadius: "20px", padding: "4px 16px", fontSize: "12px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "16px" }}>
-          Score {score}/{MAX_SCORE}
+          Score {score}
         </div>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(24px, 4vw, 36px)", fontWeight: "700", color: "#1F2937", margin: "0 0 12px 0", lineHeight: "1.2" }}>{title}</h2>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", color: "#4B5563", maxWidth: "540px", margin: "0 auto", lineHeight: "1.7" }}>{subtitle}</p>
@@ -575,8 +575,8 @@ const RiskAssessment = () => {
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: "700", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9CA3AF", margin: "0 0 8px" }}>
                       Score
                     </p>
-                    <p style={{ fontFamily: "'Playfair Display', serif", fontSize: "48px", fontWeight: "700", color: "#022D20", margin: "0 0 24px" }}>
-                      {score}/{MAX_SCORE}
+                    <p style={{ fontFamily: "'Playfair Display', serif", fontSize: "56px", fontWeight: "700", color: "#022D20", margin: "0 0 24px" }}>
+                      {score}
                     </p>
                     <button
                       onClick={resetAssessment}
