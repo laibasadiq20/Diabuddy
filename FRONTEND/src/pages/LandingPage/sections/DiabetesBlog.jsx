@@ -3,6 +3,7 @@ import {
   Calendar,
   Clock,
   ArrowRight,
+  BookOpen,
   Leaf,
   Utensils,
   Bike,
