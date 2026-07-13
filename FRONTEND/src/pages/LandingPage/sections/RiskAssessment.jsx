@@ -4,31 +4,76 @@ import { useNavigate } from "react-router-dom";
 
 const questions = [
   {
-    question: "What's your age range?",
-    options: ["Under 45", "45 or older"],
-    riskOption: "45 or older",
+    id: 'age',
+    question: 'How old are you?',
+    options: [
+      { label: 'Less than 40 years', points: 0 },
+      { label: '40–49 years', points: 1 },
+      { label: '50–59 years', points: 2 },
+      { label: '60 years or older', points: 3 },
+    ],
   },
   {
-    question: "Do you have a family history of diabetes?",
-    options: ["Yes", "No"],
-    riskOption: "Yes",
+    id: 'sex',
+    question: 'Are you a man or a woman?',
+    options: [
+      { label: 'Man', points: 1 },
+      { label: 'Woman', points: 0 },
+    ],
   },
   {
-    question: "How physically active are you?",
-    options: ["Active regularly", "Mostly inactive"],
-    riskOption: "Mostly inactive",
+    id: 'gestational',
+    question: 'Have you ever been diagnosed with gestational diabetes, or given birth to a baby weighing 9 pounds or more?',
+    onlyIfSex: 'Woman',
+    options: [
+      { label: 'Yes', points: 1 },
+      { label: 'No', points: 0 },
+    ],
   },
   {
-    question: "Are you overweight or obese?",
-    options: ["Yes", "No"],
-    riskOption: "Yes",
+    id: 'family',
+    question: 'Do you have a mother, father, sister, or brother with diabetes?',
+    options: [
+      { label: 'Yes', points: 1 },
+      { label: 'No', points: 0 },
+    ],
   },
   {
-    question: "Have you ever been told you have high blood pressure?",
-    options: ["Yes", "No"],
-    riskOption: "Yes",
+    id: 'bp',
+    question: 'Have you ever been diagnosed with high blood pressure?',
+    options: [
+      { label: 'Yes', points: 1 },
+      { label: 'No', points: 0 },
+    ],
+  },
+  {
+    id: 'activity',
+    question: 'Are you physically active?',
+    options: [
+      { label: 'Yes', points: 0 },
+      { label: 'No', points: 1 },
+    ],
+  },
+  {
+    id: 'weight',
+    question: 'What best describes your weight status?',
+    options: [
+      { label: 'Normal or underweight (BMI under 25)', points: 0 },
+      { label: 'Overweight (BMI 25–29.9)', points: 1 },
+      { label: 'Obese (BMI 30–39.9)', points: 2 },
+      { label: 'Severely obese (BMI 40 or higher)', points: 3 },
+    ],
   },
 ];
+
+const MAX_SCORE = 11;
+
+function buildQuizFlow(sexLabel) {
+  return questions.filter((q) => {
+    if (!q.onlyIfSex) return true;
+    return sexLabel === q.onlyIfSex;
+  });
+}
 
 /* ── icon components ── */
 const ShieldIcon = () => (
@@ -63,8 +108,8 @@ const HeartIcon = () => (
 /* ── advice cards per risk level ── */
 const RESULT_DATA = {
   low: {
-    title: "Great News — Low Risk",
-    subtitle: "Your responses suggest a low risk of developing Type 2 diabetes.",
+    title: "Lower Risk — Keep Going",
+    subtitle: "Based on the ADA-style risk factors, your score is under the high-risk threshold. Stay active, eat well, and recheck if anything changes.",
     color: "#2D6A4F",
     bgColor: "#D8F3DC",
     Icon: ShieldIcon,
@@ -92,8 +137,8 @@ const RESULT_DATA = {
     ],
   },
   moderate: {
-    title: "Moderate Risk — Take Action",
-    subtitle: "Your responses suggest a moderate risk. Making lifestyle changes now can significantly reduce your chances of developing diabetes.",
+    title: "Borderline — Stay Alert",
+    subtitle: "You're approaching the ADA high-risk cutoff (5+). Small lifestyle changes now can make a real difference. Consider talking with a clinician.",
     color: "#B45309",
     bgColor: "#FEF3C7",
     Icon: WarningIcon,
@@ -121,8 +166,8 @@ const RESULT_DATA = {
     ],
   },
   high: {
-    title: "High Risk — Please See a Doctor",
-    subtitle: "Your responses indicate a high risk. This is urgent — but not a diagnosis. A doctor can give you clarity and a real action plan.",
+    title: "Higher Risk — Get Tested",
+    subtitle: "A score of 5 or higher on the ADA Diabetes Risk Test means you should ask your doctor about blood glucose or HbA1c testing. This is not a diagnosis.",
     color: "#B91C1C",
     bgColor: "#FEE2E2",
     Icon: AlertIcon,
@@ -227,7 +272,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
       }}>
         <div style={{ color, marginBottom: "16px" }}><Icon /></div>
         <div style={{ display: "inline-block", background: color, color: "#fff", borderRadius: "20px", padding: "4px 16px", fontSize: "12px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "16px" }}>
-          Score {score}/5
+          Score {score}/{MAX_SCORE}
         </div>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(24px, 4vw, 36px)", fontWeight: "700", color: "#1F2937", margin: "0 0 12px 0", lineHeight: "1.2" }}>{title}</h2>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", color: "#4B5563", maxWidth: "540px", margin: "0 auto", lineHeight: "1.7" }}>{subtitle}</p>
@@ -283,8 +328,9 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
 const RiskAssessment = () => {
   const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState(-1); // -1 = intro screen
-  const [answers, setAnswers] = useState([]);
+  const [answers, setAnswers] = useState([]); // { id, label, points }
   const [showAlreadyDiagnosed, setShowAlreadyDiagnosed] = useState(false);
+  const [quizFlow, setQuizFlow] = useState(() => buildQuizFlow(null));
 
   const [stats, setStats] = useState({ diabetes: 0, undiagnosed: 0, prevented: 0 });
 
@@ -314,34 +360,46 @@ const RiskAssessment = () => {
   }, []);
 
   const handleSelect = (option) => {
-    const updatedAnswers = [...answers, option];
-    setAnswers(updatedAnswers);
+    const q = quizFlow[currentQuestion];
+    const nextAnswers = [...answers, { id: q.id, label: option.label, points: option.points }];
 
-    if (currentQuestion < questions.length - 1) {
-      setTimeout(() => setCurrentQuestion(prev => prev + 1), 300);
+    let nextFlow = quizFlow;
+    if (q.id === 'sex') {
+      nextFlow = buildQuizFlow(option.label);
+      setQuizFlow(nextFlow);
+    }
+
+    setAnswers(nextAnswers);
+
+    if (currentQuestion < nextFlow.length - 1) {
+      setTimeout(() => setCurrentQuestion((prev) => prev + 1), 280);
     } else {
-      setCurrentQuestion(questions.length); // done
+      setCurrentQuestion(nextFlow.length);
     }
   };
 
-  const score = answers.filter((answer, i) => answer === questions[i]?.riskOption).length;
+  const score = answers.reduce((sum, a) => sum + (a.points || 0), 0);
 
   const getResultKey = () => {
     if (showAlreadyDiagnosed) return "diagnosed";
-    if (score <= 1) return "low";
-    if (score <= 3) return "moderate";
-    return "high";
+    // ADA high-risk threshold is 5+
+    if (score >= 5) return "high";
+    if (score >= 3) return "moderate";
+    return "low";
   };
 
-  const progress = (Math.min(currentQuestion + 1, questions.length) / questions.length) * 100;
+  const progress = quizFlow.length
+    ? (Math.min(currentQuestion + 1, quizFlow.length) / quizFlow.length) * 100
+    : 0;
 
   const resetAssessment = () => {
     setAnswers([]);
     setCurrentQuestion(-1);
     setShowAlreadyDiagnosed(false);
+    setQuizFlow(buildQuizFlow(null));
   };
 
-  const quizComplete = currentQuestion >= questions.length;
+  const quizComplete = currentQuestion >= quizFlow.length && currentQuestion >= 0 && answers.length > 0;
 
   return (
     <>
@@ -359,7 +417,7 @@ const RiskAssessment = () => {
               Know Your Diabetes Risk
             </h1>
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", color: "#374151", maxWidth: "560px", margin: "0 auto", lineHeight: "1.7" }}>
-              Most people with prediabetes don't know they have it. Answer 5 questions and get personalized advice.
+              Aligned with the ADA Type 2 Diabetes Risk Test. Answer a few questions — a score of 5+ means talk to your doctor about screening.
             </p>
           </div>
 
@@ -434,7 +492,7 @@ const RiskAssessment = () => {
                 {currentQuestion === -1 && !showAlreadyDiagnosed && (
                   <div style={{ textAlign: "center" }}>
                     <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "26px", fontWeight: "700", color: "#022D20", margin: "0 0 12px 0" }}>Ready to check your risk?</h2>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 28px 0", lineHeight: "1.7" }}>5 simple questions, completely anonymous. We'll give you personalized advice based on your answers.</p>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 28px 0", lineHeight: "1.7" }}>Based on the ADA Diabetes Risk Test — age, sex, family history, blood pressure, activity, and weight. Anonymous and free.</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                       <button
                         onClick={() => setCurrentQuestion(0)}
@@ -467,12 +525,12 @@ const RiskAssessment = () => {
                 )}
 
                 {/* Quiz questions */}
-                {currentQuestion >= 0 && !quizComplete && !showAlreadyDiagnosed && (
+                {currentQuestion >= 0 && !quizComplete && !showAlreadyDiagnosed && quizFlow[currentQuestion] && (
                   <>
                     {/* Progress */}
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
                       <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#9CA3AF", whiteSpace: "nowrap" }}>
-                        {currentQuestion + 1} of {questions.length}
+                        {currentQuestion + 1} of {quizFlow.length}
                       </span>
                       <div style={{ flexGrow: 1, height: "6px", background: "#F3F4F6", borderRadius: "10px", overflow: "hidden" }}>
                         <div style={{
@@ -484,13 +542,13 @@ const RiskAssessment = () => {
                     </div>
 
                     <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "22px", fontWeight: "600", color: "#1F2937", margin: "0 0 24px 0", minHeight: "80px", lineHeight: "1.4" }}>
-                      {questions[currentQuestion].question}
+                      {quizFlow[currentQuestion].question}
                     </h2>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                      {questions[currentQuestion].options.map(option => (
+                      {quizFlow[currentQuestion].options.map(option => (
                         <button
-                          key={option}
+                          key={option.label}
                           onClick={() => handleSelect(option)}
                           style={{
                             width: "100%", padding: "14px 20px",
@@ -504,7 +562,7 @@ const RiskAssessment = () => {
                           onMouseEnter={e => { e.currentTarget.style.background = "#ECFDF5"; e.currentTarget.style.borderColor = "#6EE7B7"; e.currentTarget.style.color = "#022D20"; }}
                           onMouseLeave={e => { e.currentTarget.style.background = "#F9FAFB"; e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#374151"; }}
                         >
-                          {option}
+                          {option.label}
                         </button>
                       ))}
                     </div>
@@ -514,12 +572,12 @@ const RiskAssessment = () => {
                 {/* Quiz complete — score summary inside the card */}
                 {quizComplete && (
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "48px", marginBottom: "16px" }}>✅</div>
                     <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "24px", fontWeight: "700", color: "#022D20", margin: "0 0 8px 0" }}>Assessment complete!</h2>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 20px 0" }}>
-                      Your risk score: <strong style={{ color: "#022D20", fontSize: "20px" }}>{score}/5</strong>
+                      Your ADA-style risk score: <strong style={{ color: "#022D20", fontSize: "20px" }}>{score}/{MAX_SCORE}</strong>
+                      {score >= 5 ? " — higher risk; ask about screening." : " — under the high-risk cutoff of 5."}
                     </p>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#9CA3AF" }}>← See your personalized advice on the left</p>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#9CA3AF" }}>See your personalized advice on the left</p>
                     <button
                       onClick={resetAssessment}
                       style={{
@@ -536,10 +594,9 @@ const RiskAssessment = () => {
                 {/* Already diagnosed path in card */}
                 {showAlreadyDiagnosed && !quizComplete && (
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "48px", marginBottom: "16px" }}>💙</div>
                     <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "24px", fontWeight: "700", color: "#1D4ED8", margin: "0 0 8px 0" }}>Living with diabetes</h2>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 20px 0", lineHeight: "1.7" }}>You're not alone. Millions manage it well every day — here are the most important things to focus on.</p>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#9CA3AF" }}>← See your personalized guide on the left</p>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#9CA3AF" }}>See your personalized guide on the left</p>
                     <button
                       onClick={resetAssessment}
                       style={{
@@ -548,7 +605,7 @@ const RiskAssessment = () => {
                         fontSize: "14px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
                       }}
                     >
-                      ← Go back
+                      Go back
                     </button>
                   </div>
                 )}
