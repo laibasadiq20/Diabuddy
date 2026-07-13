@@ -5,13 +5,17 @@ import { theme } from '../theme';
 import {
   LayoutDashboard,
   Users,
-  MessageSquare,
+  Wrench,
+  ClipboardList,
+  Watch,
+  Bell,
   UserRound,
   Shield,
   LogOut,
   Menu,
   X,
   Heart,
+  MessageSquare,
 } from 'lucide-react';
 
 const t = theme;
@@ -19,7 +23,10 @@ const t = theme;
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Community', path: '/community', icon: Users },
-  { label: 'Messages', path: '/messages', icon: MessageSquare },
+  { label: 'Toolbox', path: '/toolbox', icon: Wrench },
+  { label: 'Logs', path: '/logs', icon: ClipboardList },
+  { label: 'Fitbit', path: '/fitbit', icon: Watch },
+  { label: 'Reminders', path: '/reminders', icon: Bell },
   { label: 'My Account', path: '/account', icon: UserRound },
 ];
 

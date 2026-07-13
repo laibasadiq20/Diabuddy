@@ -22,6 +22,10 @@ import NewPost from './pages/Community/NewPost';
 import Messages from './pages/Messages/Messages';
 import Account from './pages/Account/Account';
 import AdminReports from './pages/Admin/AdminReports';
+import Toolbox from './pages/Toolbox/Toolbox';
+import Logs from './pages/Logs/Logs';
+import Fitbit from './pages/Fitbit/Fitbit';
+import Reminders from './pages/Reminders/Reminders';
 
 // ProtectedRoute wrapper to guard private paths
 function ProtectedRoute({ children, adminOnly = false }) {
@@ -68,6 +72,10 @@ function App() {
         <Route path="/community/new-post" element={<ProtectedRoute><NewPost /></ProtectedRoute>} />
         <Route path="/community/posts/:id" element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+        <Route path="/toolbox" element={<ProtectedRoute><Toolbox /></ProtectedRoute>} />
+        <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
+        <Route path="/fitbit" element={<ProtectedRoute><Fitbit /></ProtectedRoute>} />
+        <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         
         {/* Admin Moderation Queue */}
