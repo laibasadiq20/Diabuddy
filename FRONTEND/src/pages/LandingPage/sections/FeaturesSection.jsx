@@ -186,12 +186,12 @@ const FeaturesSection = () => {
             </div>
 
             <div className="mt-8 space-y-3">
-              <div className="rounded-xl border border-[var(--line)] bg-[var(--cream-soft)] px-4 py-3 text-sm">
-                🔔 Time for your glucose check
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--cream-soft)] px-4 py-3 text-sm text-[var(--brown)]">
+                Time for your glucose check
               </div>
 
-              <div className="rounded-xl border border-[var(--line)] bg-[var(--cream-soft)] px-4 py-3 text-sm">
-                💧 You're two glasses away from your goal
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--cream-soft)] px-4 py-3 text-sm text-[var(--brown)]">
+                You're two glasses away from your goal
               </div>
             </div>
 

@@ -1,43 +1,27 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, BookOpen, Award, Activity, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const exploreItems = [
   {
     to: '/learn/warning-signs',
-    icon: AlertTriangle,
-    eyebrow: 'Listen to your body',
     title: 'Warning signs',
-    description:
-      'Common symptoms to watch for — plus a full guide on when to take action, from monitoring at home to seeking care right away.',
-    cta: 'Explore warning signs',
+    description: 'Symptoms to watch for, and when to take action.',
   },
   {
     to: '/learn/diabetes-types',
-    icon: Activity,
-    eyebrow: 'Know the types',
     title: 'Four kinds of diabetes',
-    description:
-      'Type 1, Type 2, gestational, and prediabetes — explained calmly, side by side, with no jargon.',
-    cta: 'Learn about types',
+    description: 'Type 1, Type 2, gestational, and prediabetes — calmly explained.',
   },
   {
     to: '/learn/risk-assessment',
-    icon: Award,
-    eyebrow: '60-second check',
     title: 'Risk assessment',
-    description:
-      'Answer five quick questions to understand your risk level and get practical next steps — no sign-up needed.',
-    cta: 'Take the assessment',
+    description: 'Five quick questions. Practical next steps. No sign-up.',
   },
   {
     to: '/learn/blog',
-    icon: BookOpen,
-    eyebrow: 'Education portal',
-    title: 'Diabetes resource blog',
-    description:
-      'Research-backed guides, recipes, and lifestyle tips from certified health coaches.',
-    cta: 'Browse articles',
+    title: 'Resource blog',
+    description: 'Guides, recipes, and lifestyle tips from health coaches.',
   },
 ];
 
@@ -46,13 +30,12 @@ const ExploreSection = () => {
     <section id="learn" className="bg-[var(--cream-soft)] px-6 py-24">
       <div className="mx-auto max-w-6xl">
 
-        {/* Header */}
-        <div className="mx-auto mb-14 max-w-2xl text-center">
+        <div className="mb-12 max-w-2xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
             — 03 / Go deeper
           </p>
 
-          <h2 className="mt-3 font-serif text-4xl md:text-6xl leading-[1.1] text-[var(--brown)]">
+          <h2 className="mt-3 font-serif text-4xl md:text-5xl leading-[1.1] text-[var(--brown)]">
             Learn at your own pace,{' '}
             <span className="italic text-[var(--sage-deep)]">
               one topic at a time.
@@ -60,54 +43,34 @@ const ExploreSection = () => {
           </h2>
 
           <p className="mt-4 text-sm leading-relaxed text-[var(--brown-soft)]">
-            Everything you need lives in structured guides — calm, clear, and focused.
+            Structured guides — calm, clear, and focused.
           </p>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-
-          {exploreItems.map((item) => {
-            const Icon = item.icon;
-
-            return (
+        <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
+          {exploreItems.map((item) => (
+            <li key={item.to}>
               <Link
-                key={item.to}
                 to={item.to}
-                className="group relative flex flex-col rounded-2xl bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_50px_-20px_rgba(0,0,0,0.25)]"
+                className="group flex flex-col gap-2 py-7 sm:flex-row sm:items-center sm:justify-between sm:gap-8 transition-colors hover:bg-[var(--cream)]/60 -mx-2 px-2 sm:-mx-4 sm:px-4 rounded-lg"
               >
-
-                {/* ✨ Animated soft border */}
-                <div className="pointer-events-none absolute inset-0 rounded-2xl border border-transparent animate-borderPulse group-hover:border-[rgba(47,106,79,0.35)] group-hover:shadow-[0_0_0_4px_rgba(47,106,79,0.08)] transition-all duration-500" />
-
-                {/* Icon */}
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl text-[var(--sage-deep)]">
-                  <Icon size={22} strokeWidth={1.5} />
+                <div className="min-w-0">
+                  <h3 className="font-serif text-[1.35rem] text-[var(--brown)] group-hover:text-[var(--sage-deep)] transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--brown-soft)]">
+                    {item.description}
+                  </p>
                 </div>
 
-                {/* Text */}
-                <span className="mb-1 text-[0.68rem] uppercase tracking-[0.18em] text-[var(--brown-soft)]">
-                  {item.eyebrow}
-                </span>
-
-                <h3 className="mb-2 font-serif text-[1.35rem] font-bold text-[var(--brown)]">
-                  {item.title}
-                </h3>
-
-                <p className="mb-5 flex-1 text-[1.02rem] leading-[1.6] text-[var(--brown-soft)]">
-                  {item.description}
-                </p>
-
-                <span className="inline-flex items-center gap-2 text-[0.9rem] font-semibold text-[var(--sage-deep)] transition-all duration-200 group-hover:gap-3">
-                  {item.cta}
+                <span className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-[var(--sage-deep)] transition-all duration-200 group-hover:gap-3">
+                  Read
                   <ArrowRight size={16} />
                 </span>
-
               </Link>
-            );
-          })}
-
-        </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

@@ -123,7 +123,7 @@ const HowItWorks = () => {
             How to use <span className="italic text-[#E7DCCB] font-normal">DiaBuddy.</span>
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-[1rem] leading-relaxed text-white/60">
-            Click through our key modules below to see how DiaBuddy acts as your premium diabetes logging, education, and social companion.
+            Click through each piece — learning, logging, community, and chat — to see how DiaBuddy fits into daily life.
           </p>
         </div>
 
@@ -315,7 +315,7 @@ const HowItWorks = () => {
                     <div className="flex flex-col gap-2 max-h-[110px] overflow-y-auto pr-1">
                       {mockMeals.map((m, idx) => (
                         <div key={idx} className="flex justify-between items-center bg-white py-1.5 px-3 rounded-lg border border-black/5 text-xs text-gray-700">
-                          <span>🍽️ {m.name}</span>
+                          <span>{m.name}</span>
                           <span className="font-bold text-[#C56A3E]">{m.carbs}g carbs</span>
                         </div>
                       ))}
@@ -373,9 +373,9 @@ const HowItWorks = () => {
                       <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Cast Your Vote</p>
                       
                       {[
-                        { key: 'juice', label: '🧃 Orange Juice', base: pollVotes.juice },
-                        { key: 'tablets', label: '💊 Glucose Tabs', base: pollVotes.tablets },
-                        { key: 'candy', label: '🍬 Skittles / Candy', base: pollVotes.candy }
+                        { key: 'juice', label: 'Orange Juice', base: pollVotes.juice },
+                        { key: 'tablets', label: 'Glucose Tabs', base: pollVotes.tablets },
+                        { key: 'candy', label: 'Skittles / Candy', base: pollVotes.candy }
                       ].map(opt => {
                         const pct = Math.round((opt.base / totalVotes) * 100);
                         return (
