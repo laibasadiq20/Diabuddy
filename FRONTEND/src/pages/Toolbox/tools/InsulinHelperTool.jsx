@@ -27,7 +27,7 @@ export default function InsulinHelperTool() {
         Correction dose formula: (Current − Target) ÷ Insulin sensitivity factor (ISF).
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+      <div className="db-tool-grid-3">
         <div>
           <label style={labelStyle}>Current (mg/dL)</label>
           <input type="number" min="40" max="600" value={current} onChange={(e) => setCurrent(e.target.value)} style={fieldStyle} />

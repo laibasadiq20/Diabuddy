@@ -25,7 +25,7 @@ export default function CalorieTool() {
       <p style={{ margin: 0, fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
         Estimates daily calorie needs (Mifflin–St Jeor). Useful when managing weight alongside diabetes — confirm goals with your care team.
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="db-tool-grid-2">
         <div>
           <label style={labelStyle}>Height (cm)</label>
           <input type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} style={fieldStyle} />
@@ -56,7 +56,7 @@ export default function CalorieTool() {
         </div>
       </div>
       {result && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="db-tool-grid-2">
           <div style={{ padding: 16, borderRadius: 16, background: t.surfaceSunken, border: `1px solid ${t.line}` }}>
             <p style={eyebrow}>BMR</p>
             <p style={{ margin: '4px 0 0', fontFamily: t.fontDisplay, fontSize: 26, color: t.ink, fontWeight: 600 }}>

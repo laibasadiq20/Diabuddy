@@ -203,7 +203,7 @@ export default function CommunityFeed() {
             <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '20px', alignItems: 'start' }} className="db-responsive-grid">
               
               {/* Left Column: Topics */}
-              <aside style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '24px' }}>
+              <aside className="db-topics-aside" style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '24px' }}>
                 <div style={{ 
                   background: '#FFF', 
                   borderRadius: '16px', 
@@ -218,7 +218,7 @@ export default function CommunityFeed() {
                   {loading ? (
                     <div style={{ padding: '20px 0', textAlign: 'center', color: t.inkFaint }}><RefreshCw className="animate-spin" size={20} style={{ margin: '0 auto' }} /></div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <div className="db-topics-list" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <button 
                         onClick={() => handleTopicSelect('')}
                         style={{
@@ -287,7 +287,7 @@ export default function CommunityFeed() {
                   gap: '12px',
                   flexWrap: 'wrap'
                 }}>
-                  <form onSubmit={handleSearchSubmit} style={{ flexGrow: 1, position: 'relative', minWidth: '220px' }}>
+                  <form onSubmit={handleSearchSubmit} style={{ flexGrow: 1, position: 'relative', minWidth: 'min(100%, 220px)' }}>
                     <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: t.inkSoft }} />
                     <input 
                       type="text" 
@@ -598,6 +598,21 @@ export default function CommunityFeed() {
       <style>{`
         @media (max-width: 860px) {
           .db-responsive-grid { grid-template-columns: 1fr !important; }
+          .db-topics-aside { position: static !important; }
+          .db-topics-list {
+            flex-direction: row !important;
+            overflow-x: auto;
+            gap: 8px !important;
+            padding-bottom: 2px;
+            -webkit-overflow-scrolling: touch;
+          }
+          .db-topics-list button {
+            flex: 0 0 auto !important;
+            white-space: nowrap;
+            border: 1.5px solid ${t.lineStrong} !important;
+            border-radius: 999px !important;
+            padding: 8px 14px !important;
+          }
         }
       `}</style>
     </div>

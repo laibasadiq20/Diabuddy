@@ -31,7 +31,7 @@ export default function BmiTool() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="db-tool-grid-2">
         <div>
           <label style={labelStyle}>Height (cm)</label>
           <input type="number" min="80" max="250" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} style={fieldStyle} />

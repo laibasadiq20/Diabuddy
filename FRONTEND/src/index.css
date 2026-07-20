@@ -215,3 +215,273 @@ a:focus-visible {
     transition: none;
   }
 }
+
+
+/* =========================
+   APP SHELL (mobile-first)
+========================= */
+
+.db-app-sidebar {
+  display: none;
+  width: 260px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 30;
+}
+
+.db-app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: calc(56px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 14px 0;
+  background: #27392E;
+  color: #F4F0E8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(22, 33, 25, 0.18);
+}
+
+.db-app-brand {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+}
+
+.db-app-icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.db-app-icon-btn.is-active {
+  background: rgba(232, 184, 154, 0.22);
+  color: #fff;
+}
+
+.db-app-tabs {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+  background: rgba(252, 250, 245, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid #D6CFC0;
+  box-shadow: 0 -8px 28px rgba(43, 42, 40, 0.08);
+}
+
+.db-app-tab {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #7A746A;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 4px 2px;
+  border-radius: 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.db-app-tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.db-app-tab.is-active {
+  color: #27392E;
+}
+
+.db-app-tab.is-active svg {
+  color: #62795A;
+}
+
+.db-app-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+}
+
+.db-app-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+.db-app-drawer-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: min(300px, 86vw);
+  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.28);
+  animation: db-drawer-in 220ms ease both;
+}
+
+.db-app-drawer-close {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes db-drawer-in {
+  from {
+    transform: translateX(-12px);
+    opacity: 0.85;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Reserve space under fixed chrome on authenticated app pages */
+@media (max-width: 899px) {
+  body.db-app-active {
+    overflow-x: hidden;
+  }
+
+  body.db-app-active main {
+    padding-top: calc(16px + 56px + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: calc(28px + 64px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  body.db-app-messages {
+    overflow: hidden;
+  }
+
+  body.db-app-messages main {
+    padding: 0 !important;
+    padding-top: calc(56px + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    height: 100dvh !important;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+}
+
+@media (min-width: 900px) {
+  .db-app-sidebar {
+    display: block !important;
+  }
+
+  .db-app-topbar,
+  .db-app-tabs,
+  .db-app-drawer {
+    display: none !important;
+  }
+}
+
+/* Shared responsive helpers for app screens */
+.db-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.db-tool-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.db-tool-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 560px) {
+  .db-form-grid,
+  .db-tool-grid-2,
+  .db-tool-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Messages: list ↔ chat stack on phones */
+@media (max-width: 860px) {
+  .db-msg-shell {
+    flex-direction: column !important;
+  }
+
+  .db-msg-list {
+    width: 100% !important;
+    max-width: none !important;
+    border-right: none !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  .db-msg-chat {
+    display: none !important;
+  }
+
+  .db-msg-shell.is-chat-open .db-msg-list {
+    display: none !important;
+  }
+
+  .db-msg-shell.is-chat-open .db-msg-chat {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  .db-msg-back {
+    display: inline-flex !important;
+  }
+}

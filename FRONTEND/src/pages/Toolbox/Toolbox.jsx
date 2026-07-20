@@ -193,6 +193,7 @@ export default function Toolbox() {
               </button>
 
               <section
+                className="db-tool-panel"
                 style={{
                   background: '#FFF',
                   borderRadius: 20,
@@ -226,6 +227,11 @@ export default function Toolbox() {
           )}
         </div>
       </main>
+      <style>{`
+        @media (max-width: 560px) {
+          .db-tool-panel { padding: 16px !important; border-radius: 18px !important; }
+        }
+      `}</style>
     </div>
   );
 }

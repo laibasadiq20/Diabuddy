@@ -14,7 +14,8 @@ import {
   Clock,
   Sparkles,
   Inbox,
-  CheckCheck
+  CheckCheck,
+  ArrowLeft,
 } from 'lucide-react';
 
 const t = theme;
@@ -64,8 +65,9 @@ export default function Messages() {
         if (autoSelectId) {
           setActiveConvId(autoSelectId);
         } else if (data.length > 0 && !activeConvId) {
-          // don't auto select on mobile, but on desktop we can select the first
-          setActiveConvId(data[0]._id);
+          // Auto-select on desktop only — phones keep the list-first app pattern
+          const desktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 861px)').matches;
+          if (desktop) setActiveConvId(data[0]._id);
         }
       }
     } catch (err) {
@@ -307,14 +309,16 @@ export default function Messages() {
   const activeConv = conversations.find(c => c._id === activeConvId);
 
   return (
-    <div style={{ height: '100vh', display: 'flex', background: '#E8E0D4', overflow: 'hidden' }}>
+    <div style={{ height: '100dvh', display: 'flex', background: '#E8E0D4', overflow: 'hidden' }}>
       <AppSidebar />
       
       <main style={{ flexGrow: 1, fontFamily: t.fontBody, minHeight: 0, display: 'flex', minWidth: 0 }}>
         <div style={{ width: '100%', margin: '0 auto', padding: '0', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           
           {/* App-like DM shell */}
-          <div style={{
+          <div
+            className={`db-msg-shell${activeConvId ? ' is-chat-open' : ''}`}
+            style={{
             background: t.surface,
             borderLeft: `1px solid ${t.lineStrong}`,
             flexGrow: 1,
@@ -324,7 +328,9 @@ export default function Messages() {
           }}>
             
             {/* Sidebar (Left column) */}
-            <div style={{ 
+            <div
+              className="db-msg-list"
+              style={{ 
               width: '340px', 
               maxWidth: '40%',
               borderRight: `1px solid ${t.line}`, 
@@ -470,12 +476,34 @@ export default function Messages() {
             </div>
 
             {/* Chat Box (Right column) */}
-            <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', background: t.surface }}>
+            <div className="db-msg-chat" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', background: t.surface, minWidth: 0 }}>
               {activeConv ? (
                 <>
                   {/* Top Bar Partner Header */}
-                  <div style={{ padding: '16px 24px', borderBottom: `1.5px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: `1.5px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <button
+                        type="button"
+                        className="db-msg-back"
+                        onClick={() => setActiveConvId(null)}
+                        aria-label="Back to conversations"
+                        style={{
+                          display: 'none',
+                          background: t.surfaceSunken,
+                          border: `1px solid ${t.line}`,
+                          borderRadius: 10,
+                          width: 36,
+                          height: 36,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: t.ink,
+                          flexShrink: 0,
+                          padding: 0,
+                        }}
+                      >
+                        <ArrowLeft size={18} />
+                      </button>
                       <div style={{ 
                         width: '32px', 
                         height: '32px', 
@@ -487,13 +515,14 @@ export default function Messages() {
                         fontSize: '13px',
                         fontWeight: '700',
                         color: t.sageDeep,
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        flexShrink: 0,
                       }}>
                         {getChatPartnerAvatar(activeConv)}
                       </div>
                       
-                      <div>
-                        <h3 style={{ fontSize: '15px', fontWeight: '700', color: t.ink, margin: 0 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: '700', color: t.ink, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {getChatPartnerName(activeConv)}
                         </h3>
                         
@@ -507,7 +536,7 @@ export default function Messages() {
                   </div>
 
                   {/* Messages Bubble History */}
-                  <div style={{ flexGrow: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ flexGrow: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     {msgLoading && messages.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '40px 0', color: t.inkSoft }}><RefreshCw className="animate-spin" size={24} style={{ margin: '0 auto' }} /></div>
                     ) : (
@@ -523,7 +552,7 @@ export default function Messages() {
                                 width: '100%'
                               }}
                             >
-                              <div style={{ display: 'flex', gap: '8px', maxWidth: '70%', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                              <div style={{ display: 'flex', gap: '8px', maxWidth: 'min(78%, 420px)', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
                                 
                                 {/* Sender name for group chats */}
                                 {activeConv.isGroup && !isMe && (
@@ -564,11 +593,12 @@ export default function Messages() {
                   <form 
                     onSubmit={handleSendMessage}
                     style={{ 
-                      padding: '16px 24px', 
+                      padding: '12px 14px', 
                       borderTop: `1.5px solid ${t.line}`, 
                       display: 'flex', 
-                      gap: '12px',
-                      background: t.surfaceRaised
+                      gap: '10px',
+                      background: t.surfaceRaised,
+                      flexShrink: 0,
                     }}
                   >
                     <input 

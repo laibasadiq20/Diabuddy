@@ -88,7 +88,7 @@ export default function GlucoseZoneTool() {
         Enter a glucose reading to see a simple zone and suggested next steps. Your personal targets from your clinician always come first.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="db-tool-grid-2">
         <div>
           <label style={labelStyle}>Glucose (mg/dL)</label>
           <input type="number" min="20" max="600" value={reading} onChange={(e) => setReading(e.target.value)} style={fieldStyle} />

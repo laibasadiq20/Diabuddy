@@ -116,8 +116,9 @@ export default function Dashboard() {
 
   return (
     <div
+      className="db-dashboard"
       style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex',
         background: t.bg,
         fontFamily: t.fontBody,
@@ -144,39 +145,24 @@ export default function Dashboard() {
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
 
           {/* Greeting bar */}
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'flex-end',
-              justifyContent: 'space-between',
-              gap: 16,
-              marginBottom: 20,
-            }}
-          >
+          <div className="db-dash-hello">
             <div>
               <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
                 {today}
               </p>
-              <h1
-                style={{
-                  margin: 0,
-                  fontFamily: t.fontDisplay,
-                  fontSize: 'clamp(32px, 5vw, 44px)',
-                  fontWeight: 500,
-                  color: t.ink,
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1.05,
-                }}
-              >
+              <h1 className="db-dash-title">
                 {greeting},{' '}
                 <em style={{ fontStyle: 'italic', color: t.sageDeep }}>{firstName}</em>
               </h1>
+              <p className="db-dash-sub">
+                Your care companion for today — tap a module to jump in.
+              </p>
             </div>
 
             <button
               type="button"
               onClick={() => navigate('/messages')}
+              className="db-dash-messages"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -226,16 +212,7 @@ export default function Dashboard() {
                       : t.shadowCard,
                     fontFamily: t.fontBody,
                     transition: 'transform 0.18s ease, box-shadow 0.18s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)';
-                    e.currentTarget.style.boxShadow = t.shadowLifted;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                    e.currentTarget.style.boxShadow = m.dark
-                      ? '0 18px 40px rgba(22,33,25,0.28)'
-                      : t.shadowCard;
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   {m.dark && (
@@ -288,7 +265,7 @@ export default function Dashboard() {
                     </span>
                   </div>
 
-                  <div style={{ position: 'relative', marginTop: 28 }}>
+                  <div style={{ position: 'relative', marginTop: 28 }} className="db-tile-copy">
                     <p
                       style={{
                         margin: 0,
@@ -310,6 +287,31 @@ export default function Dashboard() {
           </div>
 
           <style>{`
+            .db-dash-hello {
+              display: flex;
+              flex-wrap: wrap;
+              align-items: flex-end;
+              justify-content: space-between;
+              gap: 16px;
+              margin-bottom: 20px;
+            }
+            .db-dash-title {
+              margin: 0;
+              font-family: ${t.fontDisplay};
+              font-size: clamp(28px, 6vw, 44px);
+              font-weight: 500;
+              color: ${t.ink};
+              letter-spacing: -0.03em;
+              line-height: 1.05;
+            }
+            .db-dash-sub {
+              display: none;
+              margin: 10px 0 0;
+              font-size: 14px;
+              color: ${t.inkSoft};
+              line-height: 1.45;
+              max-width: 34ch;
+            }
             .db-bento {
               display: grid;
               grid-template-columns: repeat(12, 1fr);
@@ -322,21 +324,49 @@ export default function Dashboard() {
             .db-tile-fitbit { grid-column: span 4; min-height: 160px; }
             .db-tile-reminders { grid-column: span 4; min-height: 160px; }
 
-            @media (max-width: 800px) {
-              .db-bento { grid-template-columns: 1fr 1fr; }
-              .db-tile-community,
-              .db-tile-toolbox { grid-column: span 2; grid-row: span 1; min-height: 180px; }
-              .db-tile-logs,
-              .db-tile-fitbit,
-              .db-tile-reminders { grid-column: span 1; min-height: 150px; }
+            @media (hover: hover) and (pointer: fine) {
+              .db-tile:hover {
+                transform: translateY(-4px) scale(1.01);
+                box-shadow: ${t.shadowLifted};
+              }
             }
-            @media (max-width: 520px) {
-              .db-bento { grid-template-columns: 1fr; }
-              .db-tile-community,
-              .db-tile-toolbox,
+
+            @media (max-width: 800px) {
+              .db-dash-sub { display: block; }
+              .db-dash-messages { display: none !important; }
+              .db-bento {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+              }
+              .db-tile { padding: 18px !important; border-radius: 22px !important; }
+              .db-tile-community {
+                grid-column: span 2;
+                grid-row: span 1;
+                min-height: 176px;
+              }
+              .db-tile-toolbox {
+                grid-column: span 2;
+                grid-row: span 1;
+                min-height: 128px;
+              }
               .db-tile-logs,
               .db-tile-fitbit,
-              .db-tile-reminders { grid-column: span 1; min-height: 140px; }
+              .db-tile-reminders {
+                grid-column: span 1;
+                min-height: 148px;
+              }
+              .db-tile-reminders { grid-column: span 2; }
+              .db-tile-copy { margin-top: 18px !important; }
+              .db-tile-community .db-tile-copy p:first-child { font-size: 24px !important; }
+            }
+
+            @media (max-width: 420px) {
+              .db-bento { gap: 10px; }
+              .db-tile-logs,
+              .db-tile-fitbit {
+                min-height: 132px;
+              }
+              .db-tile-reminders { min-height: 120px; }
             }
           `}</style>
         </div>

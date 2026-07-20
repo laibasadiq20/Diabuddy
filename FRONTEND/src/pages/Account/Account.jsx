@@ -120,12 +120,13 @@ export default function Account() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
               <UserRound size={22} />
             </div>
-            <div>
-              <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 30, color: t.ink, fontWeight: 500 }}>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(24px, 5vw, 30px)', color: t.ink, fontWeight: 500 }}>
                 My Account
               </h1>
               <p style={{ margin: '4px 0 0', color: t.inkSoft, fontSize: 14 }}>
@@ -135,6 +136,7 @@ export default function Account() {
           </div>
 
           <div
+            className="db-account-card"
             style={{
               background: '#FFF',
               border: `1.5px solid ${t.lineStrong}`,
@@ -176,7 +178,7 @@ export default function Account() {
                 <input style={fieldStyle} value={form.name} onChange={onChange('name')} required minLength={2} />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="db-form-grid">
                 <div>
                   <label style={labelStyle}>Diabetes type</label>
                   <select style={fieldStyle} value={form.diabetesType} onChange={onChange('diabetesType')}>
@@ -195,7 +197,7 @@ export default function Account() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="db-form-grid">
                 <div>
                   <label style={labelStyle}>Gender</label>
                   <select style={fieldStyle} value={form.gender} onChange={onChange('gender')}>
@@ -255,9 +257,10 @@ export default function Account() {
                 type="submit"
                 disabled={saving}
                 style={{
-                  alignSelf: 'flex-start',
+                  alignSelf: 'stretch',
                   display: 'inline-flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: 8,
                   background: t.forest,
                   color: '#FFF',
@@ -284,9 +287,10 @@ export default function Account() {
 
       <style>{`
         @media (max-width: 640px) {
-          form > div[style*="grid-template-columns"] {
-            grid-template-columns: 1fr !important;
-          }
+          .db-account-card { padding: 18px !important; border-radius: 18px !important; }
+        }
+        @media (min-width: 641px) {
+          .db-account-card button[type="submit"] { align-self: flex-start !important; }
         }
       `}</style>
     </div>

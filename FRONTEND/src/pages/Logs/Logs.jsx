@@ -20,7 +20,7 @@ export default function Logs() {
           <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
             Logs
           </p>
-          <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 32, fontWeight: 500, color: t.ink }}>
+          <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(26px, 6vw, 32px)', fontWeight: 500, color: t.ink }}>
             Health logs
           </h1>
           <p style={{ margin: '8px 0 24px', fontSize: 14, color: t.inkSoft }}>

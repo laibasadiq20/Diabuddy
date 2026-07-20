@@ -14,7 +14,7 @@ export default function Fitbit() {
           <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
             Fitbit
           </p>
-          <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 32, fontWeight: 500, color: t.ink }}>
+          <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(26px, 6vw, 32px)', fontWeight: 500, color: t.ink }}>
             Connect Fitbit
           </h1>
           <p style={{ margin: '8px 0 24px', fontSize: 14, color: t.inkSoft, lineHeight: 1.5 }}>

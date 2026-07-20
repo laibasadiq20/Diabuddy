@@ -95,10 +95,10 @@ export default function AuthFlipCard({ startFlipped = false }) {
         
     
       {/* Right panel — warm flip cards */}
-      <div className="flex-1 flex items-center justify-center p-10 bg-[#efe7e0ce]">
+      <div className="flex-1 flex items-center justify-center p-5 sm:p-8 md:p-10 bg-[#efe7e0ce]">
         <div className="w-full max-w-[440px]">
           {/* Mobile logo */}
-          <div className="mb-7 md:hidden">
+          <div className="mb-7 lg:hidden">
             <Logo size={36} textSize={19} variant="light" />
           </div>
 
@@ -117,7 +117,7 @@ export default function AuthFlipCard({ startFlipped = false }) {
                   border: '1px solid rgba(168, 184, 154, 0.3)',
                   borderRadius: 'var(--radius, 16px)',
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.5)',
-                  padding: '36px 32px',
+                  padding: 'clamp(22px, 5vw, 36px) clamp(18px, 4vw, 32px)',
                 }}
               >
                 <LoginFormContent
@@ -136,7 +136,7 @@ export default function AuthFlipCard({ startFlipped = false }) {
                   border: '1px solid rgba(232, 207, 122, 0.3)',
                   borderRadius: 'var(--radius, 16px)',
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.6)',
-                  padding: '36px 32px',
+                  padding: 'clamp(22px, 5vw, 36px) clamp(18px, 4vw, 32px)',
                 }}
               >
                 <RegisterFormContent

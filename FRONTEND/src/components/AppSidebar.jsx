@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme';
@@ -27,7 +27,16 @@ const navItems = [
   { label: 'Logs', path: '/logs', icon: ClipboardList },
   { label: 'Fitbit', path: '/fitbit', icon: Watch },
   { label: 'Reminders', path: '/reminders', icon: Bell },
+  { label: 'Messages', path: '/messages', icon: MessageSquare },
   { label: 'My Account', path: '/account', icon: UserRound },
+];
+
+const bottomTabs = [
+  { label: 'Home', path: '/dashboard', icon: LayoutDashboard },
+  { label: 'Community', path: '/community', icon: Users },
+  { label: 'Tools', path: '/toolbox', icon: Wrench },
+  { label: 'Reminders', path: '/reminders', icon: Bell },
+  { label: 'Account', path: '/account', icon: UserRound },
 ];
 
 export default function AppSidebar() {
@@ -43,6 +52,24 @@ export default function AppSidebar() {
     navigate(path);
     setMobileOpen(false);
   };
+
+  useEffect(() => {
+    document.body.classList.add('db-app-active');
+    const onMessages = location.pathname.startsWith('/messages');
+    document.body.classList.toggle('db-app-messages', onMessages);
+    return () => {
+      document.body.classList.remove('db-app-active', 'db-app-messages');
+    };
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
 
   const SidebarInner = () => (
     <div
@@ -95,7 +122,7 @@ export default function AppSidebar() {
         </button>
       </div>
 
-      <nav style={{ flex: 1, padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <nav style={{ flex: 1, padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
         <p
           style={{
             margin: '0 10px 10px',
@@ -239,96 +266,71 @@ export default function AppSidebar() {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside
-        className="db-app-sidebar"
-        style={{
-          width: 260,
-          flexShrink: 0,
-          position: 'sticky',
-          top: 0,
-          height: '100vh',
-          display: 'none',
-        }}
-      >
+      {/* Desktop sidebar — participates in page flex row */}
+      <aside className="db-app-sidebar" aria-label="Main navigation">
         <SidebarInner />
       </aside>
 
-      {/* Mobile top bar */}
-      <div
-        className="db-app-mobile-bar"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '14px 18px',
-          background: t.forest,
-          color: '#F4F0E8',
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
-        }}
-      >
+      {/* Mobile top bar — fixed, out of flex flow */}
+      <header className="db-app-topbar">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 4 }}
+          className="db-app-icon-btn"
           aria-label="Open menu"
         >
           <Menu size={22} />
         </button>
         <button
           type="button"
-          onClick={() => go('/')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'inherit',
-            cursor: 'pointer',
-            padding: 0,
-            fontFamily: t.fontDisplay,
-            fontSize: 18,
-          }}
+          onClick={() => go('/dashboard')}
+          className="db-app-brand"
         >
           Diabuddy
         </button>
         <button
           type="button"
           onClick={() => go('/messages')}
-          style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 4 }}
+          className={`db-app-icon-btn${isActive('/messages') ? ' is-active' : ''}`}
           aria-label="Messages"
         >
           <MessageSquare size={20} />
         </button>
-      </div>
+      </header>
+
+      {/* Mobile bottom tabs — app-style primary nav */}
+      <nav className="db-app-tabs" aria-label="Primary">
+        {bottomTabs.map(({ label, path, icon: Icon }) => {
+          const active = isActive(path);
+          return (
+            <button
+              key={path}
+              type="button"
+              onClick={() => go(path)}
+              className={`db-app-tab${active ? ' is-active' : ''}`}
+              aria-current={active ? 'page' : undefined}
+            >
+              <Icon size={22} strokeWidth={active ? 2.35 : 1.75} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60 }}>
-          <div
+        <div className="db-app-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
+          <button
+            type="button"
+            className="db-app-drawer-backdrop"
+            aria-label="Close menu"
             onClick={() => setMobileOpen(false)}
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }}
           />
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 'min(288px, 86vw)' }}>
+          <div className="db-app-drawer-panel">
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              style={{
-                position: 'absolute',
-                top: 14,
-                right: 14,
-                zIndex: 2,
-                background: 'rgba(255,255,255,0.12)',
-                border: 'none',
-                borderRadius: 8,
-                color: '#fff',
-                width: 36,
-                height: 36,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              className="db-app-drawer-close"
               aria-label="Close menu"
             >
               <X size={18} />
@@ -337,13 +339,6 @@ export default function AppSidebar() {
           </div>
         </div>
       )}
-
-      <style>{`
-        @media (min-width: 900px) {
-          .db-app-sidebar { display: block !important; }
-          .db-app-mobile-bar { display: none !important; }
-        }
-      `}</style>
     </>
   );
 }
