@@ -4,44 +4,39 @@ import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
-import { 
-  Search, 
-  MessageSquare, 
-  ThumbsUp, 
-  Eye, 
-  PlusCircle, 
-  Filter, 
+import {
+  Search,
+  MessageSquare,
+  ThumbsUp,
+  Eye,
+  PlusCircle,
   Award,
   Lock,
   Pin,
   RefreshCw,
-  FolderOpen
+  FolderOpen,
 } from 'lucide-react';
 
 const t = theme;
 
 export default function CommunityFeed() {
-  const { user, authHeaders } = useAuth();
+  const { authHeaders } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // State
   const [posts, setPosts] = useState([]);
   const [topics, setTopics] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [topicsLoading, setTopicsLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // Pagination & Filtering
+
   const selectedTopic = searchParams.get('topic') || '';
-  const sortBy = searchParams.get('sort') || 'latest';
   const searchQuery = searchParams.get('search') || '';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
-  
+
   const [searchInputValue, setSearchInputValue] = useState(searchQuery);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Fetch topics
   useEffect(() => {
     const fetchTopics = async () => {
       try {
@@ -56,22 +51,21 @@ export default function CommunityFeed() {
       } catch (err) {
         console.error('Error fetching topics:', err);
       } finally {
-        setLoading(false);
+        setTopicsLoading(false);
       }
     };
     fetchTopics();
   }, []);
 
-  // Fetch posts feed
   useEffect(() => {
     const fetchFeed = async () => {
       setPostsLoading(true);
       setError('');
       try {
         const queryParams = new URLSearchParams({
-          sort: sortBy,
+          sort: 'latest',
           page: currentPage.toString(),
-          limit: '10'
+          limit: '10',
         });
         if (selectedTopic) queryParams.append('topic', selectedTopic);
         if (searchQuery) queryParams.append('search', searchQuery);
@@ -81,28 +75,28 @@ export default function CommunityFeed() {
           headers: { ...authHeaders() },
         });
         const data = await res.json();
-        
+
         if (res.ok) {
           setPosts(data.posts || []);
           setTotalPages(data.pages || 1);
         } else {
-          setError(data.message || 'Failed to fetch discussion feed');
+          setError(data.message || 'Failed to load discussions');
         }
       } catch (err) {
-        setError('Network error loading discussion feed');
+        setError('Network error loading discussions');
         console.error(err);
       } finally {
         setPostsLoading(false);
       }
     };
     fetchFeed();
-  }, [selectedTopic, sortBy, searchQuery, currentPage]);
+  }, [selectedTopic, searchQuery, currentPage]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    setSearchParams(prev => {
-      if (searchInputValue) {
-        prev.set('search', searchInputValue);
+    setSearchParams((prev) => {
+      if (searchInputValue.trim()) {
+        prev.set('search', searchInputValue.trim());
       } else {
         prev.delete('search');
       }
@@ -112,7 +106,7 @@ export default function CommunityFeed() {
   };
 
   const handleTopicSelect = (topicId) => {
-    setSearchParams(prev => {
+    setSearchParams((prev) => {
       if (topicId) {
         prev.set('topic', topicId);
       } else {
@@ -123,16 +117,8 @@ export default function CommunityFeed() {
     });
   };
 
-  const handleSortChange = (sortType) => {
-    setSearchParams(prev => {
-      prev.set('sort', sortType);
-      prev.set('page', '1');
-      return prev;
-    });
-  };
-
   const handlePageChange = (pageNum) => {
-    setSearchParams(prev => {
+    setSearchParams((prev) => {
       prev.set('page', pageNum.toString());
       return prev;
     });
@@ -144,474 +130,550 @@ export default function CommunityFeed() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: '#E8E0D4', fontFamily: t.fontBody }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', background: '#E8E0D4', fontFamily: t.fontBody }}>
       <AppSidebar />
-      
+
       <main style={{ flexGrow: 1, minWidth: 0, padding: '28px 24px 72px' }}>
-        <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
-          
-          {/* Forum Header */}
-          <div style={{ 
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            gap: '20px',
-            flexWrap: 'wrap',
-          }}>
-            <div>
-              <p style={{ 
-                margin: '0 0 8px',
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: t.forest,
-              }}>
-                Community
-              </p>
-              <h1 style={{ fontFamily: t.fontDisplay, fontSize: 'clamp(28px, 4vw, 40px)', margin: 0, fontWeight: 500, color: t.ink, letterSpacing: '-0.02em' }}>
-                Forum
-              </h1>
-              <p style={{ color: t.inkSoft, fontSize: '15px', margin: '8px 0 0', maxWidth: '480px', lineHeight: 1.55, fontWeight: 500 }}>
+        <div className="db-community" style={{ maxWidth: 720, margin: '0 auto' }}>
+
+          {/* Header */}
+          <div className="db-community-header">
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p className="db-community-eyebrow">Community</p>
+              <h1 className="db-community-title">Forum</h1>
+              <p className="db-community-lead">
                 Ask questions, share routines, and learn with people who get it.
               </p>
             </div>
-            <button 
+            <button
+              type="button"
+              className="db-community-cta"
               onClick={() => navigate('/community/new-post')}
-              style={{
-                background: t.forest,
-                color: '#FFF',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '12px 20px',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 10px 24px rgba(22, 33, 25, 0.22)',
-              }}
             >
-              <PlusCircle size={16} /> New post
+              <PlusCircle size={16} />
+              <span>New post</span>
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '20px', alignItems: 'start' }} className="db-responsive-grid">
-              
-              {/* Left Column: Topics */}
-              <aside className="db-topics-aside" style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '24px' }}>
-                <div style={{ 
-                  background: '#FFF', 
-                  borderRadius: '16px', 
-                  padding: '18px', 
-                  border: `1.5px solid ${t.lineStrong}`,
-                  boxShadow: t.shadowCard,
-                }}>
-                  <h3 style={{ fontSize: '12px', fontWeight: 700, color: t.ink, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>
-                    Topics
-                  </h3>
-                  
-                  {loading ? (
-                    <div style={{ padding: '20px 0', textAlign: 'center', color: t.inkFaint }}><RefreshCw className="animate-spin" size={20} style={{ margin: '0 auto' }} /></div>
-                  ) : (
-                    <div className="db-topics-list" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <button 
-                        onClick={() => handleTopicSelect('')}
-                        style={{
-                          background: selectedTopic === '' ? t.forest : 'transparent',
-                          border: 'none',
-                          borderRadius: '10px',
-                          padding: '10px 12px',
-                          textAlign: 'left',
-                          fontSize: '13px',
-                          fontWeight: selectedTopic === '' ? 700 : 600,
-                          color: selectedTopic === '' ? '#FFF' : t.ink,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <span>All</span>
-                      </button>
-                      
-                      {topics.map(topic => (
-                        <button 
-                          key={topic._id}
-                          onClick={() => handleTopicSelect(topic._id)}
-                          style={{
-                            background: selectedTopic === topic._id ? t.forest : 'transparent',
-                            border: 'none',
-                            borderRadius: '10px',
-                            padding: '10px 12px',
-                            textAlign: 'left',
-                            fontSize: '13px',
-                            fontWeight: selectedTopic === topic._id ? 700 : 600,
-                            color: selectedTopic === topic._id ? '#FFF' : t.ink,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                          }}
-                        >
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: selectedTopic === topic._id ? t.peach : (topic.color || t.sage) }} />
-                            {topic.name}
-                          </span>
-                          <span style={{ fontSize: '11px', color: selectedTopic === topic._id ? 'rgba(255,255,255,0.7)' : t.inkFaint, fontWeight: 600 }}>
-                            {topic.postsCount || 0}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </aside>
-              
-              {/* Right Column */}
-              <section style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                
-                <div style={{ 
-                  background: '#FFF', 
-                  borderRadius: '16px', 
-                  padding: '12px 14px', 
-                  border: `1.5px solid ${t.lineStrong}`,
-                  boxShadow: t.shadowCard,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  flexWrap: 'wrap'
-                }}>
-                  <form onSubmit={handleSearchSubmit} style={{ flexGrow: 1, position: 'relative', minWidth: 'min(100%, 220px)' }}>
-                    <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: t.inkSoft }} />
-                    <input 
-                      type="text" 
-                      value={searchInputValue}
-                      onChange={e => setSearchInputValue(e.target.value)}
-                      placeholder="Search discussions..."
-                      style={{
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        padding: '10px 14px 10px 36px',
-                        background: t.surfaceSunken,
-                        border: `1.5px solid ${t.lineStrong}`,
-                        borderRadius: '12px',
-                        fontSize: '13px',
-                        color: t.ink,
-                        fontWeight: 500,
-                        outline: 'none',
-                        fontFamily: t.fontBody
-                      }}
-                    />
-                  </form>
-                  
-                  {/* Sort Controls */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Filter size={14} color={t.ink} />
-                    <span style={{ fontSize: '13px', color: t.ink, fontWeight: '600' }}>Sort:</span>
-                    <div style={{ display: 'flex', background: t.surfaceSunken, padding: '4px', borderRadius: '10px', border: `1.5px solid ${t.lineStrong}` }}>
-                      {[
-                        ['latest', 'Latest'],
-                        ['most_commented', 'Activity'],
-                        ['best_answers', 'Verified Q&A']
-                      ].map(([type, label]) => (
-                        <button
-                          key={type}
-                          onClick={() => handleSortChange(type)}
-                          style={{
-                            background: sortBy === type ? t.forest : 'none',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '6px 12px',
-                            fontSize: '12px',
-                            fontWeight: sortBy === type ? '700' : '600',
-                            color: sortBy === type ? '#FFF' : t.inkSoft,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+          {/* Search */}
+          <form onSubmit={handleSearchSubmit} className="db-community-search">
+            <Search size={16} className="db-community-search-icon" />
+            <input
+              type="search"
+              value={searchInputValue}
+              onChange={(e) => setSearchInputValue(e.target.value)}
+              placeholder="Search discussions…"
+              aria-label="Search discussions"
+            />
+          </form>
 
-                {/* Posts Feed */}
-                {postsLoading ? (
-                  <div style={{ padding: '60px 0', textAlign: 'center', color: t.inkSoft }}>
-                    <RefreshCw className="animate-spin" size={32} style={{ margin: '0 auto 16px' }} />
-                    <p style={{ margin: 0 }}>Loading discussions...</p>
-                  </div>
-                ) : error ? (
-                  <div style={{ background: t.clayTint, border: `1.5px solid ${t.clay}30`, borderRadius: '16px', padding: '24px', color: t.clayDeep, textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 16px 0', fontWeight: '500' }}>{error}</p>
-                    <button onClick={clearFilters} style={{ background: t.clay, color: '#FFF', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
-                      Reset filters
-                    </button>
-                  </div>
-                ) : posts.length === 0 ? (
-                  <div style={{ background: t.surface, border: `1.5px solid ${t.line}`, borderRadius: '24px', padding: '60px 24px', textAlign: 'center', boxShadow: t.shadowCard }}>
-                    <FolderOpen size={48} color={t.inkFaint} style={{ margin: '0 auto 16px' }} />
-                    <h3 style={{ fontFamily: t.fontDisplay, fontSize: '20px', margin: '0 0 8px 0', color: t.ink }}>No posts found</h3>
-                    <p style={{ color: t.inkSoft, fontSize: '14px', margin: '0 0 24px 0', maxWidth: '320px', marginLeft: 'auto', marginRight: 'auto' }}>
-                      There are no active discussions here matching your filters. Why not start one yourself?
-                    </p>
-                    <button 
-                      onClick={() => navigate('/community/new-post')}
-                      style={{ background: t.sageDeep, color: '#FFF', border: 'none', padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                    >
-                      <PlusCircle size={16} /> Create the first post
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {posts.map(post => {
-                      const postTopicColor = post.topicId?.color || t.sage;
-                      const hasBestAnswer = !!post.bestAnswerCommentId;
-
-                      return (
-                        <article 
-                          key={post._id}
-                          onClick={() => navigate(`/community/posts/${post._id}`)}
-                          style={{
-                            background: '#FFF',
-                            border: `1.5px solid ${t.lineStrong}`,
-                            borderRadius: '16px',
-                            padding: '20px 22px',
-                            cursor: 'pointer',
-                            transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
-                            position: 'relative',
-                            overflow: 'hidden',
-                            boxShadow: t.shadowCard,
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = t.forest;
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 14px 30px rgba(55,45,35,0.12)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = t.lineStrong;
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = t.shadowCard;
-                          }}
-                        >
-                          {/* Thread badges (Pin, Lock, Best Answer) */}
-                          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                            {post.isPinned && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: '700', color: t.sageDeep, background: t.sageTint, padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                <Pin size={10} /> Pinned
-                              </span>
-                            )}
-                            {post.isLocked && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: '700', color: t.clayDeep, background: t.clayTint, padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                <Lock size={10} /> Locked
-                              </span>
-                            )}
-                            {hasBestAnswer && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: '700', color: t.gold, background: t.goldTint, padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                <Award size={10} /> Solved / Best Answer
-                              </span>
-                            )}
-                            
-                            {/* Topic tag */}
-                            <span style={{ 
-                              fontSize: '11px', 
-                              fontWeight: '600', 
-                              color: postTopicColor, 
-                              background: postTopicColor + '15',
-                              padding: '2px 8px', 
-                              borderRadius: '6px',
-                              marginLeft: 'auto'
-                            }}>
-                              {post.topicId?.name || 'General'}
-                            </span>
-                          </div>
-
-                          {/* Post Title */}
-                          <h2 style={{ 
-                            fontSize: '19px', 
-                            color: t.ink, 
-                            fontWeight: '700', 
-                            margin: '0 0 10px 0',
-                            fontFamily: t.fontBody,
-                            lineHeight: '1.3'
-                          }}>
-                            {post.title}
-                          </h2>
-
-                          {/* Post snippet */}
-                          <p style={{ 
-                            fontSize: '14px', 
-                            color: t.inkSoft, 
-                            margin: '0 0 20px 0', 
-                            lineHeight: '1.55',
-                            fontWeight: 500,
-                            overflow: 'hidden',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical'
-                          }}>
-                            {post.content}
-                          </p>
-
-                          {/* Author & Footer stats */}
-                          <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center', 
-                            flexWrap: 'wrap', 
-                            gap: '12px',
-                            borderTop: `1px solid ${t.line}`,
-                            paddingTop: '16px'
-                          }}>
-                            
-                            {/* Author */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{ 
-                                width: '28px', 
-                                height: '28px', 
-                                borderRadius: '50%', 
-                                background: t.sageSoft, 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center',
-                                fontSize: '12px',
-                                fontWeight: '700',
-                                color: t.sageDeep,
-                                overflow: 'hidden'
-                              }}>
-                                {post.isAnonymous ? '👤' : (
-                                  post.authorId?.profileImageUrl ? (
-                                    <img src={post.authorId.profileImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                  ) : post.authorId?.name?.charAt(0).toUpperCase()
-                                )}
-                              </div>
-                              
-                              <div>
-                                <p style={{ fontSize: '13px', fontWeight: '600', color: t.ink, margin: 0 }}>
-                                  {post.isAnonymous ? 'Anonymous Buddy' : post.authorId?.name}
-                                  {!post.isAnonymous && post.authorId?.isVerifiedProfessional && (
-                                    <span style={{ marginLeft: '4px', fontSize: '10px', background: t.skyDeep, color: '#FFF', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle', fontWeight: '700' }}>
-                                      PRO
-                                    </span>
-                                  )}
-                                </p>
-                                <p style={{ fontSize: '11px', color: t.inkFaint, margin: 0 }}>
-                                  {!post.isAnonymous && post.authorId?.diabetesType ? `${post.authorId.diabetesType} · ` : ''}
-                                  {new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Feed Stats */}
-                            <div style={{ display: 'flex', gap: '16px', color: t.inkSoft, fontSize: '13px' }}>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <ThumbsUp size={14} color={t.inkFaint} /> {post.likesCount || 0}
-                              </span>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <MessageSquare size={14} color={t.inkFaint} /> {post.commentsCount || 0}
-                              </span>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Eye size={14} color={t.inkFaint} /> {post.viewsCount || 0}
-                              </span>
-                            </div>
-
-                          </div>
-                        </article>
-                      );
-                    })}
-
-                    {/* Pagination Footer */}
-                    {totalPages > 1 && (
-                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
-                        <button 
-                          disabled={currentPage === 1}
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          style={{
-                            background: t.surface,
-                            border: `1.5px solid ${t.line}`,
-                            borderRadius: '8px',
-                            padding: '6px 12px',
-                            fontSize: '13px',
-                            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                            color: currentPage === 1 ? t.inkFaint : t.ink,
-                            opacity: currentPage === 1 ? 0.6 : 1
-                          }}
-                        >
-                          Previous
-                        </button>
-                        
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
-                          <button
-                            key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
-                            style={{
-                              background: pageNum === currentPage ? t.sageDeep : t.surface,
-                              border: `1.5px solid ${pageNum === currentPage ? t.sageDeep : t.line}`,
-                              borderRadius: '8px',
-                              padding: '6px 12px',
-                              fontSize: '13px',
-                              cursor: 'pointer',
-                              color: pageNum === currentPage ? '#FFF' : t.ink,
-                              fontWeight: pageNum === currentPage ? '600' : '400'
-                            }}
-                          >
-                            {pageNum}
-                          </button>
-                        ))}
-
-                        <button 
-                          disabled={currentPage === totalPages}
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          style={{
-                            background: t.surface,
-                            border: `1.5px solid ${t.line}`,
-                            borderRadius: '8px',
-                            padding: '6px 12px',
-                            fontSize: '13px',
-                            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                            color: currentPage === totalPages ? t.inkFaint : t.ink,
-                            opacity: currentPage === totalPages ? 0.6 : 1
-                          }}
-                        >
-                          Next
-                        </button>
-                      </div>
-                    )}
-
-                  </div>
-                )}
-                
-              </section>
-
-            </div>
+          {/* Simple topic chips */}
+          <div className="db-community-topics" role="tablist" aria-label="Topics">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedTopic === ''}
+              className={`db-topic-chip${selectedTopic === '' ? ' is-active' : ''}`}
+              onClick={() => handleTopicSelect('')}
+            >
+              All
+            </button>
+            {!topicsLoading &&
+              topics.map((topic) => (
+                <button
+                  key={topic._id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selectedTopic === topic._id}
+                  className={`db-topic-chip${selectedTopic === topic._id ? ' is-active' : ''}`}
+                  onClick={() => handleTopicSelect(topic._id)}
+                >
+                  {topic.name}
+                </button>
+              ))}
           </div>
-          
+
+          {/* Feed */}
+          {postsLoading ? (
+            <div className="db-community-state">
+              <RefreshCw className="animate-spin" size={28} />
+              <p>Loading discussions…</p>
+            </div>
+          ) : error ? (
+            <div className="db-community-state db-community-state--error">
+              <p>{error}</p>
+              <button type="button" onClick={clearFilters}>
+                Try again
+              </button>
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="db-community-state">
+              <FolderOpen size={40} color={t.inkFaint} />
+              <h3>No posts yet</h3>
+              <p>Be the first to start a discussion in this space.</p>
+              <button type="button" className="db-community-cta" onClick={() => navigate('/community/new-post')}>
+                <PlusCircle size={16} />
+                <span>Create a post</span>
+              </button>
+            </div>
+          ) : (
+            <div className="db-community-feed">
+              {posts.map((post) => {
+                const postTopicColor = post.topicId?.color || t.sage;
+                const hasBestAnswer = !!post.bestAnswerCommentId;
+
+                return (
+                  <article
+                    key={post._id}
+                    className="db-post-card"
+                    onClick={() => navigate(`/community/posts/${post._id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/community/posts/${post._id}`);
+                      }
+                    }}
+                    role="link"
+                    tabIndex={0}
+                  >
+                    <div className="db-post-meta-row">
+                      <div className="db-post-badges">
+                        {post.isPinned && (
+                          <span className="db-badge db-badge--pin">
+                            <Pin size={10} /> Pinned
+                          </span>
+                        )}
+                        {post.isLocked && (
+                          <span className="db-badge db-badge--lock">
+                            <Lock size={10} /> Locked
+                          </span>
+                        )}
+                        {hasBestAnswer && (
+                          <span className="db-badge db-badge--solved">
+                            <Award size={10} /> Solved
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className="db-post-topic"
+                        style={{ color: postTopicColor, background: `${postTopicColor}18` }}
+                      >
+                        {post.topicId?.name || 'General'}
+                      </span>
+                    </div>
+
+                    <h2 className="db-post-title">{post.title}</h2>
+                    <p className="db-post-excerpt">{post.content}</p>
+
+                    <div className="db-post-footer">
+                      <div className="db-post-author">
+                        <div className="db-post-avatar">
+                          {post.isAnonymous ? (
+                            'A'
+                          ) : post.authorId?.profileImageUrl ? (
+                            <img src={post.authorId.profileImageUrl} alt="" />
+                          ) : (
+                            post.authorId?.name?.charAt(0).toUpperCase() || '?'
+                          )}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p className="db-post-author-name">
+                            {post.isAnonymous ? 'Anonymous Buddy' : post.authorId?.name}
+                            {!post.isAnonymous && post.authorId?.isVerifiedProfessional && (
+                              <span className="db-pro-tag">PRO</span>
+                            )}
+                          </p>
+                          <p className="db-post-date">
+                            {!post.isAnonymous && post.authorId?.diabetesType
+                              ? `${post.authorId.diabetesType} · `
+                              : ''}
+                            {new Date(post.createdAt).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="db-post-stats">
+                        <span>
+                          <ThumbsUp size={14} /> {post.likesCount || 0}
+                        </span>
+                        <span>
+                          <MessageSquare size={14} /> {post.commentsCount || 0}
+                        </span>
+                        <span>
+                          <Eye size={14} /> {post.viewsCount || 0}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+
+              {totalPages > 1 && (
+                <div className="db-community-pager">
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
+
       <style>{`
-        @media (max-width: 860px) {
-          .db-responsive-grid { grid-template-columns: 1fr !important; }
-          .db-topics-aside { position: static !important; }
-          .db-topics-list {
-            flex-direction: row !important;
-            overflow-x: auto;
-            gap: 8px !important;
-            padding-bottom: 2px;
-            -webkit-overflow-scrolling: touch;
+        .db-community-header {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+        .db-community-eyebrow {
+          margin: 0 0 8px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: ${t.forest};
+        }
+        .db-community-title {
+          font-family: ${t.fontDisplay};
+          font-size: clamp(28px, 5vw, 40px);
+          margin: 0;
+          font-weight: 500;
+          color: ${t.ink};
+          letter-spacing: -0.02em;
+        }
+        .db-community-lead {
+          color: ${t.inkSoft};
+          font-size: 15px;
+          margin: 8px 0 0;
+          max-width: 42ch;
+          line-height: 1.55;
+          font-weight: 500;
+        }
+        .db-community-cta {
+          background: ${t.forest};
+          color: #fff;
+          border: none;
+          border-radius: 12px;
+          padding: 12px 18px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 10px 24px rgba(22, 33, 25, 0.22);
+          font-family: ${t.fontBody};
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .db-community-search {
+          position: relative;
+          margin-bottom: 14px;
+        }
+        .db-community-search-icon {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: ${t.inkSoft};
+          pointer-events: none;
+        }
+        .db-community-search input {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 13px 14px 13px 42px;
+          background: #fff;
+          border: 1.5px solid ${t.lineStrong};
+          border-radius: 14px;
+          font-size: 14px;
+          color: ${t.ink};
+          font-weight: 500;
+          outline: none;
+          font-family: ${t.fontBody};
+          box-shadow: ${t.shadowCard};
+        }
+        .db-community-search input:focus {
+          border-color: ${t.forest};
+        }
+        .db-community-topics {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          margin-bottom: 18px;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .db-community-topics::-webkit-scrollbar { display: none; }
+        .db-topic-chip {
+          flex: 0 0 auto;
+          border: 1.5px solid ${t.lineStrong};
+          background: #fff;
+          color: ${t.inkSoft};
+          border-radius: 999px;
+          padding: 8px 14px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: ${t.fontBody};
+          transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .db-topic-chip.is-active {
+          background: ${t.forest};
+          border-color: ${t.forest};
+          color: #fff;
+        }
+        .db-community-feed {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .db-post-card {
+          background: #fff;
+          border: 1.5px solid ${t.lineStrong};
+          border-radius: 16px;
+          padding: 18px 20px;
+          cursor: pointer;
+          box-shadow: ${t.shadowCard};
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          outline: none;
+        }
+        .db-post-card:focus-visible {
+          border-color: ${t.forest};
+          box-shadow: 0 0 0 3px rgba(39, 57, 46, 0.15);
+        }
+        @media (hover: hover) and (pointer: fine) {
+          .db-post-card:hover {
+            border-color: ${t.forest};
+            box-shadow: 0 14px 30px rgba(55, 45, 35, 0.1);
           }
-          .db-topics-list button {
-            flex: 0 0 auto !important;
-            white-space: nowrap;
-            border: 1.5px solid ${t.lineStrong} !important;
-            border-radius: 999px !important;
-            padding: 8px 14px !important;
+        }
+        .db-post-meta-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+        .db-post-badges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          min-width: 0;
+        }
+        .db-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 4px;
+          text-transform: uppercase;
+        }
+        .db-badge--pin { color: ${t.sageDeep}; background: ${t.sageTint}; }
+        .db-badge--lock { color: ${t.clayDeep}; background: ${t.clayTint}; }
+        .db-badge--solved { color: ${t.gold}; background: ${t.goldTint}; }
+        .db-post-topic {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 3px 8px;
+          border-radius: 6px;
+          flex-shrink: 0;
+          white-space: nowrap;
+        }
+        .db-post-title {
+          font-size: 17px;
+          color: ${t.ink};
+          font-weight: 700;
+          margin: 0 0 8px;
+          font-family: ${t.fontBody};
+          line-height: 1.35;
+        }
+        .db-post-excerpt {
+          font-size: 14px;
+          color: ${t.inkSoft};
+          margin: 0 0 16px;
+          line-height: 1.55;
+          font-weight: 500;
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+        .db-post-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
+          border-top: 1px solid ${t.line};
+          padding-top: 14px;
+        }
+        .db-post-author {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+        }
+        .db-post-avatar {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: ${t.sageSoft};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 700;
+          color: ${t.sageDeep};
+          overflow: hidden;
+          flex-shrink: 0;
+        }
+        .db-post-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .db-post-author-name {
+          font-size: 13px;
+          font-weight: 600;
+          color: ${t.ink};
+          margin: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .db-pro-tag {
+          margin-left: 4px;
+          font-size: 10px;
+          background: ${t.skyDeep};
+          color: #fff;
+          padding: 1px 5px;
+          border-radius: 4px;
+          vertical-align: middle;
+          font-weight: 700;
+        }
+        .db-post-date {
+          font-size: 11px;
+          color: ${t.inkFaint};
+          margin: 0;
+        }
+        .db-post-stats {
+          display: flex;
+          gap: 14px;
+          color: ${t.inkSoft};
+          font-size: 13px;
+        }
+        .db-post-stats span {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .db-community-state {
+          background: #fff;
+          border: 1.5px solid ${t.lineStrong};
+          border-radius: 20px;
+          padding: 48px 24px;
+          text-align: center;
+          color: ${t.inkSoft};
+          box-shadow: ${t.shadowCard};
+        }
+        .db-community-state h3 {
+          font-family: ${t.fontDisplay};
+          font-size: 20px;
+          margin: 12px 0 8px;
+          color: ${t.ink};
+          font-weight: 500;
+        }
+        .db-community-state p { margin: 0 0 20px; font-size: 14px; }
+        .db-community-state--error {
+          background: ${t.clayTint};
+          border-color: ${t.clay}30;
+          color: ${t.clayDeep};
+        }
+        .db-community-state--error button {
+          background: ${t.clay};
+          color: #fff;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+        }
+        .db-community-pager {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 12px;
+          margin-top: 8px;
+        }
+        .db-community-pager button {
+          background: #fff;
+          border: 1.5px solid ${t.lineStrong};
+          border-radius: 10px;
+          padding: 8px 14px;
+          font-size: 13px;
+          cursor: pointer;
+          color: ${t.ink};
+          font-family: ${t.fontBody};
+          font-weight: 600;
+        }
+        .db-community-pager button:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+        }
+        .db-community-pager span {
+          font-size: 13px;
+          color: ${t.inkSoft};
+          font-weight: 600;
+        }
+
+        @media (max-width: 640px) {
+          .db-community-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 14px;
+          }
+          .db-community-cta {
+            width: 100%;
+            padding: 13px 16px;
+            border-radius: 14px;
+          }
+          .db-post-card {
+            padding: 16px;
+            border-radius: 14px;
+          }
+          .db-post-title { font-size: 16px; }
+          .db-post-footer {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .db-post-stats {
+            width: 100%;
+            justify-content: flex-start;
+            padding-top: 2px;
           }
         }
       `}</style>

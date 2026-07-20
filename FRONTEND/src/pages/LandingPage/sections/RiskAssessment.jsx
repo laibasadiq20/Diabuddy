@@ -262,7 +262,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
       <style>{`@keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }`}</style>
 
       {/* Result hero banner */}
-      <div style={{
+      <div className="ra-result-banner" style={{
         position: "relative",
         overflow: "hidden",
         background: "linear-gradient(145deg, #1F3A2E 0%, #32493B 60%, #3d5c4a 100%)",
@@ -289,16 +289,17 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
       </h3>
 
       {/* Advice cards grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "32px" }}>
+      <div className="ra-advice-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "32px" }}>
         {advice.map(a => (
           <AdviceCard key={a.title} {...a} accentColor={color} />
         ))}
       </div>
 
       {/* CTA row */}
-      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+      <div className="ra-cta-row" style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
         <button
           onClick={() => navigate("/register")}
+          className="ra-cta-primary"
           style={{
             background: "#022D20", color: "#fff", border: "none",
             borderRadius: "50px", padding: "14px 32px", fontSize: "15px", fontWeight: "600",
@@ -313,6 +314,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
         </button>
         <button
           onClick={onRetake}
+          className="ra-cta-secondary"
           style={{
             background: "transparent", color: "#6B7280",
             border: "1.5px solid #D1D5DB", borderRadius: "50px", padding: "14px 28px",
@@ -410,43 +412,43 @@ const RiskAssessment = () => {
     <>
       <Navbar />
 
-      <section style={{ background: "var(--cream-soft, #F6EFDD)", minHeight: "100vh", paddingTop: "88px", paddingBottom: "64px" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
+      <section className="ra-page" style={{ background: "var(--cream-soft, #F6EFDD)", minHeight: "100vh", paddingTop: "88px", paddingBottom: "64px" }}>
+        <div className="ra-wrap" style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
 
           {/* Page header */}
-          <div style={{ textAlign: "center", marginBottom: "48px" }}>
-            <span style={{ display: "inline-block", background: "#022D20", color: "#64E3C0", borderRadius: "20px", padding: "6px 18px", fontSize: "12px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "16px", fontFamily: "'DM Sans', sans-serif" }}>
+          <div className="ra-header" style={{ textAlign: "center", marginBottom: "48px" }}>
+            <span className="ra-pill" style={{ display: "inline-block", background: "#022D20", color: "#64E3C0", borderRadius: "20px", padding: "6px 18px", fontSize: "12px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "16px", fontFamily: "'DM Sans', sans-serif" }}>
               Free · 60 seconds · No sign-up needed
             </span>
-            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(32px, 5vw, 52px)", fontWeight: "700", color: "#022D20", margin: "0 0 16px 0", lineHeight: "1.15" }}>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px, 6vw, 52px)", fontWeight: "700", color: "#022D20", margin: "0 0 16px 0", lineHeight: "1.15" }}>
               Know Your Diabetes Risk
             </h1>
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", color: "#374151", maxWidth: "560px", margin: "0 auto", lineHeight: "1.7" }}>
+            <p className="ra-header-lead" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", color: "#374151", maxWidth: "560px", margin: "0 auto", lineHeight: "1.7" }}>
               Aligned with the ADA Type 2 Diabetes Risk Test. Answer a few questions — a score of 5+ means talk to your doctor about screening.
             </p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.1fr) minmax(0,0.9fr)", gap: "40px", alignItems: "start" }}>
+          <div className="ra-layout" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.1fr) minmax(0,0.9fr)", gap: "40px", alignItems: "start" }}>
 
             {/* ── LEFT: Stats + Result panel ── */}
-            <div>
+            <div className="ra-col-info">
               {/* Stats banner */}
-              <div style={{
+              <div className="ra-stats" style={{
                 background: "linear-gradient(135deg, #022D20 0%, #013B2A 60%, #024030 100%)",
                 borderRadius: "24px", padding: "32px", marginBottom: "32px",
                 boxShadow: "0 12px 40px rgba(2,45,32,0.3)",
               }}>
                 <p style={{ fontFamily: "'DM Sans', sans-serif", textTransform: "uppercase", letterSpacing: "3px", color: "#67E7C5", fontSize: "11px", margin: "0 0 12px 0", fontWeight: "600" }}>Global Diabetes Stats</p>
-                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "24px", fontWeight: "700", color: "#fff", margin: "0 0 8px 0", lineHeight: "1.3" }}>Knowledge is your superpower</h2>
+                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(20px, 4vw, 24px)", fontWeight: "700", color: "#fff", margin: "0 0 8px 0", lineHeight: "1.3" }}>Knowledge is your superpower</h2>
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#86EFAC", margin: "0 0 24px 0", lineHeight: "1.6" }}>Understanding your risk is the most powerful thing you can do for your future health.</p>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                <div className="ra-stats-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                   {[
                     { val: `${stats.diabetes}M`, label: "Adults living with diabetes" },
                     { val: `${stats.undiagnosed}%`, label: "Cases undiagnosed today" },
                     { val: `${stats.prevented}%`, label: "T2D cases preventable" },
                   ].map(s => (
-                    <div key={s.label} style={{
+                    <div key={s.label} className="ra-stat-cell" style={{
                       background: "rgba(255,255,255,0.06)",
                       borderRadius: "16px", padding: "16px 12px",
                       border: "1px solid rgba(255,255,255,0.1)",
@@ -481,8 +483,8 @@ const RiskAssessment = () => {
             </div>
 
             {/* ── RIGHT: Quiz card ── */}
-            <div style={{ position: "sticky", top: "108px" }}>
-              <div style={{
+            <div className="ra-col-quiz" style={{ position: "sticky", top: "108px" }}>
+              <div className="ra-quiz-card" style={{
                 background: "#fff",
                 borderRadius: "28px",
                 padding: "36px 32px",
@@ -546,7 +548,7 @@ const RiskAssessment = () => {
                       </div>
                     </div>
 
-                    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "22px", fontWeight: "600", color: "#1F2937", margin: "0 0 24px 0", minHeight: "80px", lineHeight: "1.4" }}>
+                    <h2 className="ra-question" style={{ fontFamily: "'Playfair Display', serif", fontSize: "22px", fontWeight: "600", color: "#1F2937", margin: "0 0 24px 0", minHeight: "80px", lineHeight: "1.4" }}>
                       {quizFlow[currentQuestion].question}
                     </h2>
 
@@ -677,7 +679,10 @@ const RiskAssessment = () => {
                   <div style={{ textAlign: "center" }}>
                     <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "24px", fontWeight: "700", color: "#1D4ED8", margin: "0 0 8px 0" }}>Living with diabetes</h2>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 20px 0", lineHeight: "1.7" }}>You're not alone. Millions manage it well every day — here are the most important things to focus on.</p>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#9CA3AF" }}>See your personalized guide on the left</p>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#9CA3AF" }}>
+                      <span className="ra-hint-desktop">See your personalized guide on the left</span>
+                      <span className="ra-hint-mobile">See your personalized guide below</span>
+                    </p>
                     <button
                       onClick={resetAssessment}
                       style={{
@@ -696,6 +701,104 @@ const RiskAssessment = () => {
           </div>
         </div>
       </section>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .ra-page {
+            padding-top: 80px !important;
+            padding-bottom: 40px !important;
+          }
+          .ra-wrap {
+            padding: 0 16px !important;
+          }
+          .ra-header {
+            margin-bottom: 28px !important;
+            text-align: left !important;
+          }
+          .ra-header-lead {
+            font-size: 15px !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            max-width: none !important;
+          }
+          .ra-pill {
+            letter-spacing: 1px !important;
+            padding: 5px 12px !important;
+            font-size: 11px !important;
+          }
+          .ra-layout {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+          }
+          /* Quiz first on phones */
+          .ra-col-quiz { order: 1; position: static !important; top: auto !important; }
+          .ra-col-info { order: 2; }
+          .ra-quiz-card {
+            padding: 24px 18px !important;
+            border-radius: 22px !important;
+            min-height: 0 !important;
+          }
+          .ra-stats {
+            padding: 22px 18px !important;
+            border-radius: 20px !important;
+            margin-bottom: 20px !important;
+          }
+          .ra-stats-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+          .ra-stat-cell {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            text-align: left !important;
+            padding: 14px 16px !important;
+            gap: 12px;
+          }
+          .ra-stat-cell p:first-child {
+            margin: 0 !important;
+            font-size: 22px !important;
+            flex-shrink: 0;
+          }
+          .ra-stat-cell p:last-child {
+            text-align: right;
+          }
+          .ra-question {
+            font-size: 18px !important;
+            min-height: 0 !important;
+          }
+          .ra-result-banner {
+            padding: 28px 18px !important;
+            border-radius: 20px !important;
+          }
+          .ra-advice-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .ra-cta-row {
+            flex-direction: column !important;
+          }
+          .ra-cta-primary,
+          .ra-cta-secondary {
+            width: 100% !important;
+            text-align: center !important;
+            justify-content: center;
+          }
+        }
+
+        .ra-hint-mobile { display: none; }
+        .ra-hint-desktop { display: inline; }
+
+        @media (max-width: 900px) {
+          .ra-hint-mobile { display: inline; }
+          .ra-hint-desktop { display: none; }
+        }
+
+        @media (max-width: 480px) {
+          .ra-page {
+            padding-top: 76px !important;
+          }
+        }
+      `}</style>
     </>
   );
 };
