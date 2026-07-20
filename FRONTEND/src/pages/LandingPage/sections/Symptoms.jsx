@@ -1,21 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
-import {
-  Droplet,
-  Coffee,
-  Battery,
-  Eye,
-  Scale,
-  Clock,
-  AlertTriangle,
-  Heart,
-  Shield,
-  ArrowRight,
-  ArrowLeft,
-  Info,
-  Activity,
-} from 'lucide-react';
+import { ArrowRight, ArrowLeft, Info, Activity } from 'lucide-react';
 
 /**
  * Symptoms page — restyled to match the DiaBuddy design tokens
@@ -40,7 +26,6 @@ import {
 
 const symptoms = [
   {
-    icon: Droplet,
     title: 'Increased Thirst',
     description:
       'Feeling thirsty more often than usual, even after drinking water.',
@@ -49,7 +34,6 @@ const symptoms = [
     stat: '01',
   },
   {
-    icon: Coffee,
     title: 'Frequent Urination',
     description:
       'Needing to use the bathroom more often, especially at night.',
@@ -58,7 +42,6 @@ const symptoms = [
     stat: '02',
   },
   {
-    icon: Battery,
     title: 'Extreme Fatigue',
     description:
       "Feeling tired and low on energy, even after a full night's sleep.",
@@ -67,7 +50,6 @@ const symptoms = [
     stat: '03',
   },
   {
-    icon: Eye,
     title: 'Blurred Vision',
     description:
       'Eyesight that comes and goes, or feels fuzzy and unclear.',
@@ -76,7 +58,6 @@ const symptoms = [
     stat: '04',
   },
   {
-    icon: Scale,
     title: 'Unexplained Weight Loss',
     description:
       'Losing weight without trying, even when eating normally.',
@@ -85,7 +66,6 @@ const symptoms = [
     stat: '05',
   },
   {
-    icon: Clock,
     title: 'Slow Healing',
     description:
       'Cuts and bruises that take longer than usual to heal.',
@@ -101,7 +81,6 @@ const warningLevels = [
     short: 'Urgent',
     description:
       'Seek medical help right away if you experience these symptoms.',
-    icon: AlertTriangle,
     accent: 'text-[var(--rust)]',
     items: [
       'Severe abdominal pain',
@@ -115,7 +94,6 @@ const warningLevels = [
     short: 'Soon',
     description:
       'Make an appointment with your healthcare provider soon.',
-    icon: Heart,
     accent: 'text-[var(--butter)]',
     items: [
       'Persistent fatigue',
@@ -128,7 +106,6 @@ const warningLevels = [
     level: 'Keep Monitoring',
     short: 'Watch',
     description: 'Stay aware and track any changes in your symptoms.',
-    icon: Shield,
     accent: 'text-[var(--sage)]',
     items: [
       'Mild thirst',
@@ -147,7 +124,6 @@ const Symptoms = ({
 }) => {
   const [activeLevel, setActiveLevel] = useState(0);
   const active = warningLevels[activeLevel];
-  const ActiveIcon = active.icon;
 
   return (
     <>
@@ -216,35 +192,25 @@ const Symptoms = ({
             </div>
 
             <ul className="grid gap-0">
-              {symptoms.map((s, idx) => {
-                const Icon = s.icon;
-                return (
+              {symptoms.map((s, idx) => (
                   <li
                     key={s.title}
-                    className="dbx-symptom-row dbx-fade-item group grid grid-cols-12 items-start gap-6 border-b border-[var(--line)] py-8"
+                    className="dbx-symptom-row dbx-fade-item group grid grid-cols-12 items-start gap-4 border-b border-[var(--line)] py-7 md:gap-6 md:py-8"
                     style={{ animationDelay: `${100 + idx * 80}ms` }}
                   >
                     <div className="col-span-2 md:col-span-1">
                       <span
-                        className={`font-serif text-[22px] font-semibold italic ${s.accent}`}
+                        className={`font-serif text-[20px] font-semibold italic md:text-[22px] ${s.accent}`}
                       >
                         {s.stat}
                       </span>
                     </div>
 
-                    <div className="col-span-2 flex md:col-span-1">
-                      <span
-                        className={`dbx-icon-pulse inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--sage-tint)] ${s.accent}`}
-                      >
-                        <Icon size={20} strokeWidth={2.5} />
-                      </span>
-                    </div>
-
-                    <div className="col-span-8 md:col-span-4">
+                    <div className="col-span-10 md:col-span-5">
                       <div className="mb-1.5 font-sans text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--ink-soft)]">
                         {s.tag}
                       </div>
-                      <h3 className="m-0 font-serif text-[26px] font-bold tracking-[-0.02em] text-[var(--brown)]">
+                      <h3 className="m-0 font-serif text-[22px] font-bold tracking-[-0.02em] text-[var(--brown)] md:text-[26px]">
                         {s.title}
                       </h3>
                     </div>
@@ -255,8 +221,7 @@ const Symptoms = ({
                       </p>
                     </div>
                   </li>
-                );
-              })}
+              ))}
             </ul>
           </div>
 
@@ -317,27 +282,20 @@ const Symptoms = ({
                 key={activeLevel}
                 className="relative rounded-[var(--radius)] border border-[var(--line)] bg-[var(--cream-soft)] p-8 [animation:fadeSlide_320ms_ease_both] md:p-10"
               >
-                <div className="mb-8 flex items-start justify-between">
-                  <div className="flex items-start gap-5">
-                    <span
-                      className={`dbx-icon-pulse inline-flex h-14 w-14 items-center justify-center rounded-full border border-[var(--line)] bg-white ${active.accent}`}
-                    >
-                      <ActiveIcon size={24} strokeWidth={2.5} />
-                    </span>
-                    <div>
-                      <div className="mb-1.5 font-sans text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--ink-soft)]">
-                        Level {activeLevel + 1} · {active.short}
-                      </div>
-                      <h3 className="m-0 font-serif text-[30px] font-bold tracking-[-0.02em] text-[var(--brown)]">
-                        {active.level}
-                      </h3>
-                      <p className="m-0 mt-2 max-w-[46ch] font-sans text-[15px] font-semibold leading-snug text-[var(--brown-soft)]">
-                        {active.description}
-                      </p>
+                <div className="mb-8 flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="mb-1.5 font-sans text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--ink-soft)]">
+                      Level {activeLevel + 1} · {active.short}
                     </div>
+                    <h3 className="m-0 font-serif text-[26px] font-bold tracking-[-0.02em] text-[var(--brown)] md:text-[30px]">
+                      {active.level}
+                    </h3>
+                    <p className="m-0 mt-2 max-w-[46ch] font-sans text-[15px] font-semibold leading-snug text-[var(--brown-soft)]">
+                      {active.description}
+                    </p>
                   </div>
                   <span
-                    className={`font-serif text-[44px] font-semibold italic leading-none ${active.accent}`}
+                    className={`font-serif text-[36px] font-semibold italic leading-none md:text-[44px] ${active.accent}`}
                   >
                     0{activeLevel + 1}
                   </span>
@@ -453,11 +411,6 @@ const Symptoms = ({
           .dbx-symptom-row:hover {
             transform: translateX(8px);
             background: var(--sage-tint);
-          }
-
-          .dbx-symptom-row:hover .dbx-icon-pulse,
-          .dbx-icon-pulse:hover {
-            animation: iconPulse 700ms ease-in-out infinite;
           }
         `}</style>
       </section>

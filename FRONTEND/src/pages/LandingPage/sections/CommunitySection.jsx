@@ -46,10 +46,10 @@ const CommunitySection = () => {
               </p>
 
               <button
-                onClick={() => navigate(user ? '/community' : '/login')}
+                onClick={() => navigate(user ? '/community' : '/register')}
                 className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-[0.95rem] font-semibold text-[#1F3A2E] transition-all duration-300 hover:bg-[var(--sage)] hover:-translate-y-0.5 sm:mt-8 sm:w-auto"
               >
-                {user ? 'Open the forum' : 'Join the community'}
+                {user ? 'Open the forum' : 'Sign up to join'}
                 <ArrowRight size={17} />
               </button>
             </div>

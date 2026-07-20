@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../../../components/Navbar";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext";
 
 const questions = [
   {
@@ -253,7 +254,7 @@ const AdviceCard = ({ title, body, accentColor }) => (
   </div>
 );
 
-const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
+const ResultPanel = ({ resultKey, score, onRetake, navigate, isLoggedIn }) => {
   const data = RESULT_DATA[resultKey];
   const { title, subtitle, color, bgColor, Icon, advice } = data;
 
@@ -298,7 +299,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
       {/* CTA row */}
       <div className="ra-cta-row" style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
         <button
-          onClick={() => navigate("/register")}
+          onClick={() => navigate(isLoggedIn ? "/community" : "/register")}
           className="ra-cta-primary"
           style={{
             background: "#022D20", color: "#fff", border: "none",
@@ -310,7 +311,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
           onMouseEnter={e => { e.currentTarget.style.background = "#C56A3E"; e.currentTarget.style.transform = "translateY(-2px)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "#022D20"; e.currentTarget.style.transform = "translateY(0)"; }}
         >
-          Join DiaBuddy Community
+          {isLoggedIn ? "Open Community" : "Join DiaBuddy Community"}
         </button>
         <button
           onClick={onRetake}
@@ -334,6 +335,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate }) => {
 /* ── main component ── */
 const RiskAssessment = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentQuestion, setCurrentQuestion] = useState(-1); // -1 = intro screen
   const [answers, setAnswers] = useState([]); // { id, label, points }
   const [showAlreadyDiagnosed, setShowAlreadyDiagnosed] = useState(false);
@@ -468,6 +470,7 @@ const RiskAssessment = () => {
                   score={score}
                   onRetake={resetAssessment}
                   navigate={navigate}
+                  isLoggedIn={!!user}
                 />
               )}
 
@@ -478,6 +481,7 @@ const RiskAssessment = () => {
                   score={0}
                   onRetake={resetAssessment}
                   navigate={navigate}
+                  isLoggedIn={!!user}
                 />
               )}
             </div>
@@ -738,30 +742,9 @@ const RiskAssessment = () => {
             border-radius: 22px !important;
             min-height: 0 !important;
           }
+          /* Hide the “Knowledge is your superpower” stats box on mobile */
           .ra-stats {
-            padding: 22px 18px !important;
-            border-radius: 20px !important;
-            margin-bottom: 20px !important;
-          }
-          .ra-stats-grid {
-            grid-template-columns: 1fr !important;
-            gap: 10px !important;
-          }
-          .ra-stat-cell {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            text-align: left !important;
-            padding: 14px 16px !important;
-            gap: 12px;
-          }
-          .ra-stat-cell p:first-child {
-            margin: 0 !important;
-            font-size: 22px !important;
-            flex-shrink: 0;
-          }
-          .ra-stat-cell p:last-child {
-            text-align: right;
+            display: none !important;
           }
           .ra-question {
             font-size: 18px !important;

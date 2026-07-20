@@ -70,37 +70,60 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [learnOpen]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   return (
     <>
       <header className="fixed top-0 left-0 z-50 w-full border-b border-black/5 bg-[#F6F3EE]/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <button
-            type="button"
-            onClick={() => {
-              if (window.location.pathname !== '/') {
-                navigate('/');
-                setTimeout(() => {
-                  document.getElementById('home')?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start',
-                  });
-                }, 300);
-                return;
-              }
-              document.getElementById('home')?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-              });
-            }}
-            className="flex items-center gap-2"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white">
-              ♥
-            </span>
-            <span className="font-serif text-xl tracking-wide text-[#2F2A25]">
-              Diabuddy
-            </span>
-          </button>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          {/* Left: mobile menu + brand */}
+          <div className="flex min-w-0 items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-black/10 bg-white/50 md:hidden"
+              aria-label="Open menu"
+            >
+              <span className="h-0.5 w-4 bg-[#2F2A25]" />
+              <span className="h-0.5 w-4 bg-[#2F2A25]" />
+              <span className="h-0.5 w-4 bg-[#2F2A25]" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (window.location.pathname !== '/') {
+                  navigate('/');
+                  setTimeout(() => {
+                    document.getElementById('home')?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start',
+                    });
+                  }, 300);
+                  return;
+                }
+                document.getElementById('home')?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                });
+              }}
+              className="flex min-w-0 items-center gap-2"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black text-white">
+                ♥
+              </span>
+              <span className="truncate font-serif text-xl tracking-wide text-[#2F2A25]">
+                Diabuddy
+              </span>
+            </button>
+          </div>
 
           <nav className="hidden items-center gap-7 md:flex">
             {links.map((link) => (
@@ -154,41 +177,40 @@ const Navbar = () => {
             </div>
           </nav>
 
-          <div className="flex items-center gap-3">
+          {/* Right: desktop auth / profile — no duplicate profile on mobile */}
+          <div className="flex items-center gap-2 sm:gap-3">
             {!user ? (
-              <button
-                type="button"
-                onClick={() => navigate('/login')}
-                className="hidden rounded-full border border-black/10 px-4 py-2 text-sm transition hover:bg-black/5 md:inline-flex"
-              >
-                Sign in
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  className="hidden rounded-full border border-black/10 px-4 py-2 text-sm transition hover:bg-black/5 md:inline-flex"
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/register')}
+                  className="rounded-full bg-[#27392E] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[#1a2820] sm:px-4"
+                >
+                  Sign up
+                </button>
+              </>
             ) : (
               <button
                 type="button"
                 onClick={() => setProfileOpen(true)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#27392E] text-sm font-semibold text-white"
+                className="hidden h-9 w-9 items-center justify-center rounded-full bg-[#27392E] text-sm font-semibold text-white md:flex"
                 title={user?.name || 'Profile'}
               >
                 {user?.name?.charAt(0).toUpperCase()}
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="flex flex-col gap-1 md:hidden"
-              aria-label="Open menu"
-            >
-              <span className="h-0.5 w-6 bg-black" />
-              <span className="h-0.5 w-6 bg-black" />
-              <span className="h-0.5 w-6 bg-black" />
-            </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile menu */}
+      {/* Mobile menu — slides from LEFT */}
       <div
         className={`fixed inset-0 z-50 transition ${
           open ? 'visible opacity-100' : 'invisible opacity-0'
@@ -199,8 +221,8 @@ const Navbar = () => {
           className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         />
         <div
-          className={`absolute right-0 top-0 h-full w-[82%] max-w-sm bg-[#F6F3EE] shadow-2xl transition-transform duration-300 ${
-            open ? 'translate-x-0' : 'translate-x-full'
+          className={`absolute left-0 top-0 h-full w-[82%] max-w-sm bg-[#F6F3EE] shadow-2xl transition-transform duration-300 ${
+            open ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
           <div className="flex items-center justify-between border-b border-black/10 p-6">
@@ -210,7 +232,19 @@ const Navbar = () => {
             </button>
           </div>
 
-          <div className="flex flex-col gap-1 p-6">
+          <div className="flex flex-col gap-1 overflow-y-auto p-6 pb-28">
+            {user && (
+              <div className="mb-4 flex items-center gap-3 rounded-2xl border border-black/10 bg-white/70 px-3 py-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#27392E] text-sm font-semibold text-white">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-[#2F2A25]">{user?.name}</p>
+                  <p className="truncate text-xs text-[#5C524B]">{user?.email}</p>
+                </div>
+              </div>
+            )}
+
             {links.map((link) => (
               <button
                 key={link.id}
@@ -263,7 +297,7 @@ const Navbar = () => {
             )}
           </div>
 
-          <div className="absolute bottom-6 left-6 right-6">
+          <div className="absolute bottom-6 left-6 right-6 flex flex-col gap-2">
             {user ? (
               <button
                 type="button"
@@ -276,22 +310,34 @@ const Navbar = () => {
                 Log out
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  navigate('/login');
-                  setOpen(false);
-                }}
-                className="w-full rounded-xl bg-black py-3 font-semibold text-white"
-              >
-                Sign in
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate('/register');
+                    setOpen(false);
+                  }}
+                  className="w-full rounded-xl bg-[#27392E] py-3 font-semibold text-white"
+                >
+                  Sign up
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate('/login');
+                    setOpen(false);
+                  }}
+                  className="w-full rounded-xl border border-black/15 bg-white py-3 font-semibold text-[#2F2A25]"
+                >
+                  Sign in
+                </button>
+              </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Profile drawer */}
+      {/* Desktop profile drawer */}
       <div
         className={`fixed inset-0 z-50 transition ${
           profileOpen ? 'visible opacity-100' : 'invisible opacity-0'

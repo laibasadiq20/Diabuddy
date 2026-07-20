@@ -65,17 +65,17 @@ const Hero = () => {
             ) : (
               <>
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate('/register')}
                   className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#1E2A24] px-8 py-4 text-[1rem] font-semibold text-white transition-all duration-300 hover:bg-[#C56A3E] hover:-translate-y-0.5"
                 >
-                  Join our community
+                  Sign up free
                 </button>
 
                 <button
-                  onClick={() => navigate('/learn/risk-assessment')}
+                  onClick={() => navigate('/login')}
                   className="inline-flex items-center justify-center w-full sm:w-auto rounded-full border-2 border-[#1E2A24]/30 bg-[#1E2A24]/8 backdrop-blur px-8 py-4 text-[1rem] font-semibold text-[#1E2A24] transition-all duration-300 hover:border-[#C56A3E] hover:text-[#C56A3E] hover:-translate-y-0.5"
                 >
-                  Take the Risk Test
+                  Sign in
                 </button>
               </>
             )}
