@@ -81,19 +81,19 @@ const Navbar = () => {
 
   return (
     <>
-      <header className="fixed top-0 left-0 z-50 w-full border-b border-black/5 bg-[#F6F3EE]/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+      <header className="fixed top-0 left-0 z-50 w-full border-b border-black/5 bg-[#F6F3EE]/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-3.5">
           {/* Left: mobile menu + brand */}
-          <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex min-w-0 items-center gap-2">
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-black/10 bg-white/50 md:hidden"
+              className="flex h-8 w-8 shrink-0 flex-col items-center justify-center gap-[3px] rounded-lg border border-black/10 bg-white/60 md:hidden"
               aria-label="Open menu"
             >
-              <span className="h-0.5 w-4 bg-[#2F2A25]" />
-              <span className="h-0.5 w-4 bg-[#2F2A25]" />
-              <span className="h-0.5 w-4 bg-[#2F2A25]" />
+              <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
+              <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
+              <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
             </button>
 
             <button
@@ -114,12 +114,12 @@ const Navbar = () => {
                   block: 'start',
                 });
               }}
-              className="flex min-w-0 items-center gap-2"
+              className="flex min-w-0 items-center gap-1.5"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black text-white">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-[11px] text-white sm:h-8 sm:w-8 sm:text-sm">
                 ♥
               </span>
-              <span className="truncate font-serif text-xl tracking-wide text-[#2F2A25]">
+              <span className="truncate font-serif text-[1.05rem] tracking-wide text-[#2F2A25] sm:text-xl">
                 Diabuddy
               </span>
             </button>
@@ -191,7 +191,7 @@ const Navbar = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/register')}
-                  className="rounded-full bg-[#27392E] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[#1a2820] sm:px-4"
+                  className="rounded-full bg-[#27392E] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1a2820] sm:px-4 sm:py-2 sm:text-sm"
                 >
                   Sign up
                 </button>
@@ -200,7 +200,7 @@ const Navbar = () => {
               <button
                 type="button"
                 onClick={() => setProfileOpen(true)}
-                className="hidden h-9 w-9 items-center justify-center rounded-full bg-[#27392E] text-sm font-semibold text-white md:flex"
+                className="hidden h-8 w-8 items-center justify-center rounded-full bg-[#27392E] text-xs font-semibold text-white md:flex"
                 title={user?.name || 'Profile'}
               >
                 {user?.name?.charAt(0).toUpperCase()}

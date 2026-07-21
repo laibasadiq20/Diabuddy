@@ -1,26 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/Logo';
-import OrganicBackdrop from '../../components/OrganicBackdrop';
 import LoginFormContent from '../../components/auth/LoginFormContent';
 import RegisterFormContent from '../../components/auth/RegisterFormContent';
-import { theme } from '../../theme';
 import loginImage from '../../assets/login.png';
-
-const t = theme;
 
 /**
  * Shared auth screen for /login and /register.
- *
- * Both routes render this same component — only the `startFlipped` prop
- * differs — so visiting /register directly still lands on a real URL with
- * the register face showing, while clicking between the two in-app flips
- * the card instead of navigating. The browser URL is kept in sync via
- * history.replaceState (no navigate/remount) so a refresh on /register
- * still shows the register face without re-triggering the flip animation.
- *
- * Left branding panel is rendered once, outside the flip mechanism, and
- * never re-renders or animates when the card flips.
+ * Locked to the viewport (no page scroll); the form column can scroll
+ * internally only when the register face is taller than the screen.
  */
 export default function AuthFlipCard({ startFlipped = false }) {
   const [isFlipped, setIsFlipped] = useState(startFlipped);
@@ -43,6 +31,14 @@ export default function AuthFlipCard({ startFlipped = false }) {
       navigate('/dashboard');
     }
   }, [navigate]);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   useEffect(() => {
     syncCardHeight();
@@ -69,46 +65,42 @@ export default function AuthFlipCard({ startFlipped = false }) {
   };
 
   return (
-    <div 
-      style={{ 
-        minHeight: '100vh', 
+    <div
+      className="db-auth-shell"
+      style={{
+        height: '100dvh',
+        maxHeight: '100dvh',
+        overflow: 'hidden',
         background: '#1A1A1A',
-        display: 'flex', 
-        fontFamily: 'var(--font-body, Inter, sans-serif)'
+        display: 'flex',
+        fontFamily: 'var(--font-body, Inter, sans-serif)',
       }}
     >
       {/* Left panel — Image background */}
       <div className="hidden lg:flex relative w-[38%] overflow-hidden flex-col justify-between p-12">
-        {/* Background image */}
         <img
           src={loginImage}
           alt="DiaBuddy"
-          className="absolute inset-0 h-full w-full object-fit
-          "
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        
-        {/* Dark overlay for readability */}
         <div className="absolute inset-0 bg-black/40" />
+      </div>
 
-        </div>
-
-        
-    
       {/* Right panel — warm flip cards */}
-      <div className="flex-1 flex items-center justify-center p-5 sm:p-8 md:p-10 bg-[#efe7e0ce]">
-        <div className="w-full max-w-[440px]">
-          {/* Mobile logo */}
-          <div className="mb-7 lg:hidden">
-            <Logo size={36} textSize={19} variant="light" />
+      <div className="db-auth-panel flex-1 flex items-center justify-center bg-[#efe7e0ce]">
+        <div className="db-auth-inner w-full max-w-[440px]">
+          <div className="mb-4 lg:hidden">
+            <Logo size={30} textSize={17} variant="light" />
           </div>
 
-          {/* Perspective wrapper */}
           <div className="flip-perspective w-full">
             <div
               className={`flip-card-inner${isFlipped ? ' is-flipped' : ''}${!hasInteracted ? ' flip-no-transition' : ''}`}
-              style={{ height: cardHeight === 'auto' ? undefined : cardHeight, minHeight: cardHeight === 'auto' ? '520px' : undefined }}
+              style={{
+                height: cardHeight === 'auto' ? undefined : cardHeight,
+                minHeight: cardHeight === 'auto' ? '420px' : undefined,
+              }}
             >
-              {/* Front face — Login - Sage Green */}
               <div
                 ref={frontRef}
                 className="flip-face flip-face-front"
@@ -117,7 +109,7 @@ export default function AuthFlipCard({ startFlipped = false }) {
                   border: '1px solid rgba(168, 184, 154, 0.3)',
                   borderRadius: 'var(--radius, 16px)',
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.5)',
-                  padding: 'clamp(22px, 5vw, 36px) clamp(18px, 4vw, 32px)',
+                  padding: 'clamp(18px, 4vw, 32px) clamp(16px, 3.5vw, 28px)',
                 }}
               >
                 <LoginFormContent
@@ -127,7 +119,6 @@ export default function AuthFlipCard({ startFlipped = false }) {
                 />
               </div>
 
-              {/* Back face — Register - Butter Yellow */}
               <div
                 ref={backRef}
                 className="flip-face flip-face-back"
@@ -136,7 +127,7 @@ export default function AuthFlipCard({ startFlipped = false }) {
                   border: '1px solid rgba(232, 207, 122, 0.3)',
                   borderRadius: 'var(--radius, 16px)',
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.6)',
-                  padding: 'clamp(22px, 5vw, 36px) clamp(18px, 4vw, 32px)',
+                  padding: 'clamp(16px, 3.5vw, 28px) clamp(14px, 3vw, 26px)',
                 }}
               >
                 <RegisterFormContent
@@ -148,6 +139,30 @@ export default function AuthFlipCard({ startFlipped = false }) {
           </div>
         </div>
       </div>
+
+      <style>{`
+        .db-auth-panel {
+          height: 100%;
+          min-height: 0;
+          overflow: hidden;
+          padding: 16px;
+        }
+        .db-auth-inner {
+          max-height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          padding: 4px 2px;
+        }
+        @media (min-width: 640px) {
+          .db-auth-panel { padding: 24px 32px; }
+        }
+        @media (min-width: 1024px) {
+          .db-auth-panel { padding: 40px; }
+          .db-auth-inner { overflow: visible; max-height: none; }
+        }
+      `}</style>
     </div>
   );
 }

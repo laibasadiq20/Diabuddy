@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
+import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
 import { 
   FileText, 
@@ -209,39 +208,42 @@ export default function NewPost() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: t.bg }}>
-      <Navbar />
+    <div style={{ minHeight: '100dvh', display: 'flex', background: '#E8E0D4' }}>
+      <AppSidebar />
       
-      <main style={{ flexGrow: 1, paddingTop: '100px', paddingBottom: '60px', fontFamily: t.fontBody }}>
-        <div style={{ maxWidth: '780px', margin: '0 auto', padding: '0 24px' }}>
+      <main style={{ flexGrow: 1, minWidth: 0, padding: '28px 20px 72px', fontFamily: t.fontBody }}>
+        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
           
           {/* Back Action */}
           <button 
+            type="button"
             onClick={() => navigate('/community')}
             style={{
-              background: 'none',
-              border: 'none',
+              background: '#FFF',
+              border: `1.5px solid ${t.lineStrong}`,
               color: t.inkSoft,
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '600',
               cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              marginBottom: '20px',
-              padding: 0
+              marginBottom: '16px',
+              padding: '8px 12px',
+              borderRadius: 999,
+              fontFamily: t.fontBody,
             }}
           >
-            <ArrowLeft size={16} /> Back to Community
+            <ArrowLeft size={15} /> Back to forum
           </button>
 
           {/* Heading */}
           <h1 style={{ 
             fontFamily: t.fontDisplay, 
-            fontSize: '32px', 
+            fontSize: 'clamp(24px, 5vw, 32px)', 
             color: t.ink, 
             fontWeight: '500',
-            margin: '0 0 28px 0' 
+            margin: '0 0 20px 0' 
           }}>
             Compose Discussion
           </h1>
@@ -702,8 +704,6 @@ export default function NewPost() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

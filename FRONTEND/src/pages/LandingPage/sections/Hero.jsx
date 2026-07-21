@@ -6,6 +6,22 @@ import heroImage from '../../../assets/hero-illustration.png';
 const Hero = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const goExplore = () => {
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        document.getElementById('about')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+      return;
+    }
+    document.getElementById('about')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const goCommunity = () => {
+    navigate(user ? '/community' : '/login');
+  };
+
   return (
     <section
       id="home"
@@ -45,40 +61,20 @@ const Hero = () => {
             with a community that actually gets it.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 w-full sm:w-auto">
-            {user ? (
-              <>
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#1E2A24] px-8 py-4 text-[1rem] font-semibold text-white transition-all duration-300 hover:bg-[#C56A3E] hover:-translate-y-0.5"
-                >
-                  Go to Dashboard
-                </button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+            <button
+              onClick={goCommunity}
+              className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#1E2A24] px-7 py-3.5 text-[0.95rem] font-semibold text-white transition-all duration-300 hover:bg-[#C56A3E] hover:-translate-y-0.5"
+            >
+              Join the community
+            </button>
 
-                <button
-                  onClick={() => navigate('/community')}
-                  className="inline-flex items-center justify-center w-full sm:w-auto rounded-full border border-black/15 bg-white/40 backdrop-blur px-8 py-4 text-[1rem] font-semibold text-[#1E2A24] transition-all duration-300 hover:bg-black/5 hover:-translate-y-0.5"
-                >
-                  Community Forum
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => navigate('/register')}
-                  className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#1E2A24] px-8 py-4 text-[1rem] font-semibold text-white transition-all duration-300 hover:bg-[#C56A3E] hover:-translate-y-0.5"
-                >
-                  Sign up free
-                </button>
-
-                <button
-                  onClick={() => navigate('/login')}
-                  className="inline-flex items-center justify-center w-full sm:w-auto rounded-full border-2 border-[#1E2A24]/30 bg-[#1E2A24]/8 backdrop-blur px-8 py-4 text-[1rem] font-semibold text-[#1E2A24] transition-all duration-300 hover:border-[#C56A3E] hover:text-[#C56A3E] hover:-translate-y-0.5"
-                >
-                  Sign in
-                </button>
-              </>
-            )}
+            <button
+              onClick={goExplore}
+              className="inline-flex items-center justify-center w-full sm:w-auto rounded-full border-2 border-[#1E2A24]/30 bg-white/40 backdrop-blur px-7 py-3.5 text-[0.95rem] font-semibold text-[#1E2A24] transition-all duration-300 hover:border-[#C56A3E] hover:text-[#C56A3E] hover:-translate-y-0.5"
+            >
+              Explore DiaBuddy
+            </button>
           </div>
         </div>
       </div>

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
+import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
 import { 
   Heart, 
@@ -625,40 +624,44 @@ export default function PostDetails() {
   const hasBestAnswerPointer = !!post.bestAnswerCommentId;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: t.bg }}>
-      <Navbar />
+    <div style={{ minHeight: '100dvh', display: 'flex', background: '#E8E0D4' }}>
+      <AppSidebar />
       
-      <main style={{ flexGrow: 1, paddingTop: '100px', paddingBottom: '60px', fontFamily: t.fontBody }}>
-        <div style={{ maxWidth: '820px', margin: '0 auto', padding: '0 24px' }}>
+      <main className="db-post-main" style={{ flexGrow: 1, minWidth: 0, padding: '28px 24px 72px', fontFamily: t.fontBody }}>
+        <div className="db-post-wrap" style={{ maxWidth: '720px', margin: '0 auto' }}>
           
           {/* Back btn */}
           <button 
+            type="button"
             onClick={() => navigate('/community')}
+            className="db-post-back"
             style={{
-              background: 'none',
-              border: 'none',
+              background: '#FFF',
+              border: `1.5px solid ${t.lineStrong}`,
               color: t.inkSoft,
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '600',
               cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              marginBottom: '20px',
-              padding: 0
+              marginBottom: '16px',
+              padding: '8px 12px',
+              borderRadius: 999,
+              fontFamily: t.fontBody,
             }}
           >
-            <ArrowLeft size={16} /> Back to Feed
+            <ArrowLeft size={15} /> Back to forum
           </button>
 
           {/* Main Thread Card */}
-          <article style={{
+          <article className="db-post-thread" style={{
             background: t.surface,
-            border: `1.5px solid ${t.line}`,
-            borderRadius: '24px',
-            padding: '32px',
+            border: `1.5px solid ${t.lineStrong}`,
+            borderRadius: '20px',
+            padding: '28px',
             boxShadow: t.shadowCard,
-            marginBottom: '32px'
+            marginBottom: '20px'
           }}>
             
             {/* Header info */}
@@ -708,13 +711,13 @@ export default function PostDetails() {
             </div>
 
             {/* Title */}
-            <h1 style={{ 
+            <h1 className="db-post-heading" style={{ 
               fontFamily: t.fontDisplay, 
-              fontSize: '28px', 
+              fontSize: 'clamp(22px, 4vw, 28px)', 
               color: t.ink, 
               fontWeight: '500',
-              margin: '0 0 16px 0',
-              lineHeight: '1.2'
+              margin: '0 0 14px 0',
+              lineHeight: '1.25'
             }}>
               {post.title}
             </h1>
@@ -854,63 +857,68 @@ export default function PostDetails() {
               </div>
             )}
 
-            {/* Bottom Actions footer */}
-            <div style={{ 
+            {/* Bottom Actions */}
+            <div className="db-post-actions" style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center', 
               borderTop: `1px solid ${t.line}`,
-              paddingTop: '20px',
+              paddingTop: '16px',
               flexWrap: 'wrap',
               gap: '12px'
             }}>
               
-              <div style={{ display: 'flex', gap: '16px' }}>
+              <div className="db-post-stats-row" style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
                 <button
+                  type="button"
                   onClick={handleTogglePostLike}
                   style={{
                     background: 'none',
                     border: 'none',
                     color: postLiked ? t.clayDeep : t.inkSoft,
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: 0
-                  }}
-                >
-                  <Heart size={16} fill={postLiked ? t.clayDeep : 'none'} color={postLiked ? t.clayDeep : t.inkFaint} /> 
-                  {post.likesCount || 0} Likes
-                </button>
-
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: t.inkSoft }}>
-                  <MessageSquare size={16} color={t.inkFaint} /> {post.commentsCount || 0} Comments
-                </span>
-
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: t.inkSoft }}>
-                  <Eye size={16} color={t.inkFaint} /> {post.viewsCount || 0} Views
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => triggerReport('ForumPost', post._id)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: t.clay,
                     fontSize: '13px',
                     fontWeight: '600',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '6px',
+                    padding: 0,
+                    fontFamily: t.fontBody,
                   }}
                 >
-                  <Flag size={13} /> Report Post
+                  <Heart size={15} fill={postLiked ? t.clayDeep : 'none'} color={postLiked ? t.clayDeep : t.inkFaint} /> 
+                  {post.likesCount || 0}
+                </button>
+
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: t.inkSoft }}>
+                  <MessageSquare size={15} color={t.inkFaint} /> {post.commentsCount || 0}
+                </span>
+
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: t.inkSoft }}>
+                  <Eye size={15} color={t.inkFaint} /> {post.viewsCount || 0}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => triggerReport('ForumPost', post._id)}
+                  style={{
+                    background: t.surfaceSunken,
+                    border: `1px solid ${t.line}`,
+                    borderRadius: 999,
+                    color: t.clay,
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 12px',
+                    fontFamily: t.fontBody,
+                  }}
+                >
+                  <Flag size={12} /> Report
                 </button>
 
                 {(isPostOwner || isPostAdmin) && (
@@ -918,18 +926,21 @@ export default function PostDetails() {
                     type="button"
                     onClick={handleDeletePost}
                     style={{
-                      background: 'none',
-                      border: 'none',
+                      background: t.clayTint,
+                      border: `1px solid ${t.clay}40`,
+                      borderRadius: 999,
                       color: t.clayDeep,
-                      fontSize: '13px',
+                      fontSize: '12px',
                       fontWeight: '600',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '4px',
+                      padding: '6px 12px',
+                      fontFamily: t.fontBody,
                     }}
                   >
-                    <Trash2 size={13} /> Delete Post
+                    <Trash2 size={12} /> Delete
                   </button>
                 )}
               </div>
@@ -939,8 +950,15 @@ export default function PostDetails() {
           </article>
 
           {/* Comments section */}
-          <section style={{ marginBottom: '32px' }}>
-            <h2 style={{ fontFamily: t.fontDisplay, fontSize: '24px', color: t.ink, margin: '0 0 20px 0' }}>
+          <section className="db-post-comments" style={{
+            background: '#FFF',
+            border: `1.5px solid ${t.lineStrong}`,
+            borderRadius: 20,
+            padding: '22px',
+            boxShadow: t.shadowCard,
+            marginBottom: 8,
+          }}>
+            <h2 style={{ fontFamily: t.fontDisplay, fontSize: 'clamp(20px, 4vw, 24px)', color: t.ink, margin: '0 0 16px 0', fontWeight: 500 }}>
               Discussion ({post.commentsCount || 0})
             </h2>
 
@@ -1016,6 +1034,17 @@ export default function PostDetails() {
         </div>
       </main>
 
+      <style>{`
+        @media (max-width: 640px) {
+          .db-post-thread { padding: 18px !important; border-radius: 16px !important; }
+          .db-post-comments { padding: 16px !important; border-radius: 16px !important; }
+          .db-post-actions { flex-direction: column; align-items: flex-start !important; }
+          .db-post-thread [style*="grid-template-columns"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+
       {/* Report Modal popup */}
       {reportModalOpen && (
         <div style={{
@@ -1026,15 +1055,16 @@ export default function PostDetails() {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 100,
-          fontFamily: t.fontBody
+          fontFamily: t.fontBody,
+          padding: 16,
         }}>
           <div style={{
             background: '#FFF',
-            border: `2px solid ${t.ink}`,
-            borderRadius: '20px',
-            width: '90%',
+            border: `1.5px solid ${t.lineStrong}`,
+            borderRadius: '18px',
+            width: '100%',
             maxWidth: '440px',
-            padding: '28px',
+            padding: '24px',
             boxShadow: t.shadowLifted
           }}>
             {reportSuccess ? (
@@ -1132,8 +1162,6 @@ export default function PostDetails() {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }

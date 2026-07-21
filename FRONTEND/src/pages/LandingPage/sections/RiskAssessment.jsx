@@ -707,52 +707,64 @@ const RiskAssessment = () => {
       </section>
 
       <style>{`
+        .ra-hint-mobile { display: none; }
+        .ra-hint-desktop { display: inline; }
+
         @media (max-width: 900px) {
           .ra-page {
-            padding-top: 80px !important;
-            padding-bottom: 40px !important;
+            padding-top: 68px !important;
+            padding-bottom: 28px !important;
           }
           .ra-wrap {
-            padding: 0 16px !important;
+            padding: 0 14px !important;
           }
           .ra-header {
-            margin-bottom: 28px !important;
-            text-align: left !important;
+            margin-bottom: 16px !important;
+            text-align: center !important;
+          }
+          .ra-header h1 {
+            font-size: clamp(1.55rem, 7vw, 2rem) !important;
+            margin-bottom: 8px !important;
           }
           .ra-header-lead {
-            font-size: 15px !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            max-width: none !important;
+            font-size: 13.5px !important;
+            line-height: 1.55 !important;
+            margin: 0 auto !important;
+            max-width: 34ch !important;
+            color: #4B5563 !important;
           }
           .ra-pill {
-            letter-spacing: 1px !important;
-            padding: 5px 12px !important;
-            font-size: 11px !important;
+            letter-spacing: 0.08em !important;
+            padding: 4px 10px !important;
+            font-size: 10px !important;
+            margin-bottom: 10px !important;
           }
           .ra-layout {
             grid-template-columns: 1fr !important;
-            gap: 20px !important;
+            gap: 16px !important;
           }
-          /* Quiz first on phones */
           .ra-col-quiz { order: 1; position: static !important; top: auto !important; }
           .ra-col-info { order: 2; }
           .ra-quiz-card {
-            padding: 24px 18px !important;
-            border-radius: 22px !important;
+            padding: 22px 16px !important;
+            border-radius: 20px !important;
             min-height: 0 !important;
+            box-shadow: 0 10px 32px rgba(0,0,0,0.08) !important;
           }
-          /* Hide the “Knowledge is your superpower” stats box on mobile */
+          .ra-quiz-card h2 {
+            font-size: 1.25rem !important;
+          }
           .ra-stats {
             display: none !important;
           }
           .ra-question {
-            font-size: 18px !important;
+            font-size: 17px !important;
             min-height: 0 !important;
+            margin-bottom: 16px !important;
           }
           .ra-result-banner {
-            padding: 28px 18px !important;
-            border-radius: 20px !important;
+            padding: 24px 16px !important;
+            border-radius: 18px !important;
           }
           .ra-advice-grid {
             grid-template-columns: 1fr !important;
@@ -766,20 +778,8 @@ const RiskAssessment = () => {
             text-align: center !important;
             justify-content: center;
           }
-        }
-
-        .ra-hint-mobile { display: none; }
-        .ra-hint-desktop { display: inline; }
-
-        @media (max-width: 900px) {
           .ra-hint-mobile { display: inline; }
           .ra-hint-desktop { display: none; }
-        }
-
-        @media (max-width: 480px) {
-          .ra-page {
-            padding-top: 76px !important;
-          }
         }
       `}</style>
     </>
