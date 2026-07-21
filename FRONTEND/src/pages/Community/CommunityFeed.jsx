@@ -273,14 +273,14 @@ export default function CommunityFeed() {
                         onClick={(e) => {
                           if (post.isAnonymous || !post.authorId?._id) return;
                           e.stopPropagation();
-                          navigate(`/users/${post.authorId._id}`);
+                          navigate(`/users/${post.authorId._id}`, { state: { preview: post.authorId } });
                         }}
                         onKeyDown={(e) => {
                           if (post.isAnonymous || !post.authorId?._id) return;
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
                             e.stopPropagation();
-                            navigate(`/users/${post.authorId._id}`);
+                            navigate(`/users/${post.authorId._id}`, { state: { preview: post.authorId } });
                           }
                         }}
                         style={{ cursor: !post.isAnonymous && post.authorId?._id ? 'pointer' : 'default' }}

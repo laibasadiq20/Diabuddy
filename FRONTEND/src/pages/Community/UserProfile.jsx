@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
@@ -17,10 +17,21 @@ import {
 
 const t = theme;
 
+async function readJson(res) {
+  const text = await res.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return { message: text?.slice(0, 120) || 'Unexpected server response' };
+  }
+}
+
 export default function UserProfile() {
   const { id } = useParams();
+  const location = useLocation();
   const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
+  const preview = location.state?.preview;
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -29,35 +40,75 @@ export default function UserProfile() {
   const [error, setError] = useState('');
   const [dmLoading, setDmLoading] = useState(false);
 
-  const isSelf = user && (user.id === id || user._id === id);
+  const isSelf = user && (String(user.id) === String(id) || String(user._id) === String(id));
 
   useEffect(() => {
+    if (!id || id === 'undefined' || id === 'null') {
+      setError('Invalid profile link');
+      setLoading(false);
+      return;
+    }
+
     const load = async () => {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch(`${API_URL}/auth/users/${id}`, {
-          credentials: 'include',
-          headers: { ...authHeaders() },
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.message || 'User not found');
+        // Prefer dedicated profile routes (new /api/users/:id, then legacy /api/auth/users/:id)
+        const headers = { ...authHeaders() };
+        let profileData = null;
+
+        for (const path of [`${API_URL}/users/${id}`, `${API_URL}/auth/users/${id}`]) {
+          const res = await fetch(path, { credentials: 'include', headers });
+          const data = await readJson(res);
+          if (res.ok && data.data) {
+            profileData = data.data;
+            break;
+          }
+          // Keep last meaningful error for display if all fail
+          if (!res.ok) {
+            setError(data.message || `Could not load profile (${res.status})`);
+          }
+        }
+
+        // Fallback while backend redeploys: use author preview from navigation
+        if (!profileData && preview && String(preview._id || preview.id) === String(id)) {
+          profileData = {
+            _id: preview._id || preview.id,
+            id: preview._id || preview.id,
+            name: preview.name,
+            username: preview.username,
+            profileImageUrl: preview.profileImageUrl,
+            diabetesType: preview.diabetesType,
+            isVerifiedProfessional: preview.isVerifiedProfessional,
+            bio: preview.bio || '',
+            location: preview.location || '',
+          };
+          setError('');
+        }
+
+        if (!profileData) {
           setProfile(null);
+          setError((prev) => prev || 'User not found');
           return;
         }
-        setProfile(data.data);
+
+        setProfile(profileData);
+        setError('');
       } catch (err) {
-        setError('Could not load profile');
+        console.error(err);
+        setError('Could not load profile. Please try again.');
+        setProfile(null);
       } finally {
         setLoading(false);
       }
     };
+
     load();
   }, [id]);
 
   useEffect(() => {
     const loadPosts = async () => {
+      if (!id || id === 'undefined') return;
       setPostsLoading(true);
       try {
         const res = await fetch(
@@ -67,7 +118,7 @@ export default function UserProfile() {
             headers: { ...authHeaders() },
           }
         );
-        const data = await res.json();
+        const data = await readJson(res);
         if (res.ok) setPosts(data.posts || []);
         else setPosts([]);
       } catch {
@@ -76,7 +127,7 @@ export default function UserProfile() {
         setPostsLoading(false);
       }
     };
-    if (id) loadPosts();
+    loadPosts();
   }, [id]);
 
   const startDm = async () => {
@@ -87,9 +138,9 @@ export default function UserProfile() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ memberIds: [profile._id || profile.id], isGroup: false }),
+        body: JSON.stringify({ memberIds: [String(profile._id || profile.id)], isGroup: false }),
       });
-      const data = await res.json();
+      const data = await readJson(res);
       if (res.ok) {
         navigate('/messages', { state: { conversationId: data._id } });
       }
@@ -135,7 +186,23 @@ export default function UserProfile() {
             </div>
           ) : error || !profile ? (
             <div style={{ background: '#FFF', borderRadius: 20, border: `1.5px solid ${t.lineStrong}`, padding: 40, textAlign: 'center' }}>
-              <p style={{ color: t.clayDeep, fontWeight: 600 }}>{error || 'User not found'}</p>
+              <p style={{ color: t.clayDeep, fontWeight: 600, margin: 0 }}>{error || 'User not found'}</p>
+              <button
+                type="button"
+                onClick={() => navigate('/community')}
+                style={{
+                  marginTop: 16,
+                  background: t.forest,
+                  color: '#FFF',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '10px 16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Back to community
+              </button>
             </div>
           ) : (
             <>
@@ -194,7 +261,7 @@ export default function UserProfile() {
                           <MapPin size={13} /> {profile.location}
                         </span>
                       )}
-                      <span>{profile.postsCount || 0} posts</span>
+                      {profile.postsCount != null && <span>{profile.postsCount} posts</span>}
                     </div>
                     {profile.bio && (
                       <p style={{ margin: '12px 0 0', fontSize: 14, color: t.inkSoft, lineHeight: 1.55 }}>

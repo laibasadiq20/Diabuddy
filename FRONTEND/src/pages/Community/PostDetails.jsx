@@ -384,7 +384,9 @@ export default function PostDetails() {
             <button
               type="button"
               onClick={() => {
-                if (node.authorId?._id) navigate(`/users/${node.authorId._id}`);
+                if (node.authorId?._id) {
+                  navigate(`/users/${node.authorId._id}`, { state: { preview: node.authorId } });
+                }
               }}
               style={{
                 display: 'flex',
@@ -687,7 +689,7 @@ export default function PostDetails() {
                 type="button"
                 onClick={() => {
                   if (!post.isAnonymous && post.authorId?._id) {
-                    navigate(`/users/${post.authorId._id}`);
+                    navigate(`/users/${post.authorId._id}`, { state: { preview: post.authorId } });
                   }
                 }}
                 style={{

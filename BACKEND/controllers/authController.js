@@ -489,10 +489,18 @@ const searchUsers = async (req, res) => {
  */
 const getPublicProfile = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!id || !require('mongoose').Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid user id',
+      });
+    }
+
+    // Active accounts only — allow viewing verified and legacy unverified posters
     const profile = await User.findOne({
-      _id: req.params.id,
+      _id: id,
       isActive: true,
-      isVerified: true,
     }).select(
       'name username bio location profileImageUrl diabetesType diagnosisYear isVerifiedProfessional postsCount commentsCount createdAt isOnline lastSeen'
     );

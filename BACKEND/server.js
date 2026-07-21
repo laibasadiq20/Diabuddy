@@ -78,6 +78,9 @@ app.use(cookieParser());
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+const userRoutes = require('./routes/userRoutes');
+app.use('/api/users', userRoutes);
+
 const topicRoutes = require('./routes/topicRoutes');
 app.use('/api/topics', topicRoutes);
 
