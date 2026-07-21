@@ -266,7 +266,25 @@ export default function CommunityFeed() {
                     <p className="db-post-excerpt">{post.content}</p>
 
                     <div className="db-post-footer">
-                      <div className="db-post-author">
+                      <div
+                        className="db-post-author"
+                        role={!post.isAnonymous && post.authorId?._id ? 'link' : undefined}
+                        tabIndex={!post.isAnonymous && post.authorId?._id ? 0 : undefined}
+                        onClick={(e) => {
+                          if (post.isAnonymous || !post.authorId?._id) return;
+                          e.stopPropagation();
+                          navigate(`/users/${post.authorId._id}`);
+                        }}
+                        onKeyDown={(e) => {
+                          if (post.isAnonymous || !post.authorId?._id) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            navigate(`/users/${post.authorId._id}`);
+                          }
+                        }}
+                        style={{ cursor: !post.isAnonymous && post.authorId?._id ? 'pointer' : 'default' }}
+                      >
                         <div className="db-post-avatar">
                           {post.isAnonymous ? (
                             'A'

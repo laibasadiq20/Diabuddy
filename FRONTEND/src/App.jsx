@@ -19,6 +19,7 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import CommunityFeed from './pages/Community/CommunityFeed';
 import PostDetails from './pages/Community/PostDetails';
 import NewPost from './pages/Community/NewPost';
+import UserProfile from './pages/Community/UserProfile';
 import Messages from './pages/Messages/Messages';
 import Account from './pages/Account/Account';
 import AdminReports from './pages/Admin/AdminReports';
@@ -71,6 +72,7 @@ function App() {
         <Route path="/community" element={<ProtectedRoute><CommunityFeed /></ProtectedRoute>} />
         <Route path="/community/new-post" element={<ProtectedRoute><NewPost /></ProtectedRoute>} />
         <Route path="/community/posts/:id" element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
+        <Route path="/users/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
         <Route path="/toolbox" element={<ProtectedRoute><Toolbox /></ProtectedRoute>} />
         <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />

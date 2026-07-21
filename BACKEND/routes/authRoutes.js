@@ -9,6 +9,7 @@ const {
   getMe,
   updateProfile,
   searchUsers,
+  getPublicProfile,
   forgotPassword,
   resetPassword,
 } = require('../controllers/authController');
@@ -39,5 +40,7 @@ router.put('/me', protect, updateProfile);
 
 // Search users route (private/protected)
 router.get('/users', protect, searchUsers);
+// Public community profile
+router.get('/users/:id', protect, getPublicProfile);
 
 module.exports = router;

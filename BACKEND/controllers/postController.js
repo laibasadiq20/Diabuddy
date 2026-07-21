@@ -3,15 +3,20 @@ const Comment = require('../models/Comment');
 const Topic = require('../models/Topic');
 const User = require('../models/User');
 
-// GET /api/posts?topic=&sort=&page=&limit=&search=
+// GET /api/posts?topic=&sort=&page=&limit=&search=&authorId=
 // sort: latest | most_helpful | most_commented | best_answers
+// When authorId is set, anonymous posts are excluded (profile view).
 exports.getFeed = async (req, res) => {
   try {
-    const { topic, sort = 'latest', page = 1, limit = 10, search } = req.query;
+    const { topic, sort = 'latest', page = 1, limit = 10, search, authorId } = req.query;
 
     const query = { status: 'active', isDraft: false };
     if (topic) query.topicId = topic;
     if (search) query.$text = { $search: search };
+    if (authorId) {
+      query.authorId = authorId;
+      query.isAnonymous = false;
+    }
 
     let sortStage = { createdAt: -1 };
     if (sort === 'most_commented') sortStage = { commentsCount: -1 };

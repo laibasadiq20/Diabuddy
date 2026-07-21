@@ -381,32 +381,49 @@ export default function PostDetails() {
 
           {/* User details */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              background: t.sageSoft,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '11px',
-              fontWeight: '700',
-              color: t.sageDeep,
-              overflow: 'hidden'
-            }}>
-              {node.authorId?.profileImageUrl ? (
-                <img src={node.authorId.profileImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : node.authorId?.name?.charAt(0).toUpperCase()}
-            </div>
-            
-            <span style={{ fontSize: '13px', fontWeight: '600', color: t.ink }}>
-              {node.authorId?.name || 'Deleted Account'}
-              {node.authorId?.isVerifiedProfessional && (
-                <span style={{ marginLeft: '4px', fontSize: '9px', background: t.skyDeep, color: '#FFF', padding: '1px 4px', borderRadius: '3px', fontWeight: '700' }}>
-                  PRO
-                </span>
-              )}
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (node.authorId?._id) navigate(`/users/${node.authorId._id}`);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: node.authorId?._id ? 'pointer' : 'default',
+                fontFamily: t.fontBody,
+              }}
+            >
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: t.sageSoft,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px',
+                fontWeight: '700',
+                color: t.sageDeep,
+                overflow: 'hidden'
+              }}>
+                {node.authorId?.profileImageUrl ? (
+                  <img src={node.authorId.profileImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : node.authorId?.name?.charAt(0).toUpperCase()}
+              </div>
+              
+              <span style={{ fontSize: '13px', fontWeight: '600', color: t.ink }}>
+                {node.authorId?.name || 'Deleted Account'}
+                {node.authorId?.isVerifiedProfessional && (
+                  <span style={{ marginLeft: '4px', fontSize: '9px', background: t.skyDeep, color: '#FFF', padding: '1px 4px', borderRadius: '3px', fontWeight: '700' }}>
+                    PRO
+                  </span>
+                )}
+              </span>
+            </button>
 
             <span style={{ fontSize: '11px', color: t.inkFaint }}>
               {new Date(node.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -666,7 +683,25 @@ export default function PostDetails() {
             
             {/* Header info */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!post.isAnonymous && post.authorId?._id) {
+                    navigate(`/users/${post.authorId._id}`);
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: !post.isAnonymous && post.authorId?._id ? 'pointer' : 'default',
+                  textAlign: 'left',
+                  fontFamily: t.fontBody,
+                }}
+              >
                 <div style={{ 
                   width: '40px', 
                   height: '40px', 
@@ -680,7 +715,7 @@ export default function PostDetails() {
                   color: t.sageDeep,
                   overflow: 'hidden'
                 }}>
-                  {post.isAnonymous ? '👤' : (
+                  {post.isAnonymous ? 'A' : (
                     post.authorId?.profileImageUrl ? (
                       <img src={post.authorId.profileImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : post.authorId?.name?.charAt(0).toUpperCase()
@@ -701,7 +736,7 @@ export default function PostDetails() {
                     {new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-              </div>
+              </button>
 
               <div style={{ display: 'flex', gap: '8px' }}>
                 <span style={{ fontSize: '12px', fontWeight: '600', color: post.topicId?.color || t.sage, background: (post.topicId?.color || t.sage) + '15', padding: '4px 10px', borderRadius: '8px' }}>

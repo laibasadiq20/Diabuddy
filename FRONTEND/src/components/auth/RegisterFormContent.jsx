@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 
@@ -7,7 +7,7 @@ const t = theme;
 
 const inputStyle = {
   width: '100%', boxSizing: 'border-box',
-  paddingLeft: '34px', paddingRight: '14px', paddingTop: '8px', paddingBottom: '8px',
+  paddingLeft: '32px', paddingRight: '12px', paddingTop: '7px', paddingBottom: '7px',
   background: t.surfaceSunken, border: `1.5px solid ${t.line}`,
   borderRadius: '8px', color: t.ink, fontSize: '12px', outline: 'none',
   transition: 'border-color 0.2s, background 0.2s', fontFamily: t.fontBody,
@@ -17,12 +17,12 @@ const blur = (e) => { e.target.style.borderColor = t.line; e.target.style.backgr
 
 function Field({ label, icon: Icon, children }) {
   return (
-    <div style={{ marginBottom: '8px' }}>
-      <label style={{ display: 'block', color: t.inkSoft, fontSize: '11px', fontWeight: '500', marginBottom: '3px' }}>
+    <div style={{ marginBottom: '6px' }}>
+      <label style={{ display: 'block', color: t.inkSoft, fontSize: '10px', fontWeight: '600', marginBottom: '2px' }}>
         {label}
       </label>
       <div style={{ position: 'relative' }}>
-        <Icon size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: t.inkFaint, pointerEvents: 'none' }} />
+        <Icon size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: t.inkFaint, pointerEvents: 'none' }} />
         {children}
       </div>
     </div>
@@ -30,7 +30,7 @@ function Field({ label, icon: Icon, children }) {
 }
 
 export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
-  const [formData, setFormData] = useState({ fullName: '', email: '', phone: '', password: '', confirmPassword: '' });
+  const [formData, setFormData] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -84,7 +84,7 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
   };
 
   return (
-    <div style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+    <div className="db-register-form" style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
       <button
         type="button"
         onClick={onSwitchToLogin}
@@ -92,33 +92,31 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '6px',
-          marginBottom: '12px',
+          gap: '5px',
+          marginBottom: '8px',
           padding: 0,
           background: 'none',
           border: 'none',
           cursor: 'pointer',
           color: t.inkSoft,
-          fontSize: '12px',
+          fontSize: '11px',
           fontWeight: 500,
           fontFamily: t.fontBody,
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = t.sageDeep; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = t.inkSoft; }}
       >
-        <ArrowLeft size={16} />
+        <ArrowLeft size={14} />
         Sign in
       </button>
 
-      <h1 style={{ color: t.ink, fontSize: '20px', fontWeight: '500', marginBottom: '2px', letterSpacing: '-0.2px', fontFamily: t.fontDisplay }}>
+      <h1 style={{ color: t.ink, fontSize: '18px', fontWeight: '500', margin: '0 0 2px', letterSpacing: '-0.2px', fontFamily: t.fontDisplay }}>
         Create account
       </h1>
-      <p style={{ color: t.inkSoft, fontSize: '12px', marginBottom: '14px' }}>
+      <p style={{ color: t.inkSoft, fontSize: '11px', margin: '0 0 10px' }}>
         Start managing your diabetes
       </p>
 
       {error ? (
-        <div style={{ background: t.clayTint, border: `1px solid ${t.clay}35`, borderRadius: '8px', padding: '6px 12px', marginBottom: '12px', color: t.clayDeep, fontSize: '11px' }}>
+        <div style={{ background: t.clayTint, border: `1px solid ${t.clay}35`, borderRadius: '8px', padding: '5px 10px', marginBottom: '8px', color: t.clayDeep, fontSize: '11px' }}>
           {error}
         </div>
       ) : null}
@@ -132,19 +130,15 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
           <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="you@example.com" required style={inputStyle} onFocus={focus} onBlur={blur} />
         </Field>
 
-        <Field label="Phone" icon={Phone}>
-          <input name="phone" type="tel" value={formData.phone} onChange={handleChange} placeholder="+92 300 1234567" required style={inputStyle} onFocus={focus} onBlur={blur} />
-        </Field>
-
         <Field label="Password" icon={Lock}>
-          <input name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleChange} placeholder="Min. 8 chars" required style={{ ...inputStyle, paddingRight: '38px' }} onFocus={focus} onBlur={blur} />
+          <input name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleChange} placeholder="Min. 8 chars" required style={{ ...inputStyle, paddingRight: '36px' }} onFocus={focus} onBlur={blur} />
           <button type="button" tabIndex={-1} onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: t.inkFaint, padding: 0 }}>
-            {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+            {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
           </button>
         </Field>
 
-        {formData.password && (
-          <div style={{ marginTop: '-4px', marginBottom: '8px' }}>
+        {formData.password ? (
+          <div style={{ marginTop: '-2px', marginBottom: '6px' }}>
             <div style={{ display: 'flex', gap: '2px', marginBottom: '1px' }}>
               {[1, 2, 3, 4].map(i => (
                 <div key={i} style={{ flex: 1, height: '2px', borderRadius: '2px', background: i <= pwStrength ? strengthColor : t.line, transition: 'background 0.3s' }} />
@@ -152,21 +146,21 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
             </div>
             <span style={{ fontSize: '9px', color: strengthColor, fontWeight: 500 }}>{strengthLabel}</span>
           </div>
-        )}
+        ) : null}
 
         <Field label="Confirm password" icon={Lock}>
-          <input name="confirmPassword" type={showConfirm ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" required style={{ ...inputStyle, paddingRight: '38px' }} onFocus={focus} onBlur={blur} />
+          <input name="confirmPassword" type={showConfirm ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" required style={{ ...inputStyle, paddingRight: '36px' }} onFocus={focus} onBlur={blur} />
           <button type="button" tabIndex={-1} onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: t.inkFaint, padding: 0 }}>
-            {showConfirm ? <EyeOff size={13} /> : <Eye size={13} />}
+            {showConfirm ? <EyeOff size={12} /> : <Eye size={12} />}
           </button>
           {formData.confirmPassword && formData.password === formData.confirmPassword && (
-            <Check size={13} style={{ position: 'absolute', right: '32px', top: '50%', transform: 'translateY(-50%)', color: t.sageDeep }} />
+            <Check size={12} style={{ position: 'absolute', right: '30px', top: '50%', transform: 'translateY(-50%)', color: t.sageDeep }} />
           )}
         </Field>
 
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', cursor: 'pointer', marginBottom: '12px' }}>
-          <input type="checkbox" required style={{ accentColor: t.sageDeep, marginTop: '1px', width: '12px', height: '12px' }} />
-          <span style={{ color: t.inkSoft, fontSize: '10px', lineHeight: '1.4' }}>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', cursor: 'pointer', marginBottom: '10px' }}>
+          <input type="checkbox" required style={{ accentColor: t.sageDeep, marginTop: '1px', width: '11px', height: '11px' }} />
+          <span style={{ color: t.inkSoft, fontSize: '10px', lineHeight: '1.35' }}>
             I agree to <a href="#" style={{ color: t.sageDeep, textDecoration: 'none' }}>Terms</a> & <a href="#" style={{ color: t.sageDeep, textDecoration: 'none' }}>Privacy</a>
           </span>
         </label>

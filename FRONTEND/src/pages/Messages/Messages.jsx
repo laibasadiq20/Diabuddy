@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
@@ -23,6 +23,7 @@ const t = theme;
 export default function Messages() {
   const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Conversations & Messages State
   const [conversations, setConversations] = useState([]);
@@ -79,7 +80,11 @@ export default function Messages() {
 
   useEffect(() => {
     if (user) {
-      fetchConversations();
+      const openId = location.state?.conversationId || null;
+      fetchConversations(openId);
+      if (openId) {
+        navigate(location.pathname, { replace: true, state: {} });
+      }
     }
   }, [user]);
 

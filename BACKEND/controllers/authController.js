@@ -456,7 +456,7 @@ const searchUsers = async (req, res) => {
   try {
     const { search } = req.query;
     const query = { _id: { $ne: req.user.id }, isVerified: true, isActive: true }; // Exclude self, must be verified/active
-    
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -478,6 +478,42 @@ const searchUsers = async (req, res) => {
     return res.status(500).json({
       status: 'error',
       message: 'Server error searching users',
+    });
+  }
+};
+
+/**
+ * @desc    Public community profile (safe fields only)
+ * @route   GET /api/auth/users/:id
+ * @access  Private
+ */
+const getPublicProfile = async (req, res) => {
+  try {
+    const profile = await User.findOne({
+      _id: req.params.id,
+      isActive: true,
+      isVerified: true,
+    }).select(
+      'name username bio location profileImageUrl diabetesType diagnosisYear isVerifiedProfessional postsCount commentsCount createdAt isOnline lastSeen'
+    );
+
+    if (!profile) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+    }
+
+    const u = profile.toObject();
+    return res.json({
+      status: 'success',
+      data: { ...u, id: u._id, _id: u._id },
+    });
+  } catch (err) {
+    console.error('Public profile error:', err);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Server error fetching profile',
     });
   }
 };
@@ -660,6 +696,7 @@ module.exports = {
   getMe,
   updateProfile,
   searchUsers,
+  getPublicProfile,
   forgotPassword,
   resetPassword,
 };
