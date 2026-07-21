@@ -34,7 +34,10 @@ export default function CommunityFeed() {
   const selectedTopic = searchParams.get('topic') || '';
   const searchQuery = searchParams.get('search') || '';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
-  const sortMode = searchParams.get('sort') || 'latest';
+  const sortMode = (() => {
+    const s = searchParams.get('sort') || 'latest';
+    return s === 'most_commented' ? 'most_commented' : 'latest';
+  })();
 
   const [searchInputValue, setSearchInputValue] = useState(searchQuery);
   const [totalPages, setTotalPages] = useState(1);
@@ -235,24 +238,50 @@ export default function CommunityFeed() {
             />
           </form>
 
-          {/* Sort */}
-          <div className="db-community-sort" role="tablist" aria-label="Sort posts">
-            {[
-              { id: 'latest', label: 'Latest' },
-              { id: 'most_commented', label: 'Most commented' },
-              { id: 'best_answers', label: 'Solved' },
-            ].map((opt) => (
+          {/* Filters: sort + topics in one block */}
+          <div className="db-community-filters">
+            <div className="db-community-sort" role="tablist" aria-label="Sort posts">
+              {[
+                { id: 'latest', label: 'Latest' },
+                { id: 'most_commented', label: 'Most commented' },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={sortMode === opt.id}
+                  className={`db-sort-chip${sortMode === opt.id ? ' is-active' : ''}`}
+                  onClick={() => handleSortSelect(opt.id)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="db-community-topics" role="tablist" aria-label="Topics">
               <button
-                key={opt.id}
                 type="button"
                 role="tab"
-                aria-selected={sortMode === opt.id}
-                className={`db-sort-chip${sortMode === opt.id ? ' is-active' : ''}`}
-                onClick={() => handleSortSelect(opt.id)}
+                aria-selected={selectedTopic === ''}
+                className={`db-topic-chip${selectedTopic === '' ? ' is-active' : ''}`}
+                onClick={() => handleTopicSelect('')}
               >
-                {opt.label}
+                All
               </button>
-            ))}
+              {!topicsLoading &&
+                topics.map((topic) => (
+                  <button
+                    key={topic._id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedTopic === topic._id}
+                    className={`db-topic-chip${selectedTopic === topic._id ? ' is-active' : ''}`}
+                    onClick={() => handleTopicSelect(topic._id)}
+                  >
+                    {topic.name}
+                  </button>
+                ))}
+            </div>
           </div>
 
           {drafts.length > 0 && (
@@ -273,32 +302,6 @@ export default function CommunityFeed() {
               </div>
             </div>
           )}
-
-          {/* Simple topic chips */}
-          <div className="db-community-topics" role="tablist" aria-label="Topics">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={selectedTopic === ''}
-              className={`db-topic-chip${selectedTopic === '' ? ' is-active' : ''}`}
-              onClick={() => handleTopicSelect('')}
-            >
-              All
-            </button>
-            {!topicsLoading &&
-              topics.map((topic) => (
-                <button
-                  key={topic._id}
-                  type="button"
-                  role="tab"
-                  aria-selected={selectedTopic === topic._id}
-                  className={`db-topic-chip${selectedTopic === topic._id ? ' is-active' : ''}`}
-                  onClick={() => handleTopicSelect(topic._id)}
-                >
-                  {topic.name}
-                </button>
-              ))}
-          </div>
 
           {/* Feed */}
           {postsLoading ? (
@@ -477,10 +480,10 @@ export default function CommunityFeed() {
       <style>{`
         .db-community-header {
           display: flex;
-          align-items: flex-end;
+          align-items: flex-start;
           justify-content: space-between;
           gap: 16px;
-          margin-bottom: 20px;
+          margin-bottom: 22px;
         }
         .db-community-eyebrow {
           margin: 0 0 8px;
@@ -584,26 +587,38 @@ export default function CommunityFeed() {
         .db-community-search input:focus {
           border-color: ${t.forest};
         }
+        .db-community-filters {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 18px;
+          padding: 14px 16px;
+          background: #fff;
+          border: 1.5px solid ${t.lineStrong};
+          border-radius: 16px;
+          box-shadow: ${t.shadowCard};
+        }
         .db-community-sort {
           display: flex;
           gap: 8px;
-          margin-bottom: 12px;
           flex-wrap: wrap;
+          padding-bottom: 12px;
+          border-bottom: 1px solid ${t.line};
         }
         .db-sort-chip {
           border: 1.5px solid ${t.lineStrong};
           background: #fff;
           color: ${t.inkSoft};
           border-radius: 999px;
-          padding: 7px 12px;
+          padding: 7px 14px;
           font-size: 12px;
           font-weight: 600;
           cursor: pointer;
           font-family: ${t.fontBody};
         }
         .db-sort-chip.is-active {
-          background: ${t.ink};
-          border-color: ${t.ink};
+          background: ${t.forest};
+          border-color: ${t.forest};
           color: #fff;
         }
         .db-drafts-banner {
@@ -638,8 +653,8 @@ export default function CommunityFeed() {
           display: flex;
           gap: 8px;
           overflow-x: auto;
-          padding-bottom: 4px;
-          margin-bottom: 18px;
+          padding-bottom: 2px;
+          margin-bottom: 0;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
         }
@@ -817,6 +832,12 @@ export default function CommunityFeed() {
           text-align: center;
           color: ${t.inkSoft};
           box-shadow: ${t.shadowCard};
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .db-community-state .db-community-cta {
+          width: auto;
         }
         .db-community-state h3 {
           font-family: ${t.fontDisplay};
@@ -883,12 +904,17 @@ export default function CommunityFeed() {
             padding: 13px 16px;
             border-radius: 14px;
           }
+          .db-community-filters {
+            padding: 12px;
+            gap: 10px;
+            border-radius: 14px;
+          }
           .db-community-sort {
             overflow-x: auto;
             flex-wrap: nowrap;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
-            padding-bottom: 2px;
+            padding-bottom: 10px;
           }
           .db-community-sort::-webkit-scrollbar { display: none; }
           .db-sort-chip {
