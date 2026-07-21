@@ -83,47 +83,34 @@ const Navbar = () => {
     <>
       <header className="fixed top-0 left-0 z-50 w-full border-b border-black/5 bg-[#F6F3EE]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-3.5">
-          {/* Left: mobile menu + brand */}
-          <div className="flex min-w-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="flex h-8 w-8 shrink-0 flex-col items-center justify-center gap-[3px] rounded-lg border border-black/10 bg-white/60 md:hidden"
-              aria-label="Open menu"
-            >
-              <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
-              <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
-              <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (window.location.pathname !== '/') {
-                  navigate('/');
-                  setTimeout(() => {
-                    document.getElementById('home')?.scrollIntoView({
-                      behavior: 'smooth',
-                      block: 'start',
-                    });
-                  }, 300);
-                  return;
-                }
-                document.getElementById('home')?.scrollIntoView({
-                  behavior: 'smooth',
-                  block: 'start',
-                });
-              }}
-              className="flex min-w-0 items-center gap-1.5"
-            >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-[11px] text-white sm:h-8 sm:w-8 sm:text-sm">
-                ♥
-              </span>
-              <span className="truncate font-serif text-[1.05rem] tracking-wide text-[#2F2A25] sm:text-xl">
-                Diabuddy
-              </span>
-            </button>
-          </div>
+          {/* Left: brand */}
+          <button
+            type="button"
+            onClick={() => {
+              if (window.location.pathname !== '/') {
+                navigate('/');
+                setTimeout(() => {
+                  document.getElementById('home')?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                  });
+                }, 300);
+                return;
+              }
+              document.getElementById('home')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              });
+            }}
+            className="flex min-w-0 items-center gap-1.5"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-[11px] text-white sm:h-8 sm:w-8 sm:text-sm">
+              ♥
+            </span>
+            <span className="truncate font-serif text-[1.05rem] tracking-wide text-[#2F2A25] sm:text-xl">
+              Diabuddy
+            </span>
+          </button>
 
           <nav className="hidden items-center gap-7 md:flex">
             {links.map((link) => (
@@ -154,7 +141,7 @@ const Navbar = () => {
               </button>
 
               <div
-                className={`absolute top-8 left-0 w-52 rounded-2xl border border-black/10 bg-white p-2 shadow-xl transition-all duration-200 ${
+                className={`absolute top-8 right-0 w-52 rounded-2xl border border-black/10 bg-white p-2 shadow-xl transition-all duration-200 ${
                   learnOpen
                     ? 'visible translate-y-0 opacity-100'
                     : 'invisible pointer-events-none -translate-y-2 opacity-0'
@@ -177,7 +164,7 @@ const Navbar = () => {
             </div>
           </nav>
 
-          {/* Right: desktop auth / profile — no duplicate profile on mobile */}
+          {/* Right: auth + hamburger (opens right drawer) */}
           <div className="flex items-center gap-2 sm:gap-3">
             {!user ? (
               <>
@@ -206,11 +193,22 @@ const Navbar = () => {
                 {user?.name?.charAt(0).toUpperCase()}
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="flex h-8 w-8 shrink-0 flex-col items-center justify-center gap-[3px] rounded-lg border border-black/10 bg-white/60 md:hidden"
+              aria-label="Open menu"
+            >
+              <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
+              <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
+              <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile menu — slides from LEFT */}
+      {/* Mobile menu — right-side drawer */}
       <div
         className={`fixed inset-0 z-50 transition ${
           open ? 'visible opacity-100' : 'invisible opacity-0'
@@ -221,20 +219,20 @@ const Navbar = () => {
           className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         />
         <div
-          className={`absolute left-0 top-0 h-full w-[82%] max-w-sm bg-[#F6F3EE] shadow-2xl transition-transform duration-300 ${
-            open ? 'translate-x-0' : '-translate-x-full'
+          className={`absolute right-0 top-0 flex h-full w-[min(86vw,320px)] flex-col bg-[#F6F3EE] shadow-2xl transition-transform duration-300 ${
+            open ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          <div className="flex items-center justify-between border-b border-black/10 p-6">
+          <div className="flex shrink-0 items-center justify-between border-b border-black/10 px-5 py-4">
             <span className="font-serif text-lg text-[#2F2A25]">Menu</span>
-            <button type="button" onClick={() => setOpen(false)} className="text-2xl">
+            <button type="button" onClick={() => setOpen(false)} className="text-2xl leading-none" aria-label="Close menu">
               ✕
             </button>
           </div>
 
-          <div className="flex flex-col gap-1 overflow-y-auto p-6 pb-28">
+          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-5 py-4">
             {user && (
-              <div className="mb-4 flex items-center gap-3 rounded-2xl border border-black/10 bg-white/70 px-3 py-3">
+              <div className="mb-3 flex items-center gap-3 rounded-2xl border border-black/10 bg-white/70 px-3 py-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#27392E] text-sm font-semibold text-white">
                   {user?.name?.charAt(0).toUpperCase()}
                 </div>
@@ -250,14 +248,14 @@ const Navbar = () => {
                 key={link.id}
                 type="button"
                 onClick={() => scrollToSection(link.id)}
-                className="rounded-xl px-3 py-3 text-left text-[#5C524B] transition hover:bg-black/5"
+                className="rounded-xl px-3 py-2.5 text-left text-sm text-[#5C524B] transition hover:bg-black/5"
               >
                 {link.label}
               </button>
             ))}
 
-            <div className="mt-4 border-t border-black/10 pt-4">
-              <p className="mb-2 px-3 text-xs uppercase tracking-[2px] text-gray-400">
+            <div className="mt-3 border-t border-black/10 pt-3">
+              <p className="mb-1.5 px-3 text-[10px] uppercase tracking-[0.14em] text-gray-400">
                 Learn
               </p>
               {learnLinks.map((item) => (
@@ -268,7 +266,7 @@ const Navbar = () => {
                     navigate(item.path);
                     setOpen(false);
                   }}
-                  className="w-full rounded-xl px-3 py-3 text-left text-[#5C524B] transition hover:bg-black/5"
+                  className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#5C524B] transition hover:bg-black/5"
                 >
                   {item.label}
                 </button>
@@ -276,8 +274,8 @@ const Navbar = () => {
             </div>
 
             {user && (
-              <div className="mt-4 border-t border-black/10 pt-4">
-                <p className="mb-2 px-3 text-xs uppercase tracking-[2px] text-gray-400">
+              <div className="mt-3 border-t border-black/10 pt-3">
+                <p className="mb-1.5 px-3 text-[10px] uppercase tracking-[0.14em] text-gray-400">
                   Account
                 </p>
                 {profileLinks.map((item) => (
@@ -288,7 +286,7 @@ const Navbar = () => {
                       navigate(item.path);
                       setOpen(false);
                     }}
-                    className="w-full rounded-xl px-3 py-3 text-left text-[#5C524B] transition hover:bg-black/5"
+                    className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#5C524B] transition hover:bg-black/5"
                   >
                     {item.label}
                   </button>
@@ -297,7 +295,7 @@ const Navbar = () => {
             )}
           </div>
 
-          <div className="absolute bottom-6 left-6 right-6 flex flex-col gap-2">
+          <div className="shrink-0 border-t border-black/10 px-5 py-4">
             {user ? (
               <button
                 type="button"
@@ -305,19 +303,19 @@ const Navbar = () => {
                   logout();
                   setOpen(false);
                 }}
-                className="w-full rounded-xl bg-black py-3 font-semibold text-white"
+                className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white"
               >
                 Log out
               </button>
             ) : (
-              <>
+              <div className="flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     navigate('/register');
                     setOpen(false);
                   }}
-                  className="w-full rounded-xl bg-[#27392E] py-3 font-semibold text-white"
+                  className="w-full rounded-xl bg-[#27392E] py-3 text-sm font-semibold text-white"
                 >
                   Sign up
                 </button>
@@ -327,11 +325,11 @@ const Navbar = () => {
                     navigate('/login');
                     setOpen(false);
                   }}
-                  className="w-full rounded-xl border border-black/15 bg-white py-3 font-semibold text-[#2F2A25]"
+                  className="w-full rounded-xl border border-black/15 bg-white py-3 text-sm font-semibold text-[#2F2A25]"
                 >
                   Sign in
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
