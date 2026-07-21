@@ -18,14 +18,24 @@ import {
   Lock,
   Pin,
   Clock,
-  Sparkles
+  Sparkles,
+  Pencil,
+  Unlock,
 } from 'lucide-react';
 
 const t = theme;
 
+const REPORT_REASONS = [
+  { value: 'offensive', label: 'Inappropriate / offensive content' },
+  { value: 'spam', label: 'Spam or advertisement' },
+  { value: 'harassment', label: 'Harassment or hate speech' },
+  { value: 'misinformation', label: 'Medical misinformation' },
+  { value: 'other', label: 'Other' },
+];
+
 export default function PostDetails() {
   const { id: postId } = useParams();
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
 
   // State
@@ -42,18 +52,31 @@ export default function PostDetails() {
   const [replyToCommentId, setReplyToCommentId] = useState(null);
   const [replyContent, setReplyContent] = useState('');
 
+  // Edit state
+  const [editingPost, setEditingPost] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentContent, setEditCommentContent] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
   // Report Modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState(null); // { type: 'ForumPost'|'Comment', id: string }
-  const [reportReason, setReportReason] = useState('Inappropriate content');
+  const [reportReason, setReportReason] = useState('offensive');
   const [reportDesc, setReportDesc] = useState('');
   const [reportSuccess, setReportSuccess] = useState(false);
+
+  const jsonHeaders = () => ({ 'Content-Type': 'application/json', ...authHeaders() });
 
   // Fetch full details
   const fetchAll = async () => {
     try {
       // 1. Fetch Post details
-      const postRes = await fetch(`${API_URL}/posts/${postId}`, { credentials: 'include' });
+      const postRes = await fetch(`${API_URL}/posts/${postId}`, {
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
       if (!postRes.ok) {
         throw new Error('Post not found or deleted');
       }
@@ -62,7 +85,10 @@ export default function PostDetails() {
 
       // 2. If poll, fetch poll details
       if (postData.type === 'poll') {
-        const pollRes = await fetch(`${API_URL}/posts/${postId}/poll`, { credentials: 'include' });
+        const pollRes = await fetch(`${API_URL}/posts/${postId}/poll`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
         if (pollRes.ok) {
           const pData = await pollRes.json();
           setPollData(pData);
@@ -70,7 +96,10 @@ export default function PostDetails() {
       }
 
       // 3. Fetch comments
-      const commentsRes = await fetch(`${API_URL}/posts/${postId}/comments`, { credentials: 'include' });
+      const commentsRes = await fetch(`${API_URL}/posts/${postId}/comments`, {
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
       if (commentsRes.ok) {
         const commentsData = await commentsRes.json();
         setComments(commentsData);
@@ -79,7 +108,10 @@ export default function PostDetails() {
 
       // 4. Fetch my reaction
       if (user) {
-        const reactRes = await fetch(`${API_URL}/reactions/mine?targetType=ForumPost&targetId=${postId}`, { credentials: 'include' });
+        const reactRes = await fetch(`${API_URL}/reactions/mine?targetType=ForumPost&targetId=${postId}`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
         if (reactRes.ok) {
           const reactData = await reactRes.json();
           setPostLiked(reactData.liked);
@@ -135,7 +167,7 @@ export default function PostDetails() {
       const res = await fetch(`${API_URL}/reactions`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify({ targetType: 'ForumPost', targetId: postId })
       });
       const data = await res.json();
@@ -157,7 +189,7 @@ export default function PostDetails() {
       const res = await fetch(`${API_URL}/polls/${pollData.poll._id}/vote`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify({ optionIndex })
       });
       const data = await res.json();
@@ -186,7 +218,7 @@ export default function PostDetails() {
       const res = await fetch(`${API_URL}/posts/${postId}/comments`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify({
           content: contentToSend.trim(),
           parentCommentId: parentId
@@ -223,7 +255,7 @@ export default function PostDetails() {
       const res = await fetch(`${API_URL}/reactions`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify({ targetType: 'Comment', targetId: commentId })
       });
       const data = await res.json();
@@ -249,7 +281,7 @@ export default function PostDetails() {
       const res = await fetch(`${API_URL}/posts/${postId}/best-answer`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify({ commentId })
       });
       const data = await res.json();
@@ -271,7 +303,8 @@ export default function PostDetails() {
     try {
       const res = await fetch(`${API_URL}/comments/${commentId}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
+        headers: { ...authHeaders() },
       });
       if (res.ok) {
         const updated = comments.filter(c => c._id !== commentId);
@@ -290,10 +323,90 @@ export default function PostDetails() {
     try {
       const res = await fetch(`${API_URL}/posts/${postId}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
+        headers: { ...authHeaders() },
       });
       if (res.ok) {
         navigate('/community');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const startEditPost = () => {
+    setEditTitle(post.title || '');
+    setEditContent(post.content || '');
+    setEditingPost(true);
+  };
+
+  const saveEditPost = async () => {
+    if (!editTitle.trim() || !editContent.trim()) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`${API_URL}/posts/${postId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ title: editTitle.trim(), content: editContent.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPost((prev) => ({ ...prev, title: data.title, content: data.content }));
+        setEditingPost(false);
+      } else {
+        alert(data.message || 'Failed to save edits');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const saveEditComment = async (commentId) => {
+    if (!editCommentContent.trim()) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`${API_URL}/comments/${commentId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ content: editCommentContent.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const updated = comments.map((c) =>
+          c._id === commentId ? { ...c, content: data.content, isEdited: true } : c
+        );
+        setComments(updated);
+        buildTree(updated);
+        setEditingCommentId(null);
+        setEditCommentContent('');
+      } else {
+        alert(data.message || 'Failed to save comment');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const toggleModeration = async (field) => {
+    if (!post) return;
+    try {
+      const res = await fetch(`${API_URL}/posts/${postId}/moderation`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ [field]: !post[field] }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPost((prev) => ({ ...prev, isPinned: data.isPinned, isLocked: data.isLocked }));
+      } else {
+        alert(data.message || 'Moderation update failed');
       }
     } catch (err) {
       console.error(err);
@@ -304,7 +417,7 @@ export default function PostDetails() {
   const triggerReport = (type, id) => {
     if (!user) { navigate('/login'); return; }
     setReportTarget({ type, id });
-    setReportReason('Inappropriate content');
+    setReportReason('offensive');
     setReportDesc('');
     setReportSuccess(false);
     setReportModalOpen(true);
@@ -317,7 +430,7 @@ export default function PostDetails() {
       const res = await fetch(`${API_URL}/reports`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify({
           targetType: reportTarget.type,
           targetId: reportTarget.id,
@@ -348,7 +461,9 @@ export default function PostDetails() {
     const isBest = post && post.bestAnswerCommentId === node._id;
 
     return (
-      <div style={{ 
+      <div
+        className={`db-comment-node db-comment-depth-${Math.min(depth, 3)}`}
+        style={{ 
         marginLeft: `${depth * 24}px`, 
         marginTop: '16px',
         borderLeft: depth > 0 ? `2px solid ${t.line}` : 'none',
@@ -433,9 +548,67 @@ export default function PostDetails() {
           </div>
 
           {/* Comment content */}
-          <p style={{ fontSize: '14px', color: t.ink, margin: '0 0 14px 0', lineHeight: '1.5' }}>
-            {node.content}
-          </p>
+          {editingCommentId === node._id ? (
+            <div style={{ marginBottom: 14 }}>
+              <textarea
+                value={editCommentContent}
+                onChange={(e) => setEditCommentContent(e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: 10,
+                  borderRadius: 10,
+                  border: `1.5px solid ${t.line}`,
+                  fontFamily: t.fontBody,
+                  fontSize: 14,
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => saveEditComment(node._id)}
+                  disabled={savingEdit}
+                  style={{
+                    background: t.forest,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '6px 12px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingCommentId(null);
+                    setEditCommentContent('');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: `1px solid ${t.line}`,
+                    borderRadius: 8,
+                    padding: '6px 12px',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p style={{ fontSize: '14px', color: t.ink, margin: '0 0 14px 0', lineHeight: '1.5' }}>
+              {node.content}
+              {node.isEdited && (
+                <span style={{ marginLeft: 6, fontSize: 11, color: t.inkFaint }}>(edited)</span>
+              )}
+            </p>
+          )}
 
           {/* Comment Actions */}
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -517,6 +690,29 @@ export default function PostDetails() {
             >
               <Flag size={12} /> Report
             </button>
+
+            {isCommentAuthor && (
+              <button
+                onClick={() => {
+                  setEditingCommentId(node._id);
+                  setEditCommentContent(node.content || '');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: t.inkSoft,
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: 0
+                }}
+              >
+                <Pencil size={12} /> Edit
+              </button>
+            )}
 
             {(isCommentAuthor || isAdmin) && (
               <button
@@ -748,16 +944,35 @@ export default function PostDetails() {
             </div>
 
             {/* Title */}
-            <h1 className="db-post-heading" style={{ 
-              fontFamily: t.fontDisplay, 
-              fontSize: 'clamp(22px, 4vw, 28px)', 
-              color: t.ink, 
-              fontWeight: '500',
-              margin: '0 0 14px 0',
-              lineHeight: '1.25'
-            }}>
-              {post.title}
-            </h1>
+            {editingPost ? (
+              <input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  fontFamily: t.fontDisplay,
+                  fontSize: 'clamp(22px, 4vw, 28px)',
+                  color: t.ink,
+                  fontWeight: 500,
+                  margin: '0 0 14px 0',
+                  padding: '8px 12px',
+                  borderRadius: 12,
+                  border: `1.5px solid ${t.lineStrong}`,
+                }}
+              />
+            ) : (
+              <h1 className="db-post-heading" style={{ 
+                fontFamily: t.fontDisplay, 
+                fontSize: 'clamp(22px, 4vw, 28px)', 
+                color: t.ink, 
+                fontWeight: '500',
+                margin: '0 0 14px 0',
+                lineHeight: '1.25'
+              }}>
+                {post.title}
+              </h1>
+            )}
 
             {/* Badges indicators */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -779,15 +994,66 @@ export default function PostDetails() {
             </div>
 
             {/* Body */}
-            <p style={{ 
-              fontSize: '16px', 
-              color: t.ink, 
-              lineHeight: '1.7', 
-              whiteSpace: 'pre-wrap',
-              margin: '0 0 24px 0' 
-            }}>
-              {post.content}
-            </p>
+            {editingPost ? (
+              <div style={{ marginBottom: 24 }}>
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={8}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: 12,
+                    borderRadius: 12,
+                    border: `1.5px solid ${t.lineStrong}`,
+                    fontSize: 15,
+                    lineHeight: 1.6,
+                    fontFamily: t.fontBody,
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button
+                    type="button"
+                    onClick={saveEditPost}
+                    disabled={savingEdit}
+                    style={{
+                      background: t.forest,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '8px 14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {savingEdit ? 'Saving…' : 'Save changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingPost(false)}
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${t.line}`,
+                      borderRadius: 10,
+                      padding: '8px 14px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p style={{ 
+                fontSize: '16px', 
+                color: t.ink, 
+                lineHeight: '1.7', 
+                whiteSpace: 'pre-wrap',
+                margin: '0 0 24px 0' 
+              }}>
+                {post.content}
+              </p>
+            )}
 
             {/* Attached Images */}
             {post.images && post.images.length > 0 && (
@@ -937,6 +1203,75 @@ export default function PostDetails() {
               </div>
 
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {isPostOwner && (
+                  <button
+                    type="button"
+                    onClick={startEditPost}
+                    style={{
+                      background: t.surfaceSunken,
+                      border: `1px solid ${t.line}`,
+                      borderRadius: 999,
+                      color: t.inkSoft,
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '6px 12px',
+                      fontFamily: t.fontBody,
+                    }}
+                  >
+                    <Pencil size={12} /> Edit
+                  </button>
+                )}
+
+                {isPostAdmin && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => toggleModeration('isPinned')}
+                      style={{
+                        background: post.isPinned ? t.sageTint : t.surfaceSunken,
+                        border: `1px solid ${t.line}`,
+                        borderRadius: 999,
+                        color: t.sageDeep,
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 12px',
+                        fontFamily: t.fontBody,
+                      }}
+                    >
+                      <Pin size={12} /> {post.isPinned ? 'Unpin' : 'Pin'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleModeration('isLocked')}
+                      style={{
+                        background: post.isLocked ? t.clayTint : t.surfaceSunken,
+                        border: `1px solid ${t.line}`,
+                        borderRadius: 999,
+                        color: t.clayDeep,
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 12px',
+                        fontFamily: t.fontBody,
+                      }}
+                    >
+                      {post.isLocked ? <Unlock size={12} /> : <Lock size={12} />}
+                      {post.isLocked ? 'Unlock' : 'Lock'}
+                    </button>
+                  </>
+                )}
+
                 <button
                   type="button"
                   onClick={() => triggerReport('ForumPost', post._id)}
@@ -1073,11 +1408,24 @@ export default function PostDetails() {
 
       <style>{`
         @media (max-width: 640px) {
-          .db-post-thread { padding: 18px !important; border-radius: 16px !important; }
-          .db-post-comments { padding: 16px !important; border-radius: 16px !important; }
-          .db-post-actions { flex-direction: column; align-items: flex-start !important; }
+          .db-post-thread { padding: 16px !important; border-radius: 16px !important; }
+          .db-post-comments { padding: 14px !important; border-radius: 16px !important; }
+          .db-post-actions { flex-direction: column; align-items: stretch !important; gap: 14px !important; }
+          .db-post-actions > div { width: 100%; }
+          .db-post-actions > div:last-child {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px !important;
+          }
+          .db-post-stats-row { gap: 16px !important; }
           .db-post-thread [style*="grid-template-columns"] {
             grid-template-columns: 1fr !important;
+          }
+          .db-comment-depth-1 { margin-left: 10px !important; padding-left: 10px !important; }
+          .db-comment-depth-2 { margin-left: 16px !important; padding-left: 10px !important; }
+          .db-comment-depth-3 { margin-left: 20px !important; padding-left: 10px !important; }
+          .db-comment-node [style*="display: flex"][style*="gap: 12px"] {
+            flex-wrap: wrap;
           }
         }
       `}</style>
@@ -1132,11 +1480,9 @@ export default function PostDetails() {
                       fontSize: '13px'
                     }}
                   >
-                    <option value="Inappropriate content">Inappropriate content</option>
-                    <option value="Spam or advertisement">Spam or advertisement</option>
-                    <option value="Harassment or hate speech">Harassment or hate speech</option>
-                    <option value="Medical misinformation">Medical misinformation</option>
-                    <option value="Other">Other</option>
+                    {REPORT_REASONS.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
                   </select>
                 </div>
 

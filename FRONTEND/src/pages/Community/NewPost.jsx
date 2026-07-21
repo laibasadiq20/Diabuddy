@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
@@ -18,13 +18,23 @@ import {
 
 const t = theme;
 
+const GUIDELINES = [
+  'Be kind — diabetes is personal; no shaming or gatekeeping.',
+  'Don’t share medical advice as fact; share experience and suggest talking to a clinician.',
+  'No spam, ads, or personal attacks.',
+  'Respect privacy — don’t post others’ private health info.',
+];
+
 export default function NewPost() {
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const draftId = searchParams.get('draft');
 
   // State
   const [topics, setTopics] = useState([]);
   const [postType, setPostType] = useState('text'); // text | image | poll
+  const [editingDraftId, setEditingDraftId] = useState(null);
   
   // Form fields
   const [topicId, setTopicId] = useState('');
@@ -32,7 +42,7 @@ export default function NewPost() {
   const [content, setContent] = useState('');
   const [tagsInput, setTagsInput] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [isDraft, setIsDraft] = useState(false);
+  const [acceptedGuidelines, setAcceptedGuidelines] = useState(false);
 
   // Image Upload state
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -47,11 +57,16 @@ export default function NewPost() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const jsonHeaders = () => ({ 'Content-Type': 'application/json', ...authHeaders() });
+
   // Fetch topics for selector
   useEffect(() => {
     const fetchTopics = async () => {
       try {
-        const res = await fetch(`${API_URL}/topics`, { credentials: 'include' });
+        const res = await fetch(`${API_URL}/topics`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
         if (res.ok) {
           const data = await res.json();
           setTopics(data);
@@ -63,6 +78,37 @@ export default function NewPost() {
     };
     fetchTopics();
   }, []);
+
+  // Load draft for resume/publish
+  useEffect(() => {
+    if (!draftId) return;
+    const loadDraft = async () => {
+      try {
+        const res = await fetch(`${API_URL}/posts/${draftId}`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.isDraft) {
+          navigate(`/community/posts/${data._id}`, { replace: true });
+          return;
+        }
+        setEditingDraftId(data._id);
+        setTitle(data.title || '');
+        setContent(data.content || '');
+        setTopicId(data.topicId?._id || data.topicId || '');
+        setTagsInput((data.tags || []).join(', '));
+        setIsAnonymous(!!data.isAnonymous);
+        setPostType(data.type || 'text');
+        setUploadedImageUrls(data.images || []);
+        setAcceptedGuidelines(true);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadDraft();
+  }, [draftId]);
 
   // Handle image upload
   const handleImageFileChange = async (e) => {
@@ -85,16 +131,17 @@ export default function NewPost() {
       const res = await fetch(`${API_URL}/upload`, {
         method: 'POST',
         credentials: 'include',
+        headers: { ...authHeaders() },
         body: formData
       });
       const data = await res.json();
       if (res.ok) {
         setUploadedImageUrls(prev => [...prev, ...(data.urls || [])]);
       } else {
-        setError(data.message || 'Image upload failed.');
+        setError(data.message || 'Image upload failed. Text and poll posts still work without Cloudinary.');
       }
     } catch (err) {
-      setError('Connection error during upload.');
+      setError('Connection error during upload. Text and poll posts don’t need image upload.');
       console.error(err);
     } finally {
       setUploadingImages(false);
@@ -128,8 +175,20 @@ export default function NewPost() {
     setLoading(true);
     setError('');
 
+    if (!saveAsDraft && !acceptedGuidelines) {
+      setError('Please confirm you have read the community guidelines.');
+      setLoading(false);
+      return;
+    }
+
     if (!topicId) {
       setError('Please select a topic category.');
+      setLoading(false);
+      return;
+    }
+
+    if (postType === 'image' && !saveAsDraft && uploadedImageUrls.length === 0) {
+      setError('Add at least one image, or switch to a Text post. Image uploads need Cloudinary configured on the server.');
       setLoading(false);
       return;
     }
@@ -151,14 +210,26 @@ export default function NewPost() {
     };
 
     try {
-      // Step 1: Create the Forum Post
-      const postRes = await fetch(`${API_URL}/posts`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(postPayload)
-      });
-      const postData = await postRes.json();
+      let postData;
+      let postRes;
+
+      if (editingDraftId) {
+        postRes = await fetch(`${API_URL}/posts/${editingDraftId}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: jsonHeaders(),
+          body: JSON.stringify(postPayload)
+        });
+        postData = await postRes.json();
+      } else {
+        postRes = await fetch(`${API_URL}/posts`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: jsonHeaders(),
+          body: JSON.stringify(postPayload)
+        });
+        postData = await postRes.json();
+      }
 
       if (!postRes.ok) {
         setError(postData.message || 'Failed to create discussion post.');
@@ -166,7 +237,7 @@ export default function NewPost() {
         return;
       }
 
-      // Step 2: If type is 'poll', create the attached poll
+      // Step 2: If type is 'poll', create the attached poll (skip for drafts)
       if (postType === 'poll' && !saveAsDraft) {
         const filteredOptions = pollOptions.map(opt => opt.trim()).filter(opt => opt.length > 0);
         if (filteredOptions.length < 2) {
@@ -175,29 +246,32 @@ export default function NewPost() {
           return;
         }
 
+        const defaultExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
         const pollPayload = {
           question: pollQuestion.trim() || title.trim(),
           options: filteredOptions,
-          expiresAt: pollExpiresAt || undefined
+          expiresAt: pollExpiresAt || defaultExpiry,
         };
 
         const pollRes = await fetch(`${API_URL}/posts/${postData._id}/poll`, {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers: jsonHeaders(),
           body: JSON.stringify(pollPayload)
         });
 
         if (!pollRes.ok) {
           const pollData = await pollRes.json();
-          setError(`Post created, but poll attachment failed: ${pollData.message}`);
-          setLoading(false);
-          return;
+          // Poll may already exist when publishing a draft that somehow had one
+          if (pollRes.status !== 409) {
+            setError(`Post created, but poll attachment failed: ${pollData.message}`);
+            setLoading(false);
+            return;
+          }
         }
       }
 
-      // Success redirects
-      navigate(saveAsDraft ? '/dashboard' : `/community/posts/${postData._id}`);
+      navigate(saveAsDraft ? '/community' : `/community/posts/${postData._id}`);
 
     } catch (err) {
       setError('Connection failure. Try again.');
@@ -245,8 +319,46 @@ export default function NewPost() {
             fontWeight: '500',
             margin: '0 0 20px 0' 
           }}>
-            Compose Discussion
+            {editingDraftId ? 'Edit draft' : 'Compose Discussion'}
           </h1>
+
+          <style>{`
+            .db-newpost-type-tabs {
+              display: flex;
+              gap: 8px;
+              flex-wrap: wrap;
+              margin-bottom: 20px;
+            }
+            .db-newpost-tab-short { display: none; }
+            .db-newpost-tab-long { display: inline; }
+            .db-newpost-actions {
+              display: flex;
+              justify-content: flex-end;
+              gap: 12px;
+              border-top: 1px solid ${t.line};
+              padding-top: 24px;
+            }
+            @media (max-width: 640px) {
+              .db-newpost-tab-long { display: none; }
+              .db-newpost-tab-short { display: inline; }
+              .db-newpost-type-tabs button {
+                flex: 1 1 calc(33.33% - 6px);
+                min-width: 0;
+                justify-content: center;
+              }
+              .db-newpost-actions {
+                flex-direction: column-reverse;
+              }
+              .db-newpost-actions button {
+                width: 100%;
+                justify-content: center;
+              }
+              .db-newpost-box {
+                padding: 18px !important;
+                border-radius: 18px !important;
+              }
+            }
+          `}</style>
 
           {error && (
             <div style={{ 
@@ -263,7 +375,9 @@ export default function NewPost() {
           )}
 
           {/* Main Box */}
-          <div style={{ 
+          <div
+            className="db-newpost-box"
+            style={{ 
             background: t.surface, 
             border: `1.5px solid ${t.line}`,
             borderRadius: '24px',
@@ -272,7 +386,9 @@ export default function NewPost() {
           }}>
             
             {/* Post Type Selector Tabs */}
-            <div style={{ 
+            <div
+              className="db-newpost-type-tabs"
+              style={{ 
               display: 'flex', 
               background: t.bg, 
               padding: '6px', 
@@ -281,9 +397,9 @@ export default function NewPost() {
               marginBottom: '28px' 
             }}>
               {[
-                { type: 'text', label: 'Discussion Thread', icon: FileText },
-                { type: 'image', label: 'Photo Upload', icon: ImageIcon },
-                { type: 'poll', label: 'Poll / Question', icon: BarChart2 }
+                { type: 'text', label: 'Text', long: 'Discussion Thread', icon: FileText },
+                { type: 'image', label: 'Photo', long: 'Photo Upload', icon: ImageIcon },
+                { type: 'poll', label: 'Poll', long: 'Poll / Question', icon: BarChart2 }
               ].map(tab => {
                 const Icon = tab.icon;
                 const active = postType === tab.type;
@@ -300,21 +416,23 @@ export default function NewPost() {
                       background: active ? t.surface : 'none',
                       border: 'none',
                       borderRadius: '10px',
-                      padding: '12px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: active ? t.ink : t.inkSoft,
+                      padding: '10px 8px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px',
-                      boxShadow: active ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
-                      transition: 'all 0.2s'
+                      gap: '6px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      color: active ? t.ink : t.inkSoft,
+                      boxShadow: active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                      fontFamily: t.fontBody,
+                      minWidth: 0,
                     }}
                   >
-                    <Icon size={16} color={active ? t.sageDeep : t.inkFaint} />
-                    {tab.label}
+                    <Icon size={15} />
+                    <span className="db-newpost-tab-long">{tab.long}</span>
+                    <span className="db-newpost-tab-short">{tab.label}</span>
                   </button>
                 );
               })}
@@ -405,9 +523,12 @@ export default function NewPost() {
               {/* IMAGE TYPE FORM */}
               {postType === 'image' && (
                 <div style={{ marginBottom: '24px', background: t.bg, borderRadius: '16px', padding: '20px', border: `1px solid ${t.line}` }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
                     Attach Pictures (Max 4)
                   </label>
+                  <p style={{ margin: '0 0 12px', fontSize: 12, color: t.inkFaint, lineHeight: 1.45 }}>
+                    Needs Cloudinary on the server. Text and poll posts work without it.
+                  </p>
                   
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
                     {uploadedImageUrls.map((url, idx) => (
@@ -628,7 +749,7 @@ export default function NewPost() {
               </div>
 
               {/* Anonymous Checkbox */}
-              <div style={{ marginBottom: '28px' }}>
+              <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                   <input 
                     type="checkbox"
@@ -646,14 +767,37 @@ export default function NewPost() {
                 </label>
               </div>
 
-              {/* Action Buttons */}
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'flex-end', 
-                gap: '12px',
-                borderTop: `1px solid ${t.line}`,
-                paddingTop: '24px'
+              {/* Community guidelines */}
+              <div style={{
+                marginBottom: 24,
+                padding: 16,
+                borderRadius: 14,
+                border: `1.5px solid ${t.lineStrong}`,
+                background: '#FAF8F5',
               }}>
+                <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: t.ink }}>
+                  Community guidelines
+                </p>
+                <ul style={{ margin: '0 0 12px', paddingLeft: 18, color: t.inkSoft, fontSize: 13, lineHeight: 1.55 }}>
+                  {GUIDELINES.map((g) => (
+                    <li key={g} style={{ marginBottom: 4 }}>{g}</li>
+                  ))}
+                </ul>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={acceptedGuidelines}
+                    onChange={(e) => setAcceptedGuidelines(e.target.checked)}
+                    style={{ accentColor: t.sageDeep, marginTop: 2 }}
+                  />
+                  <span style={{ fontSize: 13, color: t.ink, fontWeight: 500 }}>
+                    I’ve read and agree to follow these guidelines
+                  </span>
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="db-newpost-actions">
                 <button
                   type="button"
                   disabled={loading}
@@ -677,25 +821,25 @@ export default function NewPost() {
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !acceptedGuidelines}
                   style={{
-                    background: loading ? t.lineStrong : t.sageDeep,
+                    background: loading || !acceptedGuidelines ? t.lineStrong : t.sageDeep,
                     border: 'none',
                     borderRadius: '12px',
                     padding: '12px 26px',
                     fontSize: '14px',
                     fontWeight: '600',
                     color: '#FFFFFF',
-                    cursor: loading ? 'not-allowed' : 'pointer',
+                    cursor: loading || !acceptedGuidelines ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
                     transition: 'background 0.2s'
                   }}
-                  onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = t.olive; }}
-                  onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = t.sageDeep; }}
+                  onMouseEnter={(e) => { if (!loading && acceptedGuidelines) e.currentTarget.style.background = t.olive; }}
+                  onMouseLeave={(e) => { if (!loading && acceptedGuidelines) e.currentTarget.style.background = t.sageDeep; }}
                 >
-                  {loading ? 'Publishing...' : 'Publish Post'}
+                  {loading ? 'Publishing...' : (editingDraftId ? 'Publish draft' : 'Publish Post')}
                 </button>
               </div>
 

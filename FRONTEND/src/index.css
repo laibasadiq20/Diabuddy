@@ -412,6 +412,15 @@ a:focus-visible {
     max-height: 100dvh;
     overflow: hidden;
   }
+
+  /* Full-bleed chat: hide bottom tabs so composer isn't cramped */
+  body.db-app-messages.db-msg-chat-open .db-app-tabs {
+    display: none !important;
+  }
+
+  body.db-app-messages.db-msg-chat-open main {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
 }
 
 @media (min-width: 900px) {
@@ -457,6 +466,8 @@ a:focus-visible {
 @media (max-width: 860px) {
   .db-msg-shell {
     flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
   }
 
   .db-msg-list {
@@ -479,9 +490,89 @@ a:focus-visible {
     display: flex !important;
     flex: 1 1 auto !important;
     min-height: 0 !important;
+    height: 100% !important;
   }
 
   .db-msg-back {
     display: inline-flex !important;
+  }
+
+  .db-msg-bubble {
+    max-width: min(88%, 360px) !important;
+  }
+
+  .db-msg-composer {
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* Mobile notification sheet */
+.db-notif-backdrop {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .db-notif-panel {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: min(78dvh, 560px) !important;
+    border-radius: 20px 20px 0 0 !important;
+    z-index: 90 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .db-notif-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 85;
+    background: rgba(0, 0, 0, 0.4);
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .db-notif-handle {
+    display: block !important;
+  }
+}
+
+.db-notif-handle {
+  display: none;
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: #D6CFC0;
+  margin: 10px auto 4px;
+  flex-shrink: 0;
+}
+
+.db-notif-close-m {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .db-notif-close-m {
+    display: inline-flex !important;
+  }
+}
+
+/* Bottom sheets used by Messages modals */
+@media (max-width: 639px) {
+  .db-newchat-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .db-newchat-sheet {
+    border-radius: 20px 20px 0 0 !important;
+    max-height: min(92dvh, 720px) !important;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }

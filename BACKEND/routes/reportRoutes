@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const { rateLimit } = require('../middleware/rateLimit');
 const moderationController = require('../controllers/moderationController.js');
 
-router.post('/', protect, moderationController.fileReport);
+const reportLimit = rateLimit({ windowMs: 60_000, max: 10, keyPrefix: 'reports' });
+
+router.post('/', protect, reportLimit, moderationController.fileReport);
 
 module.exports = router;

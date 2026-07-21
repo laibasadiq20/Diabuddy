@@ -11,14 +11,20 @@ import {
   Users, 
   UserPlus, 
   RefreshCw,
-  Clock,
-  Sparkles,
   Inbox,
+  Check,
   CheckCheck,
   ArrowLeft,
+  MoreVertical,
+  LogOut,
+  X,
+  Pencil,
+  UserMinus,
 } from 'lucide-react';
 
 const t = theme;
+
+const idOf = (value) => String(value?._id || value || '');
 
 export default function Messages() {
   const { user, authHeaders } = useAuth();
@@ -35,15 +41,25 @@ export default function Messages() {
 
   // New Chat Modal State
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('pick'); // pick | chat | group
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
-  const [isGroup, setIsGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [modalError, setModalError] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  // Group info panel
+  const [groupPanelOpen, setGroupPanelOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [addMemberQuery, setAddMemberQuery] = useState('');
+  const [addMemberResults, setAddMemberResults] = useState([]);
+  const [groupBusy, setGroupBusy] = useState(false);
+  const [groupError, setGroupError] = useState('');
 
   const chatEndRef = useRef(null);
+  const myId = idOf(user);
 
   // Redirect if unauthenticated
   useEffect(() => {
@@ -51,6 +67,11 @@ export default function Messages() {
       navigate('/login');
     }
   }, [user]);
+
+  useEffect(() => {
+    document.body.classList.toggle('db-msg-chat-open', Boolean(activeConvId));
+    return () => document.body.classList.remove('db-msg-chat-open');
+  }, [activeConvId]);
 
   // Fetch all my conversations
   const fetchConversations = async (autoSelectId = null) => {
@@ -231,30 +252,75 @@ export default function Messages() {
     return () => clearTimeout(delayDebounce);
   }, [searchQuery, modalOpen]);
 
+  const resetModal = () => {
+    setModalOpen(false);
+    setModalMode('pick');
+    setSearchQuery('');
+    setSearchResults([]);
+    setSelectedUserIds([]);
+    setGroupName('');
+    setModalError('');
+    setCreating(false);
+  };
+
+  const openNewModal = (mode = 'pick') => {
+    setModalError('');
+    setSearchQuery('');
+    setSearchResults([]);
+    setSelectedUserIds([]);
+    setGroupName('');
+    setModalMode(mode);
+    setModalOpen(true);
+  };
+
   const toggleSelectUser = (userId) => {
-    setSelectedUserIds(prev => {
+    setSelectedUserIds((prev) => {
       if (prev.includes(userId)) {
-        return prev.filter(id => id !== userId);
-      } else {
-        return [...prev, userId];
+        return prev.filter((id) => id !== userId);
       }
+      return [...prev, userId];
     });
   };
 
-  // Create Conversation
-  const handleCreateConversation = async () => {
-    if (selectedUserIds.length === 0) {
-      setModalError('Please select at least one user to message.');
-      return;
-    }
-    if (isGroup && !groupName.trim()) {
-      setModalError('Please enter a name for the group chat.');
-      return;
-    }
-
-    setSearchLoading(true);
+  // Start 1:1 immediately (WhatsApp-style: tap contact → open chat)
+  const startOneToOne = async (peerId) => {
+    setCreating(true);
     setModalError('');
+    try {
+      const res = await fetch(`${API_URL}/conversations`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ memberIds: [peerId], isGroup: false }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        resetModal();
+        fetchConversations(data._id);
+      } else {
+        setModalError(data.message || 'Could not start chat.');
+      }
+    } catch (err) {
+      console.error(err);
+      setModalError('Network error starting chat.');
+    } finally {
+      setCreating(false);
+    }
+  };
 
+  // Create group chat
+  const handleCreateGroup = async () => {
+    if (selectedUserIds.length === 0) {
+      setModalError('Select at least one person for the group.');
+      return;
+    }
+    if (!groupName.trim()) {
+      setModalError('Enter a group name.');
+      return;
+    }
+
+    setCreating(true);
+    setModalError('');
     try {
       const res = await fetch(`${API_URL}/conversations`, {
         method: 'POST',
@@ -262,42 +328,35 @@ export default function Messages() {
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           memberIds: selectedUserIds,
-          isGroup: isGroup || selectedUserIds.length > 1,
-          name: isGroup ? groupName.trim() : undefined
-        })
+          isGroup: true,
+          name: groupName.trim(),
+        }),
       });
       const data = await res.json();
-
       if (res.ok) {
-        setModalOpen(false);
-        // Clear search inputs
-        setSearchQuery('');
-        setSelectedUserIds([]);
-        setGroupName('');
-        setIsGroup(false);
-        // Load conversations and auto-select new chat
+        resetModal();
         fetchConversations(data._id);
       } else {
-        setModalError(data.message || 'Failed to start conversation.');
+        setModalError(data.message || 'Failed to create group.');
       }
     } catch (err) {
       console.error(err);
-      setModalError('Network error starting conversation.');
+      setModalError('Network error creating group.');
     } finally {
-      setSearchLoading(false);
+      setCreating(false);
     }
   };
 
   // Get other members of the chat
   const getChatPartnerName = (conv) => {
-    if (conv.isGroup) return conv.name || 'Group Discussion';
-    const otherMember = conv.members.find(m => m._id !== user?.id);
+    if (conv.isGroup) return conv.name || 'Group';
+    const otherMember = conv.members.find((m) => idOf(m) !== myId);
     return otherMember ? otherMember.name : 'Unknown Buddy';
   };
 
   const getChatPartnerAvatar = (conv) => {
     if (conv.isGroup) return '👥';
-    const otherMember = conv.members.find(m => m._id !== user?.id);
+    const otherMember = conv.members.find((m) => idOf(m) !== myId);
     return otherMember?.profileImageUrl ? (
       <img src={otherMember.profileImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
     ) : (
@@ -307,11 +366,162 @@ export default function Messages() {
 
   const getChatPartnerOnlineStatus = (conv) => {
     if (conv.isGroup) return false;
-    const otherMember = conv.members.find(m => m._id !== user?.id);
+    const otherMember = conv.members.find((m) => idOf(m) !== myId);
     return otherMember ? otherMember.isOnline : false;
   };
 
-  const activeConv = conversations.find(c => c._id === activeConvId);
+  /** True when every other member has this message in readBy */
+  const isMessageReadByOthers = (msg, conv) => {
+    if (!msg?.readBy || !conv?.members) return false;
+    const readers = new Set((msg.readBy || []).map(idOf));
+    const others = conv.members.map(idOf).filter((id) => id && id !== myId);
+    if (others.length === 0) return true;
+    return others.every((id) => readers.has(id));
+  };
+
+  const openGroupPanel = () => {
+    if (!activeConv?.isGroup) return;
+    setRenameValue(activeConv.name || '');
+    setAddMemberQuery('');
+    setAddMemberResults([]);
+    setGroupError('');
+    setGroupPanelOpen(true);
+  };
+
+  const handleRenameGroup = async () => {
+    if (!activeConvId || !renameValue.trim()) return;
+    setGroupBusy(true);
+    setGroupError('');
+    try {
+      const res = await fetch(`${API_URL}/conversations/${activeConvId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ name: renameValue.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setConversations((prev) => prev.map((c) => (c._id === data._id ? data : c)));
+      } else {
+        setGroupError(data.message || 'Could not rename group');
+      }
+    } catch (err) {
+      setGroupError('Network error renaming group');
+    } finally {
+      setGroupBusy(false);
+    }
+  };
+
+  const handleAddMember = async (peerId) => {
+    if (!activeConvId) return;
+    setGroupBusy(true);
+    setGroupError('');
+    try {
+      const res = await fetch(`${API_URL}/conversations/${activeConvId}/members`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ memberIds: [peerId] }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setConversations((prev) => prev.map((c) => (c._id === data._id ? data : c)));
+        setAddMemberQuery('');
+        setAddMemberResults([]);
+      } else {
+        setGroupError(data.message || 'Could not add member');
+      }
+    } catch (err) {
+      setGroupError('Network error adding member');
+    } finally {
+      setGroupBusy(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId) => {
+    if (!activeConvId) return;
+    if (!window.confirm('Remove this member from the group?')) return;
+    setGroupBusy(true);
+    setGroupError('');
+    try {
+      const res = await fetch(`${API_URL}/conversations/${activeConvId}/members/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.deleted) {
+          setConversations((prev) => prev.filter((c) => c._id !== activeConvId));
+          setActiveConvId(null);
+          setGroupPanelOpen(false);
+        } else {
+          setConversations((prev) => prev.map((c) => (c._id === data._id ? data : c)));
+        }
+      } else {
+        setGroupError(data.message || 'Could not remove member');
+      }
+    } catch (err) {
+      setGroupError('Network error removing member');
+    } finally {
+      setGroupBusy(false);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!activeConvId) return;
+    if (!window.confirm('Leave this group?')) return;
+    setGroupBusy(true);
+    setGroupError('');
+    try {
+      const res = await fetch(`${API_URL}/conversations/${activeConvId}/leave`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setConversations((prev) => prev.filter((c) => c._id !== activeConvId));
+        setActiveConvId(null);
+        setGroupPanelOpen(false);
+      } else {
+        setGroupError(data.message || 'Could not leave group');
+      }
+    } catch (err) {
+      setGroupError('Network error leaving group');
+    } finally {
+      setGroupBusy(false);
+    }
+  };
+
+  // Search users to add to group
+  useEffect(() => {
+    if (!groupPanelOpen) return undefined;
+    if (addMemberQuery.trim().length === 0) {
+      setAddMemberResults([]);
+      return undefined;
+    }
+    const tmr = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/users?search=${encodeURIComponent(addMemberQuery)}`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const memberSet = new Set(
+            (conversations.find((c) => c._id === activeConvId)?.members || []).map(idOf)
+          );
+          setAddMemberResults((data.data || []).filter((u) => !memberSet.has(idOf(u))));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 350);
+    return () => clearTimeout(tmr);
+  }, [addMemberQuery, groupPanelOpen, activeConvId, conversations]);
+
+  const activeConv = conversations.find((c) => c._id === activeConvId);
 
   return (
     <div style={{ height: '100dvh', display: 'flex', background: '#E8E0D4', overflow: 'hidden' }}>
@@ -352,10 +562,7 @@ export default function Messages() {
                 </h2>
                 
                 <button
-                  onClick={() => {
-                    setModalError('');
-                    setModalOpen(true);
-                  }}
+                  onClick={() => openNewModal('pick')}
                   style={{
                     background: t.sageDeep,
                     border: 'none',
@@ -381,19 +588,25 @@ export default function Messages() {
                 ) : conversations.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px 10px', color: t.inkFaint }}>
                     <Inbox size={28} style={{ margin: '0 auto 10px' }} />
-                    <p style={{ fontSize: '13px', margin: 0 }}>No conversations yet. Click "New" to start a secure chat.</p>
+                    <p style={{ fontSize: '13px', margin: 0 }}>No chats yet. Tap New to start a 1:1 or group.</p>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {conversations.map(conv => {
                       const active = conv._id === activeConvId;
                       const partnerOnline = getChatPartnerOnlineStatus(conv);
-                      const isUnread = conv.lastMessage && !conv.lastMessage.readBy.includes(user?.id);
+                      const isUnread =
+                        conv.lastMessage &&
+                        idOf(conv.lastMessage.senderId) !== myId &&
+                        !(conv.lastMessage.readBy || []).some((r) => idOf(r) === myId);
 
                       return (
                         <button
                           key={conv._id}
-                          onClick={() => setActiveConvId(conv._id)}
+                          onClick={() => {
+                            setActiveConvId(conv._id);
+                            setGroupPanelOpen(false);
+                          }}
                           style={{
                             background: active ? t.surfaceSunken : 'none',
                             border: 'none',
@@ -462,7 +675,7 @@ export default function Messages() {
                               textOverflow: 'ellipsis', 
                               whiteSpace: 'nowrap' 
                             }}>
-                              {conv.lastMessage?.content || 'Started a new discussion'}
+                              {conv.lastMessage?.content || 'No messages yet'}
                             </p>
                           </div>
 
@@ -531,13 +744,40 @@ export default function Messages() {
                           {getChatPartnerName(activeConv)}
                         </h3>
                         
-                        {!activeConv.isGroup && (
+                        {activeConv.isGroup ? (
+                          <p style={{ fontSize: '10px', color: t.inkFaint, margin: 0, fontWeight: 600 }}>
+                            {activeConv.members?.length || 0} members
+                          </p>
+                        ) : (
                           <p style={{ fontSize: '10px', color: getChatPartnerOnlineStatus(activeConv) ? '#22C55E' : t.inkFaint, margin: 0, fontWeight: '600' }}>
                             {getChatPartnerOnlineStatus(activeConv) ? 'Online' : 'Offline'}
                           </p>
                         )}
                       </div>
                     </div>
+
+                    {activeConv.isGroup && (
+                      <button
+                        type="button"
+                        onClick={openGroupPanel}
+                        aria-label="Group info"
+                        style={{
+                          background: t.surfaceSunken,
+                          border: `1px solid ${t.line}`,
+                          borderRadius: 10,
+                          width: 36,
+                          height: 36,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: t.ink,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+                    )}
                   </div>
 
                   {/* Messages Bubble History */}
@@ -547,7 +787,8 @@ export default function Messages() {
                     ) : (
                       <>
                         {messages.map((msg, idx) => {
-                          const isMe = msg.senderId?._id === user?.id;
+                          const isMe = idOf(msg.senderId) === myId;
+                          const readByOthers = isMe && isMessageReadByOthers(msg, activeConv);
                           return (
                             <div 
                               key={msg._id || idx}
@@ -557,7 +798,7 @@ export default function Messages() {
                                 width: '100%'
                               }}
                             >
-                              <div style={{ display: 'flex', gap: '8px', maxWidth: 'min(78%, 420px)', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                              <div className="db-msg-bubble" style={{ display: 'flex', gap: '8px', maxWidth: 'min(78%, 420px)', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
                                 
                                 {/* Sender name for group chats */}
                                 {activeConv.isGroup && !isMe && (
@@ -582,7 +823,11 @@ export default function Messages() {
                                 {/* Message Footer */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: t.inkFaint }}>
                                   <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                  {isMe && <CheckCheck size={11} color={t.sage} />}
+                                  {isMe && (
+                                    readByOthers
+                                      ? <CheckCheck size={12} color={t.sageDeep} title="Read" />
+                                      : <Check size={12} color={t.inkFaint} title="Sent" />
+                                  )}
                                 </div>
 
                               </div>
@@ -596,6 +841,7 @@ export default function Messages() {
 
                   {/* Message Input Box Footer */}
                   <form 
+                    className="db-msg-composer"
                     onSubmit={handleSendMessage}
                     style={{ 
                       padding: '12px 14px', 
@@ -652,10 +898,29 @@ export default function Messages() {
               ) : (
                 <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', color: t.inkSoft, textAlign: 'center' }}>
                   <Inbox size={48} color={t.inkFaint} style={{ marginBottom: '16px' }} />
-                  <h3 style={{ fontFamily: t.fontDisplay, fontSize: '20px', margin: '0 0 8px 0', color: t.ink }}>Start a discussion</h3>
-                  <p style={{ fontSize: '14px', maxWidth: '320px', margin: 0 }}>
-                    Select an active conversation on the left, or compose a new chat to exchange logs & health updates.
+                  <h3 style={{ fontFamily: t.fontDisplay, fontSize: '20px', margin: '0 0 8px 0', color: t.ink }}>Your chats</h3>
+                  <p style={{ fontSize: '14px', maxWidth: '320px', margin: '0 0 18px' }}>
+                    Pick a conversation on the left, or start a new 1:1 chat or group — just like WhatsApp.
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => openNewModal('pick')}
+                    style={{
+                      background: t.sageDeep,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 999,
+                      padding: '10px 18px',
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <UserPlus size={14} /> New chat
+                  </button>
                 </div>
               )}
             </div>
@@ -665,254 +930,678 @@ export default function Messages() {
         </div>
       </main>
 
-      {/* NEW CHAT MODAL */}
+      {/* GROUP INFO PANEL */}
+      {groupPanelOpen && activeConv?.isGroup && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            zIndex: 110,
+            fontFamily: t.fontBody,
+          }}
+        >
+          <div onClick={() => setGroupPanelOpen(false)} style={{ position: 'absolute', inset: 0 }} aria-hidden />
+          <div
+            style={{
+              position: 'relative',
+              background: '#fff',
+              borderRadius: '20px 20px 0 0',
+              width: '100%',
+              maxWidth: 480,
+              maxHeight: '88dvh',
+              overflow: 'auto',
+              padding: '20px 20px calc(28px + env(safe-area-inset-bottom, 0px))',
+              boxShadow: t.shadowLifted,
+            }}
+          >
+            <div style={{ width: 36, height: 4, borderRadius: 999, background: t.lineStrong, margin: '0 auto 14px' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, color: t.ink }}>Group info</h3>
+              <button
+                type="button"
+                onClick={() => setGroupPanelOpen(false)}
+                style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: t.inkSoft }}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {groupError && (
+              <div style={{ background: t.clayTint, color: t.clayDeep, borderRadius: 10, padding: 10, fontSize: 12, marginBottom: 12 }}>
+                {groupError}
+              </div>
+            )}
+
+            {/* Rename */}
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: t.inkSoft, textTransform: 'uppercase', marginBottom: 6 }}>
+              Group name
+            </label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+              <input
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${t.line}`,
+                  fontSize: 14,
+                  fontFamily: t.fontBody,
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleRenameGroup}
+                disabled={groupBusy || !renameValue.trim()}
+                style={{
+                  background: t.sageDeep,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '0 14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <Pencil size={14} /> Save
+              </button>
+            </div>
+
+            {/* Members */}
+            <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: t.inkSoft, textTransform: 'uppercase' }}>
+              Members ({activeConv.members?.length || 0})
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+              {(activeConv.members || []).map((m) => {
+                const mid = idOf(m);
+                const isSelf = mid === myId;
+                return (
+                  <div
+                    key={mid}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 10px',
+                      borderRadius: 12,
+                      background: '#FAF8F5',
+                      border: `1px solid ${t.line}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        background: t.sageSoft,
+                        color: t.sageDeep,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: 12,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {m.profileImageUrl ? (
+                        <img src={m.profileImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        m.name?.charAt(0)?.toUpperCase() || '?'
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: t.ink }}>
+                        {m.name}{isSelf ? ' (you)' : ''}
+                      </p>
+                      {m.username && (
+                        <p style={{ margin: 0, fontSize: 11, color: t.inkFaint }}>@{m.username}</p>
+                      )}
+                    </div>
+                    {!isSelf && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMember(mid)}
+                        disabled={groupBusy}
+                        title="Remove"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: t.clay,
+                          cursor: 'pointer',
+                          padding: 4,
+                        }}
+                      >
+                        <UserMinus size={16} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Add members */}
+            <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: t.inkSoft, textTransform: 'uppercase' }}>
+              Add people
+            </p>
+            <div style={{ position: 'relative', marginBottom: 10 }}>
+              <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: t.inkFaint }} />
+              <input
+                value={addMemberQuery}
+                onChange={(e) => setAddMemberQuery(e.target.value)}
+                placeholder="Search name or username…"
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '10px 12px 10px 34px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${t.line}`,
+                  fontSize: 13,
+                  fontFamily: t.fontBody,
+                }}
+              />
+            </div>
+            {addMemberResults.length > 0 && (
+              <div style={{ maxHeight: 140, overflowY: 'auto', marginBottom: 16, border: `1px solid ${t.line}`, borderRadius: 10 }}>
+                {addMemberResults.map((peer) => (
+                  <button
+                    key={peer._id}
+                    type="button"
+                    onClick={() => handleAddMember(peer._id)}
+                    disabled={groupBusy}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 12px',
+                      border: 'none',
+                      borderBottom: `1px solid ${t.line}`,
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: t.ink }}>
+                      {peer.name} <span style={{ color: t.inkFaint, fontWeight: 500 }}>@{peer.username}</span>
+                    </span>
+                    <UserPlus size={14} color={t.sageDeep} />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleLeaveGroup}
+              disabled={groupBusy}
+              style={{
+                width: '100%',
+                marginTop: 8,
+                background: t.clayTint,
+                color: t.clayDeep,
+                border: `1px solid ${t.clay}40`,
+                borderRadius: 12,
+                padding: '12px 16px',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                fontFamily: t.fontBody,
+              }}
+            >
+              <LogOut size={15} /> Leave group
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* NEW CHAT MODAL — WhatsApp-style */}
       {modalOpen && (
-        <div style={{
+        <div
+          className="db-newchat-overlay"
+          style={{
           position: 'fixed',
           inset: 0,
           background: 'rgba(0,0,0,0.5)',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           justifyContent: 'center',
           zIndex: 100,
-          fontFamily: t.fontBody
+          fontFamily: t.fontBody,
+          padding: '0',
         }}>
-          <div style={{
+          <div
+            onClick={resetModal}
+            style={{ position: 'absolute', inset: 0 }}
+            aria-hidden
+          />
+          <div
+            className="db-newchat-sheet"
+            style={{
+            position: 'relative',
             background: '#FFF',
-            border: `2.5px solid ${t.ink}`,
-            borderRadius: '24px',
-            width: '90%',
-            maxWidth: '460px',
-            padding: '28px',
-            boxShadow: t.shadowLifted
+            borderRadius: '20px 20px 0 0',
+            width: '100%',
+            maxWidth: '480px',
+            maxHeight: '88dvh',
+            padding: '20px 20px 28px',
+            boxShadow: t.shadowLifted,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           }}>
-            <h3 style={{ fontFamily: t.fontDisplay, fontSize: '22px', margin: '0 0 16px 0', color: t.ink }}>
-              Start Discussion / Chat
-            </h3>
+            {/* Handle + header */}
+            <div style={{ width: 36, height: 4, borderRadius: 999, background: t.lineStrong, margin: '0 auto 16px', flexShrink: 0 }} />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {modalMode !== 'pick' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalError('');
+                      setSearchQuery('');
+                      setSearchResults([]);
+                      setSelectedUserIds([]);
+                      setGroupName('');
+                      setModalMode('pick');
+                    }}
+                    style={{
+                      background: t.surfaceSunken,
+                      border: `1px solid ${t.line}`,
+                      borderRadius: 10,
+                      width: 36,
+                      height: 36,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: 0,
+                      color: t.ink,
+                    }}
+                    aria-label="Back"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                )}
+                <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: 0, color: t.ink }}>
+                  {modalMode === 'pick' && 'New'}
+                  {modalMode === 'chat' && 'New chat'}
+                  {modalMode === 'group' && 'New group'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={resetModal}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 22,
+                  cursor: 'pointer',
+                  color: t.inkSoft,
+                  lineHeight: 1,
+                  padding: 4,
+                }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
 
             {modalError && (
-              <div style={{ background: t.clayTint, border: `1.5px solid ${t.clay}30`, borderRadius: '8px', padding: '10px', color: t.clayDeep, fontSize: '12px', marginBottom: '12px' }}>
+              <div style={{ background: t.clayTint, border: `1.5px solid ${t.clay}30`, borderRadius: 10, padding: 10, color: t.clayDeep, fontSize: 12, marginBottom: 12, flexShrink: 0 }}>
                 {modalError}
               </div>
             )}
 
-            {/* Chat Type Toggles */}
-            <div style={{ display: 'flex', gap: '8px', background: t.bg, padding: '4px', borderRadius: '10px', marginBottom: '16px', border: `1px solid ${t.line}` }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsGroup(false);
-                  setSelectedUserIds([]);
-                  setGroupName('');
-                }}
-                style={{
-                  flex: 1,
-                  background: !isGroup ? '#FFFFFF' : 'none',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  color: !isGroup ? t.ink : t.inkSoft,
-                  cursor: 'pointer',
-                  boxShadow: !isGroup ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
-                }}
-              >
-                1:1 Chat
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsGroup(true)}
-                style={{
-                  flex: 1,
-                  background: isGroup ? '#FFFFFF' : 'none',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  color: isGroup ? t.ink : t.inkSoft,
-                  cursor: 'pointer',
-                  boxShadow: isGroup ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
-                }}
-              >
-                Group Chat
-              </button>
-            </div>
-
-            {/* Group Name Field */}
-            {isGroup && (
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Group Name
-                </label>
-                <input 
-                  type="text"
-                  value={groupName}
-                  onChange={e => setGroupName(e.target.value)}
-                  placeholder="e.g. Type 1 Support Group"
-                  required
+            {/* Step 1: Pick New chat or New group */}
+            {modalMode === 'pick' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setModalMode('chat')}
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
                     width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                    textAlign: 'left',
+                    background: '#FAF8F5',
                     border: `1.5px solid ${t.line}`,
-                    fontSize: '13px',
-                    outline: 'none'
+                    borderRadius: 14,
+                    padding: '14px 16px',
+                    cursor: 'pointer',
                   }}
-                />
+                >
+                  <span style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: '50%',
+                    background: t.sageSoft,
+                    color: t.sageDeep,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <MessageSquare size={18} />
+                  </span>
+                  <span>
+                    <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: t.ink }}>New chat</span>
+                    <span style={{ display: 'block', fontSize: 12, color: t.inkSoft, marginTop: 2 }}>Message one person (1:1)</span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalMode('group')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    width: '100%',
+                    textAlign: 'left',
+                    background: '#FAF8F5',
+                    border: `1.5px solid ${t.line}`,
+                    borderRadius: 14,
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: '50%',
+                    background: t.sageSoft,
+                    color: t.sageDeep,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <Users size={18} />
+                  </span>
+                  <span>
+                    <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: t.ink }}>New group</span>
+                    <span style={{ display: 'block', fontSize: 12, color: t.inkSoft, marginTop: 2 }}>Chat with several people</span>
+                  </span>
+                </button>
               </div>
             )}
 
-            {/* User Search Input */}
-            <div style={{ marginBottom: '16px', position: 'relative' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', marginBottom: '6px' }}>
-                Search Peers / Professionals
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: t.inkFaint }} />
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Type name, username or email..."
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '10px 14px 10px 34px',
-                    borderRadius: '8px',
-                    border: `1.5px solid ${t.line}`,
-                    fontSize: '13px',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-            </div>
+            {/* Step 2a: New chat — tap a contact to open */}
+            {modalMode === 'chat' && (
+              <>
+                <div style={{ position: 'relative', marginBottom: 12, flexShrink: 0 }}>
+                  <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: t.inkFaint }} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search name or username…"
+                    autoFocus
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '12px 14px 12px 36px',
+                      borderRadius: 12,
+                      border: `1.5px solid ${t.line}`,
+                      fontSize: 14,
+                      outline: 'none',
+                      background: t.bg,
+                      fontFamily: t.fontBody,
+                    }}
+                  />
+                </div>
 
-            {/* User Search Results */}
-            <div style={{ 
-              maxHeight: '180px', 
-              overflowY: 'auto', 
-              border: `1.5px solid ${t.line}`, 
-              borderRadius: '10px',
-              padding: '8px',
-              background: t.bg,
-              marginBottom: '20px'
-            }}>
-              {searchLoading ? (
-                <div style={{ textAlign: 'center', padding: '12px', color: t.inkSoft }}><RefreshCw className="animate-spin" size={16} style={{ margin: '0 auto' }} /></div>
-              ) : searchResults.length === 0 ? (
-                <p style={{ textAlign: 'center', fontSize: '12px', color: t.inkFaint, margin: '8px 0' }}>
-                  {searchQuery ? 'No matching peers found.' : 'Type query to find peers.'}
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {searchResults.map(peer => {
-                    const selected = selectedUserIds.includes(peer._id);
-                    return (
+                <div style={{
+                  flex: 1,
+                  minHeight: 180,
+                  maxHeight: 320,
+                  overflowY: 'auto',
+                  borderRadius: 12,
+                  border: `1px solid ${t.line}`,
+                  background: '#FAF8F5',
+                }}>
+                  {searchLoading || creating ? (
+                    <div style={{ textAlign: 'center', padding: 28, color: t.inkSoft }}>
+                      <RefreshCw className="animate-spin" size={18} style={{ margin: '0 auto' }} />
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <p style={{ textAlign: 'center', fontSize: 13, color: t.inkFaint, margin: '28px 12px' }}>
+                      {searchQuery ? 'No one found.' : 'Search for someone to message.'}
+                    </p>
+                  ) : (
+                    searchResults.map((peer) => (
                       <button
                         key={peer._id}
                         type="button"
-                        onClick={() => toggleSelectUser(peer._id)}
+                        onClick={() => startOneToOne(peer._id)}
+                        disabled={creating}
                         style={{
-                          background: selected ? t.sageSoft : '#FFFFFF',
-                          border: `1px solid ${selected ? t.sageDeep : t.line}`,
-                          borderRadius: '8px',
-                          padding: '8px 12px',
+                          width: '100%',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '10px',
+                          gap: 12,
+                          padding: '12px 14px',
+                          border: 'none',
+                          borderBottom: `1px solid ${t.line}`,
+                          background: 'transparent',
                           cursor: 'pointer',
                           textAlign: 'left',
-                          width: '100%'
                         }}
                       >
-                        <div style={{ 
-                          width: '24px', 
-                          height: '24px', 
-                          borderRadius: '50%', 
-                          background: t.sageSoft, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          fontSize: '10px',
-                          fontWeight: '700',
+                        <div style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: '50%',
+                          background: t.sageSoft,
                           color: t.sageDeep,
-                          overflow: 'hidden'
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: 14,
+                          overflow: 'hidden',
+                          flexShrink: 0,
                         }}>
-                          {peer.profileImageUrl ? <img src={peer.profileImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : peer.name.charAt(0).toUpperCase()}
+                          {peer.profileImageUrl
+                            ? <img src={peer.profileImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : peer.name?.charAt(0).toUpperCase()}
                         </div>
-                        
-                        <div style={{ flexGrow: 1 }}>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: t.ink }}>
-                            {peer.name}
-                          </span>
-                          <span style={{ fontSize: '11px', color: t.inkSoft, marginLeft: '6px' }}>
-                            @{peer.username}
-                          </span>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: t.ink }}>{peer.name}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 12, color: t.inkSoft }}>@{peer.username}</p>
                         </div>
-                        
-                        <input 
-                          type="checkbox"
-                          checked={selected}
-                          readOnly
-                          style={{ accentColor: t.sageDeep }}
-                        />
                       </button>
-                    );
-                  })}
+                    ))
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
 
-            {/* Selected Counter */}
-            <p style={{ fontSize: '12px', color: t.inkSoft, margin: '0 0 20px 0', fontWeight: '500' }}>
-              Selected peers: {selectedUserIds.length}
-            </p>
+            {/* Step 2b: New group — select people, name, create */}
+            {modalMode === 'group' && (
+              <>
+                <div style={{ marginBottom: 12, flexShrink: 0 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                    Group name
+                  </label>
+                  <input
+                    type="text"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="e.g. Type 1 Support"
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '12px 14px',
+                      borderRadius: 12,
+                      border: `1.5px solid ${t.line}`,
+                      fontSize: 14,
+                      outline: 'none',
+                      fontFamily: t.fontBody,
+                    }}
+                  />
+                </div>
 
-            {/* Action buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setModalOpen(false);
-                  setSelectedUserIds([]);
-                  setSearchQuery('');
-                  setGroupName('');
-                  setIsGroup(false);
-                }}
-                style={{
-                  background: 'none',
+                <div style={{ position: 'relative', marginBottom: 12, flexShrink: 0 }}>
+                  <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: t.inkFaint }} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Add people…"
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '12px 14px 12px 36px',
+                      borderRadius: 12,
+                      border: `1.5px solid ${t.line}`,
+                      fontSize: 14,
+                      outline: 'none',
+                      background: t.bg,
+                      fontFamily: t.fontBody,
+                    }}
+                  />
+                </div>
+
+                {selectedUserIds.length > 0 && (
+                  <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: t.sageDeep, flexShrink: 0 }}>
+                    {selectedUserIds.length} selected
+                  </p>
+                )}
+
+                <div style={{
+                  flex: 1,
+                  minHeight: 140,
+                  maxHeight: 240,
+                  overflowY: 'auto',
+                  borderRadius: 12,
                   border: `1px solid ${t.line}`,
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  fontSize: '13px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
+                  background: '#FAF8F5',
+                  marginBottom: 14,
+                }}>
+                  {searchLoading ? (
+                    <div style={{ textAlign: 'center', padding: 24, color: t.inkSoft }}>
+                      <RefreshCw className="animate-spin" size={16} style={{ margin: '0 auto' }} />
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <p style={{ textAlign: 'center', fontSize: 13, color: t.inkFaint, margin: '24px 12px' }}>
+                      {searchQuery ? 'No one found.' : 'Search to add members.'}
+                    </p>
+                  ) : (
+                    searchResults.map((peer) => {
+                      const selected = selectedUserIds.includes(peer._id);
+                      return (
+                        <button
+                          key={peer._id}
+                          type="button"
+                          onClick={() => toggleSelectUser(peer._id)}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            padding: '10px 14px',
+                            border: 'none',
+                            borderBottom: `1px solid ${t.line}`,
+                            background: selected ? t.sageSoft : 'transparent',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <div style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: '50%',
+                            background: '#fff',
+                            color: t.sageDeep,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: 13,
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                            border: `1px solid ${t.line}`,
+                          }}>
+                            {peer.profileImageUrl
+                              ? <img src={peer.profileImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              : peer.name?.charAt(0).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: t.ink }}>{peer.name}</p>
+                            <p style={{ margin: '2px 0 0', fontSize: 12, color: t.inkSoft }}>@{peer.username}</p>
+                          </div>
+                          <span style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            border: `2px solid ${selected ? t.sageDeep : t.lineStrong}`,
+                            background: selected ? t.sageDeep : 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fff',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}>
+                            {selected ? '✓' : ''}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
 
-              <button
-                type="button"
-                onClick={handleCreateConversation}
-                disabled={selectedUserIds.length === 0}
-                style={{
-                  background: selectedUserIds.length > 0 ? t.sageDeep : t.lineStrong,
-                  color: '#FFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 20px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  cursor: selectedUserIds.length > 0 ? 'pointer' : 'not-allowed'
-                }}
-              >
-                Create Chat
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={handleCreateGroup}
+                  disabled={creating || selectedUserIds.length === 0 || !groupName.trim()}
+                  style={{
+                    width: '100%',
+                    background: selectedUserIds.length > 0 && groupName.trim() ? t.sageDeep : t.lineStrong,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 12,
+                    padding: '13px 16px',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: selectedUserIds.length > 0 && groupName.trim() ? 'pointer' : 'not-allowed',
+                    fontFamily: t.fontBody,
+                    flexShrink: 0,
+                  }}
+                >
+                  {creating ? 'Creating…' : 'Create group'}
+                </button>
+              </>
+            )}
           </div>
+          <style>{`
+            @media (min-width: 640px) {
+              .db-newchat-overlay {
+                align-items: center !important;
+                padding: 24px !important;
+              }
+              .db-newchat-sheet {
+                border-radius: 20px !important;
+                max-height: min(640px, 85vh) !important;
+              }
+            }
+          `}</style>
         </div>
       )}
     </div>

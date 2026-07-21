@@ -102,6 +102,9 @@ app.use('/api/conversations', conversationRoutes);
 const reportRoutes = require('./routes/reportRoutes');
 app.use('/api/reports', reportRoutes);
 
+const notificationRoutes = require('./routes/notificationRoutes');
+app.use('/api/notifications', notificationRoutes);
+
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes);
 

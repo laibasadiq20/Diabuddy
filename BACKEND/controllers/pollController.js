@@ -25,11 +25,20 @@ exports.createPoll = async (req, res) => {
       return res.status(409).json({ message: 'This post already has a poll' });
     }
 
+    // Default: close in 7 days if client omits expiresAt
+    const expiry = expiresAt
+      ? new Date(expiresAt)
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    if (Number.isNaN(expiry.getTime())) {
+      return res.status(400).json({ message: 'Invalid expiresAt date' });
+    }
+
     const poll = await Poll.create({
       postId: post._id,
       question,
       options: options.map((text) => ({ text, votesCount: 0 })),
-      expiresAt,
+      expiresAt: expiry,
     });
 
     res.status(201).json(poll);

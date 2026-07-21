@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const { rateLimit } = require('../middleware/rateLimit');
 const commentController = require('../controllers/commentController');
 
-router.put('/:id', protect, commentController.updateComment);
+const writeLimit = rateLimit({ windowMs: 60_000, max: 40, keyPrefix: 'comments' });
+
+router.put('/:id', protect, writeLimit, commentController.updateComment);
 router.delete('/:id', protect, commentController.deleteComment);
 
 module.exports = router;

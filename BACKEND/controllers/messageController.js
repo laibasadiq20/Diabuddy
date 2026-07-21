@@ -1,8 +1,9 @@
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
+const { notify } = require('../utils/notify');
 
 const assertMember = (conversation, userId) => {
-  return conversation.members.some((m) => m.toString() === userId);
+  return conversation.members.some((m) => m.toString() === userId.toString());
 };
 
 // GET /api/conversations/:id/messages?page=&limit=
@@ -15,7 +16,6 @@ exports.getMessages = async (req, res) => {
       return res.status(403).json({ message: 'Not a member of this conversation' });
     }
 
-    // newest page first for infinite-scroll-up pagination, then reverse for chronological render
     const messages = await Message.find({ conversationId: conversation._id })
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -32,6 +32,10 @@ exports.getMessages = async (req, res) => {
 exports.sendMessage = async (req, res) => {
   try {
     const { content } = req.body;
+    if (!content || !String(content).trim()) {
+      return res.status(400).json({ message: 'Message cannot be empty' });
+    }
+
     const conversation = await Conversation.findById(req.params.id);
     if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
     if (!assertMember(conversation, req.user.id)) {
@@ -41,8 +45,8 @@ exports.sendMessage = async (req, res) => {
     const message = await Message.create({
       conversationId: conversation._id,
       senderId: req.user.id,
-      content,
-      readBy: [req.user.id], // sender has implicitly "read" their own message
+      content: String(content).trim(),
+      readBy: [req.user.id],
     });
 
     conversation.lastMessage = message._id;
@@ -51,8 +55,29 @@ exports.sendMessage = async (req, res) => {
 
     const populated = await message.populate('senderId', 'name username profileImageUrl');
 
-    // NOTE: emit via Socket.io here once real-time is wired up, e.g.
-    // io.to(conversation._id.toString()).emit('message:new', populated);
+    const senderName = req.user.name || 'Someone';
+    const preview = content.trim().length > 80 ? `${content.trim().slice(0, 80)}…` : content.trim();
+    const label = conversation.isGroup
+      ? (conversation.name || 'a group')
+      : 'you';
+
+    const recipients = conversation.members.filter(
+      (m) => m.toString() !== req.user.id.toString()
+    );
+
+    await Promise.all(
+      recipients.map((recipientId) =>
+        notify({
+          recipientId,
+          senderId: req.user.id,
+          type: 'new_message',
+          referenceId: conversation._id,
+          message: conversation.isGroup
+            ? `${senderName} in ${label}: ${preview}`
+            : `${senderName}: ${preview}`,
+        })
+      )
+    );
 
     res.status(201).json(populated);
   } catch (err) {
@@ -61,7 +86,6 @@ exports.sendMessage = async (req, res) => {
 };
 
 // PUT /api/conversations/:id/read
-// marks every unread message in the conversation as read by the current user
 exports.markAsRead = async (req, res) => {
   try {
     const conversation = await Conversation.findById(req.params.id);
@@ -72,7 +96,7 @@ exports.markAsRead = async (req, res) => {
 
     await Message.updateMany(
       { conversationId: conversation._id, readBy: { $ne: req.user.id } },
-      { $push: { readBy: req.user.id } }
+      { $addToSet: { readBy: req.user.id } }
     );
 
     res.json({ message: 'Marked as read' });

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme';
+import { API_URL } from '../config/api';
 import {
   LayoutDashboard,
   Users,
@@ -16,6 +17,7 @@ import {
   X,
   Heart,
   MessageSquare,
+  BellRing,
 } from 'lucide-react';
 
 const t = theme;
@@ -40,10 +42,13 @@ const bottomTabs = [
 ];
 
 export default function AppSidebar() {
-  const { user, logout } = useAuth();
+  const { user, logout, authHeaders } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -51,6 +56,24 @@ export default function AppSidebar() {
   const go = (path) => {
     navigate(path);
     setMobileOpen(false);
+    setNotifOpen(false);
+  };
+
+  const loadNotifications = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_URL}/notifications?limit=20`, {
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
@@ -63,6 +86,13 @@ export default function AppSidebar() {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (!user) return undefined;
+    loadNotifications();
+    const id = setInterval(loadNotifications, 20000);
+    return () => clearInterval(id);
+  }, [user]);
+
+  useEffect(() => {
     if (!mobileOpen) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -70,6 +100,134 @@ export default function AppSidebar() {
       document.body.style.overflow = prev;
     };
   }, [mobileOpen]);
+
+  const openNotification = async (n) => {
+    try {
+      if (!n.isRead) {
+        await fetch(`${API_URL}/notifications/${n._id}/read`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
+        setUnreadCount((c) => Math.max(0, c - 1));
+        setNotifications((prev) =>
+          prev.map((x) => (x._id === n._id ? { ...x, isRead: true } : x))
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
+    setNotifOpen(false);
+    setMobileOpen(false);
+    if (n.referenceId && ['new_comment', 'comment_reply', 'post_like', 'comment_like', 'best_answer_selected'].includes(n.type)) {
+      navigate(`/community/posts/${n.referenceId}`);
+    } else if (n.type === 'new_message') {
+      navigate('/messages', { state: { conversationId: n.referenceId } });
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await fetch(`${API_URL}/notifications/read-all`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
+      setUnreadCount(0);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const NotifPanel = () => (
+    <>
+      {notifOpen && (
+        <button
+          type="button"
+          className="db-notif-backdrop"
+          aria-label="Close notifications"
+          onClick={() => setNotifOpen(false)}
+        />
+      )}
+      <div
+        className="db-notif-panel"
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 'calc(100% + 8px)',
+          width: 320,
+          maxWidth: 'min(320px, 92vw)',
+          maxHeight: 420,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#fff',
+          border: `1.5px solid ${t.lineStrong}`,
+          borderRadius: 16,
+          boxShadow: '0 18px 40px rgba(0,0,0,0.16)',
+          zIndex: 80,
+        }}
+      >
+        <span className="db-notif-handle" aria-hidden />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderBottom: `1px solid ${t.line}`, flexShrink: 0 }}>
+          <strong style={{ fontSize: 14, color: t.ink }}>Notifications</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllRead}
+                style={{ background: 'none', border: 'none', color: t.forest, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Mark all read
+              </button>
+            )}
+            <button
+              type="button"
+              className="db-notif-close-m"
+              onClick={() => setNotifOpen(false)}
+              aria-label="Close"
+              style={{ background: 'none', border: 'none', color: t.inkSoft, fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 0 }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div style={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
+          {notifications.length === 0 ? (
+            <p style={{ margin: 0, padding: 20, fontSize: 13, color: t.inkFaint, textAlign: 'center' }}>
+              No notifications yet.
+            </p>
+          ) : (
+            notifications.map((n) => (
+              <button
+                key={n._id}
+                type="button"
+                onClick={() => openNotification(n)}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  border: 'none',
+                  borderBottom: `1px solid ${t.line}`,
+                  background: n.isRead ? '#fff' : 'rgba(39,57,46,0.06)',
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                }}
+              >
+                <span style={{ display: 'block', fontSize: 13, color: t.ink, fontWeight: n.isRead ? 500 : 700, lineHeight: 1.4 }}>
+                  {n.message}
+                </span>
+                <span style={{ display: 'block', marginTop: 4, fontSize: 11, color: t.inkFaint }}>
+                  {new Date(n.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </>
+  );
 
   const SidebarInner = () => (
     <div
@@ -191,6 +349,54 @@ export default function AppSidebar() {
       </nav>
 
       <div style={{ padding: '16px 14px 22px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ position: 'relative', marginBottom: 10 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setNotifOpen((v) => !v);
+              if (!notifOpen) loadNotifications();
+            }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '11px 12px',
+              borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(255,255,255,0.06)',
+              color: '#F4F0E8',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            <BellRing size={16} />
+            Notifications
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  marginLeft: 'auto',
+                  minWidth: 20,
+                  height: 20,
+                  borderRadius: 999,
+                  background: t.peach,
+                  color: t.forestDeep,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 6px',
+                }}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+          {notifOpen && <NotifPanel />}
+        </div>
+
         <button
           type="button"
           onClick={() => go('/account')}
@@ -266,12 +472,10 @@ export default function AppSidebar() {
 
   return (
     <>
-      {/* Desktop sidebar — participates in page flex row */}
       <aside className="db-app-sidebar" aria-label="Main navigation">
         <SidebarInner />
       </aside>
 
-      {/* Mobile top bar — fixed, out of flex flow */}
       <header className="db-app-topbar">
         <button
           type="button"
@@ -288,17 +492,44 @@ export default function AppSidebar() {
         >
           Diabuddy
         </button>
-        <button
-          type="button"
-          onClick={() => go('/messages')}
-          className={`db-app-icon-btn${isActive('/messages') ? ' is-active' : ''}`}
-          aria-label="Messages"
-        >
-          <MessageSquare size={20} />
-        </button>
+        <div style={{ position: 'relative', display: 'flex', gap: 4 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setNotifOpen((v) => !v);
+              if (!notifOpen) loadNotifications();
+            }}
+            className="db-app-icon-btn"
+            aria-label="Notifications"
+            style={{ position: 'relative' }}
+          >
+            <BellRing size={20} />
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: t.peach,
+                }}
+              />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => go('/messages')}
+            className={`db-app-icon-btn${isActive('/messages') ? ' is-active' : ''}`}
+            aria-label="Messages"
+          >
+            <MessageSquare size={20} />
+          </button>
+          {notifOpen && <NotifPanel />}
+        </div>
       </header>
 
-      {/* Mobile bottom tabs — app-style primary nav */}
       <nav className="db-app-tabs" aria-label="Primary">
         {bottomTabs.map(({ label, path, icon: Icon }) => {
           const active = isActive(path);
@@ -317,7 +548,6 @@ export default function AppSidebar() {
         })}
       </nav>
 
-      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="db-app-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
           <button

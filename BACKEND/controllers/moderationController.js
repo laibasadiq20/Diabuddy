@@ -26,10 +26,7 @@ exports.fileReport = async (req, res) => {
       description,
     });
 
-    // flag the target so it surfaces for moderators even before manual review
-    target.status = 'reported';
-    await target.save();
-
+    // Keep content visible until a moderator reviews the report
     res.status(201).json(report);
   } catch (err) {
     res.status(400).json({ message: 'Failed to file report', error: err.message });

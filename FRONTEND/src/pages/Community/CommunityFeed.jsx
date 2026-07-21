@@ -20,7 +20,7 @@ import {
 const t = theme;
 
 export default function CommunityFeed() {
-  const { authHeaders } = useAuth();
+  const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -29,13 +29,16 @@ export default function CommunityFeed() {
   const [topicsLoading, setTopicsLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [dmLoadingId, setDmLoadingId] = useState(null);
 
   const selectedTopic = searchParams.get('topic') || '';
   const searchQuery = searchParams.get('search') || '';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const sortMode = searchParams.get('sort') || 'latest';
 
   const [searchInputValue, setSearchInputValue] = useState(searchQuery);
   const [totalPages, setTotalPages] = useState(1);
+  const [drafts, setDrafts] = useState([]);
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -58,12 +61,30 @@ export default function CommunityFeed() {
   }, []);
 
   useEffect(() => {
+    const fetchDrafts = async () => {
+      try {
+        const res = await fetch(`${API_URL}/posts/mine/drafts`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setDrafts(data.drafts || []);
+        }
+      } catch (err) {
+        console.error('Error fetching drafts:', err);
+      }
+    };
+    fetchDrafts();
+  }, []);
+
+  useEffect(() => {
     const fetchFeed = async () => {
       setPostsLoading(true);
       setError('');
       try {
         const queryParams = new URLSearchParams({
-          sort: 'latest',
+          sort: sortMode,
           page: currentPage.toString(),
           limit: '10',
         });
@@ -90,7 +111,7 @@ export default function CommunityFeed() {
       }
     };
     fetchFeed();
-  }, [selectedTopic, searchQuery, currentPage]);
+  }, [selectedTopic, searchQuery, currentPage, sortMode]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -117,6 +138,18 @@ export default function CommunityFeed() {
     });
   };
 
+  const handleSortSelect = (sort) => {
+    setSearchParams((prev) => {
+      if (sort && sort !== 'latest') {
+        prev.set('sort', sort);
+      } else {
+        prev.delete('sort');
+      }
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
   const handlePageChange = (pageNum) => {
     setSearchParams((prev) => {
       prev.set('page', pageNum.toString());
@@ -127,6 +160,31 @@ export default function CommunityFeed() {
   const clearFilters = () => {
     setSearchInputValue('');
     setSearchParams({});
+  };
+
+  const startDm = async (author, e) => {
+    e?.stopPropagation?.();
+    if (!author?._id) return;
+    const myId = String(user?.id || user?._id || '');
+    if (myId && String(author._id) === myId) return;
+
+    setDmLoadingId(author._id);
+    try {
+      const res = await fetch(`${API_URL}/conversations`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ memberIds: [String(author._id)], isGroup: false }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        navigate('/messages', { state: { conversationId: data._id } });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDmLoadingId(null);
+    }
   };
 
   return (
@@ -145,14 +203,24 @@ export default function CommunityFeed() {
                 Ask questions, share routines, and learn with people who get it.
               </p>
             </div>
-            <button
-              type="button"
-              className="db-community-cta"
-              onClick={() => navigate('/community/new-post')}
-            >
-              <PlusCircle size={16} />
-              <span>New post</span>
-            </button>
+            <div className="db-community-actions">
+              <button
+                type="button"
+                className="db-community-cta db-community-cta--ghost"
+                onClick={() => navigate('/messages')}
+              >
+                <MessageSquare size={16} />
+                <span>Messages</span>
+              </button>
+              <button
+                type="button"
+                className="db-community-cta"
+                onClick={() => navigate('/community/new-post')}
+              >
+                <PlusCircle size={16} />
+                <span>New post</span>
+              </button>
+            </div>
           </div>
 
           {/* Search */}
@@ -166,6 +234,45 @@ export default function CommunityFeed() {
               aria-label="Search discussions"
             />
           </form>
+
+          {/* Sort */}
+          <div className="db-community-sort" role="tablist" aria-label="Sort posts">
+            {[
+              { id: 'latest', label: 'Latest' },
+              { id: 'most_commented', label: 'Most commented' },
+              { id: 'best_answers', label: 'Solved' },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                role="tab"
+                aria-selected={sortMode === opt.id}
+                className={`db-sort-chip${sortMode === opt.id ? ' is-active' : ''}`}
+                onClick={() => handleSortSelect(opt.id)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {drafts.length > 0 && (
+            <div className="db-drafts-banner">
+              <p>
+                You have <strong>{drafts.length}</strong> draft{drafts.length === 1 ? '' : 's'}.
+              </p>
+              <div className="db-drafts-list">
+                {drafts.slice(0, 3).map((d) => (
+                  <button
+                    key={d._id}
+                    type="button"
+                    onClick={() => navigate(`/community/new-post?draft=${d._id}`)}
+                  >
+                    {d.title || 'Untitled draft'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Simple topic chips */}
           <div className="db-community-topics" role="tablist" aria-label="Topics">
@@ -314,6 +421,18 @@ export default function CommunityFeed() {
                       </div>
 
                       <div className="db-post-stats">
+                        {!post.isAnonymous && post.authorId?._id && String(post.authorId._id) !== String(user?.id || user?._id) && (
+                          <button
+                            type="button"
+                            className="db-post-dm"
+                            onClick={(e) => startDm(post.authorId, e)}
+                            disabled={dmLoadingId === post.authorId._id}
+                            aria-label={`Message ${post.authorId?.name || 'user'}`}
+                          >
+                            <MessageSquare size={14} />
+                            <span>{dmLoadingId === post.authorId._id ? '…' : 'Message'}</span>
+                          </button>
+                        )}
                         <span>
                           <ThumbsUp size={14} /> {post.likesCount || 0}
                         </span>
@@ -387,6 +506,12 @@ export default function CommunityFeed() {
           line-height: 1.55;
           font-weight: 500;
         }
+        .db-community-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-shrink: 0;
+        }
         .db-community-cta {
           background: ${t.forest};
           color: #fff;
@@ -404,6 +529,31 @@ export default function CommunityFeed() {
           font-family: ${t.fontBody};
           white-space: nowrap;
           flex-shrink: 0;
+        }
+        .db-community-cta--ghost {
+          background: #fff;
+          color: ${t.forest};
+          border: 1.5px solid ${t.forest};
+          box-shadow: none;
+        }
+        .db-post-dm {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          border: 1.5px solid ${t.forest};
+          background: ${t.forest};
+          color: #fff;
+          border-radius: 999px;
+          padding: 5px 10px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: ${t.fontBody};
+          line-height: 1;
+        }
+        .db-post-dm:disabled {
+          opacity: 0.7;
+          cursor: wait;
         }
         .db-community-search {
           position: relative;
@@ -433,6 +583,56 @@ export default function CommunityFeed() {
         }
         .db-community-search input:focus {
           border-color: ${t.forest};
+        }
+        .db-community-sort {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 12px;
+          flex-wrap: wrap;
+        }
+        .db-sort-chip {
+          border: 1.5px solid ${t.lineStrong};
+          background: #fff;
+          color: ${t.inkSoft};
+          border-radius: 999px;
+          padding: 7px 12px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: ${t.fontBody};
+        }
+        .db-sort-chip.is-active {
+          background: ${t.ink};
+          border-color: ${t.ink};
+          color: #fff;
+        }
+        .db-drafts-banner {
+          background: #fff;
+          border: 1.5px dashed ${t.lineStrong};
+          border-radius: 14px;
+          padding: 12px 14px;
+          margin-bottom: 14px;
+        }
+        .db-drafts-banner p {
+          margin: 0 0 8px;
+          font-size: 13px;
+          color: ${t.inkSoft};
+        }
+        .db-drafts-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .db-drafts-list button {
+          border: 1px solid ${t.forest};
+          background: transparent;
+          color: ${t.forest};
+          border-radius: 999px;
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: ${t.fontBody};
         }
         .db-community-topics {
           display: flex;
@@ -674,10 +874,36 @@ export default function CommunityFeed() {
             align-items: stretch;
             gap: 14px;
           }
+          .db-community-actions {
+            flex-direction: column;
+            width: 100%;
+          }
           .db-community-cta {
             width: 100%;
             padding: 13px 16px;
             border-radius: 14px;
+          }
+          .db-community-sort {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 2px;
+          }
+          .db-community-sort::-webkit-scrollbar { display: none; }
+          .db-sort-chip {
+            flex: 0 0 auto;
+          }
+          .db-drafts-banner {
+            padding: 12px;
+          }
+          .db-drafts-list {
+            flex-direction: column;
+          }
+          .db-drafts-list button {
+            width: 100%;
+            text-align: left;
+            border-radius: 12px;
           }
           .db-post-card {
             padding: 16px;
@@ -691,7 +917,16 @@ export default function CommunityFeed() {
           .db-post-stats {
             width: 100%;
             justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
             padding-top: 2px;
+          }
+          .db-post-dm {
+            order: -1;
+            width: 100%;
+            justify-content: center;
+            padding: 8px 12px;
+            border-radius: 12px;
           }
         }
       `}</style>

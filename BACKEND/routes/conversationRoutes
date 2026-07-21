@@ -6,7 +6,12 @@ const messageController = require('../controllers/messageController');
 
 router.get('/', protect, conversationController.getMyConversations);
 router.post('/', protect, conversationController.createConversation);
+
 router.get('/:id', protect, conversationController.getConversationById);
+router.patch('/:id', protect, conversationController.updateConversation);
+router.post('/:id/members', protect, conversationController.addMembers);
+router.delete('/:id/members/:userId', protect, conversationController.removeMember);
+router.post('/:id/leave', protect, conversationController.leaveConversation);
 
 router.get('/:id/messages', protect, messageController.getMessages);
 router.post('/:id/messages', protect, messageController.sendMessage);

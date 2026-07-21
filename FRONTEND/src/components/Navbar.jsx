@@ -171,14 +171,14 @@ const Navbar = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="hidden rounded-full border border-black/10 px-4 py-2 text-sm transition hover:bg-black/5 md:inline-flex"
+                  className="hidden text-sm font-medium text-[#5C524B] transition hover:text-black md:inline-flex"
                 >
                   Sign in
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate('/register')}
-                  className="rounded-full bg-[#27392E] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1a2820] sm:px-4 sm:py-2 sm:text-sm"
+                  className="rounded-full bg-[#27392E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a2820]"
                 >
                   Sign up
                 </button>
@@ -327,7 +327,7 @@ const Navbar = () => {
                   }}
                   className="w-full rounded-xl border border-black/15 bg-white py-3 text-sm font-semibold text-[#2F2A25]"
                 >
-                  Sign in
+                  Already have an account? Sign in
                 </button>
               </div>
             )}

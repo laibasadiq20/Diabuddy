@@ -21,7 +21,7 @@ import {
 const t = theme;
 
 export default function AdminReports() {
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
 
   // State
@@ -43,7 +43,10 @@ export default function AdminReports() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_URL}/admin/reports?status=pending`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/admin/reports?status=pending`, {
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
       const data = await res.json();
       if (res.ok) {
         setReports(data || []);
@@ -73,7 +76,7 @@ export default function AdminReports() {
       const res = await fetch(`${API_URL}/admin/reports/${reportId}`, {
         method: 'PUT',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           status: 'reviewed',
           action: actionType

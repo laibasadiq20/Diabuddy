@@ -2,10 +2,10 @@ const ForumPost = require('../models/ForumPost');
 const Comment = require('../models/Comment');
 const Topic = require('../models/Topic');
 const User = require('../models/User');
+const { notify } = require('../utils/notify');
 
 // GET /api/posts?topic=&sort=&page=&limit=&search=&authorId=
-// sort: latest | most_helpful | most_commented | best_answers
-// When authorId is set, anonymous posts are excluded (profile view).
+// sort: latest | most_commented | best_answers
 exports.getFeed = async (req, res) => {
   try {
     const { topic, sort = 'latest', page = 1, limit = 10, search, authorId } = req.query;
@@ -18,11 +18,13 @@ exports.getFeed = async (req, res) => {
       query.isAnonymous = false;
     }
 
-    let sortStage = { createdAt: -1 };
-    if (sort === 'most_commented') sortStage = { commentsCount: -1 };
-    if (sort === 'best_answers') query.bestAnswerCommentId = { $ne: null };
-    // 'most_helpful' requires the Reaction collection (type: 'helpful') —
-    // handled as a separate aggregation below when needed at scale.
+    // Pinned posts always float to the top of the feed
+    let sortStage = { isPinned: -1, createdAt: -1 };
+    if (sort === 'most_commented') sortStage = { isPinned: -1, commentsCount: -1, createdAt: -1 };
+    if (sort === 'best_answers') {
+      query.bestAnswerCommentId = { $ne: null };
+      sortStage = { isPinned: -1, createdAt: -1 };
+    }
 
     const posts = await ForumPost.find(query)
       .sort(sortStage)
@@ -39,6 +41,23 @@ exports.getFeed = async (req, res) => {
   }
 };
 
+// GET /api/posts/mine/drafts
+exports.getMyDrafts = async (req, res) => {
+  try {
+    const drafts = await ForumPost.find({
+      authorId: req.user.id,
+      isDraft: true,
+      status: { $ne: 'deleted' },
+    })
+      .sort({ updatedAt: -1 })
+      .populate('topicId', 'name color icon');
+
+    res.json({ drafts });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch drafts', error: err.message });
+  }
+};
+
 // GET /api/posts/:id
 exports.getPostById = async (req, res) => {
   try {
@@ -50,8 +69,28 @@ exports.getPostById = async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    post.viewsCount += 1;
-    await post.save();
+    // Drafts are only visible to the author
+    if (post.isDraft) {
+      const authorId = post.authorId?._id || post.authorId;
+      if (!req.user || String(authorId) !== String(req.user.id)) {
+        return res.status(404).json({ message: 'Post not found' });
+      }
+    }
+
+    // Hidden posts: author + admin can still open
+    if (post.status === 'hidden') {
+      const authorId = post.authorId?._id || post.authorId;
+      const isOwner = req.user && String(authorId) === String(req.user.id);
+      const isAdmin = req.user && req.user.role === 'admin';
+      if (!isOwner && !isAdmin) {
+        return res.status(404).json({ message: 'Post not found' });
+      }
+    }
+
+    if (!post.isDraft) {
+      post.viewsCount += 1;
+      await post.save();
+    }
 
     res.json(post);
   } catch (err) {
@@ -108,7 +147,6 @@ exports.updatePost = async (req, res) => {
 
     await post.save();
 
-    // publishing a draft for the first time — now it counts toward totals
     if (wasDraft && post.isDraft === false) {
       await Topic.findByIdAndUpdate(post.topicId, { $inc: { postsCount: 1 } });
       await User.findByIdAndUpdate(req.user.id, { $inc: { postsCount: 1 } });
@@ -117,6 +155,29 @@ exports.updatePost = async (req, res) => {
     res.json(post);
   } catch (err) {
     res.status(400).json({ message: 'Failed to update post', error: err.message });
+  }
+};
+
+// PATCH /api/posts/:id/moderation  body: { isPinned?, isLocked? }  (admin)
+exports.moderatePost = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin only' });
+    }
+
+    const post = await ForumPost.findById(req.params.id);
+    if (!post || post.status === 'deleted') {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const { isPinned, isLocked } = req.body;
+    if (typeof isPinned === 'boolean') post.isPinned = isPinned;
+    if (typeof isLocked === 'boolean') post.isLocked = isLocked;
+
+    await post.save();
+    res.json(post);
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to update moderation flags', error: err.message });
   }
 };
 
@@ -162,7 +223,6 @@ exports.setBestAnswer = async (req, res) => {
       return res.status(404).json({ message: 'Comment not found on this post' });
     }
 
-    // unset any previous best answer on this post
     if (post.bestAnswerCommentId) {
       await Comment.findByIdAndUpdate(post.bestAnswerCommentId, { isBestAnswer: false });
     }
@@ -171,6 +231,14 @@ exports.setBestAnswer = async (req, res) => {
     comment.isBestAnswer = true;
     await post.save();
     await comment.save();
+
+    await notify({
+      recipientId: comment.authorId,
+      senderId: req.user.id,
+      type: 'best_answer_selected',
+      referenceId: post._id,
+      message: `Your comment was marked as the best answer on “${post.title}”`,
+    });
 
     res.json({ message: 'Best answer set', bestAnswerCommentId: comment._id });
   } catch (err) {

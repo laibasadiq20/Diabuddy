@@ -2,11 +2,11 @@ const Reaction = require('../models/Reaction');
 const ForumPost = require('../models/ForumPost');
 const Comment = require('../models/Comment');
 const User = require('../models/User');
+const { notify } = require('../utils/notify');
 
 const getModel = (targetType) => (targetType === 'ForumPost' ? ForumPost : Comment);
 
 // POST /api/reactions   body: { targetType: 'ForumPost' | 'Comment', targetId }
-// Toggle: if the user already liked it, this unlikes it. Otherwise, likes it.
 exports.toggleLike = async (req, res) => {
   try {
     const { targetType, targetId } = req.body;
@@ -33,6 +33,26 @@ exports.toggleLike = async (req, res) => {
     target.likesCount += 1;
     await target.save();
     await User.findByIdAndUpdate(target.authorId, { $inc: { likesReceived: 1 } });
+
+    const senderName = req.user.name || 'Someone';
+    if (targetType === 'ForumPost') {
+      await notify({
+        recipientId: target.authorId,
+        senderId: req.user.id,
+        type: 'post_like',
+        referenceId: target._id,
+        message: `${senderName} liked your post “${target.title}”`,
+      });
+    } else {
+      await notify({
+        recipientId: target.authorId,
+        senderId: req.user.id,
+        type: 'comment_like',
+        referenceId: target.postId,
+        message: `${senderName} liked your comment`,
+      });
+    }
+
     res.json({ action: 'liked', likesCount: target.likesCount });
   } catch (err) {
     if (err.code === 11000) {
@@ -43,7 +63,6 @@ exports.toggleLike = async (req, res) => {
 };
 
 // GET /api/reactions/mine?targetType=&targetId=
-// lets the frontend know whether to render the like button as active
 exports.getMyReaction = async (req, res) => {
   try {
     const { targetType, targetId } = req.query;

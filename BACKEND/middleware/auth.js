@@ -40,6 +40,9 @@ const protect = async (req, res, next) => {
       });
     }
 
+    // Normalize id for controllers that compare with req.user.id
+    req.user.id = req.user._id.toString();
+
     // 7. Check if account is active
     if (req.user.isActive === false) {
       return res.status(403).json({
@@ -74,7 +77,34 @@ const adminOnly = (req, res, next) => {
   });
 };
 
+/**
+ * Optional auth — attaches req.user when a valid token is present,
+ * but never blocks the request when missing/invalid.
+ */
+const optionalAuth = async (req, res, next) => {
+  try {
+    let token;
+    if (req.headers.authorization?.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies?.token) {
+      token = req.cookies.token;
+    }
+    if (!token) return next();
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-passwordHash');
+    if (user && user.isActive !== false) {
+      user.id = user._id.toString();
+      req.user = user;
+    }
+  } catch {
+    // ignore — treat as anonymous
+  }
+  next();
+};
+
 module.exports = {
   protect,
   adminOnly,
+  optionalAuth,
 };

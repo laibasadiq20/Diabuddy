@@ -1,6 +1,7 @@
 const Comment = require('../models/Comment');
 const ForumPost = require('../models/ForumPost');
 const User = require('../models/User');
+const { notify } = require('../utils/notify');
 
 // GET /api/posts/:postId/comments
 exports.getComments = async (req, res) => {
@@ -21,7 +22,7 @@ exports.createComment = async (req, res) => {
     const { content, parentCommentId } = req.body;
     const post = await ForumPost.findById(req.params.postId);
 
-    if (!post || post.status === 'deleted') {
+    if (!post || post.status === 'deleted' || post.status === 'hidden') {
       return res.status(404).json({ message: 'Post not found' });
     }
     if (post.isLocked) {
@@ -46,6 +47,29 @@ exports.createComment = async (req, res) => {
     await post.save();
     await User.findByIdAndUpdate(req.user.id, { $inc: { commentsCount: 1 } });
 
+    const senderName = req.user.name || 'Someone';
+
+    if (parentCommentId) {
+      const parent = await Comment.findById(parentCommentId);
+      if (parent) {
+        await notify({
+          recipientId: parent.authorId,
+          senderId: req.user.id,
+          type: 'comment_reply',
+          referenceId: post._id,
+          message: `${senderName} replied to your comment on “${post.title}”`,
+        });
+      }
+    } else {
+      await notify({
+        recipientId: post.authorId,
+        senderId: req.user.id,
+        type: 'new_comment',
+        referenceId: post._id,
+        message: `${senderName} commented on “${post.title}”`,
+      });
+    }
+
     const populated = await comment.populate('authorId', 'name username profileImageUrl isVerifiedProfessional');
     res.status(201).json(populated);
   } catch (err) {
@@ -68,7 +92,8 @@ exports.updateComment = async (req, res) => {
     comment.isEdited = true;
     await comment.save();
 
-    res.json(comment);
+    const populated = await comment.populate('authorId', 'name username profileImageUrl isVerifiedProfessional');
+    res.json(populated);
   } catch (err) {
     res.status(400).json({ message: 'Failed to update comment', error: err.message });
   }
@@ -92,7 +117,6 @@ exports.deleteComment = async (req, res) => {
     await ForumPost.findByIdAndUpdate(comment.postId, { $inc: { commentsCount: -1 } });
     await User.findByIdAndUpdate(comment.authorId, { $inc: { commentsCount: -1 } });
 
-    // if this was the best answer, clear the pointer on the post
     const post = await ForumPost.findById(comment.postId);
     if (post && post.bestAnswerCommentId && post.bestAnswerCommentId.toString() === comment._id.toString()) {
       post.bestAnswerCommentId = null;
