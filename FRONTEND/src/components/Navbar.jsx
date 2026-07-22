@@ -29,7 +29,7 @@ const Navbar = () => {
     { label: 'Messages', path: '/messages' },
     { label: 'Account', path: '/account' },
     ...(user?.role === 'admin'
-      ? [{ label: 'Moderation', path: '/admin/reports' }]
+      ? [{ label: 'Admin console', path: '/admin' }]
       : []),
   ];
 

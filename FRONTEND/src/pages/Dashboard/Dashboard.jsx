@@ -11,6 +11,7 @@ import {
   Bell,
   ArrowUpRight,
   MessageSquare,
+  Shield,
 } from 'lucide-react';
 
 const t = theme;
@@ -88,6 +89,21 @@ const modules = [
   },
 ];
 
+const adminModule = {
+  key: 'admin',
+  title: 'Admin console',
+  desc: 'Users · reports · site health',
+  path: '/admin',
+  icon: Shield,
+  area: 'admin',
+  bg: `linear-gradient(165deg, ${t.clayTint} 0%, #fff 55%, ${t.goldTint} 100%)`,
+  text: t.ink,
+  muted: t.inkSoft,
+  iconBg: t.claySoft,
+  iconColor: t.clayDeep,
+  ring: t.clay + '45',
+};
+
 function Blob({ style }) {
   return (
     <div
@@ -113,6 +129,7 @@ export default function Dashboard() {
     month: 'short',
     day: 'numeric',
   });
+  const tiles = user?.role === 'admin' ? [...modules, adminModule] : modules;
 
   return (
     <div
@@ -186,7 +203,7 @@ export default function Dashboard() {
 
           {/* Asymmetric bento */}
           <div className="db-bento">
-            {modules.map((m) => {
+            {tiles.map((m) => {
               const Icon = m.icon;
               return (
                 <button
@@ -323,6 +340,7 @@ export default function Dashboard() {
             .db-tile-logs { grid-column: span 4; min-height: 160px; }
             .db-tile-fitbit { grid-column: span 4; min-height: 160px; }
             .db-tile-reminders { grid-column: span 4; min-height: 160px; }
+            .db-tile-admin { grid-column: span 12; min-height: 140px; }
 
             @media (hover: hover) and (pointer: fine) {
               .db-tile:hover {
@@ -356,6 +374,10 @@ export default function Dashboard() {
                 min-height: 148px;
               }
               .db-tile-reminders { grid-column: span 2; }
+              .db-tile-admin {
+                grid-column: span 2;
+                min-height: 120px;
+              }
               .db-tile-copy { margin-top: 18px !important; }
               .db-tile-community .db-tile-copy p:first-child { font-size: 24px !important; }
             }
