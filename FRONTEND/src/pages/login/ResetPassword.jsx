@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff, HeartPulse } from 'lucide-react';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
+import { useAuth } from '../../context/AuthContext';
 
 const t = theme;
 
@@ -13,20 +14,21 @@ const inputStyle = {
   paddingRight: '14px',
   paddingTop: '8px',
   paddingBottom: '8px',
-  background: '#F5F5F5',
-  border: '1.5px solid rgba(0, 0, 0, 0.25)',
+  background: t.surfaceSunken,
+  border: `1.5px solid ${t.line}`,
   borderRadius: '8px',
-  color: '#1A1A1A',
+  color: t.ink,
   fontSize: '13px',
   outline: 'none',
   transition: 'border-color 0.2s, background 0.2s',
-  fontFamily: 'inherit',
+  fontFamily: t.fontBody,
   fontWeight: '500',
 };
 
 export default function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState(location.state?.email || '');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -37,9 +39,8 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) navigate('/dashboard');
-  }, [navigate]);
+    if (!authLoading && user) navigate('/dashboard', { replace: true });
+  }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
-import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge } from '../toolboxStyles';
+import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge, disclaimerStyle } from '../toolboxStyles';
 
 function bmiCategory(bmi) {
   if (bmi < 18.5) return { label: 'Underweight', color: t.skyDeep, tip: 'Ask a clinician before making big diet changes.' };
   if (bmi < 25) return { label: 'Healthy range', color: t.sageDeep, tip: 'Steady habits with food, movement, and sleep help glucose control.' };
-  if (bmi < 30) return { label: 'Overweight', color: t.gold, tip: 'Even modest weight loss can improve insulin sensitivity.' };
-  return { label: 'Obese', color: t.clay, tip: 'Consider talking with your care team about a weight plan.' };
+  if (bmi < 30) return { label: 'Overweight', color: t.gold, tip: 'Even modest weight loss can improve insulin sensitivity — discuss a plan with your care team.' };
+  return { label: 'Obese', color: t.clay, tip: 'Talk with your care team about a weight plan that fits your diabetes treatment.' };
 }
 
 export default function BmiTool() {
@@ -31,6 +31,9 @@ export default function BmiTool() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={disclaimerStyle}>
+        BMI is a screening number, not a diagnosis. Muscle mass, ethnicity, and pregnancy change how it should be interpreted. Do not start restrictive diets without clinical advice.
+      </div>
       <div className="db-tool-grid-2">
         <div>
           <label style={labelStyle}>Height (cm)</label>

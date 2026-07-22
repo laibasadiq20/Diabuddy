@@ -8,14 +8,14 @@ const protect = async (req, res, next) => {
   let token;
 
   try {
-    // Prefer Bearer over cookie so a fresh login isn't overwritten by a stale cookie
-    if (
+    // Prefer httpOnly cookie; Bearer remains as a legacy fallback only
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    } else if (
       req.headers.authorization &&
       req.headers.authorization.startsWith('Bearer')
     ) {
       token = req.headers.authorization.split(' ')[1];
-    } else if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
     }
 
     // 3. If no token exists
@@ -84,10 +84,10 @@ const adminOnly = (req, res, next) => {
 const optionalAuth = async (req, res, next) => {
   try {
     let token;
-    if (req.headers.authorization?.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    } else if (req.cookies?.token) {
+    if (req.cookies?.token) {
       token = req.cookies.token;
+    } else if (req.headers.authorization?.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
     }
     if (!token) return next();
 

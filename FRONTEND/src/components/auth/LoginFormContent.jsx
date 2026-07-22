@@ -38,7 +38,7 @@ export default function LoginFormContent({
   onForgotPassword,
   onSwitchToRegister,
 }) {
-  const { fetchUser, setUser, saveSession } = useAuth();
+  const { fetchUser, saveSession } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -61,40 +61,36 @@ export default function LoginFormContent({
     }
 
     try {
-
       const response = await fetch(`${API_URL}/auth/login`, {
-  method: 'POST',
-  credentials: 'include',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    email: normalizedEmail,
-    password
-  }),
-});
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password,
+        }),
+      });
 
       const data = await response.json();
 
-      console.log('Login response:', data);
-
       if (response.ok) {
         const loggedInUser = data?.data?.user;
-        const token = data?.data?.token;
-  // Prefer login payload — never let a stale cookie overwrite the new user
-        if (token && loggedInUser) {
-          saveSession(token, loggedInUser);
-        } else if (loggedInUser) {
-          setUser(loggedInUser);
+        if (loggedInUser) {
+          saveSession(null, loggedInUser);
+        } else {
+          await fetchUser();
         }
-        // Clear any leftover local display cache
-        try { localStorage.removeItem('diabuddy_user'); } catch (_) {}
+        try {
+          localStorage.removeItem('diabuddy_user');
+          localStorage.removeItem('token');
+        } catch (_) {}
         navigate('/dashboard');
       } else {
         setError(data.message || 'Login failed. Check your credentials.');
       }
     } catch (error) {
-      console.error('Login error:', error);
       setError('Connection error. Please try again.');
     } finally {
       setLoading(false);

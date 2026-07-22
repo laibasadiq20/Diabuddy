@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { API_URL } from "../config/api";
 
 const AuthContext = createContext();
-const TOKEN_KEY = "diabuddy_token";
 
 const normalizeUser = (raw) => {
   if (!raw) return null;
@@ -14,10 +13,8 @@ const normalizeUser = (raw) => {
   };
 };
 
-const authHeaders = () => {
-  const token = sessionStorage.getItem(TOKEN_KEY);
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+/** Cookie-only auth — no JWT in JS-accessible storage */
+const authHeaders = () => ({});
 
 export const AuthProvider = ({ children }) => {
   const [user, setUserState] = useState(null);
@@ -25,13 +22,20 @@ export const AuthProvider = ({ children }) => {
 
   const setUser = (raw) => setUserState(normalizeUser(raw));
 
-  const saveSession = (token, userPayload) => {
-    if (token) sessionStorage.setItem(TOKEN_KEY, token);
+  const saveSession = (_tokenIgnored, userPayload) => {
+    // Token is httpOnly cookie only; optionally hydrate user from login payload
     if (userPayload) setUserState(normalizeUser(userPayload));
   };
 
   const clearSession = () => {
-    sessionStorage.removeItem(TOKEN_KEY);
+    try {
+      sessionStorage.removeItem("diabuddy_token");
+      localStorage.removeItem("token");
+      localStorage.removeItem("diabuddy_token");
+      localStorage.removeItem("diabuddy_user");
+    } catch (_) {
+      /* ignore */
+    }
     setUserState(null);
   };
 
@@ -75,7 +79,7 @@ export const AuthProvider = ({ children }) => {
         },
       });
     } catch (err) {
-      console.log(err);
+      /* ignore network errors on logout */
     } finally {
       clearSession();
     }

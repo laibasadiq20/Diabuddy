@@ -57,7 +57,7 @@ function App() {
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/register" element={<AuthFlipCard />} />
+        <Route path="/register" element={<AuthFlipCard startFlipped />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
@@ -80,7 +80,8 @@ function App() {
         <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         
-        {/* Admin Moderation Queue */}
+        {/* Admin console */}
+        <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminReports /></ProtectedRoute>} />
         <Route path="/admin/reports" element={<ProtectedRoute adminOnly={true}><AdminReports /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />

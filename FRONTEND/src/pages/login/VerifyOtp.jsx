@@ -9,17 +9,16 @@ const t = theme;
 export default function VerifyOtp() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { fetchUser, setUser, saveSession } = useAuth();
+  const { fetchUser, saveSession } = useAuth();
   const email = location.state?.email || '';
   const isLoginFlow = location.state?.mode === 'login';
-  const password = location.state?.password || '';
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [resendLeft, setResendLeft] = useState(30);
-  const [expireLeft, setExpireLeft] = useState(5 * 60);
+  const [expireLeft, setExpireLeft] = useState(15 * 60);
   const [resending, setResending] = useState(false);
   const inputRefs = useRef([]);
 
@@ -86,8 +85,9 @@ const payload = {
       if (response.ok) {
         setSuccess(true);
         if (data?.data) {
-          const { token, ...userPayload } = data.data;
-          saveSession(token, userPayload);
+          saveSession(null, data.data);
+        } else {
+          await fetchUser();
         }
         setTimeout(() => {
           navigate('/dashboard');
@@ -106,41 +106,22 @@ const payload = {
     setResending(true);
     setError('');
     try {
-      if (isLoginFlow) {
-       const response = await fetch(`${API_URL}/auth/login`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setResendLeft(30);
-          setExpireLeft(5 * 60);
-          setOtp(['', '', '', '', '', '']);
-          inputRefs.current[0]?.focus();
-        } else {
-          setError(data.message || 'Failed to resend code');
-        }
+      const response = await fetch(`${API_URL}/auth/resend-code`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setResendLeft(30);
+        setExpireLeft(15 * 60);
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
       } else {
-        console.log("API URL =", API_URL);
-        const response = await fetch(`${API_URL}/auth/resend-code`, {
-  method: 'POST',
-  credentials: 'include',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({ email }),
-});
-        const data = await response.json();
-        if (response.ok) {
-          setResendLeft(30);
-          setExpireLeft(5 * 60);
-          setOtp(['', '', '', '', '', '']);
-          inputRefs.current[0]?.focus();
-        } else {
-          setError(data.message || 'Failed to resend code');
-        }
+        setError(data.message || 'Failed to resend code');
       }
     } catch {
       setError('Connection error');
@@ -161,39 +142,24 @@ const payload = {
       justifyContent: 'center', 
       padding: '40px 16px', 
       fontFamily: t.fontBody,
-      background: 'radial-gradient(ellipse at center, #e2ecdb 0%, #92a87c 45%, #819175 70%, #485e3d 100%)',
+      background: t.bg,
     }}>
-      {/* Ambient glow overlay */}
-      <div style={{ 
-        position: 'fixed', 
-        top: '50%', 
-        left: '50%', 
-        transform: 'translate(-50%, -50%)', 
-        width: '700px', 
-        height: '700px', 
-        background: 'radial-gradient(circle, rgba(125, 143, 111, 0.3) 0%, transparent 70%)', 
-        borderRadius: '50%', 
-        pointerEvents: 'none' 
-      }} />
-
       <div style={{ width: '100%', maxWidth: '400px', position: 'relative' }} className="db-animate-in">
-        {/* Logo - Light version for dark background */}
+        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <HeartPulse size={16} color={t.sageDeep} />
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: t.forest, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <HeartPulse size={16} color="#FFFFFF" />
           </div>
-          <span style={{ color: '#FFFFFF', fontSize: '17px', fontWeight: '600', fontFamily: t.fontDisplay }}>DiaBuddy</span>
+          <span style={{ color: t.ink, fontSize: '17px', fontWeight: '600', fontFamily: t.fontDisplay }}>DiaBuddy</span>
         </div>
 
-        {/* Card - Lighter border */}
+        {/* Card */}
         <div style={{ 
-          background: 'rgba(255, 255, 255, 0.95)', 
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          border: '2px solid rgba(48, 31, 1, 0.85)', 
+          background: t.surface, 
+          border: `1.5px solid ${t.lineStrong}`, 
           borderRadius: '16px', 
           padding: '28px 24px', 
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          boxShadow: t.shadowLifted,
         }}>
           {success ? (
             <div style={{ textAlign: 'center', padding: '12px 0' }}>

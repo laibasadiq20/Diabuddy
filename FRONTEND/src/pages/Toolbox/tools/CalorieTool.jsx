@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
-import { fieldStyle, labelStyle, eyebrow } from '../toolboxStyles';
+import { fieldStyle, labelStyle, eyebrow, disclaimerStyle } from '../toolboxStyles';
 
 export default function CalorieTool() {
   const [heightCm, setHeightCm] = useState('170');
@@ -22,8 +22,11 @@ export default function CalorieTool() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={disclaimerStyle}>
+        Educational estimate only (Mifflin–St Jeor). Not a diet prescription. Confirm calorie and weight goals with your clinician — especially if you use insulin or other glucose-lowering meds.
+      </div>
       <p style={{ margin: 0, fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-        Estimates daily calorie needs (Mifflin–St Jeor). Useful when managing weight alongside diabetes — confirm goals with your care team.
+        Rough daily energy needs for learning and conversation with your care team.
       </p>
       <div className="db-tool-grid-2">
         <div>

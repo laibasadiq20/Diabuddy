@@ -8,7 +8,7 @@ const learnLinks = [
   { label: 'Blog', to: '/learn/blog' },
 ];
 
-// TODO: swap in your real inbox address
+// Public contact for the marketing site
 const CONTACT_EMAIL = 'hello@diabuddy.com';
 
 const Footer = () => {
@@ -110,7 +110,10 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="mt-14 flex flex-col justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row">
           <p>© {new Date().getFullYear()} Diabuddy. Made quietly, in good company.</p>
-          <p>Not a substitute for medical advice. Always consult your clinician.</p>
+          <p style={{ maxWidth: 420, textAlign: 'right' }}>
+            Educational companion only — not medical advice, diagnosis, or emergency care.
+            Always follow your clinician. Community posts are peer experiences, not prescriptions.
+          </p>
         </div>
 
       </div>

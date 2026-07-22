@@ -1,17 +1,24 @@
-# Tasks: DiaBuddy Community Modules & Interactive Features Refinement
+# Tasks status
 
-- [x] **Phase 1: Navbar & Routing Flows**
-  - [x] Update Logo click in `Navbar.jsx` to navigate to `/dashboard` if logged in, `/` if not
-  - [x] Add direct "Dashboard" navigation link in desktop view of `Navbar.jsx`
-  - [x] Make Profile Avatar button always visible (remove `hidden md:flex`) in `Navbar.jsx`
-  - [x] Enhance mobile drawer menu in `Navbar.jsx` with user-profile links and a "Log Out" button
-  - [x] Make sure Hero CTAs in `Hero.jsx` adjust when user is logged in
-- [x] **Phase 2: Interactive Dashboard Modules**
-  - [x] Remove locking overlay from **Glucose Tracker** and implement full interactive client-side logging (log readings, update stats and dynamic bar chart)
-  - [x] Remove locking overlay from **Meal & Nutrition Tracker** and implement interactive food selection and custom carb logging (update macro progress circles)
-  - [x] Remove locking overlay from **Health Goals** and implement interactive target step triggers and goal status checklists
-- [x] **Phase 3: Interactive How to Use Stepper**
-  - [x] Redesign `HowItWorks.jsx` with an interactive tab list/stepper on the left and a mock feature visual mockup card on the right
-- [x] **Phase 4: Verification & Build**
-  - [x] Run Vite production build check (`npm run build`) in `FRONTEND/`
-  - [x] Verify OTP redirection and all navigation states
+## Completed (security / product hardening)
+
+- [x] Block client-supplied `role` on register (always `patient`)
+- [x] Cookie-only JWT (no `sessionStorage` / response body token)
+- [x] Align OTP TTL + UI timer with email copy (15 minutes)
+- [x] Fix token checks on AuthFlipCard / Forgot / Reset (use AuthContext `user`)
+- [x] `/register` opens register face (`startFlipped`)
+- [x] Create Logs page
+- [x] Admin console: overview, users, reports (ban/delete/verify/promote)
+- [x] Unify Paper & Sky tokens (theme.js + index.css + auth screens)
+- [x] Fix `tailwind.config.js`
+- [x] Split CommunityFeed / PostDetails / Messages into components
+- [x] Medical safety copy on insulin / glucose / calorie / BMI / footer / community
+- [x] Remove dead code (MainLayout, App.css, CRA leftovers, unused Login/Register wrappers)
+- [x] Update RUN_ME.md + implementation notes
+- [x] Vite proxy → localhost:5000
+
+## Still open (optional follow-ups)
+
+- [ ] Rate-limit auth endpoints
+- [ ] Wire Logs / Fitbit / Reminders to backend models
+- [ ] Automated tests

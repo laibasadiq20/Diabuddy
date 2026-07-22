@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight, ArrowLeft, HeartPulse } from 'lucide-react';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
+import { useAuth } from '../../context/AuthContext';
 
 const t = theme;
 
 const inputStyle = {
   width: '100%', boxSizing: 'border-box',
   paddingLeft: '34px', paddingRight: '14px', paddingTop: '8px', paddingBottom: '8px',
-  background: '#F5F5F5', border: '1.5px solid rgba(0, 0, 0, 0.25)',
-  borderRadius: '8px', color: '#1A1A1A', fontSize: '13px', outline: 'none',
-  transition: 'border-color 0.2s, background 0.2s', fontFamily: 'inherit',
+  background: t.surfaceSunken, border: `1.5px solid ${t.line}`,
+  borderRadius: '8px', color: t.ink, fontSize: '13px', outline: 'none',
+  transition: 'border-color 0.2s, background 0.2s', fontFamily: t.fontBody,
   fontWeight: '500',
 };
 
@@ -21,13 +22,11 @@ export default function ForgotPassword() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      navigate('/dashboard');
-    }
-  }, [navigate]);
+    if (!authLoading && user) navigate('/dashboard', { replace: true });
+  }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

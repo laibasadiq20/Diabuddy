@@ -20,9 +20,10 @@ const t = theme;
 
 const GUIDELINES = [
   'Be kind — diabetes is personal; no shaming or gatekeeping.',
-  'Don’t share medical advice as fact; share experience and suggest talking to a clinician.',
+  'Peer experience only — never present dosing, medication changes, or diagnoses as medical advice. Suggest talking to a clinician.',
   'No spam, ads, or personal attacks.',
   'Respect privacy — don’t post others’ private health info.',
+  'Emergencies: call local emergency services. DiaBuddy is not urgent care.',
 ];
 
 export default function NewPost() {

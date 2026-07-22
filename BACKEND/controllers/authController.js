@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -14,19 +15,23 @@ const generateToken = (id) => {
 };
 
 /**
- * Generate a random 6-digit OTP code
+ * Generate a cryptographically secure 6-digit OTP code
  */
 const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 };
 
-const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const OTP_TTL_MS = 15 * 60 * 1000; // 15 minutes (matches email copy)
+
+const cookieSecure =
+  process.env.COOKIE_SECURE === 'true' ||
+  process.env.NODE_ENV === 'production';
 
 const setAuthCookie = (res, token) => {
   // Same-origin via Vercel /api proxy — use lax (none often fails to stick)
   res.cookie('token', token, {
     httpOnly: true,
-    secure: true,
+    secure: cookieSecure,
     sameSite: 'lax',
     path: '/',
     maxAge: 30 * 24 * 60 * 60 * 1000,
@@ -36,7 +41,7 @@ const setAuthCookie = (res, token) => {
 const clearAuthCookie = (res) => {
   res.clearCookie('token', {
     httpOnly: true,
-    secure: true,
+    secure: cookieSecure,
     sameSite: 'lax',
     path: '/',
   });
@@ -60,14 +65,20 @@ const register = async (req, res) => {
       diabetesType,
       glucoseUnit,
       targetRanges,
-      role,
     } = req.body;
 
-    // 1. Basic validation
+    // 1. Basic validation — never accept role from the client (privilege escalation)
     if (!name || !email || !password) {
       return res.status(400).json({
         status: 'error',
         message: 'Name, email, and password are required fields',
+      });
+    }
+
+    if (String(password).length < 8) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Password must be at least 8 characters',
       });
     }
 
@@ -94,7 +105,7 @@ const register = async (req, res) => {
       if (!userExists.isVerified) {
         const newCode = generateOTP();
         userExists.verificationCode = newCode;
-        userExists.verificationCodeExpires = new Date(Date.now() + OTP_TTL_MS); // 5 mins
+        userExists.verificationCodeExpires = new Date(Date.now() + OTP_TTL_MS);
         await userExists.save();
 
         await sendEmail({
@@ -137,9 +148,9 @@ const register = async (req, res) => {
 
     // 6. Generate Verification OTP code
     const otpCode = generateOTP();
-    const otpExpiry = new Date(Date.now() + OTP_TTL_MS); // 5 minutes expiry
+    const otpExpiry = new Date(Date.now() + OTP_TTL_MS);
 
-    // 7. Create user (unverified by default)
+    // 7. Create user (unverified by default) — role is always patient
     const newUser = await User.create({
       name,
       username,
@@ -155,7 +166,7 @@ const register = async (req, res) => {
         postMealMin: 70,
         postMealMax: 140,
       },
-      role: role || 'patient',
+      role: 'patient',
       isVerified: false,
       verificationCode: otpCode,
       verificationCodeExpires: otpExpiry,
@@ -251,6 +262,7 @@ const verifyEmail = async (req, res) => {
     const token = generateToken(user._id);
     setAuthCookie(res, token);
 
+    // Token stays httpOnly — never return JWT in the response body
     return res.json({
       status: 'success',
       message: 'Email verified successfully. You can now log in.',
@@ -260,7 +272,8 @@ const verifyEmail = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        token,
+        username: user.username,
+        profileImageUrl: user.profileImageUrl,
       },
     });
   } catch (err) {
@@ -306,7 +319,7 @@ const resendVerificationCode = async (req, res) => {
     // Generate new OTP
     const newCode = generateOTP();
     user.verificationCode = newCode;
-    user.verificationCodeExpires = new Date(Date.now() + OTP_TTL_MS); // 5 mins
+    user.verificationCodeExpires = new Date(Date.now() + OTP_TTL_MS);
     await user.save();
 
     // Send code
@@ -377,17 +390,18 @@ const login = async (req, res) => {
     const token = generateToken(user._id);
     setAuthCookie(res, token);
 
+    // Token stays httpOnly — never return JWT in the response body
     return res.json({
       status: 'success',
       message: 'Login successful',
       data: {
-        token,
         user: {
           _id: user._id,
           id: user._id,
           name: user.name,
           email: user.email,
           role: user.role,
+          username: user.username,
           glucoseUnit: user.glucoseUnit,
           targetRanges: user.targetRanges,
           bio: user.bio,
@@ -466,7 +480,7 @@ const searchUsers = async (req, res) => {
     }
 
     const users = await User.find(query)
-      .select('name username email profileImageUrl diabetesType diagnosisYear isVerifiedProfessional')
+      .select('name username profileImageUrl diabetesType diagnosisYear isVerifiedProfessional')
       .limit(20);
 
     return res.json({

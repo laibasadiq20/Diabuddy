@@ -4,6 +4,8 @@ import Logo from '../../components/Logo';
 import LoginFormContent from '../../components/auth/LoginFormContent';
 import RegisterFormContent from '../../components/auth/RegisterFormContent';
 import loginImage from '../../assets/login.png';
+import { useAuth } from '../../context/AuthContext';
+import { theme as t } from '../../theme';
 
 /**
  * Shared auth screen for /login and /register.
@@ -20,6 +22,7 @@ export default function AuthFlipCard({ startFlipped = false }) {
   const panelRef = useRef(null);
   const fitRef = useRef(null);
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   const syncCardHeight = () => {
     const el = isFlipped ? backRef.current : frontRef.current;
@@ -42,9 +45,8 @@ export default function AuthFlipCard({ startFlipped = false }) {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) navigate('/dashboard');
-  }, [navigate]);
+    if (!loading && user) navigate('/dashboard', { replace: true });
+  }, [user, loading, navigate]);
 
   useEffect(() => {
     const prevHtml = document.documentElement.style.overflow;
@@ -100,9 +102,9 @@ export default function AuthFlipCard({ startFlipped = false }) {
         height: '100dvh',
         maxHeight: '100dvh',
         overflow: 'hidden',
-        background: '#1A1A1A',
+        background: t.bg,
         display: 'flex',
-        fontFamily: 'var(--font-body, Inter, sans-serif)',
+        fontFamily: t.fontBody,
       }}
     >
       <div className="hidden lg:flex relative w-[38%] overflow-hidden flex-col justify-between p-12">
@@ -111,13 +113,13 @@ export default function AuthFlipCard({ startFlipped = false }) {
           alt="DiaBuddy"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0" style={{ background: `${t.forestDeep}99` }} />
       </div>
 
       <div
         ref={panelRef}
-        className="db-auth-panel flex-1 flex items-center justify-center bg-[#efe7e0ce]"
-        style={{ height: '100%', minHeight: 0, overflow: 'hidden', padding: '8px 12px' }}
+        className="db-auth-panel flex-1 flex items-center justify-center"
+        style={{ height: '100%', minHeight: 0, overflow: 'hidden', padding: '8px 12px', background: t.surfaceRaised }}
       >
         <div
           ref={fitRef}
@@ -129,7 +131,7 @@ export default function AuthFlipCard({ startFlipped = false }) {
           }}
         >
           <div className="mb-3 lg:hidden">
-            <Logo size={28} textSize={16} variant="light" />
+            <Logo size={28} textSize={16} />
           </div>
 
           <div className="flip-perspective w-full">
@@ -144,10 +146,10 @@ export default function AuthFlipCard({ startFlipped = false }) {
                 ref={frontRef}
                 className="flip-face flip-face-front"
                 style={{
-                  background: 'linear-gradient(145deg, #C9D3C4 0%, #E7EFE2 50%, #F1F5EE 100%)',
-                  border: '1px solid rgba(168, 184, 154, 0.3)',
-                  borderRadius: 'var(--radius, 16px)',
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.5)',
+                  background: t.surface,
+                  border: `1.5px solid ${t.lineStrong}`,
+                  borderRadius: 16,
+                  boxShadow: t.shadowLifted,
                   padding: '20px 18px',
                 }}
               >
@@ -162,10 +164,10 @@ export default function AuthFlipCard({ startFlipped = false }) {
                 ref={backRef}
                 className="flip-face flip-face-back"
                 style={{
-                  background: 'linear-gradient(145deg, #f1eee4 0%, #e8e5dd 30%, #e7eac5 100%)',
-                  border: '1px solid rgba(232, 207, 122, 0.3)',
-                  borderRadius: 'var(--radius, 16px)',
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.6)',
+                  background: t.surface,
+                  border: `1.5px solid ${t.lineStrong}`,
+                  borderRadius: 16,
+                  boxShadow: t.shadowLifted,
                   padding: '16px 16px',
                 }}
               >

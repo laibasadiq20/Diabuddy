@@ -325,16 +325,16 @@ export default function AppSidebar() {
         {user?.role === 'admin' && (
           <button
             type="button"
-            onClick={() => go('/admin/reports')}
+            onClick={() => go('/admin')}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 12,
               padding: '12px 14px',
               borderRadius: 12,
-              border: isActive('/admin/reports') ? '1px solid rgba(194,114,79,0.45)' : '1px solid transparent',
-              background: isActive('/admin/reports') ? 'rgba(194,114,79,0.18)' : 'transparent',
-              color: isActive('/admin/reports') ? '#FFF' : 'rgba(244,240,232,0.78)',
+              border: isActive('/admin') ? '1px solid rgba(194,114,79,0.45)' : '1px solid transparent',
+              background: isActive('/admin') ? 'rgba(194,114,79,0.18)' : 'transparent',
+              color: isActive('/admin') ? '#FFF' : 'rgba(244,240,232,0.78)',
               cursor: 'pointer',
               fontSize: 14,
               fontWeight: 500,
@@ -343,7 +343,7 @@ export default function AppSidebar() {
             }}
           >
             <Shield size={18} />
-            Moderation
+            Admin console
           </button>
         )}
       </nav>

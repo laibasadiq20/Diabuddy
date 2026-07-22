@@ -1,12 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
-import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge } from '../toolboxStyles';
+import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge, disclaimerStyle } from '../toolboxStyles';
 
 /**
- * General guidance zones for fingerstick / CGM readings (mg/dL).
- * Not a diagnosis — fasting vs post-meal targets differ by care plan.
+ * Context-aware educational zones (mg/dL). Not a diagnosis.
  */
-function glucoseZone(mgdl) {
+function glucoseZone(mgdl, context) {
   if (mgdl < 70) {
     return {
       label: 'Low',
@@ -14,35 +13,108 @@ function glucoseZone(mgdl) {
       color: t.skyDeep,
       bg: t.skyTint,
       steps: [
-        'Treat hypoglycemia per your care plan (e.g. 15 g fast carbs).',
-        'Recheck in 15 minutes.',
-        'If severe symptoms or you cannot swallow, seek emergency help.',
+        'Follow your personal hypoglycemia plan from your clinician.',
+        'If you have severe symptoms, cannot swallow, or live alone and feel unsafe — seek emergency help.',
+        'This app does not tell you what to eat or inject.',
       ],
     };
   }
+
+  if (context === 'fasting') {
+    if (mgdl <= 100) {
+      return {
+        label: 'In common fasting band',
+        tone: 'ok',
+        color: t.sageDeep,
+        bg: t.sageTint,
+        steps: [
+          'Many care plans use roughly 70–100 mg/dL fasting — yours may differ.',
+          'Keep logging patterns for clinic visits.',
+          'Do not change meds based on a single reading here.',
+        ],
+      };
+    }
+    if (mgdl <= 130) {
+      return {
+        label: 'Upper fasting range',
+        tone: 'warn',
+        color: t.gold,
+        bg: t.goldTint,
+        steps: [
+          'Some plans allow up to ~130 mg/dL fasting; ask what your target is.',
+          'Note sleep, illness, and med timing for your clinician.',
+          'Avoid self-adjusting insulin from this tool.',
+        ],
+      };
+    }
+    if (mgdl <= 180) {
+      return {
+        label: 'Above usual fasting targets',
+        tone: 'high',
+        color: t.clay,
+        bg: t.clayTint,
+        steps: [
+          'Discuss repeated high fasting readings with your care team.',
+          'Hydrate if that is part of your plan and you can safely drink.',
+          'Seek care sooner if you feel unwell.',
+        ],
+      };
+    }
+  }
+
+  if (context === 'after') {
+    if (mgdl <= 140) {
+      return {
+        label: 'In common post-meal band',
+        tone: 'ok',
+        color: t.sageDeep,
+        bg: t.sageTint,
+        steps: [
+          'Many plans aim under ~140–180 mg/dL 1–2 h after meals — confirm yours.',
+          'Log food timing if you track patterns.',
+          'Do not change treatment from this screen alone.',
+        ],
+      };
+    }
+    if (mgdl <= 180) {
+      return {
+        label: 'Upper post-meal range',
+        tone: 'warn',
+        color: t.gold,
+        bg: t.goldTint,
+        steps: [
+          'Often discussed as an upper common target after meals — your plan may differ.',
+          'Note carbs and activity for your clinician.',
+          'Use only corrections your clinician prescribed.',
+        ],
+      };
+    }
+  }
+
+  // random / shared high bands
   if (mgdl <= 140) {
     return {
-      label: 'Normal',
+      label: 'Common general band',
       tone: 'ok',
       color: t.sageDeep,
       bg: t.sageTint,
       steps: [
-        'Reading is in a commonly accepted target band.',
-        'Continue your usual food, meds, and activity plan.',
-        'Log the reading if you track patterns for clinic visits.',
+        'Context matters (fasting vs after meals). Pick the matching option above.',
+        'Your clinician’s targets override this educational chart.',
+        'Log the reading if you track patterns.',
       ],
     };
   }
   if (mgdl <= 180) {
     return {
-      label: 'Slightly high',
+      label: 'Slightly elevated (general)',
       tone: 'warn',
       color: t.gold,
       bg: t.goldTint,
       steps: [
-        'Often seen after meals — note what you ate and timing.',
-        'Drink water; light walking can help if safe for you.',
-        'Follow any correction plan your clinician gave you.',
+        'May be expected after meals depending on your plan.',
+        'Share trends with your care team — not a one-off panic.',
+        'Do not invent a correction dose here.',
       ],
     };
   }
@@ -53,9 +125,9 @@ function glucoseZone(mgdl) {
       color: t.clay,
       bg: t.clayTint,
       steps: [
-        'Check for ketones if your care plan says to (especially type 1).',
-        'Hydrate and follow your high-glucose action plan.',
+        'Follow the high-glucose / ketone plan your clinician gave you.',
         'Contact your care team if readings stay high or you feel unwell.',
+        'This tool will not tell you to take insulin or check ketones on its own.',
       ],
     };
   }
@@ -65,9 +137,9 @@ function glucoseZone(mgdl) {
     color: '#B91C1C',
     bg: '#FEF2F2',
     steps: [
-      'Follow your sick-day / hyperglycemia plan immediately.',
-      'Watch for nausea, vomiting, confusion, or breathing changes.',
-      'Seek urgent medical care if symptoms are severe or you cannot keep fluids down.',
+      'Use your sick-day / hyperglycemia plan from your clinician immediately.',
+      'If you have severe symptoms (confusion, vomiting you cannot stop, breathing changes), seek urgent medical care.',
+      'DiaBuddy does not provide emergency triage.',
     ],
   };
 }
@@ -79,13 +151,17 @@ export default function GlucoseZoneTool() {
   const zone = useMemo(() => {
     const v = parseFloat(reading);
     if (!v || v < 20 || v > 600) return null;
-    return { value: v, ...glucoseZone(v) };
-  }, [reading]);
+    return { value: v, ...glucoseZone(v, context) };
+  }, [reading, context]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={disclaimerStyle}>
+        Educational zones only — not a diagnosis or treatment plan. Your clinician’s targets and action plans always come first.
+      </div>
+
       <p style={{ margin: 0, fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-        Enter a glucose reading to see a simple zone and suggested next steps. Your personal targets from your clinician always come first.
+        Enter a reading and context. Suggested “next steps” are general safety reminders, not personalized medical orders.
       </p>
 
       <div className="db-tool-grid-2">
@@ -117,36 +193,25 @@ export default function GlucoseZoneTool() {
           </div>
 
           <p style={{ margin: '12px 0 6px', fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Suggested next steps
+            General reminders
           </p>
           <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {zone.steps.map((step) => (
               <li key={step} style={{ fontSize: 13, color: t.inkSoft, lineHeight: 1.45 }}>{step}</li>
             ))}
           </ul>
-
-          {context === 'fasting' && zone.value > 130 && zone.value <= 180 && (
-            <p style={{ margin: '12px 0 0', fontSize: 12, color: t.inkFaint, lineHeight: 1.45 }}>
-              Note: Many fasting targets are closer to 80–130 mg/dL. Ask your clinician what applies to you.
-            </p>
-          )}
-          {context === 'after' && zone.value <= 180 && zone.value > 140 && (
-            <p style={{ margin: '12px 0 0', fontSize: 12, color: t.inkFaint, lineHeight: 1.45 }}>
-              Note: Under 180 mg/dL after meals is a common ADA-style target — your plan may differ.
-            </p>
-          )}
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, fontSize: 11, textAlign: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, fontSize: 11 }}>
         {[
-          { l: 'Low', r: '<70', c: t.skyDeep },
-          { l: 'Normal', r: '70–140', c: t.sageDeep },
-          { l: 'Slight', r: '141–180', c: t.gold },
-          { l: 'High', r: '>180', c: t.clay },
+          { l: 'Fasting (common)', r: '~70–100 / up to ~130' },
+          { l: 'After meal (common)', r: 'often under 140–180' },
+          { l: 'Low alert', r: 'under 70 — use your hypo plan' },
+          { l: 'Very high', r: 'over 250 — use your sick-day plan' },
         ].map((z) => (
-          <div key={z.l} style={{ padding: '8px 4px', borderRadius: 10, background: t.surfaceSunken, border: `1px solid ${t.line}` }}>
-            <div style={{ fontWeight: 700, color: z.c }}>{z.l}</div>
+          <div key={z.l} style={{ padding: '8px 10px', borderRadius: 10, background: t.surfaceSunken, border: `1px solid ${t.line}` }}>
+            <div style={{ fontWeight: 700, color: t.inkSoft }}>{z.l}</div>
             <div style={{ color: t.inkFaint, marginTop: 2 }}>{z.r}</div>
           </div>
         ))}

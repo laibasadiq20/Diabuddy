@@ -2,6 +2,13 @@ const express = require('express');
 const router = express.Router();
 const { protect, adminOnly } = require('../middleware/auth');
 const moderationController = require('../controllers/moderationController.js');
+const adminController = require('../controllers/adminController.js');
+
+router.get('/stats', protect, adminOnly, adminController.getStats);
+router.get('/users', protect, adminOnly, adminController.listUsers);
+router.put('/users/:id', protect, adminOnly, adminController.updateUser);
+router.delete('/users/:id', protect, adminOnly, adminController.deleteUser);
+router.put('/posts/:id', protect, adminOnly, adminController.moderatePost);
 
 router.get('/reports', protect, adminOnly, moderationController.getReportQueue);
 router.put('/reports/:id', protect, adminOnly, moderationController.resolveReport);
