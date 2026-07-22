@@ -23,15 +23,21 @@ const Navbar = () => {
     { label: 'Blog', path: '/learn/blog' },
   ];
 
-  const profileLinks = [
-    { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Community', path: '/community' },
-    { label: 'Messages', path: '/messages' },
-    { label: 'Account', path: '/account' },
-    ...(user?.role === 'admin'
-      ? [{ label: 'Admin console', path: '/admin' }]
-      : []),
-  ];
+  const profileLinks = user?.role === 'admin'
+    ? [
+        { label: 'Admin console', path: '/admin' },
+        { label: 'Users', path: '/admin?tab=users' },
+        { label: 'Reports', path: '/admin?tab=reports' },
+        { label: 'Topics', path: '/admin?tab=topics' },
+        { label: 'View community', path: '/community' },
+        { label: 'Account', path: '/account' },
+      ]
+    : [
+        { label: 'Dashboard', path: '/dashboard' },
+        { label: 'Community', path: '/community' },
+        { label: 'Messages', path: '/messages' },
+        { label: 'Account', path: '/account' },
+      ];
 
   const scrollToSection = (id) => {
     if (id === 'community' && user) {

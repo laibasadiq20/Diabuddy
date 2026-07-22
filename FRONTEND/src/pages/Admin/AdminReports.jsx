@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
@@ -20,26 +20,52 @@ import {
   BadgeCheck,
   Ban,
   UserCog,
+  FolderKanban,
+  Plus,
 } from 'lucide-react';
 
 const t = theme;
+
+const VALID_TABS = ['overview', 'users', 'reports', 'topics'];
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'reports', label: 'Reports', icon: Shield },
+  { id: 'topics', label: 'Topics', icon: FolderKanban },
 ];
+
+function slugify(text) {
+  return String(text || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 export default function AdminReports() {
   const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const rawTab = searchParams.get('tab') || 'overview';
+  const tab = VALID_TABS.includes(rawTab) ? rawTab : 'overview';
+
+  const setTab = (id) => {
+    if (id === 'overview') setSearchParams({});
+    else setSearchParams({ tab: id });
+  };
 
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [userSearch, setUserSearch] = useState('');
   const [userStatus, setUserStatus] = useState('');
   const [reports, setReports] = useState([]);
+  const [topics, setTopics] = useState([]);
+  const [topicForm, setTopicForm] = useState({ name: '', slug: '', description: '' });
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [creatingTopic, setCreatingTopic] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState(null);
   const [error, setError] = useState('');
@@ -87,23 +113,40 @@ export default function AdminReports() {
     setReports(Array.isArray(data) ? data : data.data || []);
   }, [headers]);
 
+  const fetchTopics = useCallback(async () => {
+    const res = await fetch(`${API_URL}/topics`, {
+      credentials: 'include',
+      headers: headers(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to fetch topics');
+    setTopics(Array.isArray(data) ? data : data.data || []);
+  }, [headers]);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       if (tab === 'overview') await fetchStats();
       else if (tab === 'users') await fetchUsers();
-      else await fetchQueue();
+      else if (tab === 'reports') await fetchQueue();
+      else if (tab === 'topics') await fetchTopics();
     } catch (err) {
       setError(err.message || 'Load failed');
     } finally {
       setLoading(false);
     }
-  }, [tab, fetchStats, fetchUsers, fetchQueue]);
+  }, [tab, fetchStats, fetchUsers, fetchQueue, fetchTopics]);
 
   useEffect(() => {
     if (user?.role === 'admin') refresh();
   }, [user, refresh]);
+
+  useEffect(() => {
+    if (user?.role === 'admin' && !stats) {
+      fetchStats().catch(() => {});
+    }
+  }, [user, stats, fetchStats]);
 
   const handleResolveReport = async (reportId, actionType) => {
     if (!window.confirm(`Perform action: "${actionType}"?`)) return;
@@ -118,6 +161,7 @@ export default function AdminReports() {
       if (res.ok) {
         setReports((prev) => prev.filter((r) => r._id !== reportId));
         if (actionType === 'ban_user') await fetchUsers().catch(() => {});
+        if (stats) setStats((s) => s && { ...s, reports: { ...s.reports, pending: Math.max(0, (s.reports?.pending || 1) - 1) } });
       } else {
         const data = await res.json();
         alert(data.message || 'Resolution failed.');
@@ -178,12 +222,93 @@ export default function AdminReports() {
     }
   };
 
+  const handleTopicNameChange = (name) => {
+    setTopicForm((prev) => ({
+      ...prev,
+      name,
+      slug: slugTouched ? prev.slug : slugify(name),
+    }));
+  };
+
+  const handleCreateTopic = async (e) => {
+    e.preventDefault();
+    const name = topicForm.name.trim();
+    const slug = (topicForm.slug || slugify(name)).trim();
+    if (!name || !slug) {
+      alert('Name and slug are required.');
+      return;
+    }
+    setCreatingTopic(true);
+    try {
+      const res = await fetch(`${API_URL}/topics`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: headers(),
+        body: JSON.stringify({
+          name,
+          slug,
+          description: topicForm.description.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || 'Failed to create topic');
+        return;
+      }
+      setTopicForm({ name: '', slug: '', description: '' });
+      setSlugTouched(false);
+      await fetchTopics();
+    } catch {
+      alert('Connection error creating topic.');
+    } finally {
+      setCreatingTopic(false);
+    }
+  };
+
+  const deleteTopic = async (id, name, postsCount) => {
+    if (postsCount > 0) {
+      alert('Cannot delete a topic that still has posts. Move or remove posts first.');
+      return;
+    }
+    if (!window.confirm(`Delete topic "${name}"? This cannot be undone.`)) return;
+    setActioningId(id);
+    try {
+      const res = await fetch(`${API_URL}/topics/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: headers(),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || 'Delete failed');
+        return;
+      }
+      setTopics((prev) => prev.filter((topic) => topic._id !== id));
+    } catch {
+      alert('Connection error deleting topic.');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
   const card = {
     background: t.surface,
     border: `1.5px solid ${t.line}`,
     borderRadius: 16,
     padding: 20,
     boxShadow: t.shadowCard,
+  };
+
+  const inputStyle = {
+    padding: '10px 14px',
+    borderRadius: 10,
+    border: `1.5px solid ${t.line}`,
+    background: '#FFF',
+    fontFamily: t.fontBody,
+    fontSize: 14,
+    color: t.ink,
+    width: '100%',
+    boxSizing: 'border-box',
   };
 
   return (
@@ -200,29 +325,52 @@ export default function AdminReports() {
                 <Shield size={28} color={t.clayDeep} /> Site console
               </h1>
               <p style={{ margin: '8px 0 0', color: t.inkSoft, fontSize: 14 }}>
-                Manage users, reports, and platform health.
+                Manage users, reports, topics, and platform health.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={refresh}
-              style={{
-                background: t.surface,
-                border: `1.5px solid ${t.line}`,
-                borderRadius: 10,
-                padding: '8px 16px',
-                fontSize: 13,
-                fontWeight: 600,
-                color: t.inkSoft,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontFamily: t.fontBody,
-              }}
-            >
-              <RefreshCw size={14} /> Refresh
-            </button>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => navigate('/community')}
+                style={{
+                  background: t.surfaceSunken,
+                  border: `1.5px solid ${t.line}`,
+                  borderRadius: 10,
+                  padding: '8px 16px',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontStyle: 'italic',
+                  color: t.inkFaint,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontFamily: t.fontBody,
+                }}
+              >
+                <MessageSquare size={14} /> View community
+              </button>
+              <button
+                type="button"
+                onClick={refresh}
+                style={{
+                  background: t.surface,
+                  border: `1.5px solid ${t.line}`,
+                  borderRadius: 10,
+                  padding: '8px 16px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: t.inkSoft,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontFamily: t.fontBody,
+                }}
+              >
+                <RefreshCw size={14} /> Refresh
+              </button>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
@@ -316,16 +464,7 @@ export default function AdminReports() {
                   onChange={(e) => setUserSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
                   placeholder="Search name, username, email"
-                  style={{
-                    flex: 1,
-                    minWidth: 200,
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    border: `1.5px solid ${t.line}`,
-                    background: '#FFF',
-                    fontFamily: t.fontBody,
-                    fontSize: 14,
-                  }}
+                  style={{ ...inputStyle, flex: 1, minWidth: 200, width: 'auto' }}
                 />
                 <select
                   value={userStatus}
@@ -418,60 +557,177 @@ export default function AdminReports() {
                 ))
               )}
             </div>
-          ) : (
-            /* Reports tab */
-            reports.length === 0 ? (
-              <div style={{ ...card, padding: '60px 24px', textAlign: 'center' }}>
-                <Check size={48} color={t.sage} style={{ margin: '0 auto 16px' }} />
-                <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: '0 0 8px', color: t.ink }}>Clean slate</h3>
-                <p style={{ color: t.inkSoft, fontSize: 14, margin: 0 }}>No pending reports.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {reports.map((report) => (
-                  <div key={report._id} style={{ ...card, opacity: actioningId === report._id ? 0.6 : 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: t.clayDeep, background: t.clayTint, padding: '4px 10px', borderRadius: 6, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <AlertTriangle size={12} /> {report.reason}
-                      </span>
-                      <span style={{ fontSize: 12, color: t.inkFaint }}>
-                        by {report.reporterId?.name || 'Anonymous'} · {new Date(report.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: 14, color: t.ink, margin: '0 0 12px', lineHeight: 1.5, background: t.bg, padding: '12px 16px', borderRadius: 8 }}>
-                      {report.description || 'No additional explanation.'}
-                    </p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.surfaceSunken, padding: '12px 16px', borderRadius: 10, marginBottom: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {report.targetType === 'ForumPost' ? <FileText size={18} color={t.skyDeep} /> : <MessageSquare size={18} color={t.sageDeep} />}
-                        <span style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>
-                          {report.targetType === 'ForumPost' ? 'Post' : 'Comment'} · {String(report.targetId).slice(-8)}
-                        </span>
+          ) : tab === 'topics' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <form onSubmit={handleCreateTopic} style={card}>
+                <h3 style={{ margin: '0 0 16px', fontFamily: t.fontDisplay, fontSize: 18, color: t.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Plus size={18} color={t.forest} /> New topic
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label htmlFor="topic-name" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Name
+                    </label>
+                    <input
+                      id="topic-name"
+                      value={topicForm.name}
+                      onChange={(e) => handleTopicNameChange(e.target.value)}
+                      placeholder="e.g. Type 1 Life"
+                      maxLength={50}
+                      style={inputStyle}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="topic-slug" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Slug
+                    </label>
+                    <input
+                      id="topic-slug"
+                      value={topicForm.slug}
+                      onChange={(e) => {
+                        setSlugTouched(true);
+                        setTopicForm((prev) => ({ ...prev, slug: e.target.value }));
+                      }}
+                      placeholder="type-1-life"
+                      style={inputStyle}
+                      required
+                    />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label htmlFor="topic-desc" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Description
+                  </label>
+                  <textarea
+                    id="topic-desc"
+                    value={topicForm.description}
+                    onChange={(e) => setTopicForm((prev) => ({ ...prev, description: e.target.value }))}
+                    placeholder="Short description shown in the community feed"
+                    maxLength={300}
+                    rows={3}
+                    style={{ ...inputStyle, resize: 'vertical', minHeight: 72 }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={creatingTopic}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: t.forest,
+                    color: '#FFF',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: creatingTopic ? 'not-allowed' : 'pointer',
+                    opacity: creatingTopic ? 0.7 : 1,
+                    fontFamily: t.fontBody,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Plus size={14} /> {creatingTopic ? 'Creating…' : 'Create topic'}
+                </button>
+              </form>
+
+              {topics.length === 0 ? (
+                <div style={{ ...card, textAlign: 'center', padding: 40, color: t.inkSoft }}>
+                  <FolderKanban size={40} color={t.inkFaint} style={{ margin: '0 auto 12px' }} />
+                  <p style={{ margin: 0, fontSize: 14 }}>No topics yet. Create one above.</p>
+                </div>
+              ) : (
+                topics.map((topic) => (
+                  <div key={topic._id} style={{ ...card, opacity: actioningId === topic._id ? 0.6 : 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontWeight: 700, color: t.ink, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <FolderKanban size={16} color={topic.color || t.sageDeep} />
+                          {topic.name}
+                          <span style={{ fontSize: 12, color: t.inkFaint, fontWeight: 500 }}>/{topic.slug}</span>
+                        </p>
+                        {topic.description && (
+                          <p style={{ margin: '8px 0 0', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>{topic.description}</p>
+                        )}
+                        <p style={{ margin: '8px 0 0', fontSize: 12, color: t.inkFaint }}>
+                          {topic.postsCount || 0} posts · created {new Date(topic.createdAt).toLocaleDateString()}
+                        </p>
                       </div>
-                      {report.targetType === 'ForumPost' && (
-                        <button type="button" onClick={() => navigate(`/community/posts/${report.targetId}`)} style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-                          View <ExternalLink size={12} />
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/community?topic=${topic.slug}`)}
+                          style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: t.fontBody }}
+                        >
+                          View in feed <ExternalLink size={12} />
                         </button>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap', borderTop: `1px solid ${t.line}`, paddingTop: 12 }}>
-                      <ActionBtn color={t.sageDeep} bg={t.sageSoft} border={`${t.sage}40`} onClick={() => handleResolveReport(report._id, 'dismiss')} disabled={!!actioningId}>
-                        <Check size={14} /> Dismiss
-                      </ActionBtn>
-                      <ActionBtn color={t.gold} bg={t.goldSoft} border={`${t.gold}30`} onClick={() => handleResolveReport(report._id, 'hide_content')} disabled={!!actioningId}>
-                        <EyeOff size={14} /> Hide
-                      </ActionBtn>
-                      <ActionBtn color={t.clayDeep} bg={t.claySoft} border={`${t.clay}30`} onClick={() => handleResolveReport(report._id, 'delete_content')} disabled={!!actioningId}>
-                        <Trash2 size={14} /> Soft delete
-                      </ActionBtn>
-                      <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => handleResolveReport(report._id, 'ban_user')} disabled={!!actioningId}>
-                        <UserX size={14} /> Ban author
-                      </ActionBtn>
+                        <ActionBtn
+                          color="#D32F2F"
+                          bg="#FFECEC"
+                          border="#FFCDD2"
+                          onClick={() => deleteTopic(topic._id, topic.name, topic.postsCount || 0)}
+                          disabled={!!actioningId || (topic.postsCount || 0) > 0}
+                        >
+                          <Trash2 size={14} /> Delete
+                        </ActionBtn>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )
+                ))
+              )}
+            </div>
+          ) : reports.length === 0 ? (
+            <div style={{ ...card, padding: '60px 24px', textAlign: 'center' }}>
+              <Check size={48} color={t.sage} style={{ margin: '0 auto 16px' }} />
+              <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: '0 0 8px', color: t.ink }}>Clean slate</h3>
+              <p style={{ color: t.inkSoft, fontSize: 14, margin: 0 }}>No pending reports.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {reports.map((report) => (
+                <div key={report._id} style={{ ...card, opacity: actioningId === report._id ? 0.6 : 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: t.clayDeep, background: t.clayTint, padding: '4px 10px', borderRadius: 6, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <AlertTriangle size={12} /> {report.reason}
+                    </span>
+                    <span style={{ fontSize: 12, color: t.inkFaint }}>
+                      by {report.reporterId?.name || 'Anonymous'} · {new Date(report.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 14, color: t.ink, margin: '0 0 12px', lineHeight: 1.5, background: t.bg, padding: '12px 16px', borderRadius: 8 }}>
+                    {report.description || 'No additional explanation.'}
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.surfaceSunken, padding: '12px 16px', borderRadius: 10, marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {report.targetType === 'ForumPost' ? <FileText size={18} color={t.skyDeep} /> : <MessageSquare size={18} color={t.sageDeep} />}
+                      <span style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>
+                        {report.targetType === 'ForumPost' ? 'Post' : 'Comment'} · {String(report.targetId).slice(-8)}
+                      </span>
+                    </div>
+                    {report.targetType === 'ForumPost' && (
+                      <button type="button" onClick={() => navigate(`/community/posts/${report.targetId}`)} style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+                        View <ExternalLink size={12} />
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap', borderTop: `1px solid ${t.line}`, paddingTop: 12 }}>
+                    <ActionBtn color={t.sageDeep} bg={t.sageSoft} border={`${t.sage}40`} onClick={() => handleResolveReport(report._id, 'dismiss')} disabled={!!actioningId}>
+                      <Check size={14} /> Dismiss
+                    </ActionBtn>
+                    <ActionBtn color={t.gold} bg={t.goldSoft} border={`${t.gold}30`} onClick={() => handleResolveReport(report._id, 'hide_content')} disabled={!!actioningId}>
+                      <EyeOff size={14} /> Hide
+                    </ActionBtn>
+                    <ActionBtn color={t.clayDeep} bg={t.claySoft} border={`${t.clay}30`} onClick={() => handleResolveReport(report._id, 'delete_content')} disabled={!!actioningId}>
+                      <Trash2 size={14} /> Soft delete
+                    </ActionBtn>
+                    <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => handleResolveReport(report._id, 'ban_user')} disabled={!!actioningId}>
+                      <UserX size={14} /> Ban author
+                    </ActionBtn>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </main>

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import ScrollToTop from './components/ScrollToTop';
 
@@ -31,6 +31,7 @@ import Reminders from './pages/Reminders/Reminders';
 // ProtectedRoute wrapper to guard private paths
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   
   if (loading) {
     return (
@@ -46,6 +47,15 @@ function ProtectedRoute({ children, adminOnly = false }) {
   
   if (adminOnly && user.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Admins belong in the console, not the patient dashboard / health modules
+  if (
+    user.role === 'admin' &&
+    !adminOnly &&
+    ['/dashboard', '/logs', '/fitbit', '/reminders', '/toolbox'].includes(location.pathname)
+  ) {
+    return <Navigate to="/admin" replace />;
   }
   
   return children;

@@ -4,6 +4,7 @@ import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff, HeartPulse } from 'luci
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
+import { homePathFor } from '../../utils/homePath';
 
 const t = theme;
 
@@ -39,7 +40,7 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    if (!authLoading && user) navigate('/dashboard', { replace: true });
+    if (!authLoading && user) navigate(homePathFor(user), { replace: true });
   }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e) => {

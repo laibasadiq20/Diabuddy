@@ -33,11 +33,28 @@ const navItems = [
   { label: 'My Account', path: '/account', icon: UserRound },
 ];
 
+const adminNavItems = [
+  { label: 'Overview', path: '/admin', icon: Shield, tab: 'overview' },
+  { label: 'Users', path: '/admin?tab=users', icon: Users, tab: 'users' },
+  { label: 'Reports', path: '/admin?tab=reports', icon: BellRing, tab: 'reports' },
+  { label: 'Topics', path: '/admin?tab=topics', icon: ClipboardList, tab: 'topics' },
+  { label: 'View community', path: '/community', icon: MessageSquare, soft: true },
+  { label: 'Account', path: '/account', icon: UserRound },
+];
+
 const bottomTabs = [
   { label: 'Home', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Community', path: '/community', icon: Users },
   { label: 'Tools', path: '/toolbox', icon: Wrench },
   { label: 'Reminders', path: '/reminders', icon: Bell },
+  { label: 'Account', path: '/account', icon: UserRound },
+];
+
+const adminBottomTabs = [
+  { label: 'Home', path: '/admin', icon: Shield },
+  { label: 'Users', path: '/admin?tab=users', icon: Users },
+  { label: 'Reports', path: '/admin?tab=reports', icon: BellRing },
+  { label: 'Community', path: '/community', icon: MessageSquare },
   { label: 'Account', path: '/account', icon: UserRound },
 ];
 
@@ -50,8 +67,20 @@ export default function AppSidebar() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const isActive = (path) =>
-    location.pathname === path || location.pathname.startsWith(`${path}/`);
+  const isAdmin = user?.role === 'admin';
+  const items = isAdmin ? adminNavItems : navItems;
+  const tabs = isAdmin ? adminBottomTabs : bottomTabs;
+  const homePath = isAdmin ? '/admin' : '/dashboard';
+
+  const adminTab = new URLSearchParams(location.search).get('tab') || 'overview';
+
+  const isActive = (path, tab) => {
+    if (path.startsWith('/admin')) {
+      if (!location.pathname.startsWith('/admin')) return false;
+      return adminTab === (tab || 'overview');
+    }
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
 
   const go = (path) => {
     navigate(path);
@@ -243,7 +272,7 @@ export default function AppSidebar() {
       <div style={{ padding: '28px 22px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <button
           type="button"
-          onClick={() => go('/')}
+          onClick={() => go(homePath)}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -274,7 +303,7 @@ export default function AppSidebar() {
               Diabuddy
             </p>
             <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(244,240,232,0.55)' }}>
-              Your care companion
+              {isAdmin ? 'Admin console' : 'Your care companion'}
             </p>
           </div>
         </button>
@@ -291,13 +320,13 @@ export default function AppSidebar() {
             color: 'rgba(244,240,232,0.4)',
           }}
         >
-          Navigate
+          {isAdmin ? 'Admin' : 'Navigate'}
         </p>
-        {navItems.map(({ label, path, icon: Icon }) => {
-          const active = isActive(path);
+        {items.map(({ label, path, icon: Icon, tab, soft }) => {
+          const active = isActive(path, tab);
           return (
             <button
-              key={path}
+              key={`${path}-${label}`}
               type="button"
               onClick={() => go(path)}
               style={{
@@ -307,13 +336,14 @@ export default function AppSidebar() {
                 padding: '12px 14px',
                 borderRadius: 12,
                 border: active ? '1px solid rgba(232,184,154,0.35)' : '1px solid transparent',
-                background: active ? 'rgba(232,184,154,0.14)' : 'transparent',
-                color: active ? '#FFF' : 'rgba(244,240,232,0.78)',
+                background: active ? 'rgba(232,184,154,0.14)' : soft ? 'rgba(255,255,255,0.03)' : 'transparent',
+                color: active ? '#FFF' : soft ? 'rgba(244,240,232,0.58)' : 'rgba(244,240,232,0.78)',
                 cursor: 'pointer',
-                fontSize: 14,
+                fontSize: soft ? 13 : 14,
                 fontWeight: active ? 600 : 500,
                 textAlign: 'left',
                 transition: 'background 0.15s, color 0.15s',
+                fontStyle: soft ? 'italic' : 'normal',
               }}
             >
               <Icon size={18} strokeWidth={active ? 2.25 : 1.75} />
@@ -321,31 +351,6 @@ export default function AppSidebar() {
             </button>
           );
         })}
-
-        {user?.role === 'admin' && (
-          <button
-            type="button"
-            onClick={() => go('/admin')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '12px 14px',
-              borderRadius: 12,
-              border: isActive('/admin') ? '1px solid rgba(194,114,79,0.45)' : '1px solid transparent',
-              background: isActive('/admin') ? 'rgba(194,114,79,0.18)' : 'transparent',
-              color: isActive('/admin') ? '#FFF' : 'rgba(244,240,232,0.78)',
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 500,
-              textAlign: 'left',
-              marginTop: 4,
-            }}
-          >
-            <Shield size={18} />
-            Admin console
-          </button>
-        )}
       </nav>
 
       <div style={{ padding: '16px 14px 22px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
@@ -487,7 +492,7 @@ export default function AppSidebar() {
         </button>
         <button
           type="button"
-          onClick={() => go('/dashboard')}
+          onClick={() => go(homePath)}
           className="db-app-brand"
         >
           Diabuddy
@@ -518,24 +523,27 @@ export default function AppSidebar() {
               />
             )}
           </button>
-          <button
-            type="button"
-            onClick={() => go('/messages')}
-            className={`db-app-icon-btn${isActive('/messages') ? ' is-active' : ''}`}
-            aria-label="Messages"
-          >
-            <MessageSquare size={20} />
-          </button>
+          {!isAdmin && (
+            <button
+              type="button"
+              onClick={() => go('/messages')}
+              className={`db-app-icon-btn${isActive('/messages') ? ' is-active' : ''}`}
+              aria-label="Messages"
+            >
+              <MessageSquare size={20} />
+            </button>
+          )}
           {notifOpen && <NotifPanel />}
         </div>
       </header>
 
       <nav className="db-app-tabs" aria-label="Primary">
-        {bottomTabs.map(({ label, path, icon: Icon }) => {
-          const active = isActive(path);
+        {tabs.map(({ label, path, icon: Icon }) => {
+          const tabKey = path.includes('tab=') ? path.split('tab=')[1] : path.startsWith('/admin') ? 'overview' : undefined;
+          const active = isActive(path, tabKey);
           return (
             <button
-              key={path}
+              key={`${path}-${label}`}
               type="button"
               onClick={() => go(path)}
               className={`db-app-tab${active ? ' is-active' : ''}`}

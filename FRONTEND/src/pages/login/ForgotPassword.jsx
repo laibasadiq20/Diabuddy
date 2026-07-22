@@ -4,6 +4,7 @@ import { Mail, ArrowRight, ArrowLeft, HeartPulse } from 'lucide-react';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
+import { homePathFor } from '../../utils/homePath';
 
 const t = theme;
 
@@ -25,7 +26,7 @@ export default function ForgotPassword() {
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!authLoading && user) navigate('/dashboard', { replace: true });
+    if (!authLoading && user) navigate(homePathFor(user), { replace: true });
   }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e) => {

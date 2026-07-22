@@ -3,6 +3,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { theme } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../config/api';
+import { homePathFor } from '../../utils/homePath';
 
 const t = theme;
 
@@ -79,14 +80,15 @@ export default function LoginFormContent({
         const loggedInUser = data?.data?.user;
         if (loggedInUser) {
           saveSession(null, loggedInUser);
+          navigate(homePathFor(loggedInUser));
         } else {
-          await fetchUser();
+          const me = await fetchUser();
+          navigate(homePathFor(me));
         }
         try {
           localStorage.removeItem('diabuddy_user');
           localStorage.removeItem('token');
         } catch (_) {}
-        navigate('/dashboard');
       } else {
         setError(data.message || 'Login failed. Check your credentials.');
       }

@@ -6,6 +6,7 @@ import RegisterFormContent from '../../components/auth/RegisterFormContent';
 import loginImage from '../../assets/login.png';
 import { useAuth } from '../../context/AuthContext';
 import { theme as t } from '../../theme';
+import { homePathFor } from '../../utils/homePath';
 
 /**
  * Shared auth screen for /login and /register.
@@ -45,7 +46,7 @@ export default function AuthFlipCard({ startFlipped = false }) {
   };
 
   useEffect(() => {
-    if (!loading && user) navigate('/dashboard', { replace: true });
+    if (!loading && user) navigate(homePathFor(user), { replace: true });
   }, [user, loading, navigate]);
 
   useEffect(() => {

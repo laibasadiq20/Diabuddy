@@ -4,6 +4,7 @@ import { CheckCircle, Clock, ArrowRight, HeartPulse, RefreshCw, Mail } from 'luc
 import { theme } from '../../theme';
 import { API_URL } from "../../config/api";
 import { useAuth } from '../../context/AuthContext';
+import { homePathFor } from '../../utils/homePath';
 const t = theme;
 
 export default function VerifyOtp() {
@@ -84,13 +85,14 @@ const payload = {
       const data = await response.json();
       if (response.ok) {
         setSuccess(true);
-        if (data?.data) {
-          saveSession(null, data.data);
+        let nextUser = data?.data || null;
+        if (nextUser) {
+          saveSession(null, nextUser);
         } else {
-          await fetchUser();
+          nextUser = await fetchUser();
         }
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate(homePathFor(nextUser));
         }, 1200);
       } else {
         setError(data.message || 'Incorrect code. Try again.');
