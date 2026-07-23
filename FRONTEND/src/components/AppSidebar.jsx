@@ -19,7 +19,6 @@ import {
   MessageSquare,
   BellRing,
   BadgeCheck,
-  Globe,
 } from 'lucide-react';
 
 const t = theme;
@@ -78,7 +77,6 @@ export default function AppSidebar() {
   const isAdmin = user?.role === 'admin';
   const items = isAdmin ? adminNavItems : navItems;
   const tabs = isAdmin ? adminBottomTabs : bottomTabs;
-  const homePath = isAdmin ? '/admin' : '/dashboard';
 
   const adminTab = new URLSearchParams(location.search).get('tab') || 'overview';
 
@@ -360,7 +358,7 @@ export default function AppSidebar() {
       <div style={{ padding: '28px 22px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <button
           type="button"
-          onClick={() => go(homePath)}
+          onClick={() => go('/')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -516,29 +514,6 @@ export default function AppSidebar() {
 
         <button
           type="button"
-          onClick={() => go('/')}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '11px 12px',
-            borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.06)',
-            color: '#F4F0E8',
-            cursor: 'pointer',
-            fontSize: 13,
-            fontWeight: 600,
-            marginBottom: 10,
-          }}
-        >
-          <Globe size={16} />
-          Website
-        </button>
-
-        <button
-          type="button"
           onClick={() => go('/account')}
           style={{
             width: '100%',
@@ -627,7 +602,7 @@ export default function AppSidebar() {
         </button>
         <button
           type="button"
-          onClick={() => go(homePath)}
+          onClick={() => go('/')}
           className="db-app-brand"
         >
           Diabuddy

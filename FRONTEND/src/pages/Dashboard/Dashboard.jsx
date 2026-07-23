@@ -188,27 +188,6 @@ export default function Dashboard() {
               <p className="db-dash-sub">
                 Your care companion for today — tap a module to jump in.
               </p>
-              <button
-                type="button"
-                onClick={() => navigate('/')}
-                className="db-dash-website"
-                style={{
-                  marginTop: 12,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: 0,
-                  border: 'none',
-                  background: 'none',
-                  color: t.sageDeep,
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  fontFamily: t.fontBody,
-                }}
-              >
-                ← Back to website
-              </button>
             </div>
 
             <button

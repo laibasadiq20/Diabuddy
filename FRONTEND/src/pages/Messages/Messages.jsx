@@ -37,7 +37,7 @@ export default function Messages() {
               activeConvId={m.activeConvId}
               myId={m.myId}
               onSelect={(id) => {
-                m.setActiveConvId(id);
+                m.openChat(id);
                 m.setGroupPanelOpen(false);
               }}
               onOpenNew={() => m.openNewModal('pick')}
@@ -51,7 +51,7 @@ export default function Messages() {
               myId={m.myId}
               chatEndRef={m.chatEndRef}
               chatScrollRef={m.chatScrollRef}
-              onBack={() => m.setActiveConvId(null)}
+              onBack={m.closeChat}
               onOpenGroupPanel={m.openGroupPanel}
               onMessageTextChange={m.setMessageText}
               onSendMessage={m.handleSendMessage}

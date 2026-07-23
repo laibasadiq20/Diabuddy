@@ -35,6 +35,7 @@ export default function useMessages({ user, authHeaders }) {
   const chatScrollRef = useRef(null);
   const shouldStickToBottomRef = useRef(true);
   const messagesFingerprintRef = useRef('');
+  const activeConvIdRef = useRef(null);
   const myId = idOf(user);
 
   const messagesFingerprint = (list) =>
@@ -46,8 +47,34 @@ export default function useMessages({ user, authHeaders }) {
     return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   };
 
+  const isMobileMessages = () =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 860px)').matches;
+
   const scrollToBottom = (smooth = true) => {
-    chatEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    if (!activeConvIdRef.current) return;
+    chatEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+  };
+
+  const closeChat = () => {
+    activeConvIdRef.current = null;
+    setActiveConvId(null);
+    setMessages([]);
+    setGroupPanelOpen(false);
+    if (isMobileMessages() && window.history.state?.diabuddyMsg) {
+      window.history.replaceState({}, '');
+    }
+  };
+
+  const openChat = (id) => {
+    if (!id) {
+      closeChat();
+      return;
+    }
+    activeConvIdRef.current = id;
+    setActiveConvId(id);
+    if (isMobileMessages() && window.history.state?.diabuddyMsg !== id) {
+      window.history.pushState({ diabuddyMsg: id }, '');
+    }
   };
 
   useEffect(() => {
@@ -57,11 +84,27 @@ export default function useMessages({ user, authHeaders }) {
   }, [user]);
 
   useEffect(() => {
+    activeConvIdRef.current = activeConvId;
     document.body.classList.toggle('db-msg-chat-open', Boolean(activeConvId));
     return () => document.body.classList.remove('db-msg-chat-open');
   }, [activeConvId]);
 
-  const fetchConversations = async (autoSelectId = null) => {
+  // Mobile: hardware/browser back returns to conversation list, not out of Messages
+  useEffect(() => {
+    if (!isMobileMessages()) return undefined;
+    const onPopState = () => {
+      if (activeConvIdRef.current) {
+        activeConvIdRef.current = null;
+        setActiveConvId(null);
+        setMessages([]);
+        setGroupPanelOpen(false);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const fetchConversations = async () => {
     try {
       const res = await fetch(`${API_URL}/conversations`, {
         credentials: 'include',
@@ -70,11 +113,12 @@ export default function useMessages({ user, authHeaders }) {
       if (res.ok) {
         const data = await res.json();
         setConversations(data);
-        if (autoSelectId) {
-          setActiveConvId(autoSelectId);
-        } else if (data.length > 0 && !activeConvId) {
+        if (data.length > 0 && !activeConvIdRef.current) {
           const desktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 861px)').matches;
-          if (desktop) setActiveConvId(data[0]._id);
+          if (desktop) {
+            activeConvIdRef.current = data[0]._id;
+            setActiveConvId(data[0]._id);
+          }
         }
       }
     } catch (err) {
@@ -87,26 +131,29 @@ export default function useMessages({ user, authHeaders }) {
   useEffect(() => {
     if (user) {
       const openId = location.state?.conversationId || null;
-      fetchConversations(openId);
+      fetchConversations();
       if (openId) {
+        openChat(openId);
         navigate(location.pathname, { replace: true, state: {} });
       }
     }
   }, [user]);
 
   useEffect(() => {
-    if (!shouldStickToBottomRef.current) return;
+    if (!activeConvId || !shouldStickToBottomRef.current) return;
     scrollToBottom(true);
-  }, [messages]);
+  }, [messages, activeConvId]);
 
   const fetchMessagesSilent = async () => {
-    if (!activeConvId) return;
+    const convId = activeConvIdRef.current;
+    if (!convId) return;
     try {
-      const res = await fetch(`${API_URL}/conversations/${activeConvId}/messages`, {
+      const res = await fetch(`${API_URL}/conversations/${convId}/messages`, {
         credentials: 'include',
         headers: { ...authHeaders() },
       });
       if (res.ok) {
+        if (activeConvIdRef.current !== convId) return;
         const data = await res.json();
         const nextFp = messagesFingerprint(data);
         if (nextFp === messagesFingerprintRef.current) return;
@@ -120,18 +167,20 @@ export default function useMessages({ user, authHeaders }) {
   };
 
   useEffect(() => {
-    if (!activeConvId) return;
+    if (!activeConvId) return undefined;
 
     shouldStickToBottomRef.current = true;
     messagesFingerprintRef.current = '';
+    const convId = activeConvId;
 
     const fetchMessages = async () => {
       setMsgLoading(true);
       try {
-        const res = await fetch(`${API_URL}/conversations/${activeConvId}/messages`, {
+        const res = await fetch(`${API_URL}/conversations/${convId}/messages`, {
           credentials: 'include',
           headers: { ...authHeaders() },
         });
+        if (activeConvIdRef.current !== convId) return;
         if (res.ok) {
           const data = await res.json();
           messagesFingerprintRef.current = messagesFingerprint(data);
@@ -139,17 +188,22 @@ export default function useMessages({ user, authHeaders }) {
           setMessages(data);
         }
 
-        await fetch(`${API_URL}/conversations/${activeConvId}/read`, {
+        await fetch(`${API_URL}/conversations/${convId}/read`, {
           method: 'PUT',
           credentials: 'include',
           headers: { ...authHeaders() },
         });
 
-        fetchConversations(activeConvId);
+        // Refresh list only — do NOT re-select chat (avoids reopen glitch after back)
+        if (activeConvIdRef.current === convId) {
+          fetchConversations();
+        }
       } catch (err) {
         console.error('Error fetching messages:', err);
       } finally {
-        setMsgLoading(false);
+        if (activeConvIdRef.current === convId) {
+          setMsgLoading(false);
+        }
       }
     };
 
@@ -288,7 +342,8 @@ export default function useMessages({ user, authHeaders }) {
       const data = await res.json();
       if (res.ok) {
         resetModal();
-        fetchConversations(data._id);
+        openChat(data._id);
+        fetchConversations();
       } else {
         setModalError(data.message || 'Could not start chat.');
       }
@@ -326,7 +381,8 @@ export default function useMessages({ user, authHeaders }) {
       const data = await res.json();
       if (res.ok) {
         resetModal();
-        fetchConversations(data._id);
+        openChat(data._id);
+        fetchConversations();
       } else {
         setModalError(data.message || 'Failed to create group.');
       }
@@ -414,8 +470,7 @@ export default function useMessages({ user, authHeaders }) {
       if (res.ok) {
         if (data.deleted) {
           setConversations((prev) => prev.filter((c) => c._id !== activeConvId));
-          setActiveConvId(null);
-          setGroupPanelOpen(false);
+          closeChat();
         } else {
           setConversations((prev) => prev.map((c) => (c._id === data._id ? data : c)));
         }
@@ -443,8 +498,7 @@ export default function useMessages({ user, authHeaders }) {
       const data = await res.json();
       if (res.ok) {
         setConversations((prev) => prev.filter((c) => c._id !== activeConvId));
-        setActiveConvId(null);
-        setGroupPanelOpen(false);
+        closeChat();
       } else {
         setGroupError(data.message || 'Could not leave group');
       }
@@ -484,7 +538,8 @@ export default function useMessages({ user, authHeaders }) {
   return {
     conversations,
     activeConvId,
-    setActiveConvId,
+    openChat,
+    closeChat,
     messages,
     convLoading,
     msgLoading,

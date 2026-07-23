@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import {
@@ -91,10 +91,46 @@ const TOOL_VIEWS = {
   calorie: CalorieTool,
 };
 
+const isMobileToolbox = () =>
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 860px)').matches;
+
 export default function Toolbox() {
   const [active, setActive] = useState(null);
+  const activeRef = useRef(null);
   const ActiveView = active ? TOOL_VIEWS[active] : null;
   const meta = TOOLS.find((x) => x.id === active);
+
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+
+  useEffect(() => {
+    if (!isMobileToolbox()) return undefined;
+    const onPopState = () => {
+      if (activeRef.current) {
+        activeRef.current = null;
+        setActive(null);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const openTool = (id) => {
+    activeRef.current = id;
+    setActive(id);
+    if (isMobileToolbox()) {
+      window.history.pushState({ diabuddyTool: id }, '');
+    }
+  };
+
+  const closeTool = () => {
+    activeRef.current = null;
+    setActive(null);
+    if (isMobileToolbox() && window.history.state?.diabuddyTool) {
+      window.history.replaceState({}, '');
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
@@ -120,7 +156,7 @@ export default function Toolbox() {
                   <button
                     key={id}
                     type="button"
-                    onClick={() => setActive(id)}
+                    onClick={() => openTool(id)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -172,7 +208,7 @@ export default function Toolbox() {
             <>
               <button
                 type="button"
-                onClick={() => setActive(null)}
+                onClick={closeTool}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
