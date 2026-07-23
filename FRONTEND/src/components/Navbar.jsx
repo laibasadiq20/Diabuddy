@@ -173,22 +173,13 @@ const Navbar = () => {
           {/* Right: auth + hamburger (opens right drawer) */}
           <div className="flex items-center gap-2 sm:gap-3">
             {!user ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigate('/login')}
-                  className="hidden text-sm font-medium text-[#5C524B] transition hover:text-black md:inline-flex"
-                >
-                  Sign in
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/register')}
-                  className="rounded-full bg-[#27392E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a2820]"
-                >
-                  Sign up
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="hidden rounded-full bg-[#27392E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a2820] md:inline-flex"
+              >
+                Sign in
+              </button>
             ) : (
               <button
                 type="button"

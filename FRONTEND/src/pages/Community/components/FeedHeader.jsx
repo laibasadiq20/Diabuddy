@@ -1,7 +1,7 @@
 import React from 'react';
-import { MessageSquare, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 
-export default function FeedHeader({ onMessages, onNewPost }) {
+export default function FeedHeader({ onNewPost }) {
   return (
     <div className="db-community-header">
       <div style={{ minWidth: 0, flex: 1 }}>
@@ -12,14 +12,6 @@ export default function FeedHeader({ onMessages, onNewPost }) {
         </p>
       </div>
       <div className="db-community-actions">
-        <button
-          type="button"
-          className="db-community-cta db-community-cta--ghost"
-          onClick={onMessages}
-        >
-          <MessageSquare size={16} />
-          <span>Messages</span>
-        </button>
         <button type="button" className="db-community-cta" onClick={onNewPost}>
           <PlusCircle size={16} />
           <span>New post</span>

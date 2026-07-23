@@ -108,9 +108,9 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-14 flex flex-col justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row">
-          <p>© {new Date().getFullYear()} Diabuddy. Made quietly, in good company.</p>
-          <p style={{ maxWidth: 420, textAlign: 'right' }}>
+        <div className="mt-14 flex flex-col justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row sm:items-start">
+          <p className="leading-relaxed">© {new Date().getFullYear()} Diabuddy. Made quietly, in good company.</p>
+          <p className="max-w-[420px] text-left leading-relaxed sm:text-right">
             Educational companion only — not medical advice, diagnosis, or emergency care.
             Always follow your clinician. Community posts are peer experiences, not prescriptions.
           </p>

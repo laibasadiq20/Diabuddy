@@ -13,7 +13,6 @@ import { theme } from '../../../theme';
 import {
   idOf,
   getChatPartnerName,
-  getChatPartnerOnlineStatus,
   isMessageReadByOthers,
 } from './messageHelpers';
 import { ConversationAvatar } from './ConversationList';
@@ -27,6 +26,7 @@ export default function ChatThread({
   messageText,
   myId,
   chatEndRef,
+  chatScrollRef,
   onBack,
   onOpenGroupPanel,
   onMessageTextChange,
@@ -114,13 +114,9 @@ export default function ChatThread({
               {getChatPartnerName(activeConv, myId)}
             </h3>
 
-            {activeConv.isGroup ? (
+            {activeConv.isGroup && (
               <p style={{ fontSize: '10px', color: t.inkFaint, margin: 0, fontWeight: 600 }}>
                 {activeConv.members?.length || 0} members
-              </p>
-            ) : (
-              <p style={{ fontSize: '10px', color: getChatPartnerOnlineStatus(activeConv, myId) ? '#22C55E' : t.inkFaint, margin: 0, fontWeight: '600' }}>
-                {getChatPartnerOnlineStatus(activeConv, myId) ? 'Online' : 'Offline'}
               </p>
             )}
           </div>
@@ -150,7 +146,10 @@ export default function ChatThread({
         )}
       </div>
 
-      <div style={{ flexGrow: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div
+        ref={chatScrollRef}
+        style={{ flexGrow: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}
+      >
         {msgLoading && messages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: t.inkSoft }}><RefreshCw className="animate-spin" size={24} style={{ margin: '0 auto' }} /></div>
         ) : (

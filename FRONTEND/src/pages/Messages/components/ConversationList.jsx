@@ -5,7 +5,6 @@ import {
   idOf,
   getChatPartner,
   getChatPartnerName,
-  getChatPartnerOnlineStatus,
 } from './messageHelpers';
 
 const t = theme;
@@ -85,7 +84,6 @@ export default function ConversationList({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {conversations.map((conv) => {
               const active = conv._id === activeConvId;
-              const partnerOnline = getChatPartnerOnlineStatus(conv, myId);
               const isUnread =
                 conv.lastMessage &&
                 idOf(conv.lastMessage.senderId) !== myId &&
@@ -126,19 +124,6 @@ export default function ConversationList({
                     }}>
                       <ConversationAvatar conv={conv} myId={myId} />
                     </div>
-
-                    {partnerOnline && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        right: 0,
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '50%',
-                        background: '#22C55E',
-                        border: `2px solid #FFFFFF`
-                      }} />
-                    )}
                   </div>
 
                   <div style={{ flexGrow: 1, minWidth: 0 }}>

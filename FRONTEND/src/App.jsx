@@ -21,6 +21,7 @@ import PostDetails from './pages/Community/PostDetails';
 import NewPost from './pages/Community/NewPost';
 import UserProfile from './pages/Community/UserProfile';
 import Messages from './pages/Messages/Messages';
+import Notifications from './pages/Notifications/Notifications';
 import Account from './pages/Account/Account';
 import AdminReports from './pages/Admin/AdminReports';
 import Toolbox from './pages/Toolbox/Toolbox';
@@ -84,6 +85,7 @@ function App() {
         <Route path="/community/posts/:id" element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
         <Route path="/users/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         <Route path="/toolbox" element={<ProtectedRoute><Toolbox /></ProtectedRoute>} />
         <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
         <Route path="/fitbit" element={<ProtectedRoute><Fitbit /></ProtectedRoute>} />

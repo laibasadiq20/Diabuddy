@@ -19,6 +19,7 @@ import {
   MessageSquare,
   BellRing,
   BadgeCheck,
+  Globe,
 } from 'lucide-react';
 
 const t = theme;
@@ -67,10 +68,11 @@ export default function AppSidebar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  /** Where the panel is anchored: sidebar (desktop) or topbar (mobile). Avoids duplicate panels. */
+  /** Mobile sheet only — desktop uses /notifications page */
   const [notifAnchor, setNotifAnchor] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const notifWrapRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
@@ -88,12 +90,23 @@ export default function AppSidebar() {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
+  const isDesktopNotifs = () =>
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches;
+
   const closeNotifs = () => {
     setNotifOpen(false);
     setNotifAnchor(null);
   };
 
-  const toggleNotifs = (anchor) => {
+  const openNotifsOrPage = (anchor) => {
+    if (isAdmin) {
+      go('/admin?tab=notifications');
+      return;
+    }
+    if (isDesktopNotifs()) {
+      go('/notifications');
+      return;
+    }
     if (notifOpen && notifAnchor === anchor) {
       closeNotifs();
       return;
@@ -126,6 +139,30 @@ export default function AppSidebar() {
     }
   };
 
+  const loadUnreadMessages = async () => {
+    if (!user || isAdmin) return;
+    try {
+      const res = await fetch(`${API_URL}/conversations`, {
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const myId = String(user._id || user.id || '');
+        const count = (data || []).filter((conv) => {
+          const last = conv.lastMessage;
+          if (!last) return false;
+          const senderId = String(last.senderId?._id || last.senderId || '');
+          if (senderId === myId) return false;
+          return !(last.readBy || []).some((r) => String(r?._id || r) === myId);
+        }).length;
+        setUnreadMsgCount(count);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     document.body.classList.add('db-app-active');
     const onMessages = location.pathname.startsWith('/messages');
@@ -138,7 +175,11 @@ export default function AppSidebar() {
   useEffect(() => {
     if (!user) return undefined;
     loadNotifications();
-    const id = setInterval(loadNotifications, 20000);
+    loadUnreadMessages();
+    const id = setInterval(() => {
+      loadNotifications();
+      loadUnreadMessages();
+    }, 20000);
     return () => clearInterval(id);
   }, [user]);
 
@@ -305,7 +346,7 @@ export default function AppSidebar() {
   );
 
   /** @param {{ allowNotifPanel?: boolean }} props */
-  const SidebarInner = ({ allowNotifPanel = false }) => (
+  const SidebarInner = () => (
     <div
       style={{
         display: 'flex',
@@ -372,6 +413,7 @@ export default function AppSidebar() {
         {items.map(({ label, path, icon: Icon, tab, soft }) => {
           const active = isActive(path, tab);
           const showNotifBadge = tab === 'notifications' && unreadCount > 0;
+          const showMsgBadge = path === '/messages' && unreadMsgCount > 0;
           return (
             <button
               key={`${path}-${label}`}
@@ -396,7 +438,7 @@ export default function AppSidebar() {
             >
               <Icon size={18} strokeWidth={active ? 2.25 : 1.75} />
               <span style={{ flex: 1 }}>{label}</span>
-              {showNotifBadge && (
+              {(showNotifBadge || showMsgBadge) && (
                 <span
                   style={{
                     minWidth: 20,
@@ -412,7 +454,9 @@ export default function AppSidebar() {
                     padding: '0 6px',
                   }}
                 >
-                  {unreadCount > 99 ? '99+' : unreadCount}
+                  {showNotifBadge
+                    ? (unreadCount > 99 ? '99+' : unreadCount)
+                    : (unreadMsgCount > 99 ? '99+' : unreadMsgCount)}
                 </span>
               )}
             </button>
@@ -422,21 +466,11 @@ export default function AppSidebar() {
 
       <div style={{ padding: '16px 14px 22px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         {!isAdmin && (
-          <div
-            ref={allowNotifPanel ? notifWrapRef : undefined}
-            style={{ position: 'relative', marginBottom: 10 }}
-          >
+          <div style={{ position: 'relative', marginBottom: 10 }}>
             <button
               type="button"
-              onClick={() => {
-                if (allowNotifPanel) {
-                  toggleNotifs('sidebar');
-                } else {
-                  setMobileOpen(false);
-                  toggleNotifs('topbar');
-                }
-              }}
-              aria-expanded={notifOpen && (allowNotifPanel ? notifAnchor === 'sidebar' : notifAnchor === 'topbar')}
+              onClick={() => openNotifsOrPage('topbar')}
+              aria-expanded={notifOpen && notifAnchor === 'topbar'}
               style={{
                 width: '100%',
                 display: 'flex',
@@ -445,7 +479,7 @@ export default function AppSidebar() {
                 padding: '11px 12px',
                 borderRadius: 12,
                 border: '1px solid rgba(255,255,255,0.12)',
-                background: notifOpen && allowNotifPanel && notifAnchor === 'sidebar'
+                background: (notifOpen && notifAnchor === 'topbar') || isActive('/notifications')
                   ? 'rgba(232,184,154,0.18)'
                   : 'rgba(255,255,255,0.06)',
                 color: '#F4F0E8',
@@ -477,11 +511,31 @@ export default function AppSidebar() {
                 </span>
               )}
             </button>
-            {allowNotifPanel && notifOpen && notifAnchor === 'sidebar' && (
-              <NotifPanel placement="sidebar" />
-            )}
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={() => go('/')}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '11px 12px',
+            borderRadius: 12,
+            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(255,255,255,0.06)',
+            color: '#F4F0E8',
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: 600,
+            marginBottom: 10,
+          }}
+        >
+          <Globe size={16} />
+          Website
+        </button>
 
         <button
           type="button"
@@ -559,7 +613,7 @@ export default function AppSidebar() {
   return (
     <>
       <aside className="db-app-sidebar" aria-label="Main navigation">
-        <SidebarInner allowNotifPanel />
+        <SidebarInner />
       </aside>
 
       <header className="db-app-topbar">
@@ -585,12 +639,12 @@ export default function AppSidebar() {
               if (isAdmin) {
                 go('/admin?tab=notifications');
               } else {
-                toggleNotifs('topbar');
+                openNotifsOrPage('topbar');
               }
             }}
             className={`db-app-icon-btn${
               (isAdmin && isActive('/admin?tab=notifications', 'notifications'))
-              || (!isAdmin && notifOpen && notifAnchor === 'topbar')
+              || (!isAdmin && ((notifOpen && notifAnchor === 'topbar') || isActive('/notifications')))
                 ? ' is-active'
                 : ''
             }`}
@@ -619,8 +673,32 @@ export default function AppSidebar() {
               onClick={() => go('/messages')}
               className={`db-app-icon-btn${isActive('/messages') ? ' is-active' : ''}`}
               aria-label="Messages"
+              style={{ position: 'relative' }}
             >
               <MessageSquare size={20} />
+              {unreadMsgCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 2,
+                    right: 2,
+                    minWidth: 16,
+                    height: 16,
+                    borderRadius: 999,
+                    background: t.peach,
+                    color: t.forestDeep,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 4px',
+                    lineHeight: 1,
+                  }}
+                >
+                  {unreadMsgCount > 99 ? '99+' : unreadMsgCount}
+                </span>
+              )}
             </button>
           )}
           {!isAdmin && notifOpen && notifAnchor === 'topbar' && (
@@ -665,7 +743,7 @@ export default function AppSidebar() {
             >
               <X size={18} />
             </button>
-            <SidebarInner allowNotifPanel={false} />
+            <SidebarInner />
           </div>
         </div>
       )}

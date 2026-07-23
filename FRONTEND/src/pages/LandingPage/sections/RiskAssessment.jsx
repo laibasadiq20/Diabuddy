@@ -433,7 +433,7 @@ const RiskAssessment = () => {
           <div className="ra-layout" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.1fr) minmax(0,0.9fr)", gap: "40px", alignItems: "start" }}>
 
             {/* ── LEFT: Stats + Result panel ── */}
-            <div className="ra-col-info">
+            <div className={`ra-col-info${(quizComplete || showAlreadyDiagnosed) ? ' ra-col-info--open' : ''}`}>
               {/* Stats banner */}
               <div className="ra-stats" style={{
                 background: "linear-gradient(135deg, #022D20 0%, #013B2A 60%, #024030 100%)",
@@ -712,19 +712,21 @@ const RiskAssessment = () => {
 
         @media (max-width: 900px) {
           .ra-page {
-            padding-top: 68px !important;
-            padding-bottom: 28px !important;
+            min-height: auto !important;
+            padding-top: 96px !important;
+            padding-bottom: 32px !important;
           }
           .ra-wrap {
-            padding: 0 14px !important;
+            padding: 0 16px !important;
           }
           .ra-header {
-            margin-bottom: 16px !important;
+            margin-bottom: 20px !important;
+            padding-top: 8px !important;
             text-align: center !important;
           }
           .ra-header h1 {
             font-size: clamp(1.55rem, 7vw, 2rem) !important;
-            margin-bottom: 8px !important;
+            margin-bottom: 10px !important;
           }
           .ra-header-lead {
             font-size: 13.5px !important;
@@ -735,20 +737,22 @@ const RiskAssessment = () => {
           }
           .ra-pill {
             letter-spacing: 0.08em !important;
-            padding: 4px 10px !important;
+            padding: 5px 12px !important;
             font-size: 10px !important;
-            margin-bottom: 10px !important;
+            margin-bottom: 14px !important;
           }
           .ra-layout {
             grid-template-columns: 1fr !important;
-            gap: 16px !important;
+            gap: 18px !important;
           }
           .ra-col-quiz { order: 1; position: static !important; top: auto !important; }
           .ra-col-info { order: 2; }
+          .ra-col-info:not(.ra-col-info--open) { display: none !important; }
           .ra-quiz-card {
-            padding: 22px 16px !important;
+            padding: 24px 18px !important;
             border-radius: 20px !important;
             min-height: 0 !important;
+            justify-content: flex-start !important;
             box-shadow: 0 10px 32px rgba(0,0,0,0.08) !important;
           }
           .ra-quiz-card h2 {

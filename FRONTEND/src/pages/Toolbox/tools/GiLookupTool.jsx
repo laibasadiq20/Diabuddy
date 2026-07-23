@@ -30,17 +30,12 @@ const ZONE = {
 
 export default function GiLookupTool() {
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState('all');
   const [selectedName, setSelectedName] = useState(null);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return GI_FOODS.filter((f) => {
-      const matchQ = !q || f.name.toLowerCase().includes(q);
-      const matchF = filter === 'all' || f.category === filter;
-      return matchQ && matchF;
-    });
-  }, [query, filter]);
+    return GI_FOODS.filter((f) => !q || f.name.toLowerCase().includes(q));
+  }, [query]);
 
   const selected = useMemo(
     () => results.find((f) => f.name === selectedName) || results[0] || null,
@@ -66,40 +61,33 @@ export default function GiLookupTool() {
         Search a food to see its glycemic index (GI). Lower GI = slower rise in blood sugar.
       </p>
 
-      {/* Legend — one place only */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 8,
+          padding: '12px 14px',
+          borderRadius: 14,
+          background: t.surfaceSunken,
+          border: `1px solid ${t.line}`,
         }}
       >
-        {Object.entries(ZONE).map(([key, z]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setFilter((prev) => (prev === key ? 'all' : key))}
-            style={{
-              padding: '10px 8px',
-              borderRadius: 12,
-              border: `1.5px solid ${filter === key ? z.color : t.line}`,
-              background: filter === key ? z.bg : t.surfaceSunken,
-              cursor: 'pointer',
-              textAlign: 'center',
-              fontFamily: t.fontBody,
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, color: z.color }}>{z.label}</div>
-            <div style={{ fontSize: 11, color: t.inkFaint, marginTop: 2 }}>{z.range}</div>
-          </button>
-        ))}
+        <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.inkFaint }}>
+          Knowledge
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {Object.values(ZONE).map((z) => (
+            <p key={z.label} style={{ margin: 0, fontSize: 13, color: t.inkSoft, lineHeight: 1.45 }}>
+              <strong style={{ color: z.color }}>{z.label} GI ({z.range})</strong>
+              {' — '}
+              {z.meaning}
+            </p>
+          ))}
+        </div>
       </div>
 
       <div style={{ position: 'relative' }}>
         <Search size={16} color={t.inkFaint} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
         <input
           type="search"
-          placeholder="Type a food name…"
+          placeholder="Search a food…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           style={{ ...fieldStyle, paddingLeft: 40 }}
@@ -110,13 +98,12 @@ export default function GiLookupTool() {
         <p style={{ margin: 0, fontSize: 13, color: t.inkFaint }}>No foods found.</p>
       ) : (
         <>
-          {/* Compact list */}
           <div
             style={{
               borderRadius: 14,
               border: `1px solid ${t.line}`,
               overflow: 'hidden',
-              maxHeight: 220,
+              maxHeight: 280,
               overflowY: 'auto',
               background: '#FFF',
             }}
@@ -133,7 +120,7 @@ export default function GiLookupTool() {
                     width: '100%',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12,
+                    gap: 10,
                     padding: '12px 14px',
                     border: 'none',
                     borderBottom: i < results.length - 1 ? `1px solid ${t.line}` : 'none',
@@ -141,24 +128,24 @@ export default function GiLookupTool() {
                     cursor: 'pointer',
                     textAlign: 'left',
                     fontFamily: t.fontBody,
+                    flexWrap: 'wrap',
                   }}
                 >
-                  <span style={{ flex: 1, fontSize: 14, fontWeight: active ? 700 : 500, color: t.ink }}>
+                  <span style={{ flex: '1 1 120px', minWidth: 0, fontSize: 14, fontWeight: active ? 700 : 500, color: t.ink }}>
                     {food.name}
                   </span>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: t.ink, fontVariantNumeric: 'tabular-nums', minWidth: 28, textAlign: 'right' }}>
-                    {food.gi}
+                  <span style={{ fontSize: 15, fontWeight: 700, color: t.ink, fontVariantNumeric: 'tabular-nums' }}>
+                    GI {food.gi}
                   </span>
                   <span
                     style={{
-                      minWidth: 58,
-                      textAlign: 'center',
                       padding: '3px 8px',
                       borderRadius: 8,
                       background: active ? '#FFF' : z.bg,
                       color: z.color,
                       fontSize: 11,
                       fontWeight: 700,
+                      flexShrink: 0,
                     }}
                   >
                     {z.label}
@@ -168,7 +155,6 @@ export default function GiLookupTool() {
             })}
           </div>
 
-          {/* Single detail panel */}
           {selected && (
             <div
               style={{
@@ -178,8 +164,8 @@ export default function GiLookupTool() {
                 border: `1px solid ${ZONE[selected.category].color}35`,
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 0, flex: '1 1 140px' }}>
                   <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.inkFaint }}>
                     Selected
                   </p>
@@ -223,7 +209,6 @@ export default function GiLookupTool() {
                           onClick={() => {
                             if (!match) return;
                             setQuery('');
-                            setFilter('all');
                             setSelectedName(match.name);
                           }}
                           style={{
@@ -239,6 +224,7 @@ export default function GiLookupTool() {
                             fontFamily: t.fontBody,
                             textAlign: 'left',
                             opacity: match ? 1 : 0.85,
+                            flexWrap: 'wrap',
                           }}
                         >
                           <span style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>{label}</span>

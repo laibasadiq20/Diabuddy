@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
-import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge, disclaimerStyle } from '../toolboxStyles';
+import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge, disclaimerStyle, resultRowStyle } from '../toolboxStyles';
 
 function bmiCategory(bmi) {
   if (bmi < 18.5) return { label: 'Underweight', color: t.skyDeep, tip: 'Ask a clinician before making big diet changes.' };
@@ -46,8 +46,8 @@ export default function BmiTool() {
       </div>
       {bmi && category && (
         <div style={resultPanel}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-            <div>
+          <div style={resultRowStyle}>
+            <div style={{ minWidth: 0, flex: '1 1 140px' }}>
               <p style={eyebrow}>Your BMI</p>
               <p style={{ margin: '4px 0 0', fontFamily: t.fontDisplay, fontSize: 36, color: t.ink, fontWeight: 600 }}>{bmi}</p>
             </div>

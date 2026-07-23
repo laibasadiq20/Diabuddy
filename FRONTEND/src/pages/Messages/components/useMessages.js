@@ -32,7 +32,23 @@ export default function useMessages({ user, authHeaders }) {
   const [groupError, setGroupError] = useState('');
 
   const chatEndRef = useRef(null);
+  const chatScrollRef = useRef(null);
+  const shouldStickToBottomRef = useRef(true);
+  const messagesFingerprintRef = useRef('');
   const myId = idOf(user);
+
+  const messagesFingerprint = (list) =>
+    (list || []).map((m) => `${idOf(m)}:${m.createdAt || ''}:${(m.readBy || []).length}`).join('|');
+
+  const isNearBottom = () => {
+    const el = chatScrollRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  const scrollToBottom = (smooth = true) => {
+    chatEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+  };
 
   useEffect(() => {
     if (!user) {
@@ -78,12 +94,9 @@ export default function useMessages({ user, authHeaders }) {
     }
   }, [user]);
 
-  const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    if (!shouldStickToBottomRef.current) return;
+    scrollToBottom(true);
   }, [messages]);
 
   const fetchMessagesSilent = async () => {
@@ -95,6 +108,10 @@ export default function useMessages({ user, authHeaders }) {
       });
       if (res.ok) {
         const data = await res.json();
+        const nextFp = messagesFingerprint(data);
+        if (nextFp === messagesFingerprintRef.current) return;
+        shouldStickToBottomRef.current = isNearBottom();
+        messagesFingerprintRef.current = nextFp;
         setMessages(data);
       }
     } catch (err) {
@@ -105,6 +122,9 @@ export default function useMessages({ user, authHeaders }) {
   useEffect(() => {
     if (!activeConvId) return;
 
+    shouldStickToBottomRef.current = true;
+    messagesFingerprintRef.current = '';
+
     const fetchMessages = async () => {
       setMsgLoading(true);
       try {
@@ -114,6 +134,8 @@ export default function useMessages({ user, authHeaders }) {
         });
         if (res.ok) {
           const data = await res.json();
+          messagesFingerprintRef.current = messagesFingerprint(data);
+          shouldStickToBottomRef.current = true;
           setMessages(data);
         }
 
@@ -156,7 +178,12 @@ export default function useMessages({ user, authHeaders }) {
       });
       const newMsg = await res.json();
       if (res.ok) {
-        setMessages((prev) => [...prev, newMsg]);
+        setMessages((prev) => {
+          const next = [...prev, newMsg];
+          messagesFingerprintRef.current = messagesFingerprint(next);
+          return next;
+        });
+        shouldStickToBottomRef.current = true;
         setConversations((prev) => prev.map((c) => {
           if (c._id === activeConvId) {
             return {
@@ -485,6 +512,7 @@ export default function useMessages({ user, authHeaders }) {
     groupBusy,
     groupError,
     chatEndRef,
+    chatScrollRef,
     myId,
     activeConv,
     handleSendMessage,

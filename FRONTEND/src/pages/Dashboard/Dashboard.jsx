@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
+import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
 import {
   Users,
@@ -103,8 +104,9 @@ function Blob({ style }) {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const firstName = user?.name?.split(' ')[0] || 'Buddy';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -114,6 +116,34 @@ export default function Dashboard() {
     day: 'numeric',
   });
   const tiles = modules;
+
+  useEffect(() => {
+    if (!user) return undefined;
+    const load = async () => {
+      try {
+        const res = await fetch(`${API_URL}/conversations`, {
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const myId = String(user._id || user.id || '');
+        const count = (data || []).filter((conv) => {
+          const last = conv.lastMessage;
+          if (!last) return false;
+          const senderId = String(last.senderId?._id || last.senderId || '');
+          if (senderId === myId) return false;
+          return !(last.readBy || []).some((r) => String(r?._id || r) === myId);
+        }).length;
+        setUnreadMsgCount(count);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    load();
+    const id = setInterval(load, 20000);
+    return () => clearInterval(id);
+  }, [user]);
 
   return (
     <div
@@ -158,6 +188,27 @@ export default function Dashboard() {
               <p className="db-dash-sub">
                 Your care companion for today — tap a module to jump in.
               </p>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="db-dash-website"
+                style={{
+                  marginTop: 12,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: 0,
+                  border: 'none',
+                  background: 'none',
+                  color: t.sageDeep,
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                ← Back to website
+              </button>
             </div>
 
             <button
@@ -165,6 +216,7 @@ export default function Dashboard() {
               onClick={() => navigate('/messages')}
               className="db-dash-messages"
               style={{
+                position: 'relative',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
@@ -182,6 +234,28 @@ export default function Dashboard() {
             >
               <MessageSquare size={15} />
               Messages
+              {unreadMsgCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -4,
+                    minWidth: 18,
+                    height: 18,
+                    borderRadius: 999,
+                    background: t.peach,
+                    color: t.forestDeep,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 5px',
+                  }}
+                >
+                  {unreadMsgCount > 99 ? '99+' : unreadMsgCount}
+                </span>
+              )}
             </button>
           </div>
 

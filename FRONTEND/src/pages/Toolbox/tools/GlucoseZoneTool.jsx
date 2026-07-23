@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
-import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge, disclaimerStyle } from '../toolboxStyles';
+import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge, disclaimerStyle, resultRowStyle } from '../toolboxStyles';
 
 /**
  * Context-aware educational zones (mg/dL). Not a diagnosis.
@@ -181,8 +181,8 @@ export default function GlucoseZoneTool() {
 
       {zone && (
         <div style={{ ...resultPanel, background: zone.bg, border: `1px solid ${zone.color}40` }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-            <div>
+          <div style={resultRowStyle}>
+            <div style={{ minWidth: 0, flex: '1 1 140px' }}>
               <p style={eyebrow}>Reading</p>
               <p style={{ margin: '4px 0 0', fontFamily: t.fontDisplay, fontSize: 36, color: t.ink, fontWeight: 600 }}>
                 {zone.value}
@@ -203,16 +203,16 @@ export default function GlucoseZoneTool() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, fontSize: 11 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, fontSize: 11 }}>
         {[
           { l: 'Fasting (common)', r: '~70–100 / up to ~130' },
           { l: 'After meal (common)', r: 'often under 140–180' },
           { l: 'Low alert', r: 'under 70 — use your hypo plan' },
           { l: 'Very high', r: 'over 250 — use your sick-day plan' },
         ].map((z) => (
-          <div key={z.l} style={{ padding: '8px 10px', borderRadius: 10, background: t.surfaceSunken, border: `1px solid ${t.line}` }}>
-            <div style={{ fontWeight: 700, color: t.inkSoft }}>{z.l}</div>
-            <div style={{ color: t.inkFaint, marginTop: 2 }}>{z.r}</div>
+          <div key={z.l} style={{ padding: '8px 10px', borderRadius: 10, background: t.surfaceSunken, border: `1px solid ${t.line}`, minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ fontWeight: 700, color: t.inkSoft, wordBreak: 'break-word' }}>{z.l}</div>
+            <div style={{ color: t.inkFaint, marginTop: 2, wordBreak: 'break-word' }}>{z.r}</div>
           </div>
         ))}
       </div>

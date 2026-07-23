@@ -53,6 +53,7 @@ export const disclaimerStyle = {
 export function ResultBadge({ label, color }) {
   return (
     <span
+      className="db-result-badge"
       style={{
         padding: '6px 12px',
         borderRadius: 999,
@@ -61,10 +62,23 @@ export function ResultBadge({ label, color }) {
         color,
         fontSize: 13,
         fontWeight: 700,
-        whiteSpace: 'nowrap',
+        whiteSpace: 'normal',
+        textAlign: 'center',
+        lineHeight: 1.25,
+        maxWidth: '100%',
+        flexShrink: 1,
+        wordBreak: 'break-word',
       }}
     >
       {label}
     </span>
   );
 }
+
+export const resultRowStyle = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'space-between',
+  gap: 12,
+  flexWrap: 'wrap',
+};

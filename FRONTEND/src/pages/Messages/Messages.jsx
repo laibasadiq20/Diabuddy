@@ -50,6 +50,7 @@ export default function Messages() {
               messageText={m.messageText}
               myId={m.myId}
               chatEndRef={m.chatEndRef}
+              chatScrollRef={m.chatScrollRef}
               onBack={() => m.setActiveConvId(null)}
               onOpenGroupPanel={m.openGroupPanel}
               onMessageTextChange={m.setMessageText}

@@ -13,6 +13,11 @@ export default function CommunityFeedStyles() {
           gap: 16px;
           margin-bottom: 22px;
         }
+        @media (max-width: 640px) {
+          .db-community-main {
+            padding: 18px 14px 88px !important;
+          }
+        }
         .db-community-eyebrow {
           margin: 0 0 8px;
           font-size: 12px;
@@ -421,16 +426,25 @@ export default function CommunityFeedStyles() {
           .db-community-header {
             flex-direction: column;
             align-items: stretch;
-            gap: 14px;
+            gap: 12px;
+            margin-bottom: 16px;
+          }
+          .db-community-title {
+            font-size: 1.65rem;
+          }
+          .db-community-lead {
+            font-size: 13.5px;
+            max-width: none;
           }
           .db-community-actions {
-            flex-direction: column;
+            flex-direction: row;
             width: 100%;
           }
           .db-community-cta {
             width: 100%;
-            padding: 13px 16px;
+            padding: 12px 16px;
             border-radius: 14px;
+            justify-content: center;
           }
           .db-community-filters {
             padding: 12px;
@@ -460,27 +474,32 @@ export default function CommunityFeedStyles() {
             border-radius: 12px;
           }
           .db-post-card {
-            padding: 16px;
+            padding: 14px;
             border-radius: 14px;
           }
           .db-post-title { font-size: 16px; }
           .db-post-footer {
-            flex-direction: column;
-            align-items: flex-start;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
           }
           .db-post-stats {
-            width: 100%;
+            width: auto;
+            flex: 1 1 auto;
             justify-content: flex-start;
             flex-wrap: wrap;
             gap: 10px;
-            padding-top: 2px;
+            padding-top: 0;
           }
           .db-post-dm {
-            order: -1;
-            width: 100%;
+            order: 0;
+            width: auto;
+            flex: 0 0 auto;
             justify-content: center;
-            padding: 8px 12px;
-            border-radius: 12px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            font-size: 12px;
           }
         }
       `}</style>
