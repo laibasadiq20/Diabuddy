@@ -251,6 +251,7 @@ a:focus-visible {
   height: 100vh;
   height: 100dvh;
   z-index: 30;
+  overflow: visible;
 }
 
 .db-app-topbar {
@@ -527,9 +528,30 @@ a:focus-visible {
   }
 }
 
-/* Mobile notification sheet */
+/* Notification panel — desktop sidebar opens upward; mobile is a bottom sheet */
 .db-notif-backdrop {
   display: none;
+}
+
+.db-notif-handle {
+  display: none;
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: #D6CFC0;
+  margin: 10px auto 4px;
+  flex-shrink: 0;
+}
+
+.db-notif-close-m {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .db-notif-panel--sidebar {
+    /* Keep panel inside the viewport above the sidebar footer trigger */
+    max-height: min(420px, calc(100dvh - 140px)) !important;
+  }
 }
 
 @media (max-width: 899px) {
@@ -545,6 +567,7 @@ a:focus-visible {
     border-radius: 20px 20px 0 0 !important;
     z-index: 90 !important;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: db-notif-sheet-in 220ms ease both;
   }
 
   .db-notif-backdrop {
@@ -562,25 +585,207 @@ a:focus-visible {
   .db-notif-handle {
     display: block !important;
   }
+
+  .db-notif-close-m {
+    display: inline-flex !important;
+  }
 }
 
-.db-notif-handle {
+@keyframes db-notif-sheet-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0.88;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* =========================
+   ADMIN CONSOLE
+========================= */
+
+.db-admin-main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 24px 64px;
+}
+
+.db-admin-wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.db-admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.db-admin-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.db-admin-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 22px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.db-admin-tabs::-webkit-scrollbar {
   display: none;
-  width: 36px;
-  height: 4px;
+}
+
+.db-admin-tab {
+  flex: 0 0 auto;
+  padding: 10px 16px;
   border-radius: 999px;
-  background: #D6CFC0;
-  margin: 10px auto 4px;
-  flex-shrink: 0;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.db-notif-close-m {
-  display: none;
+.db-admin-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.db-admin-stat {
+  min-width: 0;
+}
+
+.db-admin-stat-value {
+  margin: 8px 0 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(22px, 3.2vw, 28px);
+  color: #1F1E1C;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.db-admin-signup-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+  padding: 10px 0;
+  border-bottom: 1px solid #D6CFC0;
+}
+
+.db-admin-signup-row:last-child {
+  border-bottom: none;
+}
+
+.db-admin-signup-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.db-admin-signup-name {
+  color: #1F1E1C;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-admin-signup-handle {
+  color: #7A746A;
+  font-weight: 400;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-admin-signup-date {
+  color: #4F4A44;
+  flex-shrink: 0;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.db-admin-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid #D6CFC0;
+  padding-top: 12px;
+}
+
+@media (max-width: 1100px) {
+  .db-admin-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 899px) {
-  .db-notif-close-m {
-    display: inline-flex !important;
+  .db-admin-main {
+    padding: 20px 16px 32px !important;
+  }
+
+  .db-admin-header {
+    margin-bottom: 16px;
+  }
+
+  .db-admin-actions {
+    width: 100%;
+  }
+
+  .db-admin-actions > button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .db-admin-tabs {
+    margin: 0 -4px 18px;
+    padding: 0 4px 4px;
+  }
+}
+
+@media (max-width: 560px) {
+  .db-admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .db-admin-stat {
+    padding: 14px 14px !important;
+  }
+
+  .db-admin-signup-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .db-admin-user-actions > button {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+    min-width: 0;
   }
 }
 

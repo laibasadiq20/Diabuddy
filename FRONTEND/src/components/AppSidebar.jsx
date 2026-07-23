@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme';
@@ -54,7 +54,7 @@ const adminBottomTabs = [
   { label: 'Home', path: '/admin', icon: Shield },
   { label: 'Users', path: '/admin?tab=users', icon: Users },
   { label: 'Reports', path: '/admin?tab=reports', icon: BellRing },
-  { label: 'Community', path: '/community', icon: MessageSquare },
+  { label: 'Topics', path: '/admin?tab=topics', icon: ClipboardList },
   { label: 'Account', path: '/account', icon: UserRound },
 ];
 
@@ -64,8 +64,11 @@ export default function AppSidebar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  /** Where the panel is anchored: sidebar (desktop) or topbar (mobile). Avoids duplicate panels. */
+  const [notifAnchor, setNotifAnchor] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const notifWrapRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
   const items = isAdmin ? adminNavItems : navItems;
@@ -82,10 +85,25 @@ export default function AppSidebar() {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
+  const closeNotifs = () => {
+    setNotifOpen(false);
+    setNotifAnchor(null);
+  };
+
+  const toggleNotifs = (anchor) => {
+    if (notifOpen && notifAnchor === anchor) {
+      closeNotifs();
+      return;
+    }
+    setNotifAnchor(anchor);
+    setNotifOpen(true);
+    loadNotifications();
+  };
+
   const go = (path) => {
     navigate(path);
     setMobileOpen(false);
-    setNotifOpen(false);
+    closeNotifs();
   };
 
   const loadNotifications = async () => {
@@ -130,6 +148,25 @@ export default function AppSidebar() {
     };
   }, [mobileOpen]);
 
+  useEffect(() => {
+    if (!notifOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeNotifs();
+    };
+    const onPointer = (e) => {
+      if (notifAnchor !== 'sidebar') return;
+      if (notifWrapRef.current && !notifWrapRef.current.contains(e.target)) {
+        closeNotifs();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onPointer);
+    };
+  }, [notifOpen, notifAnchor]);
+
   const openNotification = async (n) => {
     try {
       if (!n.isRead) {
@@ -147,12 +184,14 @@ export default function AppSidebar() {
       console.error(err);
     }
 
-    setNotifOpen(false);
+    closeNotifs();
     setMobileOpen(false);
-    if (n.referenceId && ['new_comment', 'comment_reply', 'post_like', 'comment_like', 'best_answer_selected'].includes(n.type)) {
+    if (n.referenceId && ['new_comment', 'comment_reply', 'post_like', 'comment_like', 'best_answer_selected', 'mention'].includes(n.type)) {
       navigate(`/community/posts/${n.referenceId}`);
     } else if (n.type === 'new_message') {
       navigate('/messages', { state: { conversationId: n.referenceId } });
+    } else if (isAdmin) {
+      navigate('/admin?tab=reports');
     }
   };
 
@@ -170,25 +209,27 @@ export default function AppSidebar() {
     }
   };
 
-  const NotifPanel = () => (
+  const NotifPanel = ({ placement = 'sidebar' }) => (
     <>
-      {notifOpen && (
-        <button
-          type="button"
-          className="db-notif-backdrop"
-          aria-label="Close notifications"
-          onClick={() => setNotifOpen(false)}
-        />
-      )}
+      <button
+        type="button"
+        className="db-notif-backdrop"
+        aria-label="Close notifications"
+        onClick={closeNotifs}
+      />
       <div
-        className="db-notif-panel"
+        className={`db-notif-panel${placement === 'sidebar' ? ' db-notif-panel--sidebar' : ' db-notif-panel--topbar'}`}
+        role="dialog"
+        aria-label="Notifications"
         style={{
           position: 'absolute',
+          left: placement === 'sidebar' ? 0 : 'auto',
           right: 0,
-          top: 'calc(100% + 8px)',
-          width: 320,
-          maxWidth: 'min(320px, 92vw)',
-          maxHeight: 420,
+          bottom: placement === 'sidebar' ? 'calc(100% + 8px)' : 'auto',
+          top: placement === 'sidebar' ? 'auto' : 'calc(100% + 8px)',
+          width: placement === 'sidebar' ? '100%' : 320,
+          maxWidth: placement === 'sidebar' ? '100%' : 'min(320px, 92vw)',
+          maxHeight: placement === 'sidebar' ? 'min(420px, calc(100dvh - 120px))' : 420,
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -215,7 +256,7 @@ export default function AppSidebar() {
             <button
               type="button"
               className="db-notif-close-m"
-              onClick={() => setNotifOpen(false)}
+              onClick={closeNotifs}
               aria-label="Close"
               style={{ background: 'none', border: 'none', color: t.inkSoft, fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 0 }}
             >
@@ -258,7 +299,8 @@ export default function AppSidebar() {
     </>
   );
 
-  const SidebarInner = () => (
+  /** @param {{ allowNotifPanel?: boolean }} props */
+  const SidebarInner = ({ allowNotifPanel = false }) => (
     <div
       style={{
         display: 'flex',
@@ -354,13 +396,22 @@ export default function AppSidebar() {
       </nav>
 
       <div style={{ padding: '16px 14px 22px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ position: 'relative', marginBottom: 10 }}>
+        <div
+          ref={allowNotifPanel ? notifWrapRef : undefined}
+          style={{ position: 'relative', marginBottom: 10 }}
+        >
           <button
             type="button"
             onClick={() => {
-              setNotifOpen((v) => !v);
-              if (!notifOpen) loadNotifications();
+              if (allowNotifPanel) {
+                toggleNotifs('sidebar');
+              } else {
+                // Mobile drawer: close drawer, open the topbar sheet once
+                setMobileOpen(false);
+                toggleNotifs('topbar');
+              }
             }}
+            aria-expanded={notifOpen && (allowNotifPanel ? notifAnchor === 'sidebar' : notifAnchor === 'topbar')}
             style={{
               width: '100%',
               display: 'flex',
@@ -369,7 +420,9 @@ export default function AppSidebar() {
               padding: '11px 12px',
               borderRadius: 12,
               border: '1px solid rgba(255,255,255,0.12)',
-              background: 'rgba(255,255,255,0.06)',
+              background: notifOpen && allowNotifPanel && notifAnchor === 'sidebar'
+                ? 'rgba(232,184,154,0.18)'
+                : 'rgba(255,255,255,0.06)',
               color: '#F4F0E8',
               cursor: 'pointer',
               fontSize: 13,
@@ -399,7 +452,9 @@ export default function AppSidebar() {
               </span>
             )}
           </button>
-          {notifOpen && <NotifPanel />}
+          {allowNotifPanel && notifOpen && notifAnchor === 'sidebar' && (
+            <NotifPanel placement="sidebar" />
+          )}
         </div>
 
         <button
@@ -478,7 +533,7 @@ export default function AppSidebar() {
   return (
     <>
       <aside className="db-app-sidebar" aria-label="Main navigation">
-        <SidebarInner />
+        <SidebarInner allowNotifPanel />
       </aside>
 
       <header className="db-app-topbar">
@@ -500,12 +555,10 @@ export default function AppSidebar() {
         <div style={{ position: 'relative', display: 'flex', gap: 4 }}>
           <button
             type="button"
-            onClick={() => {
-              setNotifOpen((v) => !v);
-              if (!notifOpen) loadNotifications();
-            }}
-            className="db-app-icon-btn"
+            onClick={() => toggleNotifs('topbar')}
+            className={`db-app-icon-btn${notifOpen && notifAnchor === 'topbar' ? ' is-active' : ''}`}
             aria-label="Notifications"
+            aria-expanded={notifOpen && notifAnchor === 'topbar'}
             style={{ position: 'relative' }}
           >
             <BellRing size={20} />
@@ -533,7 +586,9 @@ export default function AppSidebar() {
               <MessageSquare size={20} />
             </button>
           )}
-          {notifOpen && <NotifPanel />}
+          {notifOpen && notifAnchor === 'topbar' && (
+            <NotifPanel placement="topbar" />
+          )}
         </div>
       </header>
 
@@ -573,7 +628,7 @@ export default function AppSidebar() {
             >
               <X size={18} />
             </button>
-            <SidebarInner />
+            <SidebarInner allowNotifPanel={false} />
           </div>
         </div>
       )}

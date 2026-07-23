@@ -294,9 +294,10 @@ export default function AdminReports() {
   const card = {
     background: t.surface,
     border: `1.5px solid ${t.line}`,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 14,
+    padding: 18,
     boxShadow: t.shadowCard,
+    boxSizing: 'border-box',
   };
 
   const inputStyle = {
@@ -314,21 +315,25 @@ export default function AdminReports() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
       <AppSidebar />
-      <main style={{ flex: 1, minWidth: 0, padding: '28px 20px 64px' }}>
-        <div style={{ maxWidth: 980, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-            <div>
+      <main className="db-admin-main">
+        <div className="db-admin-wrap">
+          <div className="db-admin-header">
+            <div style={{ minWidth: 0 }}>
               <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
-                Admin
+                Diabuddy Admin
               </p>
-              <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(26px, 5vw, 32px)', fontWeight: 500, color: t.ink, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Shield size={28} color={t.clayDeep} /> Site console
+              <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 500, color: t.ink, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Shield size={26} color={t.clayDeep} style={{ flexShrink: 0 }} />
+                {tabs.find((x) => x.id === tab)?.label || 'Overview'}
               </h1>
-              <p style={{ margin: '8px 0 0', color: t.inkSoft, fontSize: 14 }}>
-                Manage users, reports, topics, and platform health.
+              <p style={{ margin: '8px 0 0', color: t.inkSoft, fontSize: 14, lineHeight: 1.45, maxWidth: 420 }}>
+                {tab === 'overview' && 'Platform health at a glance.'}
+                {tab === 'users' && 'Search, verify, ban, or promote accounts.'}
+                {tab === 'reports' && 'Review flagged posts and comments.'}
+                {tab === 'topics' && 'Organize the community feed.'}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="db-admin-actions">
               <button
                 type="button"
                 onClick={() => navigate('/community')}
@@ -336,19 +341,18 @@ export default function AdminReports() {
                   background: t.surfaceSunken,
                   border: `1.5px solid ${t.line}`,
                   borderRadius: 10,
-                  padding: '8px 16px',
+                  padding: '9px 14px',
                   fontSize: 13,
                   fontWeight: 500,
-                  fontStyle: 'italic',
-                  color: t.inkFaint,
+                  color: t.inkSoft,
                   cursor: 'pointer',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
                   fontFamily: t.fontBody,
                 }}
               >
-                <MessageSquare size={14} /> View community
+                <MessageSquare size={14} /> Community
               </button>
               <button
                 type="button"
@@ -357,12 +361,12 @@ export default function AdminReports() {
                   background: t.surface,
                   border: `1.5px solid ${t.line}`,
                   borderRadius: 10,
-                  padding: '8px 16px',
+                  padding: '9px 14px',
                   fontSize: 13,
                   fontWeight: 600,
                   color: t.inkSoft,
                   cursor: 'pointer',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
                   fontFamily: t.fontBody,
@@ -373,30 +377,24 @@ export default function AdminReports() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+          <div className="db-admin-tabs" role="tablist" aria-label="Admin sections">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 type="button"
+                role="tab"
+                aria-selected={tab === id}
                 onClick={() => setTab(id)}
+                className="db-admin-tab"
                 style={{
-                  padding: '10px 16px',
-                  borderRadius: 999,
                   border: `1.5px solid ${tab === id ? t.forest : t.line}`,
                   background: tab === id ? t.forest : '#FFF',
                   color: tab === id ? '#FFF' : t.inkSoft,
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontFamily: t.fontBody,
                 }}
               >
                 <Icon size={14} /> {label}
                 {id === 'reports' && stats?.reports?.pending > 0 && (
-                  <span style={{ background: t.clay, color: '#FFF', borderRadius: 999, fontSize: 11, padding: '1px 7px' }}>
+                  <span style={{ background: tab === id ? 'rgba(255,255,255,0.22)' : t.clay, color: '#FFF', borderRadius: 999, fontSize: 11, padding: '1px 7px', fontWeight: 700 }}>
                     {stats.reports.pending}
                   </span>
                 )}
@@ -417,43 +415,58 @@ export default function AdminReports() {
             </div>
           ) : tab === 'overview' && stats ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+              <div className="db-admin-stats">
                 {[
                   { label: 'Users', value: stats.users.total },
                   { label: 'Active', value: stats.users.active },
                   { label: 'Banned', value: stats.users.banned },
                   { label: 'Admins', value: stats.users.admins },
                   { label: 'Posts', value: stats.content.posts },
-                  { label: 'Pending reports', value: stats.reports.pending },
+                  { label: 'Pending reports', value: stats.reports.pending, alert: stats.reports.pending > 0 },
                 ].map((s) => (
-                  <div key={s.label} style={card}>
-                    <p style={{ margin: 0, fontSize: 12, color: t.inkFaint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</p>
-                    <p style={{ margin: '8px 0 0', fontFamily: t.fontDisplay, fontSize: 28, color: t.ink, fontWeight: 600 }}>{s.value}</p>
+                  <div
+                    key={s.label}
+                    className="db-admin-stat"
+                    style={{
+                      ...card,
+                      borderColor: s.alert ? `${t.clay}55` : t.line,
+                      background: s.alert ? t.clayTint : t.surface,
+                    }}
+                  >
+                    <p style={{ margin: 0, fontSize: 11, color: t.inkFaint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{s.label}</p>
+                    <p className="db-admin-stat-value" style={{ color: s.alert ? t.clayDeep : t.ink }}>{s.value}</p>
                   </div>
                 ))}
               </div>
 
               <div style={card}>
-                <h3 style={{ margin: '0 0 12px', fontFamily: t.fontDisplay, fontSize: 18, color: t.ink }}>Recent signups</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
+                  <h3 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 18, color: t.ink, fontWeight: 500 }}>Recent signups</h3>
+                  <button
+                    type="button"
+                    onClick={() => setTab('users')}
+                    style={{ background: 'none', border: 'none', color: t.skyDeep, fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 13, fontFamily: t.fontBody }}
+                  >
+                    Manage all →
+                  </button>
+                </div>
                 {(stats.recentUsers || []).length === 0 ? (
-                  <p style={{ margin: 0, color: t.inkFaint, fontSize: 14 }}>No users yet.</p>
+                  <p style={{ margin: '12px 0 0', color: t.inkFaint, fontSize: 14 }}>No users yet.</p>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', marginTop: 8 }}>
                     {stats.recentUsers.map((u) => (
-                      <div key={u._id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, padding: '8px 0', borderBottom: `1px solid ${t.line}` }}>
-                        <span style={{ color: t.ink, fontWeight: 600 }}>{u.name} <span style={{ color: t.inkFaint, fontWeight: 400 }}>@{u.username}</span></span>
-                        <span style={{ color: t.inkSoft }}>{new Date(u.createdAt).toLocaleDateString()}</span>
+                      <div key={u._id} className="db-admin-signup-row">
+                        <div className="db-admin-signup-meta">
+                          <span className="db-admin-signup-name">{u.name}</span>
+                          <span className="db-admin-signup-handle">@{u.username}</span>
+                        </div>
+                        <span className="db-admin-signup-date">
+                          {new Date(u.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
                       </div>
                     ))}
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setTab('users')}
-                  style={{ marginTop: 14, background: 'none', border: 'none', color: t.skyDeep, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: t.fontBody }}
-                >
-                  Manage all users →
-                </button>
               </div>
             </div>
           ) : tab === 'users' ? (
@@ -512,7 +525,7 @@ export default function AdminReports() {
                         Profile <ExternalLink size={12} />
                       </button>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, borderTop: `1px solid ${t.line}`, paddingTop: 12 }}>
+                    <div className="db-admin-user-actions">
                       {u.isActive ? (
                         <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => updateUser(u._id, { isActive: false }, 'Ban this user?')} disabled={!!actioningId}>
                           <Ban size={14} /> Ban
@@ -711,7 +724,7 @@ export default function AdminReports() {
                       </button>
                     )}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap', borderTop: `1px solid ${t.line}`, paddingTop: 12 }}>
+                  <div className="db-admin-user-actions" style={{ justifyContent: 'flex-end' }}>
                     <ActionBtn color={t.sageDeep} bg={t.sageSoft} border={`${t.sage}40`} onClick={() => handleResolveReport(report._id, 'dismiss')} disabled={!!actioningId}>
                       <Check size={14} /> Dismiss
                     </ActionBtn>
