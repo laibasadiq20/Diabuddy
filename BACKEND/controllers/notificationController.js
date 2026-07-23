@@ -1,16 +1,27 @@
 const Notification = require('../models/Notification');
+const { ADMIN_NOTIFICATION_TYPES } = require('../utils/notify');
+
+function recipientFilter(user) {
+  const base = { recipientId: user.id };
+  if (user.role === 'admin') {
+    return { ...base, type: { $in: [...ADMIN_NOTIFICATION_TYPES] } };
+  }
+  // Patients never see admin moderation alerts
+  return { ...base, type: { $nin: [...ADMIN_NOTIFICATION_TYPES] } };
+}
 
 // GET /api/notifications
 exports.getMyNotifications = async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 30, 50);
-    const notifications = await Notification.find({ recipientId: req.user.id })
+    const filter = recipientFilter(req.user);
+    const notifications = await Notification.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
       .populate('senderId', 'name username profileImageUrl');
 
     const unreadCount = await Notification.countDocuments({
-      recipientId: req.user.id,
+      ...filter,
       isRead: false,
     });
 
@@ -23,8 +34,9 @@ exports.getMyNotifications = async (req, res) => {
 // GET /api/notifications/unread-count
 exports.getUnreadCount = async (req, res) => {
   try {
+    const filter = recipientFilter(req.user);
     const unreadCount = await Notification.countDocuments({
-      recipientId: req.user.id,
+      ...filter,
       isRead: false,
     });
     res.json({ unreadCount });
@@ -51,8 +63,9 @@ exports.markRead = async (req, res) => {
 // PUT /api/notifications/read-all
 exports.markAllRead = async (req, res) => {
   try {
+    const filter = recipientFilter(req.user);
     await Notification.updateMany(
-      { recipientId: req.user.id, isRead: false },
+      { ...filter, isRead: false },
       { isRead: true }
     );
     res.json({ message: 'All notifications marked as read' });

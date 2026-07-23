@@ -1,5 +1,5 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
@@ -16,8 +16,19 @@ export default function PostDetails() {
   const { id: postId } = useParams();
   const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const d = usePostDetails({ postId, user, authHeaders });
+
+  useEffect(() => {
+    if (d.loading || !location.hash) return undefined;
+    const id = location.hash.slice(1);
+    const timer = setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [d.loading, d.commentsTree, location.hash]);
 
   if (d.loading) {
     return (
@@ -68,6 +79,7 @@ export default function PostDetails() {
       d.setEditCommentContent('');
     },
     onDelete: d.handleDeleteComment,
+    onToggleVisibility: d.toggleCommentVisibility,
     onStartReply: (id) => {
       d.setReplyToCommentId(id);
       d.setReplyContent('');
@@ -127,6 +139,7 @@ export default function PostDetails() {
             onToggleLike={d.handleTogglePostLike}
             onStartEdit={d.startEditPost}
             onToggleModeration={d.toggleModeration}
+            onToggleVisibility={d.togglePostVisibility}
             onReport={d.triggerReport}
             onDelete={d.handleDeletePost}
           />

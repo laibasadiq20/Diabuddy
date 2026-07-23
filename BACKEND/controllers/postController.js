@@ -101,6 +101,10 @@ exports.getPostById = async (req, res) => {
 // POST /api/posts
 exports.createPost = async (req, res) => {
   try {
+    const { muteBlockPayload } = require('../utils/moderationHelpers');
+    const muted = muteBlockPayload(req.user);
+    if (muted) return res.status(muted.statusCode).json(muted.body);
+
     const { topicId, title, content, tags, images, isAnonymous, type, isDraft } = req.body;
 
     const post = await ForumPost.create({

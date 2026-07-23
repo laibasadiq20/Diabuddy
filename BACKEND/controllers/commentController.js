@@ -6,7 +6,15 @@ const { notify } = require('../utils/notify');
 // GET /api/posts/:postId/comments
 exports.getComments = async (req, res) => {
   try {
-    const comments = await Comment.find({ postId: req.params.postId, status: 'active' })
+    const filter = { postId: req.params.postId };
+    // Admins also see hidden comments so they can restore them
+    if (req.user?.role === 'admin') {
+      filter.status = { $in: ['active', 'hidden'] };
+    } else {
+      filter.status = 'active';
+    }
+
+    const comments = await Comment.find(filter)
       .sort({ createdAt: 1 })
       .populate('authorId', 'name username profileImageUrl isVerifiedProfessional');
 
@@ -19,6 +27,10 @@ exports.getComments = async (req, res) => {
 // POST /api/posts/:postId/comments   body: { content, parentCommentId? }
 exports.createComment = async (req, res) => {
   try {
+    const { muteBlockPayload } = require('../utils/moderationHelpers');
+    const muted = muteBlockPayload(req.user);
+    if (muted) return res.status(muted.statusCode).json(muted.body);
+
     const { content, parentCommentId } = req.body;
     const post = await ForumPost.findById(req.params.postId);
 

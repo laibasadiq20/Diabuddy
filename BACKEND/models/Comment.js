@@ -47,7 +47,7 @@ const commentSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ['active', 'deleted', 'reported'],
+      enum: ['active', 'hidden', 'deleted', 'reported'],
       default: 'active',
     },
   },

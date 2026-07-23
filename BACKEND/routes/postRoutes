@@ -18,7 +18,7 @@ router.delete('/:id', protect, postController.deletePost);
 router.post('/:id/best-answer', protect, postController.setBestAnswer);
 
 // nested comments
-router.get('/:postId/comments', commentController.getComments);
+router.get('/:postId/comments', optionalAuth, commentController.getComments);
 router.post('/:postId/comments', protect, writeLimit, commentController.createComment);
 
 // nested poll

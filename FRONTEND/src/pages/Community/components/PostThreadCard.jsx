@@ -3,6 +3,7 @@ import {
   Heart,
   MessageSquare,
   Eye,
+  EyeOff,
   Trash2,
   Flag,
   Award,
@@ -35,20 +36,38 @@ export default function PostThreadCard({
   onToggleLike,
   onStartEdit,
   onToggleModeration,
+  onToggleVisibility,
   onReport,
   onDelete,
 }) {
   const hasBestAnswerPointer = !!post.bestAnswerCommentId;
+  const isHidden = post.status === 'hidden';
 
   return (
     <article className="db-post-thread" style={{
       background: t.surface,
-      border: `1.5px solid ${t.lineStrong}`,
+      border: `1.5px solid ${isHidden ? `${t.clay}55` : t.lineStrong}`,
       borderRadius: '20px',
       padding: '28px',
       boxShadow: t.shadowCard,
       marginBottom: '20px'
     }}>
+      {isHidden && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginBottom: 16,
+          padding: '10px 14px',
+          borderRadius: 12,
+          background: t.clayTint,
+          color: t.clayDeep,
+          fontSize: 13,
+          fontWeight: 600,
+        }}>
+          <EyeOff size={15} /> Hidden from the community — only moderators and the author can view this.
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
         <button
           type="button"
@@ -351,6 +370,27 @@ export default function PostThreadCard({
               >
                 {post.isLocked ? <Unlock size={12} /> : <Lock size={12} />}
                 {post.isLocked ? 'Unlock' : 'Lock'}
+              </button>
+              <button
+                type="button"
+                onClick={onToggleVisibility}
+                style={{
+                  background: isHidden ? t.sageTint : t.surfaceSunken,
+                  border: `1px solid ${t.line}`,
+                  borderRadius: 999,
+                  color: isHidden ? t.sageDeep : t.inkSoft,
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 12px',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {isHidden ? <Eye size={12} /> : <EyeOff size={12} />}
+                {isHidden ? 'Restore' : 'Hide'}
               </button>
             </>
           )}

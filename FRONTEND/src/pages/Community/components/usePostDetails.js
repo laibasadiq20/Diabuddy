@@ -360,6 +360,55 @@ export default function usePostDetails({ postId, user, authHeaders }) {
     }
   };
 
+  const togglePostVisibility = async () => {
+    if (!post) return;
+    const next = post.status === 'hidden' ? 'active' : 'hidden';
+    const label = next === 'hidden' ? 'Hide this post from the community?' : 'Restore this post for everyone?';
+    if (!window.confirm(label)) return;
+    try {
+      const res = await fetch(`${API_URL}/admin/posts/${postId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ status: next }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPost((prev) => ({ ...prev, status: data.data?.status || next }));
+      } else {
+        alert(data.message || 'Could not update post visibility');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const toggleCommentVisibility = async (commentId, currentStatus) => {
+    const next = currentStatus === 'hidden' ? 'active' : 'hidden';
+    const label = next === 'hidden' ? 'Hide this comment?' : 'Restore this comment?';
+    if (!window.confirm(label)) return;
+    try {
+      const res = await fetch(`${API_URL}/admin/comments/${commentId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ status: next }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const updated = comments.map((c) =>
+          c._id === commentId ? { ...c, status: data.data?.status || next } : c
+        );
+        setComments(updated);
+        buildTree(updated);
+      } else {
+        alert(data.message || 'Could not update comment visibility');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const triggerReport = (type, id) => {
     if (!user) { navigate('/login'); return; }
     setReportTarget({ type, id });
@@ -441,6 +490,8 @@ export default function usePostDetails({ postId, user, authHeaders }) {
     saveEditPost,
     saveEditComment,
     toggleModeration,
+    togglePostVisibility,
+    toggleCommentVisibility,
     triggerReport,
     submitReport,
   };

@@ -7,6 +7,7 @@ router.get('/', topicController.getTopics);
 router.get('/:id', topicController.getTopicById);
 router.post('/', protect, adminOnly, topicController.createTopic);
 router.put('/:id', protect, adminOnly, topicController.updateTopic);
+router.post('/:id/move-posts', protect, adminOnly, topicController.movePosts);
 router.delete('/:id', protect, adminOnly, topicController.deleteTopic);
 
 module.exports = router;

@@ -8,7 +8,6 @@ import {
   Shield,
   Trash2,
   EyeOff,
-  UserX,
   Check,
   RefreshCw,
   AlertTriangle,
@@ -22,18 +21,37 @@ import {
   UserCog,
   FolderKanban,
   Plus,
+  Bell,
+  Pencil,
+  VolumeX,
+  Volume2,
+  Megaphone,
+  ArrowRightLeft,
 } from 'lucide-react';
 
 const t = theme;
 
-const VALID_TABS = ['overview', 'users', 'reports', 'topics'];
+const VALID_TABS = ['overview', 'users', 'reports', 'topics', 'notifications', 'pros'];
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'reports', label: 'Reports', icon: Shield },
   { id: 'topics', label: 'Topics', icon: FolderKanban },
+  { id: 'pros', label: 'Pro requests', icon: BadgeCheck },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
+
+const ACTION_LABELS = {
+  dismiss: 'Dismissed',
+  hide_content: 'Hidden',
+  delete_content: 'Soft deleted',
+  ban_user: 'Author banned',
+};
+
+const NOTIF_META = {
+  new_report: { label: 'Content report', Icon: AlertTriangle, color: t.clayDeep, bg: t.claySoft },
+};
 
 function slugify(text) {
   return String(text || '')
@@ -62,10 +80,17 @@ export default function AdminReports() {
   const [userSearch, setUserSearch] = useState('');
   const [userStatus, setUserStatus] = useState('');
   const [reports, setReports] = useState([]);
+  const [reportView, setReportView] = useState('pending'); // pending | history
   const [topics, setTopics] = useState([]);
   const [topicForm, setTopicForm] = useState({ name: '', slug: '', description: '' });
   const [slugTouched, setSlugTouched] = useState(false);
   const [creatingTopic, setCreatingTopic] = useState(false);
+  const [editingTopicId, setEditingTopicId] = useState(null);
+  const [moveFromId, setMoveFromId] = useState('');
+  const [moveToId, setMoveToId] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [notifUnread, setNotifUnread] = useState(0);
+  const [proRequests, setProRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState(null);
   const [error, setError] = useState('');
@@ -103,14 +128,25 @@ export default function AdminReports() {
     setUsers(data.data?.users || []);
   }, [headers, userSearch, userStatus]);
 
-  const fetchQueue = useCallback(async () => {
-    const res = await fetch(`${API_URL}/admin/reports?status=pending`, {
+  const fetchQueue = useCallback(async (view = reportView) => {
+    const status = view === 'history' ? 'history' : 'pending';
+    const res = await fetch(`${API_URL}/admin/reports?status=${status}`, {
       credentials: 'include',
       headers: headers(),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to fetch reports');
     setReports(Array.isArray(data) ? data : data.data || []);
+  }, [headers, reportView]);
+
+  const fetchProRequests = useCallback(async () => {
+    const res = await fetch(`${API_URL}/admin/pro-requests`, {
+      credentials: 'include',
+      headers: headers(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to load pro requests');
+    setProRequests(data.data || []);
   }, [headers]);
 
   const fetchTopics = useCallback(async () => {
@@ -123,20 +159,33 @@ export default function AdminReports() {
     setTopics(Array.isArray(data) ? data : data.data || []);
   }, [headers]);
 
+  const fetchNotifications = useCallback(async () => {
+    const res = await fetch(`${API_URL}/notifications?limit=50`, {
+      credentials: 'include',
+      headers: headers(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to load notifications');
+    setNotifications(data.notifications || []);
+    setNotifUnread(data.unreadCount || 0);
+  }, [headers]);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       if (tab === 'overview') await fetchStats();
       else if (tab === 'users') await fetchUsers();
-      else if (tab === 'reports') await fetchQueue();
+      else if (tab === 'reports') await fetchQueue(reportView);
       else if (tab === 'topics') await fetchTopics();
+      else if (tab === 'notifications') await fetchNotifications();
+      else if (tab === 'pros') await fetchProRequests();
     } catch (err) {
       setError(err.message || 'Load failed');
     } finally {
       setLoading(false);
     }
-  }, [tab, fetchStats, fetchUsers, fetchQueue, fetchTopics]);
+  }, [tab, reportView, fetchStats, fetchUsers, fetchQueue, fetchTopics, fetchNotifications, fetchProRequests]);
 
   useEffect(() => {
     if (user?.role === 'admin') refresh();
@@ -148,8 +197,40 @@ export default function AdminReports() {
     }
   }, [user, stats, fetchStats]);
 
+  useEffect(() => {
+    if (user?.role !== 'admin' || tab === 'notifications') return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/notifications/unread-count`, {
+          credentials: 'include',
+          headers: headers(),
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!cancelled) setNotifUnread(data.unreadCount || 0);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, tab, headers]);
+
+  useEffect(() => {
+    if (user?.role !== 'admin' || tab === 'pros') return undefined;
+    fetchProRequests().catch(() => {});
+  }, [user, tab, fetchProRequests]);
+
   const handleResolveReport = async (reportId, actionType) => {
-    if (!window.confirm(`Perform action: "${actionType}"?`)) return;
+    const labels = {
+      dismiss: 'Dismiss this report?',
+      hide_content: 'Hide this content from the community?',
+      delete_content: 'Soft-delete this content?',
+      ban_user: 'Ban the author and hide their posts & comments?',
+    };
+    if (!window.confirm(labels[actionType] || `Perform action: "${actionType}"?`)) return;
     setActioningId(reportId);
     try {
       const res = await fetch(`${API_URL}/admin/reports/${reportId}`, {
@@ -159,7 +240,11 @@ export default function AdminReports() {
         body: JSON.stringify({ status: 'reviewed', action: actionType }),
       });
       if (res.ok) {
-        setReports((prev) => prev.filter((r) => r._id !== reportId));
+        if (reportView === 'pending') {
+          setReports((prev) => prev.filter((r) => r._id !== reportId));
+        } else {
+          await fetchQueue('history');
+        }
         if (actionType === 'ban_user') await fetchUsers().catch(() => {});
         if (stats) setStats((s) => s && { ...s, reports: { ...s.reports, pending: Math.max(0, (s.reports?.pending || 1) - 1) } });
       } else {
@@ -168,6 +253,29 @@ export default function AdminReports() {
       }
     } catch {
       alert('Connection error resolving report.');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const reviewProRequest = async (userId, decision) => {
+    if (!window.confirm(decision === 'approve' ? 'Approve verified-pro badge?' : 'Reject this request?')) return;
+    setActioningId(userId);
+    try {
+      const res = await fetch(`${API_URL}/admin/pro-requests/${userId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: headers(),
+        body: JSON.stringify({ decision }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || 'Review failed');
+        return;
+      }
+      setProRequests((prev) => prev.filter((u) => u._id !== userId));
+    } catch {
+      alert('Connection error reviewing request.');
     } finally {
       setActioningId(null);
     }
@@ -189,6 +297,7 @@ export default function AdminReports() {
         return;
       }
       await fetchUsers();
+      if (body.warnMessage) alert('Warning sent.');
     } catch {
       alert('Connection error updating user.');
     } finally {
@@ -222,6 +331,12 @@ export default function AdminReports() {
     }
   };
 
+  const resetTopicForm = () => {
+    setTopicForm({ name: '', slug: '', description: '' });
+    setSlugTouched(false);
+    setEditingTopicId(null);
+  };
+
   const handleTopicNameChange = (name) => {
     setTopicForm((prev) => ({
       ...prev,
@@ -230,7 +345,18 @@ export default function AdminReports() {
     }));
   };
 
-  const handleCreateTopic = async (e) => {
+  const startEditTopic = (topic) => {
+    setEditingTopicId(topic._id);
+    setTopicForm({
+      name: topic.name || '',
+      slug: topic.slug || '',
+      description: topic.description || '',
+    });
+    setSlugTouched(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSaveTopic = async (e) => {
     e.preventDefault();
     const name = topicForm.name.trim();
     const slug = (topicForm.slug || slugify(name)).trim();
@@ -240,8 +366,9 @@ export default function AdminReports() {
     }
     setCreatingTopic(true);
     try {
-      const res = await fetch(`${API_URL}/topics`, {
-        method: 'POST',
+      const url = editingTopicId ? `${API_URL}/topics/${editingTopicId}` : `${API_URL}/topics`;
+      const res = await fetch(url, {
+        method: editingTopicId ? 'PUT' : 'POST',
         credentials: 'include',
         headers: headers(),
         body: JSON.stringify({
@@ -252,17 +379,88 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || 'Failed to create topic');
+        alert(data.message || (editingTopicId ? 'Failed to update topic' : 'Failed to create topic'));
         return;
       }
-      setTopicForm({ name: '', slug: '', description: '' });
-      setSlugTouched(false);
+      resetTopicForm();
       await fetchTopics();
     } catch {
-      alert('Connection error creating topic.');
+      alert(editingTopicId ? 'Connection error updating topic.' : 'Connection error creating topic.');
     } finally {
       setCreatingTopic(false);
     }
+  };
+
+  const moveTopicPosts = async (fromId, toId) => {
+    if (!fromId || !toId) {
+      alert('Choose a destination topic.');
+      return;
+    }
+    if (fromId === toId) {
+      alert('Pick a different destination topic.');
+      return;
+    }
+    const from = topics.find((x) => x._id === fromId);
+    const to = topics.find((x) => x._id === toId);
+    if (!window.confirm(`Move all posts from “${from?.name}” to “${to?.name}”? Threads stay intact.`)) return;
+    setActioningId(fromId);
+    try {
+      const res = await fetch(`${API_URL}/topics/${fromId}/move-posts`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: headers(),
+        body: JSON.stringify({ toTopicId: toId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || 'Failed to move posts');
+        return;
+      }
+      setMoveFromId('');
+      setMoveToId('');
+      await fetchTopics();
+      alert(data.message || 'Posts moved.');
+    } catch {
+      alert('Connection error moving posts.');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      const res = await fetch(`${API_URL}/notifications/read-all`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: headers(),
+      });
+      if (!res.ok) return;
+      setNotifUnread(0);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const openAdminNotification = async (n) => {
+    try {
+      if (!n.isRead) {
+        await fetch(`${API_URL}/notifications/${n._id}/read`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: headers(),
+        });
+        setNotifUnread((c) => Math.max(0, c - 1));
+        setNotifications((prev) =>
+          prev.map((x) => (x._id === n._id ? { ...x, isRead: true } : x))
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // Admin alerts are report-queue only
+    setTab('reports');
   };
 
   const deleteTopic = async (id, name, postsCount) => {
@@ -331,6 +529,8 @@ export default function AdminReports() {
                 {tab === 'users' && 'Search, verify, ban, or promote accounts.'}
                 {tab === 'reports' && 'Review flagged posts and comments.'}
                 {tab === 'topics' && 'Organize the community feed.'}
+                {tab === 'pros' && 'Approve or reject verified professional requests.'}
+                {tab === 'notifications' && 'New content reports waiting for review.'}
               </p>
             </div>
             <div className="db-admin-actions">
@@ -396,6 +596,16 @@ export default function AdminReports() {
                 {id === 'reports' && stats?.reports?.pending > 0 && (
                   <span style={{ background: tab === id ? 'rgba(255,255,255,0.22)' : t.clay, color: '#FFF', borderRadius: 999, fontSize: 11, padding: '1px 7px', fontWeight: 700 }}>
                     {stats.reports.pending}
+                  </span>
+                )}
+                {id === 'notifications' && notifUnread > 0 && (
+                  <span style={{ background: tab === id ? 'rgba(255,255,255,0.22)' : t.clay, color: '#FFF', borderRadius: 999, fontSize: 11, padding: '1px 7px', fontWeight: 700 }}>
+                    {notifUnread > 99 ? '99+' : notifUnread}
+                  </span>
+                )}
+                {id === 'pros' && proRequests.length > 0 && (
+                  <span style={{ background: tab === id ? 'rgba(255,255,255,0.22)' : t.sageDeep, color: '#FFF', borderRadius: 999, fontSize: 11, padding: '1px 7px', fontWeight: 700 }}>
+                    {proRequests.length}
                   </span>
                 )}
               </button>
@@ -512,9 +722,20 @@ export default function AdminReports() {
                           {!u.isActive && (
                             <span style={{ marginLeft: 6, fontSize: 11, background: '#FFECEC', color: '#D32F2F', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>BANNED</span>
                           )}
+                          {u.isActive && u.mutedUntil && new Date(u.mutedUntil) > new Date() && (
+                            <span style={{ marginLeft: 6, fontSize: 11, background: t.goldSoft, color: t.gold, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>MUTED</span>
+                          )}
+                          {(u.warnings?.length || 0) > 0 && (
+                            <span style={{ marginLeft: 6, fontSize: 11, background: t.clayTint, color: t.clayDeep, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                              {u.warnings.length} WARN{u.warnings.length === 1 ? '' : 'S'}
+                            </span>
+                          )}
                         </p>
                         <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>
                           {u.email} · {u.postsCount || 0} posts · joined {new Date(u.createdAt).toLocaleDateString()}
+                          {u.isActive && u.mutedUntil && new Date(u.mutedUntil) > new Date()
+                            ? ` · muted until ${new Date(u.mutedUntil).toLocaleString()}`
+                            : ''}
                         </p>
                       </div>
                       <button
@@ -526,12 +747,93 @@ export default function AdminReports() {
                       </button>
                     </div>
                     <div className="db-admin-user-actions">
+                      {u.isActive && (
+                        <>
+                          <ActionBtn
+                            color={t.clayDeep}
+                            bg={t.claySoft}
+                            border={`${t.clay}30`}
+                            onClick={() => {
+                              const msg = window.prompt(
+                                'Warning message (sent to the user):',
+                                'Please follow community guidelines — especially around medical advice.'
+                              );
+                              if (msg === null) return;
+                              if (!msg.trim()) {
+                                alert('Warning message is required.');
+                                return;
+                              }
+                              updateUser(u._id, { warnMessage: msg.trim() }, null);
+                            }}
+                            disabled={!!actioningId}
+                          >
+                            <Megaphone size={14} /> Warn
+                          </ActionBtn>
+                          <ActionBtn
+                            color={t.gold}
+                            bg={t.goldSoft}
+                            border={`${t.gold}30`}
+                            onClick={() =>
+                              updateUser(u._id, { muteHours: 24 }, 'Mute this user for 24 hours? They can still browse.')
+                            }
+                            disabled={!!actioningId}
+                          >
+                            <VolumeX size={14} /> Mute 24h
+                          </ActionBtn>
+                          <ActionBtn
+                            color={t.gold}
+                            bg={t.goldSoft}
+                            border={`${t.gold}30`}
+                            onClick={() =>
+                              updateUser(u._id, { muteHours: 168 }, 'Mute this user for 7 days? They can still browse.')
+                            }
+                            disabled={!!actioningId}
+                          >
+                            <VolumeX size={14} /> Mute 7d
+                          </ActionBtn>
+                          {u.mutedUntil && new Date(u.mutedUntil) > new Date() && (
+                            <ActionBtn
+                              color={t.sageDeep}
+                              bg={t.sageSoft}
+                              border={`${t.sage}40`}
+                              onClick={() => updateUser(u._id, { unmute: true }, 'Lift this user’s mute?')}
+                              disabled={!!actioningId}
+                            >
+                              <Volume2 size={14} /> Unmute
+                            </ActionBtn>
+                          )}
+                        </>
+                      )}
                       {u.isActive ? (
-                        <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => updateUser(u._id, { isActive: false }, 'Ban this user?')} disabled={!!actioningId}>
+                        <ActionBtn
+                          color="#D32F2F"
+                          bg="#FFECEC"
+                          border="#FFCDD2"
+                          onClick={() =>
+                            updateUser(
+                              u._id,
+                              { isActive: false },
+                              'Ban this user and hide their posts & comments?'
+                            )
+                          }
+                          disabled={!!actioningId}
+                        >
                           <Ban size={14} /> Ban
                         </ActionBtn>
                       ) : (
-                        <ActionBtn color={t.sageDeep} bg={t.sageSoft} border={`${t.sage}40`} onClick={() => updateUser(u._id, { isActive: true }, 'Restore this user?')} disabled={!!actioningId}>
+                        <ActionBtn
+                          color={t.sageDeep}
+                          bg={t.sageSoft}
+                          border={`${t.sage}40`}
+                          onClick={() =>
+                            updateUser(
+                              u._id,
+                              { isActive: true },
+                              'Unban this user? Hidden content stays hidden until restored individually.'
+                            )
+                          }
+                          disabled={!!actioningId}
+                        >
                           <Check size={14} /> Unban
                         </ActionBtn>
                       )}
@@ -559,9 +861,6 @@ export default function AdminReports() {
                           <UserCog size={14} /> Demote
                         </ActionBtn>
                       )}
-                      <ActionBtn color={t.clayDeep} bg={t.claySoft} border={`${t.clay}30`} onClick={() => deleteUser(u._id, false)} disabled={!!actioningId}>
-                        <UserX size={14} /> Ban + hide posts
-                      </ActionBtn>
                       <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => deleteUser(u._id, true)} disabled={!!actioningId}>
                         <Trash2 size={14} /> Delete forever
                       </ActionBtn>
@@ -572,9 +871,10 @@ export default function AdminReports() {
             </div>
           ) : tab === 'topics' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <form onSubmit={handleCreateTopic} style={card}>
+              <form onSubmit={handleSaveTopic} style={card}>
                 <h3 style={{ margin: '0 0 16px', fontFamily: t.fontDisplay, fontSize: 18, color: t.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Plus size={18} color={t.forest} /> New topic
+                  {editingTopicId ? <Pencil size={18} color={t.forest} /> : <Plus size={18} color={t.forest} />}
+                  {editingTopicId ? 'Edit topic' : 'New topic'}
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 12 }}>
                   <div>
@@ -622,28 +922,115 @@ export default function AdminReports() {
                     style={{ ...inputStyle, resize: 'vertical', minHeight: 72 }}
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={creatingTopic}
-                  style={{
-                    padding: '10px 18px',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: t.forest,
-                    color: '#FFF',
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: creatingTopic ? 'not-allowed' : 'pointer',
-                    opacity: creatingTopic ? 0.7 : 1,
-                    fontFamily: t.fontBody,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <Plus size={14} /> {creatingTopic ? 'Creating…' : 'Create topic'}
-                </button>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="submit"
+                    disabled={creatingTopic}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 10,
+                      border: 'none',
+                      background: t.forest,
+                      color: '#FFF',
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: creatingTopic ? 'not-allowed' : 'pointer',
+                      opacity: creatingTopic ? 0.7 : 1,
+                      fontFamily: t.fontBody,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    {editingTopicId ? <Pencil size={14} /> : <Plus size={14} />}
+                    {creatingTopic ? 'Saving…' : editingTopicId ? 'Save changes' : 'Create topic'}
+                  </button>
+                  {editingTopicId && (
+                    <button
+                      type="button"
+                      onClick={resetTopicForm}
+                      style={{
+                        padding: '10px 18px',
+                        borderRadius: 10,
+                        border: `1.5px solid ${t.line}`,
+                        background: '#FFF',
+                        color: t.inkSoft,
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        fontFamily: t.fontBody,
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </form>
+
+              {topics.length > 1 && (
+                <div style={card}>
+                  <h3 style={{ margin: '0 0 12px', fontFamily: t.fontDisplay, fontSize: 18, color: t.ink, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ArrowRightLeft size={18} color={t.forest} /> Move posts between topics
+                  </h3>
+                  <p style={{ margin: '0 0 14px', fontSize: 13, color: t.inkSoft, lineHeight: 1.45 }}>
+                    Relocates every non-deleted thread. Post content stays the same — only the topic changes.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>From</label>
+                      <select
+                        value={moveFromId}
+                        onChange={(e) => setMoveFromId(e.target.value)}
+                        style={{ ...inputStyle, width: '100%' }}
+                      >
+                        <option value="">Select topic</option>
+                        {topics.map((topic) => (
+                          <option key={topic._id} value={topic._id}>
+                            {topic.name} ({topic.postsCount || 0})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>To</label>
+                      <select
+                        value={moveToId}
+                        onChange={(e) => setMoveToId(e.target.value)}
+                        style={{ ...inputStyle, width: '100%' }}
+                      >
+                        <option value="">Select topic</option>
+                        {topics.filter((topic) => topic._id !== moveFromId).map((topic) => (
+                          <option key={topic._id} value={topic._id}>
+                            {topic.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => moveTopicPosts(moveFromId, moveToId)}
+                    disabled={!moveFromId || !moveToId || !!actioningId}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 10,
+                      border: 'none',
+                      background: t.forest,
+                      color: '#FFF',
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: !moveFromId || !moveToId || actioningId ? 'not-allowed' : 'pointer',
+                      opacity: !moveFromId || !moveToId || actioningId ? 0.65 : 1,
+                      fontFamily: t.fontBody,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <ArrowRightLeft size={14} /> Move posts
+                  </button>
+                </div>
+              )}
 
               {topics.length === 0 ? (
                 <div style={{ ...card, textAlign: 'center', padding: 40, color: t.inkSoft }}>
@@ -652,7 +1039,7 @@ export default function AdminReports() {
                 </div>
               ) : (
                 topics.map((topic) => (
-                  <div key={topic._id} style={{ ...card, opacity: actioningId === topic._id ? 0.6 : 1 }}>
+                  <div key={topic._id} style={{ ...card, opacity: actioningId === topic._id ? 0.6 : 1, borderColor: editingTopicId === topic._id ? t.forest : t.line }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontWeight: 700, color: t.ink, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -670,11 +1057,14 @@ export default function AdminReports() {
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <button
                           type="button"
-                          onClick={() => navigate(`/community?topic=${topic.slug}`)}
+                          onClick={() => navigate(`/community?topic=${topic._id}`)}
                           style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: t.fontBody }}
                         >
                           View in feed <ExternalLink size={12} />
                         </button>
+                        <ActionBtn color={t.skyDeep} bg={t.skySoft} border={`${t.sky}40`} onClick={() => startEditTopic(topic)} disabled={!!actioningId}>
+                          <Pencil size={14} /> Edit
+                        </ActionBtn>
                         <ActionBtn
                           color="#D32F2F"
                           bg="#FFECEC"
@@ -690,58 +1080,292 @@ export default function AdminReports() {
                 ))
               )}
             </div>
-          ) : reports.length === 0 ? (
-            <div style={{ ...card, padding: '60px 24px', textAlign: 'center' }}>
-              <Check size={48} color={t.sage} style={{ margin: '0 auto 16px' }} />
-              <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: '0 0 8px', color: t.ink }}>Clean slate</h3>
-              <p style={{ color: t.inkSoft, fontSize: 14, margin: 0 }}>No pending reports.</p>
-            </div>
-          ) : (
+          ) : tab === 'notifications' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {reports.map((report) => (
-                <div key={report._id} style={{ ...card, opacity: actioningId === report._id ? 0.6 : 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: t.clayDeep, background: t.clayTint, padding: '4px 10px', borderRadius: 6, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <AlertTriangle size={12} /> {report.reason}
-                    </span>
-                    <span style={{ fontSize: 12, color: t.inkFaint }}>
-                      by {report.reporterId?.name || 'Anonymous'} · {new Date(report.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: 14, color: t.ink, margin: '0 0 12px', lineHeight: 1.5, background: t.bg, padding: '12px 16px', borderRadius: 8 }}>
-                    {report.description || 'No additional explanation.'}
+              <div style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 18px' }}>
+                <p style={{ margin: 0, fontSize: 13, color: t.inkSoft }}>
+                  {notifUnread > 0 ? (
+                    <>
+                      <strong style={{ color: t.ink }}>{notifUnread}</strong> unread
+                      {notifications.length > 0 && <> · {notifications.length} recent</>}
+                    </>
+                  ) : (
+                    <>All caught up{notifications.length > 0 && <> · {notifications.length} recent</>}</>
+                  )}
+                </p>
+                {notifUnread > 0 && (
+                  <button
+                    type="button"
+                    onClick={markAllNotificationsRead}
+                    style={{
+                      background: t.forest,
+                      color: '#FFF',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '8px 14px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: t.fontBody,
+                    }}
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+
+              {notifications.length === 0 ? (
+                <div style={{ ...card, padding: '56px 24px', textAlign: 'center' }}>
+                  <Bell size={40} color={t.inkFaint} style={{ margin: '0 auto 12px' }} />
+                  <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: '0 0 8px', color: t.ink, fontWeight: 500 }}>No report alerts yet</h3>
+                  <p style={{ color: t.inkSoft, fontSize: 14, margin: 0, maxWidth: 360, marginInline: 'auto', lineHeight: 1.5 }}>
+                    When a member reports a post or comment, it will appear here.
                   </p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.surfaceSunken, padding: '12px 16px', borderRadius: 10, marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {report.targetType === 'ForumPost' ? <FileText size={18} color={t.skyDeep} /> : <MessageSquare size={18} color={t.sageDeep} />}
-                      <span style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>
-                        {report.targetType === 'ForumPost' ? 'Post' : 'Comment'} · {String(report.targetId).slice(-8)}
-                      </span>
-                    </div>
-                    {report.targetType === 'ForumPost' && (
-                      <button type="button" onClick={() => navigate(`/community/posts/${report.targetId}`)} style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-                        View <ExternalLink size={12} />
-                      </button>
-                    )}
-                  </div>
-                  <div className="db-admin-user-actions" style={{ justifyContent: 'flex-end' }}>
-                    <ActionBtn color={t.sageDeep} bg={t.sageSoft} border={`${t.sage}40`} onClick={() => handleResolveReport(report._id, 'dismiss')} disabled={!!actioningId}>
-                      <Check size={14} /> Dismiss
-                    </ActionBtn>
-                    <ActionBtn color={t.gold} bg={t.goldSoft} border={`${t.gold}30`} onClick={() => handleResolveReport(report._id, 'hide_content')} disabled={!!actioningId}>
-                      <EyeOff size={14} /> Hide
-                    </ActionBtn>
-                    <ActionBtn color={t.clayDeep} bg={t.claySoft} border={`${t.clay}30`} onClick={() => handleResolveReport(report._id, 'delete_content')} disabled={!!actioningId}>
-                      <Trash2 size={14} /> Soft delete
-                    </ActionBtn>
-                    <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => handleResolveReport(report._id, 'ban_user')} disabled={!!actioningId}>
-                      <UserX size={14} /> Ban author
-                    </ActionBtn>
-                  </div>
                 </div>
-              ))}
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {notifications.map((n) => {
+                    const meta = NOTIF_META[n.type] || { label: n.type, Icon: Bell, color: t.inkSoft, bg: t.surfaceSunken };
+                    const Icon = meta.Icon;
+                    return (
+                      <button
+                        key={n._id}
+                        type="button"
+                        onClick={() => openAdminNotification(n)}
+                        style={{
+                          ...card,
+                          width: '100%',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          padding: 16,
+                          borderColor: n.isRead ? t.line : `${t.forest}40`,
+                          background: n.isRead ? t.surface : 'rgba(39,57,46,0.04)',
+                          fontFamily: t.fontBody,
+                        }}
+                      >
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                          <span
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 12,
+                              background: meta.bg,
+                              color: meta.color,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Icon size={18} />
+                          </span>
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: meta.color }}>
+                                {meta.label}
+                              </span>
+                              <span style={{ fontSize: 12, color: t.inkFaint, whiteSpace: 'nowrap' }}>
+                                {new Date(n.createdAt).toLocaleString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </span>
+                            <span style={{ display: 'block', fontSize: 14, color: t.ink, fontWeight: n.isRead ? 500 : 700, lineHeight: 1.45 }}>
+                              {n.message}
+                            </span>
+                            {n.senderId?.name && (
+                              <span style={{ display: 'block', marginTop: 6, fontSize: 12, color: t.inkFaint }}>
+                                From {n.senderId.name}
+                                {n.senderId.username ? ` @${n.senderId.username}` : ''}
+                              </span>
+                            )}
+                          </span>
+                          {!n.isRead && (
+                            <span
+                              aria-label="Unread"
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                background: t.clay,
+                                marginTop: 6,
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          ) : tab === 'pros' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {proRequests.length === 0 ? (
+                <div style={{ ...card, padding: '56px 24px', textAlign: 'center' }}>
+                  <BadgeCheck size={40} color={t.inkFaint} style={{ margin: '0 auto 12px' }} />
+                  <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: '0 0 8px', color: t.ink, fontWeight: 500 }}>No pending requests</h3>
+                  <p style={{ color: t.inkSoft, fontSize: 14, margin: 0 }}>Members request a verified-pro badge from their Account page.</p>
+                </div>
+              ) : (
+                proRequests.map((u) => (
+                  <div key={u._id} style={{ ...card, opacity: actioningId === u._id ? 0.6 : 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 700, color: t.ink, fontSize: 15 }}>
+                          {u.name} <span style={{ color: t.inkFaint, fontWeight: 500 }}>@{u.username}</span>
+                        </p>
+                        <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>
+                          {u.email}
+                          {u.diabetesType ? ` · ${u.diabetesType}` : ''}
+                          {u.professionalVerification?.requestedAt
+                            ? ` · requested ${new Date(u.professionalVerification.requestedAt).toLocaleDateString()}`
+                            : ''}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/users/${u._id}`)}
+                        style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                      >
+                        Profile <ExternalLink size={12} />
+                      </button>
+                    </div>
+                    <div style={{ background: t.bg, borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Credentials</p>
+                      <p style={{ margin: '6px 0 0', fontSize: 14, color: t.ink, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                        {u.professionalVerification?.credentials || '—'}
+                      </p>
+                      {u.professionalVerification?.note && (
+                        <>
+                          <p style={{ margin: '12px 0 0', fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Note</p>
+                          <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft, lineHeight: 1.5 }}>
+                            {u.professionalVerification.note}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    <div className="db-admin-user-actions" style={{ justifyContent: 'flex-end' }}>
+                      <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => reviewProRequest(u._id, 'reject')} disabled={!!actioningId}>
+                        Reject
+                      </ActionBtn>
+                      <ActionBtn color={t.sageDeep} bg={t.sageSoft} border={`${t.sage}40`} onClick={() => reviewProRequest(u._id, 'approve')} disabled={!!actioningId}>
+                        <BadgeCheck size={14} /> Approve
+                      </ActionBtn>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : tab === 'reports' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {[
+                  { id: 'pending', label: 'Pending queue' },
+                  { id: 'history', label: 'History' },
+                ].map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => setReportView(v.id)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 999,
+                      border: `1.5px solid ${reportView === v.id ? t.forest : t.line}`,
+                      background: reportView === v.id ? t.forest : '#FFF',
+                      color: reportView === v.id ? '#FFF' : t.inkSoft,
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      fontFamily: t.fontBody,
+                    }}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+
+              {reports.length === 0 ? (
+                <div style={{ ...card, padding: '60px 24px', textAlign: 'center' }}>
+                  <Check size={48} color={t.sage} style={{ margin: '0 auto 16px' }} />
+                  <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: '0 0 8px', color: t.ink }}>
+                    {reportView === 'history' ? 'No history yet' : 'Clean slate'}
+                  </h3>
+                  <p style={{ color: t.inkSoft, fontSize: 14, margin: 0 }}>
+                    {reportView === 'history' ? 'Resolved reports will show up here.' : 'No pending reports.'}
+                  </p>
+                </div>
+              ) : (
+                reports.map((report) => {
+                  const viewPostId = report.viewPostId || (report.targetType === 'ForumPost' ? report.targetId : report.postId);
+                  return (
+                    <div key={report._id} style={{ ...card, opacity: actioningId === report._id ? 0.6 : 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: t.clayDeep, background: t.clayTint, padding: '4px 10px', borderRadius: 6, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <AlertTriangle size={12} /> {report.reason}
+                        </span>
+                        <span style={{ fontSize: 12, color: t.inkFaint }}>
+                          by {report.reporterId?.name || 'Anonymous'} · {new Date(report.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: 14, color: t.ink, margin: '0 0 12px', lineHeight: 1.5, background: t.bg, padding: '12px 16px', borderRadius: 8 }}>
+                        {report.description || 'No additional explanation.'}
+                      </p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.surfaceSunken, padding: '12px 16px', borderRadius: 10, marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {report.targetType === 'ForumPost' ? <FileText size={18} color={t.skyDeep} /> : <MessageSquare size={18} color={t.sageDeep} />}
+                          <span style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>
+                            {report.targetType === 'ForumPost' ? 'Post' : 'Comment'} · {String(report.targetId).slice(-8)}
+                          </span>
+                        </div>
+                        {viewPostId && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                report.targetType === 'Comment'
+                                  ? `/community/posts/${viewPostId}#comment-${report.targetId}`
+                                  : `/community/posts/${viewPostId}`
+                              )
+                            }
+                            style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+                          >
+                            View <ExternalLink size={12} />
+                          </button>
+                        )}
+                      </div>
+                      {reportView === 'history' ? (
+                        <p style={{ margin: 0, fontSize: 13, color: t.inkSoft }}>
+                          Action: <strong style={{ color: t.ink }}>{ACTION_LABELS[report.actionTaken] || report.actionTaken || 'Reviewed'}</strong>
+                          {report.resolvedBy?.name ? ` · by ${report.resolvedBy.name}` : ''}
+                          {report.resolvedAt ? ` · ${new Date(report.resolvedAt).toLocaleString()}` : ''}
+                        </p>
+                      ) : (
+                        <div className="db-admin-user-actions" style={{ justifyContent: 'flex-end' }}>
+                          <ActionBtn color={t.sageDeep} bg={t.sageSoft} border={`${t.sage}40`} onClick={() => handleResolveReport(report._id, 'dismiss')} disabled={!!actioningId}>
+                            <Check size={14} /> Dismiss
+                          </ActionBtn>
+                          <ActionBtn color={t.gold} bg={t.goldSoft} border={`${t.gold}30`} onClick={() => handleResolveReport(report._id, 'hide_content')} disabled={!!actioningId}>
+                            <EyeOff size={14} /> Hide
+                          </ActionBtn>
+                          <ActionBtn color={t.clayDeep} bg={t.claySoft} border={`${t.clay}30`} onClick={() => handleResolveReport(report._id, 'delete_content')} disabled={!!actioningId}>
+                            <Trash2 size={14} /> Soft delete
+                          </ActionBtn>
+                          <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => handleResolveReport(report._id, 'ban_user')} disabled={!!actioningId}>
+                            <Ban size={14} /> Ban author
+                          </ActionBtn>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : null}
         </div>
       </main>
     </div>

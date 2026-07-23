@@ -18,6 +18,7 @@ import {
   Heart,
   MessageSquare,
   BellRing,
+  BadgeCheck,
 } from 'lucide-react';
 
 const t = theme;
@@ -38,6 +39,8 @@ const adminNavItems = [
   { label: 'Users', path: '/admin?tab=users', icon: Users, tab: 'users' },
   { label: 'Reports', path: '/admin?tab=reports', icon: BellRing, tab: 'reports' },
   { label: 'Topics', path: '/admin?tab=topics', icon: ClipboardList, tab: 'topics' },
+  { label: 'Pro requests', path: '/admin?tab=pros', icon: BadgeCheck, tab: 'pros' },
+  { label: 'Notifications', path: '/admin?tab=notifications', icon: Bell, tab: 'notifications' },
   { label: 'View community', path: '/community', icon: MessageSquare, soft: true },
   { label: 'Account', path: '/account', icon: UserRound },
 ];
@@ -54,7 +57,7 @@ const adminBottomTabs = [
   { label: 'Home', path: '/admin', icon: Shield },
   { label: 'Users', path: '/admin?tab=users', icon: Users },
   { label: 'Reports', path: '/admin?tab=reports', icon: BellRing },
-  { label: 'Topics', path: '/admin?tab=topics', icon: ClipboardList },
+  { label: 'Alerts', path: '/admin?tab=notifications', icon: Bell },
   { label: 'Account', path: '/account', icon: UserRound },
 ];
 
@@ -186,12 +189,14 @@ export default function AppSidebar() {
 
     closeNotifs();
     setMobileOpen(false);
-    if (n.referenceId && ['new_comment', 'comment_reply', 'post_like', 'comment_like', 'best_answer_selected', 'mention'].includes(n.type)) {
+    if (isAdmin || n.type === 'new_report') {
+      navigate('/admin?tab=reports');
+    } else if (n.type === 'moderation_notice') {
+      navigate('/account');
+    } else if (n.referenceId && ['new_comment', 'comment_reply', 'post_like', 'comment_like', 'best_answer_selected', 'mention'].includes(n.type)) {
       navigate(`/community/posts/${n.referenceId}`);
     } else if (n.type === 'new_message') {
       navigate('/messages', { state: { conversationId: n.referenceId } });
-    } else if (isAdmin) {
-      navigate('/admin?tab=reports');
     }
   };
 
@@ -366,6 +371,7 @@ export default function AppSidebar() {
         </p>
         {items.map(({ label, path, icon: Icon, tab, soft }) => {
           const active = isActive(path, tab);
+          const showNotifBadge = tab === 'notifications' && unreadCount > 0;
           return (
             <button
               key={`${path}-${label}`}
@@ -389,73 +395,93 @@ export default function AppSidebar() {
               }}
             >
               <Icon size={18} strokeWidth={active ? 2.25 : 1.75} />
-              {label}
+              <span style={{ flex: 1 }}>{label}</span>
+              {showNotifBadge && (
+                <span
+                  style={{
+                    minWidth: 20,
+                    height: 20,
+                    borderRadius: 999,
+                    background: t.peach,
+                    color: t.forestDeep,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 6px',
+                  }}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </button>
           );
         })}
       </nav>
 
       <div style={{ padding: '16px 14px 22px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div
-          ref={allowNotifPanel ? notifWrapRef : undefined}
-          style={{ position: 'relative', marginBottom: 10 }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              if (allowNotifPanel) {
-                toggleNotifs('sidebar');
-              } else {
-                // Mobile drawer: close drawer, open the topbar sheet once
-                setMobileOpen(false);
-                toggleNotifs('topbar');
-              }
-            }}
-            aria-expanded={notifOpen && (allowNotifPanel ? notifAnchor === 'sidebar' : notifAnchor === 'topbar')}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '11px 12px',
-              borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.12)',
-              background: notifOpen && allowNotifPanel && notifAnchor === 'sidebar'
-                ? 'rgba(232,184,154,0.18)'
-                : 'rgba(255,255,255,0.06)',
-              color: '#F4F0E8',
-              cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-            }}
+        {!isAdmin && (
+          <div
+            ref={allowNotifPanel ? notifWrapRef : undefined}
+            style={{ position: 'relative', marginBottom: 10 }}
           >
-            <BellRing size={16} />
-            Notifications
-            {unreadCount > 0 && (
-              <span
-                style={{
-                  marginLeft: 'auto',
-                  minWidth: 20,
-                  height: 20,
-                  borderRadius: 999,
-                  background: t.peach,
-                  color: t.forestDeep,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0 6px',
-                }}
-              >
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (allowNotifPanel) {
+                  toggleNotifs('sidebar');
+                } else {
+                  setMobileOpen(false);
+                  toggleNotifs('topbar');
+                }
+              }}
+              aria-expanded={notifOpen && (allowNotifPanel ? notifAnchor === 'sidebar' : notifAnchor === 'topbar')}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '11px 12px',
+                borderRadius: 12,
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: notifOpen && allowNotifPanel && notifAnchor === 'sidebar'
+                  ? 'rgba(232,184,154,0.18)'
+                  : 'rgba(255,255,255,0.06)',
+                color: '#F4F0E8',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              <BellRing size={16} />
+              Notifications
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    minWidth: 20,
+                    height: 20,
+                    borderRadius: 999,
+                    background: t.peach,
+                    color: t.forestDeep,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 6px',
+                  }}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+            {allowNotifPanel && notifOpen && notifAnchor === 'sidebar' && (
+              <NotifPanel placement="sidebar" />
             )}
-          </button>
-          {allowNotifPanel && notifOpen && notifAnchor === 'sidebar' && (
-            <NotifPanel placement="sidebar" />
-          )}
-        </div>
+          </div>
+        )}
 
         <button
           type="button"
@@ -555,10 +581,21 @@ export default function AppSidebar() {
         <div style={{ position: 'relative', display: 'flex', gap: 4 }}>
           <button
             type="button"
-            onClick={() => toggleNotifs('topbar')}
-            className={`db-app-icon-btn${notifOpen && notifAnchor === 'topbar' ? ' is-active' : ''}`}
+            onClick={() => {
+              if (isAdmin) {
+                go('/admin?tab=notifications');
+              } else {
+                toggleNotifs('topbar');
+              }
+            }}
+            className={`db-app-icon-btn${
+              (isAdmin && isActive('/admin?tab=notifications', 'notifications'))
+              || (!isAdmin && notifOpen && notifAnchor === 'topbar')
+                ? ' is-active'
+                : ''
+            }`}
             aria-label="Notifications"
-            aria-expanded={notifOpen && notifAnchor === 'topbar'}
+            aria-expanded={!isAdmin && notifOpen && notifAnchor === 'topbar'}
             style={{ position: 'relative' }}
           >
             <BellRing size={20} />
@@ -586,7 +623,7 @@ export default function AppSidebar() {
               <MessageSquare size={20} />
             </button>
           )}
-          {notifOpen && notifAnchor === 'topbar' && (
+          {!isAdmin && notifOpen && notifAnchor === 'topbar' && (
             <NotifPanel placement="topbar" />
           )}
         </div>

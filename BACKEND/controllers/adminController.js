@@ -2,6 +2,8 @@ const User = require('../models/User');
 const ForumPost = require('../models/ForumPost');
 const Comment = require('../models/Comment');
 const CommunityReport = require('../models/CommunityReports');
+const { hideAuthorContent } = require('../utils/moderationHelpers');
+const { notify } = require('../utils/notify');
 
 /**
  * @desc    Platform overview stats for admin dashboard
@@ -84,7 +86,7 @@ exports.listUsers = async (req, res) => {
         .skip(skip)
         .limit(lim)
         .select(
-          'name username email role isActive isVerified isVerifiedProfessional postsCount commentsCount createdAt lastSeen diabetesType'
+          'name username email role isActive isVerified isVerifiedProfessional postsCount commentsCount createdAt lastSeen diabetesType mutedUntil warnings'
         ),
       User.countDocuments(query),
     ]);
@@ -118,11 +120,28 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'User not found' });
     }
 
-    const { isActive, isVerifiedProfessional, role } = req.body;
+    const {
+      isActive,
+      isVerifiedProfessional,
+      role,
+      warnMessage,
+      muteHours,
+      unmute,
+    } = req.body;
+    const wasActive = target.isActive;
+    let noticeMessage = null;
 
     if (typeof isActive === 'boolean') target.isActive = isActive;
     if (typeof isVerifiedProfessional === 'boolean') {
       target.isVerifiedProfessional = isVerifiedProfessional;
+      if (isVerifiedProfessional) {
+        target.professionalVerification = {
+          ...(target.professionalVerification?.toObject?.() || target.professionalVerification || {}),
+          status: 'approved',
+          reviewedAt: new Date(),
+          reviewedBy: req.user.id,
+        };
+      }
     }
     if (role === 'admin' || role === 'patient') {
       // Prevent demoting the last admin
@@ -138,7 +157,50 @@ exports.updateUser = async (req, res) => {
       target.role = role;
     }
 
+    // Official warning (does not ban or mute)
+    if (typeof warnMessage === 'string' && warnMessage.trim()) {
+      const message = warnMessage.trim().slice(0, 500);
+      if (!Array.isArray(target.warnings)) target.warnings = [];
+      target.warnings.push({
+        message,
+        createdBy: req.user.id,
+        createdAt: new Date(),
+      });
+      noticeMessage = `Community warning: ${message}`;
+    }
+
+    // Temp mute — hours from now (e.g. 24, 168). Clear with unmute: true
+    if (unmute === true) {
+      target.mutedUntil = null;
+      noticeMessage = 'Your temporary mute has been lifted. You can post and message again.';
+    } else if (muteHours !== undefined && muteHours !== null && muteHours !== '') {
+      const hours = Number(muteHours);
+      if (!Number.isFinite(hours) || hours <= 0 || hours > 24 * 90) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'muteHours must be a positive number up to 90 days',
+        });
+      }
+      const until = new Date(Date.now() + hours * 60 * 60 * 1000);
+      target.mutedUntil = until;
+      noticeMessage = `You have been temporarily muted until ${until.toLocaleString()}. You can browse but cannot post, comment, or send messages.`;
+    }
+
     await target.save();
+
+    // Ban always hides the author's visible content
+    if (wasActive && target.isActive === false) {
+      await hideAuthorContent(target._id);
+    }
+
+    if (noticeMessage && target.role !== 'admin') {
+      await notify({
+        recipientId: target._id,
+        senderId: req.user.id,
+        type: 'moderation_notice',
+        message: noticeMessage,
+      });
+    }
 
     const u = target.toObject();
     delete u.passwordHash;
@@ -181,11 +243,11 @@ exports.deleteUser = async (req, res) => {
     if (hard) {
       await ForumPost.updateMany(
         { authorId: id },
-        { status: 'deleted', title: '[removed]', body: '[This content was removed by a moderator.]' }
+        { status: 'deleted', title: '[removed]', content: '[This content was removed by a moderator.]' }
       );
       await Comment.updateMany(
         { authorId: id },
-        { status: 'deleted', body: '[removed by moderator]' }
+        { status: 'deleted', content: '[removed by moderator]' }
       );
       await CommunityReport.deleteMany({
         $or: [{ reporterId: id }],
@@ -196,9 +258,9 @@ exports.deleteUser = async (req, res) => {
 
     target.isActive = false;
     await target.save();
-    await ForumPost.updateMany({ authorId: id, status: 'active' }, { status: 'hidden' });
+    await hideAuthorContent(id);
 
-    res.json({ status: 'success', message: 'User banned and their active posts hidden' });
+    res.json({ status: 'success', message: 'User banned and their content hidden' });
   } catch (err) {
     console.error('Admin delete user error:', err);
     res.status(500).json({ status: 'error', message: 'Failed to delete user' });
@@ -224,5 +286,81 @@ exports.moderatePost = async (req, res) => {
     res.json({ status: 'success', data: post });
   } catch (err) {
     res.status(500).json({ status: 'error', message: 'Failed to moderate post' });
+  }
+};
+
+/**
+ * @desc    Hide or restore a comment from admin tools
+ * @route   PUT /api/admin/comments/:id
+ */
+exports.moderateComment = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['active', 'hidden', 'deleted'].includes(status)) {
+      return res.status(400).json({ status: 'error', message: 'Invalid status' });
+    }
+    const comment = await Comment.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    ).populate('authorId', 'name username profileImageUrl isVerifiedProfessional');
+    if (!comment) return res.status(404).json({ status: 'error', message: 'Comment not found' });
+    res.json({ status: 'success', data: comment });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: 'Failed to moderate comment' });
+  }
+};
+
+/**
+ * @desc    Pending verified-pro requests
+ * @route   GET /api/admin/pro-requests
+ */
+exports.listProRequests = async (req, res) => {
+  try {
+    const users = await User.find({ 'professionalVerification.status': 'pending' })
+      .sort({ 'professionalVerification.requestedAt': -1 })
+      .select(
+        'name username email professionalVerification isVerifiedProfessional createdAt diabetesType'
+      );
+    res.json({ status: 'success', data: users });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: 'Failed to load pro requests' });
+  }
+};
+
+/**
+ * @desc    Approve or reject a verified-pro request
+ * @route   PUT /api/admin/pro-requests/:id
+ * body: { decision: 'approve' | 'reject' }
+ */
+exports.reviewProRequest = async (req, res) => {
+  try {
+    const { decision } = req.body;
+    if (!['approve', 'reject'].includes(decision)) {
+      return res.status(400).json({ status: 'error', message: 'decision must be approve or reject' });
+    }
+
+    const target = await User.findById(req.params.id);
+    if (!target) return res.status(404).json({ status: 'error', message: 'User not found' });
+
+    const current = target.professionalVerification?.status || 'none';
+    if (current !== 'pending') {
+      return res.status(400).json({ status: 'error', message: 'No pending verification request' });
+    }
+
+    target.professionalVerification = {
+      ...(target.professionalVerification?.toObject?.() || target.professionalVerification || {}),
+      status: decision === 'approve' ? 'approved' : 'rejected',
+      reviewedAt: new Date(),
+      reviewedBy: req.user.id,
+    };
+    target.isVerifiedProfessional = decision === 'approve';
+    await target.save();
+
+    const u = target.toObject();
+    delete u.passwordHash;
+    res.json({ status: 'success', message: `Request ${decision}d`, data: u });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: 'Failed to review pro request' });
   }
 };

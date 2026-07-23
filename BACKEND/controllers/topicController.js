@@ -1,4 +1,5 @@
 const Topic = require('../models/Topic');
+const ForumPost = require('../models/ForumPost');
 
 // GET /api/topics
 exports.getTopics = async (req, res) => {
@@ -71,5 +72,52 @@ exports.deleteTopic = async (req, res) => {
     res.json({ message: 'Topic deleted', id: req.params.id });
   } catch (err) {
     res.status(400).json({ message: 'Failed to delete topic', error: err.message });
+  }
+};
+
+/**
+ * Move all posts from one topic to another, then recount postsCount on both.
+ * POST /api/topics/:id/move-posts  body: { toTopicId }
+ */
+exports.movePosts = async (req, res) => {
+  try {
+    const fromId = req.params.id;
+    const { toTopicId } = req.body;
+    if (!toTopicId) {
+      return res.status(400).json({ message: 'toTopicId is required' });
+    }
+    if (String(fromId) === String(toTopicId)) {
+      return res.status(400).json({ message: 'Source and destination topics must differ' });
+    }
+
+    const [fromTopic, toTopic] = await Promise.all([
+      Topic.findById(fromId),
+      Topic.findById(toTopicId),
+    ]);
+    if (!fromTopic) return res.status(404).json({ message: 'Source topic not found' });
+    if (!toTopic) return res.status(404).json({ message: 'Destination topic not found' });
+
+    const result = await ForumPost.updateMany(
+      { topicId: fromId, status: { $ne: 'deleted' } },
+      { topicId: toTopicId }
+    );
+
+    const [fromCount, toCount] = await Promise.all([
+      ForumPost.countDocuments({ topicId: fromId, status: { $ne: 'deleted' }, isDraft: { $ne: true } }),
+      ForumPost.countDocuments({ topicId: toTopicId, status: { $ne: 'deleted' }, isDraft: { $ne: true } }),
+    ]);
+
+    fromTopic.postsCount = fromCount;
+    toTopic.postsCount = toCount;
+    await Promise.all([fromTopic.save(), toTopic.save()]);
+
+    res.json({
+      message: `Moved ${result.modifiedCount || 0} posts to “${toTopic.name}”`,
+      moved: result.modifiedCount || 0,
+      fromTopic,
+      toTopic,
+    });
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to move posts', error: err.message });
   }
 };

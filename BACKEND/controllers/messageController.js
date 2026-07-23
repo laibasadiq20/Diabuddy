@@ -31,6 +31,10 @@ exports.getMessages = async (req, res) => {
 // POST /api/conversations/:id/messages   body: { content }
 exports.sendMessage = async (req, res) => {
   try {
+    const { muteBlockPayload } = require('../utils/moderationHelpers');
+    const muted = muteBlockPayload(req.user);
+    if (muted) return res.status(muted.statusCode).json(muted.body);
+
     const { content } = req.body;
     if (!content || !String(content).trim()) {
       return res.status(400).json({ message: 'Message cannot be empty' });

@@ -8,6 +8,8 @@ import {
   CornerDownRight,
   Send,
   Pencil,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { theme } from '../../../theme';
 
@@ -32,6 +34,7 @@ export default function CommentNode({
   onSaveEdit,
   onCancelEdit,
   onDelete,
+  onToggleVisibility,
   onStartReply,
   onReplyContentChange,
   onSubmitReply,
@@ -41,25 +44,40 @@ export default function CommentNode({
   const isPostAuthor = user && post && post.authorId?._id === user.id;
   const isAdmin = user && user.role === 'admin';
   const isBest = post && post.bestAnswerCommentId === node._id;
+  const isHidden = node.status === 'hidden';
 
   return (
     <div
+      id={`comment-${node._id}`}
       className={`db-comment-node db-comment-depth-${Math.min(depth, 3)}`}
       style={{
         marginLeft: `${depth * 24}px`,
         marginTop: '16px',
+        opacity: isHidden ? 0.72 : 1,
         borderLeft: depth > 0 ? `2px solid ${t.line}` : 'none',
         paddingLeft: depth > 0 ? '16px' : 0
       }}
     >
       <div style={{
-        background: isBest ? t.goldTint : t.surface,
-        border: `1.5px solid ${isBest ? t.gold : t.line}`,
+        background: isHidden ? t.clayTint : isBest ? t.goldTint : t.surface,
+        border: `1.5px solid ${isHidden ? `${t.clay}40` : isBest ? t.gold : t.line}`,
         borderRadius: '16px',
         padding: '16px 20px',
         boxShadow: t.shadowCard,
         position: 'relative'
       }}>
+        {isHidden && (
+          <div style={{
+            marginBottom: 10,
+            fontSize: 11,
+            fontWeight: 700,
+            color: t.clayDeep,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+          }}>
+            Hidden from community
+          </div>
+        )}
         {isBest && (
           <div style={{
             position: 'absolute',
@@ -247,25 +265,48 @@ export default function CommentNode({
             </button>
           )}
 
-          <button
-            onClick={() => onReport('Comment', node._id)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: t.clay,
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: 0
-            }}
-          >
-            <Flag size={12} /> Report
-          </button>
+          {!isHidden && (
+            <button
+              onClick={() => onReport('Comment', node._id)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: t.clay,
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: 0
+              }}
+            >
+              <Flag size={12} /> Report
+            </button>
+          )}
 
-          {isCommentAuthor && (
+          {isAdmin && (
+            <button
+              onClick={() => onToggleVisibility?.(node._id, node.status)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: isHidden ? t.sageDeep : t.inkSoft,
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: 0
+              }}
+            >
+              {isHidden ? <Eye size={12} /> : <EyeOff size={12} />}
+              {isHidden ? 'Restore' : 'Hide'}
+            </button>
+          )}
+
+          {isCommentAuthor && !isHidden && (
             <button
               onClick={() => onStartEdit(node)}
               style={{
@@ -394,6 +435,7 @@ export default function CommentNode({
           onSaveEdit={onSaveEdit}
           onCancelEdit={onCancelEdit}
           onDelete={onDelete}
+          onToggleVisibility={onToggleVisibility}
           onStartReply={onStartReply}
           onReplyContentChange={onReplyContentChange}
           onSubmitReply={onSubmitReply}

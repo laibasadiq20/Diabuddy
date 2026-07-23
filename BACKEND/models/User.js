@@ -74,6 +74,28 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    /** Temporary mute — user can log in but cannot post/comment/message until this date */
+    mutedUntil: {
+      type: Date,
+      default: null,
+    },
+    warnings: [
+      {
+        message: {
+          type: String,
+          maxlength: [500, 'Warning message cannot exceed 500 characters'],
+          required: true,
+        },
+        createdBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     isVerified: {
       type: Boolean,
       default: false, // User must verify email via OTP
@@ -118,6 +140,31 @@ isVerifiedProfessional: {
   type: Boolean,
   default: false,
   // shows the "Verified pro" badge (e.g. Dr. Aisha Rahman) next to name on posts
+},
+
+professionalVerification: {
+  status: {
+    type: String,
+    enum: ['none', 'pending', 'approved', 'rejected'],
+    default: 'none',
+  },
+  credentials: {
+    type: String,
+    maxlength: [500, 'Credentials cannot exceed 500 characters'],
+    default: '',
+  },
+  note: {
+    type: String,
+    maxlength: [500, 'Note cannot exceed 500 characters'],
+    default: '',
+  },
+  requestedAt: { type: Date, default: null },
+  reviewedAt: { type: Date, default: null },
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
 },
 
 reputationScore: {

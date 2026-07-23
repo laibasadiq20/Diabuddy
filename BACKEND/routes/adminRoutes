@@ -9,6 +9,9 @@ router.get('/users', protect, adminOnly, adminController.listUsers);
 router.put('/users/:id', protect, adminOnly, adminController.updateUser);
 router.delete('/users/:id', protect, adminOnly, adminController.deleteUser);
 router.put('/posts/:id', protect, adminOnly, adminController.moderatePost);
+router.put('/comments/:id', protect, adminOnly, adminController.moderateComment);
+router.get('/pro-requests', protect, adminOnly, adminController.listProRequests);
+router.put('/pro-requests/:id', protect, adminOnly, adminController.reviewProRequest);
 
 router.get('/reports', protect, adminOnly, moderationController.getReportQueue);
 router.put('/reports/:id', protect, adminOnly, moderationController.resolveReport);

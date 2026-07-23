@@ -8,6 +8,7 @@ const {
   logout,
   getMe,
   updateProfile,
+  requestProVerification,
   searchUsers,
   getPublicProfile,
   forgotPassword,
@@ -37,6 +38,7 @@ router.post('/reset-password', resetPassword);
 // Profile routes (private/protected)
 router.get('/me', protect, getMe);
 router.put('/me', protect, updateProfile);
+router.post('/pro-request', protect, requestProVerification);
 
 // Search users route (private/protected)
 router.get('/users', protect, searchUsers);

@@ -19,6 +19,13 @@ const reportSchema = new mongoose.Schema(
       required: true,
     },
 
+    /** Parent post id — always set for comment reports so admins can deep-link */
+    postId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ForumPost',
+      default: null,
+    },
+
     reason: {
       type: String,
       enum: [
@@ -40,6 +47,22 @@ const reportSchema = new mongoose.Schema(
       type: String,
       enum: ['pending', 'reviewed', 'resolved', 'dismissed'],
       default: 'pending',
+    },
+
+    actionTaken: {
+      type: String,
+      enum: ['dismiss', 'hide_content', 'delete_content', 'ban_user'],
+    },
+
+    resolvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+
+    resolvedAt: {
+      type: Date,
+      default: null,
     },
   },
   {
