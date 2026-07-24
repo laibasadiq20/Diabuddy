@@ -26,6 +26,7 @@ import Account from './pages/Account/Account';
 import AdminReports from './pages/Admin/AdminReports';
 import Toolbox from './pages/Toolbox/Toolbox';
 import Logs from './pages/Logs/Logs';
+import LogTypePage from './pages/Logs/LogTypePage';
 import Fitbit from './pages/Fitbit/Fitbit';
 import Reminders from './pages/Reminders/Reminders';
 
@@ -51,11 +52,14 @@ function ProtectedRoute({ children, adminOnly = false }) {
   }
 
   // Admins belong in the console, not the patient dashboard / health modules
-  if (
-    user.role === 'admin' &&
-    !adminOnly &&
-    ['/dashboard', '/logs', '/fitbit', '/reminders', '/toolbox'].includes(location.pathname)
-  ) {
+  const patientModule =
+    location.pathname === '/dashboard' ||
+    location.pathname.startsWith('/logs') ||
+    location.pathname === '/fitbit' ||
+    location.pathname === '/reminders' ||
+    location.pathname === '/toolbox';
+
+  if (user.role === 'admin' && !adminOnly && patientModule) {
     return <Navigate to="/admin" replace />;
   }
   
@@ -88,6 +92,7 @@ function App() {
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         <Route path="/toolbox" element={<ProtectedRoute><Toolbox /></ProtectedRoute>} />
         <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
+        <Route path="/logs/:typeId" element={<ProtectedRoute><LogTypePage /></ProtectedRoute>} />
         <Route path="/fitbit" element={<ProtectedRoute><Fitbit /></ProtectedRoute>} />
         <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
