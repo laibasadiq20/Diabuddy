@@ -32,5 +32,11 @@
     "postcss": "^8.5.15",
     "tailwindcss": "^4.3.1",
     "vite": "^8.1.0"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-linux-x64-gnu": "1.1.5"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }
