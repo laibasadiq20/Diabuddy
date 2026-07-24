@@ -34,7 +34,9 @@
     "vite": "^8.1.0"
   },
   "optionalDependencies": {
-    "@rolldown/binding-linux-x64-gnu": "1.1.5"
+    "@rolldown/binding-linux-x64-gnu": "1.1.4",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.3.2",
+    "lightningcss-linux-x64-gnu": "1.32.0"
   },
   "engines": {
     "node": "22.x"

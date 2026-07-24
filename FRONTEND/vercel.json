@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --include=optional",
+  "installCommand": "npm install --include=optional && npm install --no-save --include=optional lightningcss-linux-x64-gnu@1.32.0 @rolldown/binding-linux-x64-gnu@1.1.4 @tailwindcss/oxide-linux-x64-gnu@4.3.2",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [

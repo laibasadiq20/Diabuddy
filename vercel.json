@@ -1,7 +1,7 @@
 {
   "buildCommand": "npm run build --workspace=FRONTEND",
   "outputDirectory": "FRONTEND/dist",
-  "installCommand": "npm install --workspace=FRONTEND --include-workspace-root",
+  "installCommand": "npm install --workspace=FRONTEND --include-workspace-root --include=optional && npm install --no-save --include=optional lightningcss-linux-x64-gnu@1.32.0 @rolldown/binding-linux-x64-gnu@1.1.4 @tailwindcss/oxide-linux-x64-gnu@4.3.2",
   "rewrites": [
     {
       "source": "/api/:path*",
