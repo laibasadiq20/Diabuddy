@@ -1,7 +1,7 @@
 {
   "buildCommand": "npm run build --workspace=FRONTEND",
   "outputDirectory": "FRONTEND/dist",
-  "installCommand": "npm install",
+  "installCommand": "npm install --workspace=FRONTEND --include-workspace-root",
   "rewrites": [
     {
       "source": "/api/:path*",
