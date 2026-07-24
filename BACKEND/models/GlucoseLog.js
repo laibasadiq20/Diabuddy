@@ -18,24 +18,42 @@ const glucoseLogSchema = new mongoose.Schema(
       enum: ['mg/dL', 'mmol/L'],
       required: [true, 'Unit is required'],
     },
-    context: {
+    readingType: {
       type: String,
-      enum: ['Fasting', 'Pre-Meal', 'Post-Meal', 'Bedtime', 'Random'],
-      required: [true, 'Context is required'],
+      enum: [
+        'Before Breakfast',
+        'After Breakfast',
+        'Before Lunch',
+        'After Lunch',
+        'Before Dinner',
+        'After Dinner',
+        'Bedtime',
+        'Random'
+      ],
+      required: [true, 'Reading type is required'],
+    },
+    source: {
+      type: String,
+      enum: ['Fingerstick', 'CGM', 'Manual Entry'],
+      default: 'Manual Entry',
+    },
+    status: {
+      type: String,
+      enum: ['Low', 'Normal', 'High'],
     },
     isInRange: {
       type: Boolean,
       default: false,
     },
-    timestamp: {
-      type: Date,
-      default: Date.now,
-      index: true,
-    },
     notes: {
       type: String,
       maxlength: [500, 'Notes cannot exceed 500 characters'],
       default: '',
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now,
+      index: true,
     },
   },
   {
@@ -43,7 +61,7 @@ const glucoseLogSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for efficient user-specific time-range queries
+// Compound index for user and timestamp
 glucoseLogSchema.index({ userId: 1, timestamp: -1 });
 
 module.exports = mongoose.model('GlucoseLog', glucoseLogSchema);

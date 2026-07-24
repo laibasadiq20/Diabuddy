@@ -8,36 +8,45 @@ const mealLogSchema = new mongoose.Schema(
       required: [true, 'User ID is required'],
       index: true,
     },
-    mealName: {
-      type: String,
-      required: [true, 'Meal name is required'],
-      trim: true,
-      maxlength: [100, 'Meal name cannot exceed 100 characters'],
-    },
     mealType: {
       type: String,
       enum: ['Breakfast', 'Lunch', 'Dinner', 'Snack'],
       required: [true, 'Meal type is required'],
     },
+    foodItems: {
+      type: String,
+      required: [true, 'Food items are required'],
+      trim: true,
+      maxlength: [500, 'Food items description cannot exceed 500 characters'],
+    },
+    carbohydrates: {
+      type: Number,
+      default: 0,
+      min: [0, 'Carbohydrates cannot be negative'],
+    },
+    protein: {
+      type: Number,
+      default: 0,
+      min: [0, 'Protein cannot be negative'],
+    },
+    fat: {
+      type: Number,
+      default: 0,
+      min: [0, 'Fat cannot be negative'],
+    },
+    calories: {
+      type: Number,
+      default: 0,
+      min: [0, 'Calories cannot be negative'],
+    },
     imageUrl: {
       type: String,
       default: '',
     },
-    nutritionAI: {
-      calories: { type: Number, default: 0 },
-      carbs: { type: Number, default: 0 },
-      protein: { type: Number, default: 0 },
-      fat: { type: Number, default: 0 },
-      confidence: {
-        type: Number,
-        min: [0, 'Confidence must be between 0 and 1'],
-        max: [1, 'Confidence must be between 0 and 1'],
-        default: 0,
-      },
-    },
-    isManuallyEdited: {
-      type: Boolean,
-      default: false,
+    waterConsumed: {
+      type: Number,
+      default: 0,
+      min: [0, 'Water consumed cannot be negative'],
     },
     notes: {
       type: String,
@@ -55,7 +64,7 @@ const mealLogSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for efficient user-specific time-range queries
+// Compound index for user and timestamp queries
 mealLogSchema.index({ userId: 1, timestamp: -1 });
 
 module.exports = mongoose.model('MealLog', mealLogSchema);

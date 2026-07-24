@@ -111,6 +111,9 @@ app.use('/api/admin', adminRoutes);
 const uploadRoutes = require('./routes/uploadRoutes');
 app.use('/api/upload', uploadRoutes);
 
+const healthLogRoutes = require('./routes/healthLogRoutes');
+app.use('/api/health-logs', healthLogRoutes);
+
 // Test / health routes
 app.get('/api/test', (req, res) => {
   res.json({

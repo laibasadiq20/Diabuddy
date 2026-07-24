@@ -8,15 +8,36 @@ const insulinLogSchema = new mongoose.Schema(
       required: [true, 'User ID is required'],
       index: true,
     },
-    insulinDose: {
+    units: {
       type: Number,
-      required: [true, 'Insulin dose is required'],
-      min: [0.1, 'Insulin dose must be at least 0.1 units'],
+      required: [true, 'Insulin units is required'],
+      min: [0.1, 'Insulin units must be at least 0.1'],
     },
     insulinType: {
       type: String,
-      enum: ['Rapid-Acting', 'Long-Acting', 'Mixed'],
       required: [true, 'Insulin type is required'],
+      trim: true,
+      // Examples: NovoRapid, Humalog, Lantus, Levemir, Tresiba
+    },
+    injectionSite: {
+      type: String,
+      enum: ['Abdomen', 'Arm', 'Thigh', 'Buttocks'],
+      required: [true, 'Injection site is required'],
+    },
+    mealRelation: {
+      type: String,
+      enum: ['Before Meal', 'After Meal', 'None'],
+      default: 'None',
+    },
+    notes: {
+      type: String,
+      maxlength: [500, 'Notes cannot exceed 500 characters'],
+      default: '',
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now,
+      index: true,
     },
     relatedGlucoseLogId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -28,23 +49,13 @@ const insulinLogSchema = new mongoose.Schema(
       ref: 'MealLog',
       default: null,
     },
-    timestamp: {
-      type: Date,
-      default: Date.now,
-      index: true,
-    },
-    notes: {
-      type: String,
-      maxlength: [500, 'Notes cannot exceed 500 characters'],
-      default: '',
-    },
   },
   {
     timestamps: true,
   }
 );
 
-// Compound index for efficient user-specific time-range queries
+// Compound index for efficient user-specific queries
 insulinLogSchema.index({ userId: 1, timestamp: -1 });
 
 module.exports = mongoose.model('InsulinLog', insulinLogSchema);
