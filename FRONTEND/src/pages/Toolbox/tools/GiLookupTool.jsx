@@ -52,8 +52,8 @@ export default function GiLookupTool() {
     }
   }, [results, selectedName]);
 
-  const findFood = (label) => GI_FOODS.find((f) => f.name.toLowerCase() === label.toLowerCase()
-    || f.name.toLowerCase().includes(label.toLowerCase()));
+  const findFood = (label) =>
+    GI_FOODS.find((f) => f.name.toLowerCase() === label.toLowerCase());
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -245,6 +245,9 @@ export default function GiLookupTool() {
           )}
         </>
       )}
+      <p style={{ margin: '12px 0 0', fontSize: 12, color: t.inkFaint, lineHeight: 1.5 }}>
+        GI values are approximate and vary with cooking and portion size. Educational only — not medical advice.
+      </p>
     </div>
   );
 }

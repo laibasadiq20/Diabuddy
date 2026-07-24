@@ -53,7 +53,6 @@ export const disclaimerStyle = {
 export function ResultBadge({ label, color }) {
   return (
     <span
-      className="db-result-badge"
       style={{
         padding: '6px 12px',
         borderRadius: 999,

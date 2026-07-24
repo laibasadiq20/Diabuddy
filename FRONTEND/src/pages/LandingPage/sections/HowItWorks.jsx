@@ -157,7 +157,7 @@ const HowItWorks = () => {
                       Know your diabetes risk
                     </h4>
                     <p className="mb-6 text-sm leading-relaxed text-gray-500">
-                      Five calm questions. Personalized next steps. No sign-up
+                      A short quiz — about a minute. Personalized next steps. No sign-up
                       needed — open the full assessment whenever you are ready.
                     </p>
 

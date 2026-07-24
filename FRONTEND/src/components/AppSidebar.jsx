@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme';
@@ -72,7 +72,6 @@ export default function AppSidebar() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
-  const notifWrapRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
   const items = isAdmin ? adminNavItems : navItems;
@@ -105,6 +104,7 @@ export default function AppSidebar() {
       go('/notifications');
       return;
     }
+    setMobileOpen(false);
     if (notifOpen && notifAnchor === anchor) {
       closeNotifs();
       return;
@@ -178,7 +178,15 @@ export default function AppSidebar() {
       loadNotifications();
       loadUnreadMessages();
     }, 20000);
-    return () => clearInterval(id);
+    const onRefresh = () => {
+      loadNotifications();
+      loadUnreadMessages();
+    };
+    window.addEventListener('diabuddy:notifs-refresh', onRefresh);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('diabuddy:notifs-refresh', onRefresh);
+    };
   }, [user]);
 
   useEffect(() => {
@@ -195,19 +203,11 @@ export default function AppSidebar() {
     const onKey = (e) => {
       if (e.key === 'Escape') closeNotifs();
     };
-    const onPointer = (e) => {
-      if (notifAnchor !== 'sidebar') return;
-      if (notifWrapRef.current && !notifWrapRef.current.contains(e.target)) {
-        closeNotifs();
-      }
-    };
     document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onPointer);
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onPointer);
     };
-  }, [notifOpen, notifAnchor]);
+  }, [notifOpen]);
 
   const openNotification = async (n) => {
     try {
@@ -232,10 +232,12 @@ export default function AppSidebar() {
       navigate('/admin?tab=reports');
     } else if (n.type === 'moderation_notice') {
       navigate('/account');
-    } else if (n.referenceId && ['new_comment', 'comment_reply', 'post_like', 'comment_like', 'best_answer_selected', 'mention'].includes(n.type)) {
+    } else if (n.referenceId && ['new_comment', 'comment_reply', 'post_like', 'comment_like', 'best_answer_selected'].includes(n.type)) {
       navigate(`/community/posts/${n.referenceId}`);
     } else if (n.type === 'new_message') {
       navigate('/messages', { state: { conversationId: n.referenceId } });
+    } else {
+      navigate('/community');
     }
   };
 

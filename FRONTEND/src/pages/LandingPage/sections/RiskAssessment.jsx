@@ -67,8 +67,6 @@ const questions = [
   },
 ];
 
-const MAX_SCORE = 11;
-
 function buildQuizFlow(sexLabel) {
   return questions.filter((q) => {
     if (!q.onlyIfSex) return true;
@@ -157,7 +155,7 @@ const RESULT_DATA = {
       {
         emoji: "🏋️",
         title: "Add 30 min of exercise daily",
-        body: "Regular moderate exercise — even brisk walking — can reduce insulin resistance by up to 58% in people with prediabetes (CDC, 2023).",
+        body: "Regular moderate exercise — even brisk walking — can meaningfully lower type 2 diabetes risk in people with prediabetes. Structured lifestyle programs have cut new diabetes cases by about half in major studies (CDC Diabetes Prevention Program).",
       },
       {
         emoji: "⚖️",
@@ -426,7 +424,7 @@ const RiskAssessment = () => {
               Know Your Diabetes Risk
             </h1>
             <p className="ra-header-lead" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", color: "#374151", maxWidth: "560px", margin: "0 auto", lineHeight: "1.7" }}>
-              Aligned with the ADA Type 2 Diabetes Risk Test. Answer a few questions — a score of 5+ means talk to your doctor about screening.
+              Inspired by the ADA Type 2 Diabetes Risk Test. Answer a few questions — a score of 5+ means talk to your doctor about screening.
             </p>
           </div>
 

@@ -11,12 +11,6 @@ export const getChatPartnerName = (conv, myId) => {
   return otherMember ? otherMember.name : 'Unknown Buddy';
 };
 
-export const getChatPartnerOnlineStatus = (conv, myId) => {
-  if (conv.isGroup) return false;
-  const otherMember = getChatPartner(conv, myId);
-  return otherMember ? otherMember.isOnline : false;
-};
-
 /** True when every other member has this message in readBy */
 export const isMessageReadByOthers = (msg, conv, myId) => {
   if (!msg?.readBy || !conv?.members) return false;

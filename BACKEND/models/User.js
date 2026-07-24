@@ -187,16 +187,6 @@ likesReceived: {
   type: Number,
   default: 0,
 },
-
-isOnline: {
-  type: Boolean,
-  default: false,
-},
-
-lastSeen: {
-  type: Date,
-  default: null,
-},
   },
   {
     timestamps: true,

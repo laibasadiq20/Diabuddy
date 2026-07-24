@@ -73,7 +73,7 @@ export default function Notifications() {
       navigate('/admin?tab=reports');
     } else if (n.type === 'moderation_notice') {
       navigate('/account');
-    } else if (n.referenceId && ['new_comment', 'comment_reply', 'post_like', 'comment_like', 'best_answer_selected', 'mention'].includes(n.type)) {
+    } else if (n.referenceId && ['new_comment', 'comment_reply', 'post_like', 'comment_like', 'best_answer_selected'].includes(n.type)) {
       navigate(`/community/posts/${n.referenceId}`);
     } else if (n.type === 'new_message') {
       navigate('/messages', { state: { conversationId: n.referenceId } });

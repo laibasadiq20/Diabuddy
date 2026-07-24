@@ -1,5 +1,6 @@
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
+const Notification = require('../models/Notification');
 const { notify } = require('../utils/notify');
 
 const assertMember = (conversation, userId) => {
@@ -101,6 +102,17 @@ exports.markAsRead = async (req, res) => {
     await Message.updateMany(
       { conversationId: conversation._id, readBy: { $ne: req.user.id } },
       { $addToSet: { readBy: req.user.id } }
+    );
+
+    // Clear inbox badges for this conversation's message notifications
+    await Notification.updateMany(
+      {
+        recipientId: req.user.id,
+        type: 'new_message',
+        referenceId: conversation._id,
+        isRead: false,
+      },
+      { isRead: true }
     );
 
     res.json({ message: 'Marked as read' });

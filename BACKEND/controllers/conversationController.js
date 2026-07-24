@@ -10,7 +10,7 @@ const isMember = (conversation, userId) =>
 
 const populateConversation = (query) =>
   query
-    .populate('members', 'name username profileImageUrl isOnline lastSeen')
+    .populate('members', 'name username profileImageUrl')
     .populate({
       path: 'lastMessage',
       populate: { path: 'senderId', select: 'name username' },
@@ -59,6 +59,7 @@ exports.createConversation = async (req, res) => {
       isGroup: group,
       name: group ? name : undefined,
       members: allMembers,
+      createdBy: group ? req.user.id : undefined,
     });
 
     const populated = await populateConversation(Conversation.findById(conversation._id));
@@ -168,7 +169,15 @@ exports.removeMember = async (req, res) => {
       return res.status(404).json({ message: 'User is not in this group' });
     }
 
-    // Removing yourself = leave; removing others is also allowed for any member
+    const isSelf = targetId === req.user.id.toString();
+    const creatorId = (conversation.createdBy || conversation.members[0])?.toString();
+    const isCreator = creatorId === req.user.id.toString();
+    if (!isSelf && !isCreator) {
+      return res.status(403).json({
+        message: 'Only the group creator can remove other members. Use Leave to exit yourself.',
+      });
+    }
+
     conversation.members = conversation.members.filter(
       (m) => m.toString() !== targetId
     );

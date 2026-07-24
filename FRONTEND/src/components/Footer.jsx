@@ -55,7 +55,7 @@ const Footer = () => {
             </div>
 
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/60">
-              A field guide to gentler care — written like a friend, reviewed by clinicians.
+              A field guide to gentler care — written like a friend, for everyday living with diabetes.
             </p>
           </div>
 

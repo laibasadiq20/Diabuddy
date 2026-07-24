@@ -16,12 +16,12 @@ const exploreItems = [
   {
     to: '/learn/risk-assessment',
     title: 'Risk assessment',
-    description: 'Five quick questions. Practical next steps. No sign-up.',
+    description: 'A short ADA-style quiz (about 6–7 questions). Practical next steps. No sign-up.',
   },
   {
     to: '/learn/blog',
     title: 'Resource blog',
-    description: 'Guides, recipes, and lifestyle tips from health coaches.',
+    description: 'Curated articles and trusted links from ADA, clinics, and diabetes educators.',
   },
 ];
 

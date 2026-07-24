@@ -24,6 +24,7 @@ export default function ChatThread({
   messages,
   msgLoading,
   messageText,
+  sendError,
   myId,
   chatEndRef,
   chatScrollRef,
@@ -40,7 +41,7 @@ export default function ChatThread({
           <Inbox size={48} color={t.inkFaint} style={{ marginBottom: '16px' }} />
           <h3 style={{ fontFamily: t.fontDisplay, fontSize: '20px', margin: '0 0 8px 0', color: t.ink }}>Your chats</h3>
           <p style={{ fontSize: '14px', maxWidth: '320px', margin: '0 0 18px' }}>
-            Pick a conversation on the left, or start a new 1:1 chat or group — just like WhatsApp.
+            Pick a conversation on the left, or start a new 1:1 chat or group.
           </p>
           <button
             type="button"
@@ -209,16 +210,21 @@ export default function ChatThread({
           padding: '12px 14px',
           borderTop: `1.5px solid ${t.line}`,
           display: 'flex',
-          gap: '10px',
+          flexDirection: 'column',
+          gap: '8px',
           background: t.surfaceRaised,
           flexShrink: 0,
         }}
       >
+        {sendError ? (
+          <p style={{ margin: 0, fontSize: 12, color: t.clay, fontWeight: 600 }}>{sendError}</p>
+        ) : null}
+        <div style={{ display: 'flex', gap: '10px' }}>
         <input
           type="text"
           value={messageText}
           onChange={(e) => onMessageTextChange(e.target.value)}
-          placeholder="Type a secure message..."
+          placeholder="Type a message…"
           required
           style={{
             flexGrow: 1,
@@ -255,6 +261,7 @@ export default function ChatThread({
         >
           <Send size={16} />
         </button>
+        </div>
       </form>
     </div>
   );

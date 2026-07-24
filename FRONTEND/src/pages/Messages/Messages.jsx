@@ -48,6 +48,7 @@ export default function Messages() {
               messages={m.messages}
               msgLoading={m.msgLoading}
               messageText={m.messageText}
+              sendError={m.sendError}
               myId={m.myId}
               chatEndRef={m.chatEndRef}
               chatScrollRef={m.chatScrollRef}

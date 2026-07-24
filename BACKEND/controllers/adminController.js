@@ -86,7 +86,7 @@ exports.listUsers = async (req, res) => {
         .skip(skip)
         .limit(lim)
         .select(
-          'name username email role isActive isVerified isVerifiedProfessional postsCount commentsCount createdAt lastSeen diabetesType mutedUntil warnings'
+          'name username email role isActive isVerified isVerifiedProfessional postsCount commentsCount createdAt diabetesType mutedUntil warnings'
         ),
       User.countDocuments(query),
     ]);

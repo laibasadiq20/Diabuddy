@@ -516,7 +516,7 @@ const getPublicProfile = async (req, res) => {
       _id: id,
       isActive: true,
     }).select(
-      'name username bio location profileImageUrl diabetesType diagnosisYear isVerifiedProfessional postsCount commentsCount createdAt isOnline lastSeen'
+      'name username bio location profileImageUrl diabetesType diagnosisYear isVerifiedProfessional postsCount commentsCount createdAt'
     );
 
     if (!profile) {

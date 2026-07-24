@@ -13,6 +13,7 @@ export default function useMessages({ user, authHeaders }) {
   const [convLoading, setConvLoading] = useState(true);
   const [msgLoading, setMsgLoading] = useState(false);
   const [messageText, setMessageText] = useState('');
+  const [sendError, setSendError] = useState('');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('pick');
@@ -156,10 +157,25 @@ export default function useMessages({ user, authHeaders }) {
         if (activeConvIdRef.current !== convId) return;
         const data = await res.json();
         const nextFp = messagesFingerprint(data);
-        if (nextFp === messagesFingerprintRef.current) return;
-        shouldStickToBottomRef.current = isNearBottom();
-        messagesFingerprintRef.current = nextFp;
-        setMessages(data);
+        const changed = nextFp !== messagesFingerprintRef.current;
+        if (changed) {
+          shouldStickToBottomRef.current = isNearBottom();
+          messagesFingerprintRef.current = nextFp;
+          setMessages(data);
+        }
+
+        // Keep messages + new_message notifications marked read while viewing
+        await fetch(`${API_URL}/conversations/${convId}/read`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { ...authHeaders() },
+        });
+        if (changed && activeConvIdRef.current === convId) {
+          fetchConversations();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('diabuddy:notifs-refresh'));
+          }
+        }
       }
     } catch (err) {
       console.error('Silent fetch failed:', err);
@@ -197,6 +213,9 @@ export default function useMessages({ user, authHeaders }) {
         // Refresh list only — do NOT re-select chat (avoids reopen glitch after back)
         if (activeConvIdRef.current === convId) {
           fetchConversations();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('diabuddy:notifs-refresh'));
+          }
         }
       } catch (err) {
         console.error('Error fetching messages:', err);
@@ -221,7 +240,7 @@ export default function useMessages({ user, authHeaders }) {
     if (!messageText.trim() || !activeConvId) return;
 
     const text = messageText.trim();
-    setMessageText('');
+    setSendError('');
 
     try {
       const res = await fetch(`${API_URL}/conversations/${activeConvId}/messages`, {
@@ -232,6 +251,7 @@ export default function useMessages({ user, authHeaders }) {
       });
       const newMsg = await res.json();
       if (res.ok) {
+        setMessageText('');
         setMessages((prev) => {
           const next = [...prev, newMsg];
           messagesFingerprintRef.current = messagesFingerprint(next);
@@ -248,9 +268,12 @@ export default function useMessages({ user, authHeaders }) {
           }
           return c;
         }));
+      } else {
+        setSendError(newMsg.message || 'Could not send message. Try again.');
       }
     } catch (err) {
       console.error('Send message failed:', err);
+      setSendError('Network error — message not sent.');
     }
   };
 
@@ -545,6 +568,7 @@ export default function useMessages({ user, authHeaders }) {
     msgLoading,
     messageText,
     setMessageText,
+    sendError,
     modalOpen,
     modalMode,
     setModalMode,
