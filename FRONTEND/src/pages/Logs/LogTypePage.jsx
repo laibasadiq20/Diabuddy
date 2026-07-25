@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
-import { ArrowLeft, Loader2, Trash2 } from 'lucide-react';
+import { Annoyed, ArrowLeft, Frown, Laugh, Loader2, Meh, Smile, Trash2 } from 'lucide-react';
 import api from '../../config/axios';
 import { getLogType } from './logsConfig';
 import { LogEntryForm } from './components/LogEntryForm';
@@ -41,16 +41,16 @@ function intensityFromApiLabel(intensity) {
 }
 
 const MOOD_CARD = {
-  'Very Happy': { emoji: '🥰', label: 'Very Happy' },
-  Happy: { emoji: '😊', label: 'Happy' },
-  Neutral: { emoji: '😌', label: 'Neutral' },
-  Sad: { emoji: '🥺', label: 'Sad' },
-  Anxious: { emoji: '🫠', label: 'Anxious' },
-  Great: { emoji: '🥰', label: 'Very Happy' },
-  Good: { emoji: '😊', label: 'Happy' },
-  Okay: { emoji: '😌', label: 'Neutral' },
-  Low: { emoji: '🥺', label: 'Sad' },
-  Stressed: { emoji: '🫠', label: 'Anxious' },
+  'Very Happy': { Icon: Laugh, label: 'Very Happy' },
+  Happy: { Icon: Smile, label: 'Happy' },
+  Neutral: { Icon: Meh, label: 'Neutral' },
+  Sad: { Icon: Frown, label: 'Sad' },
+  Anxious: { Icon: Annoyed, label: 'Anxious' },
+  Great: { Icon: Laugh, label: 'Very Happy' },
+  Good: { Icon: Smile, label: 'Happy' },
+  Okay: { Icon: Meh, label: 'Neutral' },
+  Low: { Icon: Frown, label: 'Sad' },
+  Stressed: { Icon: Annoyed, label: 'Anxious' },
 };
 
 export default function LogTypePage() {
@@ -331,7 +331,8 @@ export default function LogTypePage() {
                   const isSleep = config.id === 'sleep';
                   const isMood = config.id === 'mood';
                   const raw = item.raw || {};
-                  const moodMeta = MOOD_CARD[raw.mood] || { emoji: '😊', label: raw.mood || 'Mood' };
+                  const moodMeta = MOOD_CARD[raw.mood] || { Icon: Smile, label: raw.mood || 'Mood' };
+                  const MoodIcon = moodMeta.Icon || Smile;
                   const mealEmoji = MEAL_EMOJI[raw.mealType || item.title] || '🍽';
                   const impact = raw.bloodSugarImpact;
                   const insulinReason =
@@ -445,8 +446,19 @@ export default function LogTypePage() {
                           </>
                         ) : isMood ? (
                           <>
-                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                              {moodMeta.emoji} {moodMeta.label}
+                            <p
+                              style={{
+                                margin: 0,
+                                fontWeight: 650,
+                                fontSize: 15,
+                                color: t.ink,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                              }}
+                            >
+                              <MoodIcon size={18} strokeWidth={1.75} color={t.forest} aria-hidden />
+                              {moodMeta.label}
                             </p>
                             <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
                               Stress: {raw.stressLevel || 'Low'}

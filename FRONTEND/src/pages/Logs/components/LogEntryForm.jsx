@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../../../theme';
-import { Loader2 } from 'lucide-react';
+import { Annoyed, Frown, Laugh, Loader2, Meh, Smile } from 'lucide-react';
 
 const t = theme;
 
@@ -305,7 +305,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
               textAlign: 'left',
             }}
           >
-            Manual entry
+            Manual
           </button>
           <button
             type="button"
@@ -325,61 +325,22 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
               textAlign: 'left',
             }}
           >
-            AI meal analyzer
+            AI analyzer
           </button>
         </div>
 
         {nutritionMode === 'manual' && (
-          <div
-            key="nutrition-manual"
-            className="db-log-form-grid"
-            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}
-          >
-            <Field title="Carbs (g)">
-              <input
-                type="number"
-                min="0"
-                inputMode="decimal"
-                value={form.carbohydrates}
-                onChange={(e) => setForm({ ...form, carbohydrates: e.target.value })}
-                style={field}
-                placeholder="0"
-              />
-            </Field>
-            <Field title="Calories">
-              <input
-                type="number"
-                min="0"
-                inputMode="decimal"
-                value={form.calories}
-                onChange={(e) => setForm({ ...form, calories: e.target.value })}
-                style={field}
-                placeholder="0"
-              />
-            </Field>
-            <Field title="Protein (g)">
-              <input
-                type="number"
-                min="0"
-                inputMode="decimal"
-                value={form.protein}
-                onChange={(e) => setForm({ ...form, protein: e.target.value })}
-                style={field}
-                placeholder="0"
-              />
-            </Field>
-            <Field title="Fat (g)">
-              <input
-                type="number"
-                min="0"
-                inputMode="decimal"
-                value={form.fat}
-                onChange={(e) => setForm({ ...form, fat: e.target.value })}
-                style={field}
-                placeholder="0"
-              />
-            </Field>
-          </div>
+          <Field title="Carbs (g)">
+            <input
+              type="number"
+              min="0"
+              inputMode="decimal"
+              value={form.carbohydrates}
+              onChange={(e) => setForm({ ...form, carbohydrates: e.target.value })}
+              style={field}
+              placeholder="0"
+            />
+          </Field>
         )}
 
         {nutritionMode === 'ai' && (
@@ -393,9 +354,9 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
               textAlign: 'center',
             }}
           >
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 650, color: t.ink }}>Photo analysis</p>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 650, color: t.ink }}>AI meal analyzer</p>
             <p style={{ margin: '6px 0 0', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-              Upload a meal photo to estimate nutrition. Coming soon.
+              Upload a meal photo to estimate carbs. Coming soon.
             </p>
             <button
               type="button"
@@ -1137,17 +1098,34 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
 
 const SLEEP_QUALITY = ['Excellent', 'Good', 'Fair', 'Poor'];
 
-function defaultSleepStart() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  d.setHours(23, 0, 0, 0);
-  return toLocalInput(d);
+/** Last night at 10:00 PM → this morning at 6:00 AM (8 hours). */
+function defaultSleepPair() {
+  const wake = new Date();
+  wake.setHours(6, 0, 0, 0);
+  const sleep = new Date(wake);
+  sleep.setDate(sleep.getDate() - 1);
+  sleep.setHours(22, 0, 0, 0);
+  return {
+    sleepTime: toLocalInput(sleep),
+    wakeTime: toLocalInput(wake),
+  };
 }
 
-function defaultWakeTime() {
-  const d = new Date();
-  d.setHours(6, 30, 0, 0);
-  return toLocalInput(d);
+/** If wake is not after sleep (overnight), move wake to the following day. */
+function ensureOvernightWake(sleepLocal, wakeLocal) {
+  const sleep = new Date(sleepLocal);
+  let wake = new Date(wakeLocal);
+  if (Number.isNaN(sleep.getTime()) || Number.isNaN(wake.getTime())) {
+    return { sleepTime: sleepLocal, wakeTime: wakeLocal };
+  }
+  if (wake <= sleep) {
+    wake = new Date(wake);
+    wake.setDate(wake.getDate() + 1);
+  }
+  return {
+    sleepTime: toLocalInput(sleep),
+    wakeTime: toLocalInput(wake),
+  };
 }
 
 function normalizeSleepQuality(quality) {
@@ -1168,22 +1146,56 @@ function sleepDurationParts(sleepTime, wakeTime) {
   return { hours, minutes, totalHours };
 }
 
+function formatSleepDuration(duration) {
+  if (!duration) return '';
+  const hourLabel = duration.hours === 1 ? 'hour' : 'hours';
+  const minuteLabel = duration.minutes === 1 ? 'minute' : 'minutes';
+  if (duration.minutes === 0) return `${duration.hours} ${hourLabel}`;
+  if (duration.hours === 0) return `${duration.minutes} ${minuteLabel}`;
+  return `${duration.hours} ${hourLabel} ${duration.minutes} ${minuteLabel}`;
+}
+
 function SleepFields({ initialRaw, submitting, isEdit, onSubmit }) {
+  const defaults = defaultSleepPair();
   const [form, setForm] = useState({
-    sleepTime: defaultSleepStart(),
-    wakeTime: defaultWakeTime(),
+    sleepTime: defaults.sleepTime,
+    wakeTime: defaults.wakeTime,
     quality: 'Good',
     notes: '',
   });
 
   useEffect(() => {
+    if (initialRaw?.sleepTime && initialRaw?.wakeTime) {
+      const pair = ensureOvernightWake(
+        toLocalInput(initialRaw.sleepTime),
+        toLocalInput(initialRaw.wakeTime)
+      );
+      setForm({
+        sleepTime: pair.sleepTime,
+        wakeTime: pair.wakeTime,
+        quality: normalizeSleepQuality(initialRaw?.quality),
+        notes: initialRaw?.notes || '',
+      });
+      return;
+    }
+    const pair = defaultSleepPair();
     setForm({
-      sleepTime: initialRaw?.sleepTime ? toLocalInput(initialRaw.sleepTime) : defaultSleepStart(),
-      wakeTime: initialRaw?.wakeTime ? toLocalInput(initialRaw.wakeTime) : defaultWakeTime(),
-      quality: normalizeSleepQuality(initialRaw?.quality),
-      notes: initialRaw?.notes || '',
+      sleepTime: pair.sleepTime,
+      wakeTime: pair.wakeTime,
+      quality: 'Good',
+      notes: '',
     });
   }, [initialRaw]);
+
+  const setSleepTime = (value) => {
+    const pair = ensureOvernightWake(value, form.wakeTime);
+    setForm({ ...form, sleepTime: pair.sleepTime, wakeTime: pair.wakeTime });
+  };
+
+  const setWakeTime = (value) => {
+    const pair = ensureOvernightWake(form.sleepTime, value);
+    setForm({ ...form, sleepTime: pair.sleepTime, wakeTime: pair.wakeTime });
+  };
 
   const duration = sleepDurationParts(form.sleepTime, form.wakeTime);
 
@@ -1202,69 +1214,49 @@ function SleepFields({ initialRaw, submitting, isEdit, onSubmit }) {
         });
       }}
     >
-      <Field title="Sleep start">
+      <Field title="Bedtime" help="Defaults to last night at 10:00 PM.">
         <input
           required
           type="datetime-local"
           value={form.sleepTime}
-          onChange={(e) => setForm({ ...form, sleepTime: e.target.value })}
+          onChange={(e) => setSleepTime(e.target.value)}
           style={field}
         />
       </Field>
 
-      <Field title="Wake-up time">
+      <Field title="Wake time" help="Defaults to this morning at 6:00 AM.">
         <input
           required
           type="datetime-local"
           value={form.wakeTime}
-          onChange={(e) => setForm({ ...form, wakeTime: e.target.value })}
+          onChange={(e) => setWakeTime(e.target.value)}
           style={field}
         />
       </Field>
 
       <div>
         <label style={label}>Sleep duration</label>
-        {duration ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <input
-                readOnly
-                type="text"
-                value={String(duration.totalHours)}
-                style={{ ...field, flex: 1, background: t.surfaceSunken, cursor: 'default' }}
-                aria-label="Sleep duration in hours"
-              />
-              <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>hours</span>
-            </div>
-            <div
-              className="db-log-form-grid"
-              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10, minWidth: 0 }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  readOnly
-                  type="text"
-                  value={String(duration.hours)}
-                  style={{ ...field, background: t.surfaceSunken, cursor: 'default' }}
-                  aria-label="Hours"
-                />
-                <span style={{ fontSize: 13, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>hrs</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  readOnly
-                  type="text"
-                  value={String(duration.minutes)}
-                  style={{ ...field, background: t.surfaceSunken, cursor: 'default' }}
-                  aria-label="Minutes"
-                />
-                <span style={{ fontSize: 13, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>min</span>
-              </div>
-            </div>
-          </>
-        ) : (
-          <p style={hint}>Enter sleep start and wake-up times to calculate duration.</p>
-        )}
+        <div
+          style={{
+            ...field,
+            background: t.surfaceSunken,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+            cursor: 'default',
+          }}
+        >
+          <span style={{ fontWeight: 650, color: duration ? t.ink : t.inkFaint }}>
+            {duration ? formatSleepDuration(duration) : 'Set bedtime and wake time'}
+          </span>
+          {duration ? (
+            <span style={{ fontSize: 13, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>
+              {duration.totalHours} h
+            </span>
+          ) : null}
+        </div>
+        <p style={hint}>Calculated automatically from bedtime and wake time.</p>
       </div>
 
       <div>
@@ -1317,11 +1309,11 @@ function SleepFields({ initialRaw, submitting, isEdit, onSubmit }) {
 }
 
 const MOOD_OPTIONS = [
-  { id: 'Very Happy', label: 'Very Happy', emoji: '🥰' },
-  { id: 'Happy', label: 'Happy', emoji: '😊' },
-  { id: 'Neutral', label: 'Neutral', emoji: '😌' },
-  { id: 'Sad', label: 'Sad', emoji: '🥺' },
-  { id: 'Anxious', label: 'Anxious', emoji: '🫠' },
+  { id: 'Very Happy', label: 'Very Happy', Icon: Laugh },
+  { id: 'Happy', label: 'Happy', Icon: Smile },
+  { id: 'Neutral', label: 'Neutral', Icon: Meh },
+  { id: 'Sad', label: 'Sad', Icon: Frown },
+  { id: 'Anxious', label: 'Anxious', Icon: Annoyed },
 ];
 
 const LEGACY_MOOD_MAP = {
@@ -1378,6 +1370,7 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
         >
           {MOOD_OPTIONS.map((opt) => {
             const active = form.mood === opt.id;
+            const Icon = opt.Icon;
             return (
               <button
                 key={opt.id}
@@ -1388,7 +1381,7 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
                   borderRadius: 12,
                   border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
                   background: active ? t.surfaceSunken : '#FFF',
-                  color: t.ink,
+                  color: active ? t.forest : t.inkSoft,
                   cursor: 'pointer',
                   fontFamily: t.fontBody,
                   display: 'flex',
@@ -1397,10 +1390,8 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
                   gap: 6,
                 }}
               >
-                <span style={{ fontSize: 28, lineHeight: 1 }} aria-hidden>
-                  {opt.emoji}
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 650 }}>{opt.label}</span>
+                <Icon size={22} strokeWidth={1.75} aria-hidden />
+                <span style={{ fontSize: 12, fontWeight: 650, color: t.ink }}>{opt.label}</span>
               </button>
             );
           })}

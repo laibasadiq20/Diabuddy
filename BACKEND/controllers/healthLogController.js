@@ -128,18 +128,6 @@ exports.getTimeline = async (req, res) => {
             valueStr = 'Symptom Log';
             color = log.severity > 6 ? 'red' : log.severity > 3 ? 'yellow' : 'green';
           } else if (type === 'Mood') {
-            const moodEmojis = {
-              'Very Happy': '🥰',
-              Happy: '😊',
-              Neutral: '😌',
-              Sad: '🥺',
-              Anxious: '🫠',
-              Great: '🥰',
-              Good: '😊',
-              Okay: '😌',
-              Low: '🥺',
-              Stressed: '🫠',
-            };
             const moodLabel = {
               Great: 'Very Happy',
               Good: 'Happy',
@@ -147,7 +135,7 @@ exports.getTimeline = async (req, res) => {
               Low: 'Sad',
               Stressed: 'Anxious',
             }[log.mood] || log.mood;
-            title = `${moodEmojis[log.mood] || '😊'} ${moodLabel}`;
+            title = moodLabel;
             subtitle = log.stressLevel ? `Stress: ${log.stressLevel}` : log.journalEntry || '';
             valueStr = log.journalEntry || '';
             color =

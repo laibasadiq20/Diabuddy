@@ -30,7 +30,7 @@ export const LOG_TYPES = [
     shortLabel: 'Meal',
     icon: Utensils,
     why: 'Meal logs link food intake to glucose changes and support carb awareness over time.',
-    how: 'Select meal type and time, describe the food, enter nutrition manually (AI photo analysis coming soon), then save.',
+    how: 'Select meal type and time, describe the food, then choose Manual to enter carbs or AI analyzer (coming soon).',
   },
   {
     id: 'insulin',
@@ -85,7 +85,7 @@ export const LOG_TYPES = [
     shortLabel: 'Sleep',
     icon: Moon,
     why: 'Track your sleep duration and quality to understand how rest may influence your blood glucose, energy levels, and overall well-being.',
-    how: 'Enter sleep start and wake-up times. Duration is calculated automatically. Rate quality and add notes if useful.',
+    how: 'Confirm bedtime and wake time (defaults: 10:00 PM to 6:00 AM). Duration is calculated automatically.',
   },
   {
     id: 'mood',
