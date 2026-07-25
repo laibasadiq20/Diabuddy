@@ -52,7 +52,7 @@ function Field({ title, help, children }) {
   );
 }
 
-function Submit({ submitting, isEdit }) {
+function Submit({ submitting, isEdit, label, editLabel }) {
   return (
     <button
       type="submit"
@@ -77,7 +77,7 @@ function Submit({ submitting, isEdit }) {
       }}
     >
       {submitting && <Loader2 size={16} className="db-spin" />}
-      {isEdit ? 'Update entry' : 'Save entry'}
+      {isEdit ? editLabel || 'Update entry' : label || 'Save entry'}
     </button>
   );
 }
@@ -123,7 +123,6 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
     glucoseLevel: '',
     unit: 'mg/dL',
     readingType: 'Before Breakfast',
-    source: 'Fingerstick',
     notes: '',
     timestamp: '',
   });
@@ -133,7 +132,6 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
       glucoseLevel: initialRaw?.glucoseLevel ?? '',
       unit: initialRaw?.unit || 'mg/dL',
       readingType: initialRaw?.readingType || 'Before Breakfast',
-      source: initialRaw?.source || 'Fingerstick',
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
@@ -148,14 +146,13 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
           glucoseLevel: Number(form.glucoseLevel),
           unit: form.unit,
           readingType: form.readingType,
-          source: form.source,
           notes: form.notes || undefined,
         };
         if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
         onSubmit(body);
       }}
     >
-      <Field title="Glucose reading" help="Use the number shown on your glucometer.">
+      <Field title="Glucose reading">
         <input
           required
           type="number"
@@ -168,24 +165,16 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
           placeholder="e.g. 128"
         />
       </Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field title="Unit" help="Most clinics in Pakistan use mg/dL.">
-          <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} style={field}>
-            <option value="mg/dL">mg/dL</option>
-            <option value="mmol/L">mmol/L</option>
-          </select>
-        </Field>
-        <Field title="Source">
-          <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} style={field}>
-            <option>Fingerstick</option>
-            <option>CGM</option>
-            <option>Manual Entry</option>
-          </select>
-        </Field>
-      </div>
-      <Field title="Timing" help="Relate the reading to meals—useful after roti/rice or mithai.">
+      <Field title="Unit">
+        <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} style={field}>
+          <option value="mg/dL">mg/dL</option>
+          <option value="mmol/L">mmol/L</option>
+        </select>
+      </Field>
+      <Field title="Reading context">
         <select value={form.readingType} onChange={(e) => setForm({ ...form, readingType: e.target.value })} style={field}>
           {[
+            'Fasting',
             'Before Breakfast',
             'After Breakfast',
             'Before Lunch',
@@ -194,6 +183,9 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
             'After Dinner',
             'Bedtime',
             'Random',
+            'Before Exercise',
+            'After Exercise',
+            'Night',
           ].map((o) => (
             <option key={o}>{o}</option>
           ))}
@@ -202,7 +194,7 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
       <Field title="Date & time (optional)">
         <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
       </Field>
-      <Field title="Notes (optional)" help="e.g. late dinner, illness, exercise, Ramadan fast.">
+      <Field title="Notes (optional)">
         <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={field} />
       </Field>
       <Submit submitting={submitting} isEdit={isEdit} />
@@ -219,9 +211,11 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     fat: '',
     calories: '',
     waterConsumed: '',
+    bloodSugarImpact: '',
     notes: '',
     timestamp: '',
   });
+  const [nutritionMode, setNutritionMode] = useState('manual');
 
   useEffect(() => {
     setForm({
@@ -232,10 +226,18 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
       fat: initialRaw?.fat ?? '',
       calories: initialRaw?.calories ?? '',
       waterConsumed: initialRaw?.waterConsumed ?? '',
+      bloodSugarImpact: initialRaw?.bloodSugarImpact || '',
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
+    setNutritionMode('manual');
   }, [initialRaw]);
+
+  const impactOptions = [
+    { value: 'High', label: '⬆ High' },
+    { value: 'Normal', label: '➖ Normal' },
+    { value: 'Low', label: '⬇ Low' },
+  ];
 
   return (
     <form
@@ -250,53 +252,171 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           fat: Number(form.fat) || 0,
           calories: Number(form.calories) || 0,
           waterConsumed: Number(form.waterConsumed) || 0,
+          bloodSugarImpact: form.bloodSugarImpact || '',
           notes: form.notes || undefined,
         };
         if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
         onSubmit(body);
       }}
     >
-      <Field title="Meal">
+      <Field title="Meal type">
         <select value={form.mealType} onChange={(e) => setForm({ ...form, mealType: e.target.value })} style={field}>
           {['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((o) => (
             <option key={o}>{o}</option>
           ))}
         </select>
       </Field>
-      <Field title="What did you eat?" help="Example: 2 roti, chicken salan, raita — or chai with sugar.">
+
+      <Field title="Date & time">
+        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
+      </Field>
+
+      <Field title="Food description">
         <textarea
           required
           rows={3}
           value={form.foodItems}
           onChange={(e) => setForm({ ...form, foodItems: e.target.value })}
           style={{ ...field, resize: 'vertical' }}
-          placeholder="Describe the plate in your own words"
+          placeholder="Describe the meal"
         />
       </Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field title="Carbs (g)" help="Estimate is fine.">
-          <input type="number" min="0" value={form.carbohydrates} onChange={(e) => setForm({ ...form, carbohydrates: e.target.value })} style={field} />
-        </Field>
-        <Field title="Calories">
-          <input type="number" min="0" value={form.calories} onChange={(e) => setForm({ ...form, calories: e.target.value })} style={field} />
-        </Field>
-        <Field title="Protein (g)">
-          <input type="number" min="0" value={form.protein} onChange={(e) => setForm({ ...form, protein: e.target.value })} style={field} />
-        </Field>
-        <Field title="Fat (g)">
-          <input type="number" min="0" value={form.fat} onChange={(e) => setForm({ ...form, fat: e.target.value })} style={field} />
-        </Field>
+
+      <div>
+        <label style={label}>Nutrition</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+          <button
+            type="button"
+            onClick={() => setNutritionMode('manual')}
+            style={{
+              padding: '11px 12px',
+              borderRadius: 10,
+              border: `1px solid ${nutritionMode === 'manual' ? t.forest : t.lineStrong}`,
+              background: nutritionMode === 'manual' ? t.surfaceSunken : '#FFF',
+              color: t.ink,
+              fontWeight: 650,
+              fontSize: 13,
+              cursor: 'pointer',
+              fontFamily: t.fontBody,
+              textAlign: 'left',
+            }}
+          >
+            Manual entry
+          </button>
+          <button
+            type="button"
+            onClick={() => setNutritionMode('ai')}
+            style={{
+              padding: '11px 12px',
+              borderRadius: 10,
+              border: `1px solid ${nutritionMode === 'ai' ? t.forest : t.lineStrong}`,
+              background: nutritionMode === 'ai' ? t.surfaceSunken : '#FFF',
+              color: t.ink,
+              fontWeight: 650,
+              fontSize: 13,
+              cursor: 'pointer',
+              fontFamily: t.fontBody,
+              textAlign: 'left',
+            }}
+          >
+            AI meal analyzer
+          </button>
+        </div>
+
+        {nutritionMode === 'manual' ? (
+          <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field title="Carbs (g)">
+              <input type="number" min="0" value={form.carbohydrates} onChange={(e) => setForm({ ...form, carbohydrates: e.target.value })} style={field} />
+            </Field>
+            <Field title="Calories">
+              <input type="number" min="0" value={form.calories} onChange={(e) => setForm({ ...form, calories: e.target.value })} style={field} />
+            </Field>
+            <Field title="Protein (g)">
+              <input type="number" min="0" value={form.protein} onChange={(e) => setForm({ ...form, protein: e.target.value })} style={field} />
+            </Field>
+            <Field title="Fat (g)">
+              <input type="number" min="0" value={form.fat} onChange={(e) => setForm({ ...form, fat: e.target.value })} style={field} />
+            </Field>
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: '18px 16px',
+              borderRadius: 10,
+              border: `1px dashed ${t.lineStrong}`,
+              background: t.surfaceRaised,
+              textAlign: 'center',
+            }}
+          >
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 650, color: t.ink }}>Photo analysis</p>
+            <p style={{ margin: '6px 0 0', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
+              Upload a meal photo to estimate nutrition. Coming soon.
+            </p>
+            <button
+              type="button"
+              disabled
+              style={{
+                marginTop: 12,
+                padding: '10px 14px',
+                borderRadius: 8,
+                border: `1px solid ${t.line}`,
+                background: t.surfaceSunken,
+                color: t.inkFaint,
+                fontWeight: 650,
+                fontSize: 13,
+                cursor: 'not-allowed',
+                fontFamily: t.fontBody,
+              }}
+            >
+              Take photo — Coming soon
+            </button>
+          </div>
+        )}
       </div>
-      <Field title="Water with meal (ml)">
+
+      <Field title="Water intake (ml)">
         <input type="number" min="0" value={form.waterConsumed} onChange={(e) => setForm({ ...form, waterConsumed: e.target.value })} style={field} />
       </Field>
-      <Field title="Date & time (optional)">
-        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
-      </Field>
+
+      <div>
+        <label style={label}>Blood sugar after meal (optional)</label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {impactOptions.map((opt) => {
+            const active = form.bloodSugarImpact === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    bloodSugarImpact: active ? '' : opt.value,
+                  })
+                }
+                style={{
+                  padding: '11px 8px',
+                  borderRadius: 10,
+                  border: `1px solid ${active ? t.forest : t.lineStrong}`,
+                  background: active ? t.surfaceSunken : '#FFF',
+                  color: t.ink,
+                  fontWeight: 650,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <Field title="Notes (optional)">
         <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={field} />
       </Field>
-      <Submit submitting={submitting} isEdit={isEdit} />
+
+      <Submit submitting={submitting} isEdit={isEdit} label="🍽 Save meal" editLabel="🍽 Update meal" />
     </form>
   );
 }
@@ -338,13 +458,13 @@ function InsulinFields({ initialRaw, submitting, isEdit, onSubmit }) {
         onSubmit(body);
       }}
     >
-      <Field title="Units taken" help="Enter exactly what you injected—do not change your prescription here.">
+      <Field title="Units taken">
         <input required type="number" min="0.1" step="0.1" value={form.units} onChange={(e) => setForm({ ...form, units: e.target.value })} style={field} />
       </Field>
-      <Field title="Insulin name / type" help="As written on the pen or vial (e.g. NovoRapid, Lantus).">
+      <Field title="Insulin name / type">
         <input required type="text" value={form.insulinType} onChange={(e) => setForm({ ...form, insulinType: e.target.value })} style={field} />
       </Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Field title="Injection site">
           <select value={form.injectionSite} onChange={(e) => setForm({ ...form, injectionSite: e.target.value })} style={field}>
             {['Abdomen', 'Arm', 'Thigh', 'Buttocks'].map((o) => (
@@ -408,13 +528,13 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
         onSubmit(body);
       }}
     >
-      <Field title="Medicine name" help="As printed on the strip (e.g. Metformin, Glimepiride).">
+      <Field title="Medicine name">
         <input required type="text" value={form.medicineName} onChange={(e) => setForm({ ...form, medicineName: e.target.value })} style={field} />
       </Field>
-      <Field title="Dose" help="e.g. 500 mg, 1 tablet.">
+      <Field title="Dose">
         <input required type="text" value={form.dose} onChange={(e) => setForm({ ...form, dose: e.target.value })} style={field} />
       </Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Field title="Status">
           <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} style={field}>
             {['Taken', 'Missed', 'Skipped'].map((o) => (
@@ -423,7 +543,7 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
           </select>
         </Field>
         <Field title="Usual time (optional)">
-          <input type="text" placeholder="After dinner" value={form.reminderTime} onChange={(e) => setForm({ ...form, reminderTime: e.target.value })} style={field} />
+          <input type="text" placeholder="e.g. 08:00" value={form.reminderTime} onChange={(e) => setForm({ ...form, reminderTime: e.target.value })} style={field} />
         </Field>
       </div>
       <Field title="Date & time (optional)">
@@ -457,7 +577,7 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
         onSubmit(body);
       }}
     >
-      <Field title="Amount (ml)" help="A common glass is about 200–250 ml. In hot weather, sip regularly unless your doctor limits fluids.">
+      <Field title="Amount (ml)">
         <input required type="number" min="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} style={field} />
       </Field>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -530,10 +650,10 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
         onSubmit(body);
       }}
     >
-      <Field title="Activity" help="e.g. evening walk, stairs at home, light cycling.">
+      <Field title="Activity">
         <input required type="text" value={form.exerciseType} onChange={(e) => setForm({ ...form, exerciseType: e.target.value })} style={field} />
       </Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Field title="Duration (minutes)">
           <input required type="number" min="1" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} style={field} />
         </Field>
@@ -545,7 +665,7 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
           </select>
         </Field>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Field title="Distance (optional)">
           <input type="number" min="0" step="0.1" value={form.distance} onChange={(e) => setForm({ ...form, distance: e.target.value })} style={field} />
         </Field>
@@ -592,10 +712,10 @@ function WeightFields({ initialRaw, submitting, isEdit, onSubmit }) {
         onSubmit(body);
       }}
     >
-      <Field title="Weight (kg)" help="Weigh at a similar time of day when you can.">
+      <Field title="Weight (kg)">
         <input required type="number" min="1" step="0.1" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} style={field} />
       </Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Field title="BMI (optional)">
           <input type="number" min="0" step="0.1" value={form.bmi} onChange={(e) => setForm({ ...form, bmi: e.target.value })} style={field} />
         </Field>
@@ -652,7 +772,7 @@ function SleepFields({ initialRaw, submitting, isEdit, onSubmit }) {
           ))}
         </select>
       </Field>
-      <Field title="Notes (optional)" help="Late dinner, night prayer, noise, shift work…">
+      <Field title="Notes (optional)">
         <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={field} />
       </Field>
       <Submit submitting={submitting} isEdit={isEdit} />
@@ -690,10 +810,10 @@ function SymptomsFields({ initialRaw, submitting, isEdit, onSubmit }) {
         onSubmit(body);
       }}
     >
-      <Field title="Symptoms" help="Separate with commas. e.g. thirst, blurred vision, trembling.">
-        <input required type="text" value={form.symptoms} onChange={(e) => setForm({ ...form, symptoms: e.target.value })} style={field} />
+      <Field title="Symptoms">
+        <input required type="text" value={form.symptoms} onChange={(e) => setForm({ ...form, symptoms: e.target.value })} style={field} placeholder="Comma-separated" />
       </Field>
-      <Field title="Severity (1–10)" help="1 = mild, 10 = severe. Seek urgent care for sudden or severe symptoms.">
+      <Field title="Severity (1–10)">
         <input required type="number" min="1" max="10" value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })} style={field} />
       </Field>
       <Field title="Date & time (optional)">
@@ -731,7 +851,7 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
         onSubmit(body);
       }}
     >
-      <Field title="How do you feel?" help="Stress and low mood can raise sugar even when meals look controlled.">
+      <Field title="How do you feel?">
         <select value={form.mood} onChange={(e) => setForm({ ...form, mood: e.target.value })} style={field}>
           {['Great', 'Good', 'Okay', 'Low', 'Stressed'].map((o) => (
             <option key={o}>{o}</option>
@@ -745,7 +865,6 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
           value={form.journalEntry}
           onChange={(e) => setForm({ ...form, journalEntry: e.target.value })}
           style={{ ...field, resize: 'vertical' }}
-          placeholder="A few words for your own awareness—not a diagnosis."
         />
       </Field>
       <Field title="Date & time (optional)">

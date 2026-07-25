@@ -48,6 +48,11 @@ const mealLogSchema = new mongoose.Schema(
       default: 0,
       min: [0, 'Water consumed cannot be negative'],
     },
+    bloodSugarImpact: {
+      type: String,
+      enum: ['High', 'Normal', 'Low', ''],
+      default: '',
+    },
     notes: {
       type: String,
       maxlength: [500, 'Notes cannot exceed 500 characters'],

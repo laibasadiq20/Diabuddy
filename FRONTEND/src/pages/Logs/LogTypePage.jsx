@@ -9,6 +9,30 @@ import { LogEntryForm } from './components/LogEntryForm';
 
 const t = theme;
 
+const MEAL_EMOJI = {
+  Breakfast: '🍳',
+  Lunch: '🍲',
+  Dinner: '🍽',
+  Snack: '🥪',
+};
+
+function isSameLocalDay(dateLike, ref = new Date()) {
+  const d = new Date(dateLike);
+  if (Number.isNaN(d.getTime())) return false;
+  return (
+    d.getFullYear() === ref.getFullYear() &&
+    d.getMonth() === ref.getMonth() &&
+    d.getDate() === ref.getDate()
+  );
+}
+
+function formatTodayTime(dateLike) {
+  const d = new Date(dateLike);
+  if (Number.isNaN(d.getTime())) return '';
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return `Today • ${time}`;
+}
+
 export default function LogTypePage() {
   const { typeId } = useParams();
   const navigate = useNavigate();
@@ -32,11 +56,22 @@ export default function LogTypePage() {
     setLoading(true);
     setError('');
     try {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+
       const res = await api.get('/health-logs/timeline', {
-        params: { moduleType: config.id, sortBy: 'newest' },
+        params: {
+          moduleType: config.id,
+          sortBy: 'newest',
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+        },
       });
       if (res.data?.status === 'success') {
-        setEntries(res.data.data || []);
+        const todayOnly = (res.data.data || []).filter((item) => isSameLocalDay(item.timestamp));
+        setEntries(todayOnly);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Could not load entries.');
@@ -112,13 +147,13 @@ export default function LogTypePage() {
       }}
     >
       <AppSidebar />
-      <main style={{ flex: 1, minWidth: 0, padding: '24px 20px 110px' }}>
-        <div style={{ maxWidth: 640, margin: '0 auto' }}>
+      <main className="db-logs-main" style={{ flex: 1, minWidth: 0, padding: '24px 20px 110px' }}>
+        <div className="db-logs-wrap" style={{ maxWidth: 640, margin: '0 auto', width: '100%' }}>
           <button type="button" onClick={() => navigate('/logs')} style={backBtn}>
             <ArrowLeft size={16} /> All logs
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, margin: '18px 0 8px' }}>
+          <div className="db-logs-title-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 14, margin: '18px 0 8px' }}>
             <span
               style={{
                 width: 48,
@@ -134,14 +169,15 @@ export default function LogTypePage() {
             >
               <Icon size={22} strokeWidth={1.75} />
             </span>
-            <div>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <h1
                 style={{
                   margin: 0,
                   fontFamily: t.fontDisplay,
-                  fontSize: 'clamp(26px, 5vw, 32px)',
+                  fontSize: 'clamp(24px, 6vw, 32px)',
                   fontWeight: 500,
                   color: t.ink,
+                  lineHeight: 1.2,
                 }}
               >
                 {config.label}
@@ -184,7 +220,7 @@ export default function LogTypePage() {
 
           <section style={{ marginTop: 32 }}>
             <h2 style={{ margin: '0 0 14px', fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
-              Recent entries
+              Today&apos;s entries
             </h2>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: t.inkSoft, padding: '20px 0' }}>
@@ -194,48 +230,81 @@ export default function LogTypePage() {
               <p style={{ color: t.clayDeep, fontSize: 14 }}>{error}</p>
             ) : entries.length === 0 ? (
               <p style={{ margin: 0, fontSize: 14, color: t.inkFaint, lineHeight: 1.5 }}>
-                No entries yet. Save your first record above.
+                No entries for today yet.
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {entries.map((item) => (
-                  <div key={item._id} style={entryRow}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontWeight: 650, fontSize: 14, color: t.ink }}>{item.title}</p>
-                      {item.subtitle && (
-                        <p style={{ margin: '3px 0 0', fontSize: 13, color: t.inkSoft, wordBreak: 'break-word' }}>
-                          {item.subtitle}
-                        </p>
-                      )}
-                      <p style={{ margin: '4px 0 0', fontSize: 12, color: t.inkFaint }}>
-                        {item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}
-                        {item.valueStr ? ` · ${item.valueStr}` : ''}
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      {config.apiPath !== 'water' && (
+                {entries.map((item) => {
+                  const isMeal = config.id === 'meal';
+                  const raw = item.raw || {};
+                  const mealEmoji = MEAL_EMOJI[raw.mealType || item.title] || '🍽';
+                  const impact = raw.bloodSugarImpact;
+
+                  return (
+                    <div key={item._id} className="db-log-entry-row" style={entryRow}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {isMeal ? (
+                          <>
+                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                              {mealEmoji} {raw.mealType || item.title}
+                            </p>
+                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                              {raw.calories ?? 0} kcal
+                            </p>
+                            <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>
+                              {raw.carbohydrates ?? 0}g Carbs
+                            </p>
+                            {impact ? (
+                              <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
+                                After meal: {impact === 'High' ? '⬆' : impact === 'Low' ? '⬇' : '➖'} {impact}
+                              </p>
+                            ) : null}
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                              {formatTodayTime(item.timestamp)}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p style={{ margin: 0, fontWeight: 650, fontSize: 14, color: t.ink }}>{item.title}</p>
+                            {item.subtitle && (
+                              <p style={{ margin: '3px 0 0', fontSize: 13, color: t.inkSoft, wordBreak: 'break-word' }}>
+                                {item.subtitle}
+                              </p>
+                            )}
+                            {item.valueStr && (
+                              <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>{item.valueStr}</p>
+                            )}
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                              {formatTodayTime(item.timestamp)}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <div className="db-log-entry-actions" style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        {config.apiPath !== 'water' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditRaw(item.raw || item);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            style={smallBtn}
+                          >
+                            Edit
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={() => {
-                            setEditRaw(item.raw || item);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          style={smallBtn}
+                          aria-label="Delete"
+                          onClick={() => handleDelete(item)}
+                          style={{ ...smallBtn, color: t.clayDeep }}
                         >
-                          Edit
+                          <Trash2 size={14} />
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        aria-label="Delete"
-                        onClick={() => handleDelete(item)}
-                        style={{ ...smallBtn, color: t.clayDeep }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
@@ -263,6 +332,26 @@ export default function LogTypePage() {
           {toast.message}
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 640px) {
+          .db-logs-main {
+            padding: 16px 14px 110px !important;
+          }
+          .db-log-entry-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .db-log-entry-actions {
+            width: 100%;
+            justify-content: flex-end;
+            padding-top: 4px;
+          }
+          .db-log-form-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -21,6 +21,7 @@ const glucoseLogSchema = new mongoose.Schema(
     readingType: {
       type: String,
       enum: [
+        'Fasting',
         'Before Breakfast',
         'After Breakfast',
         'Before Lunch',
@@ -28,7 +29,10 @@ const glucoseLogSchema = new mongoose.Schema(
         'Before Dinner',
         'After Dinner',
         'Bedtime',
-        'Random'
+        'Random',
+        'Before Exercise',
+        'After Exercise',
+        'Night',
       ],
       required: [true, 'Reading type is required'],
     },

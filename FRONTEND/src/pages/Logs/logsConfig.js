@@ -11,10 +11,6 @@ import {
   Smile,
 } from 'lucide-react';
 
-/**
- * Log types for DiaBuddy — oriented to diabetes care in Pakistan
- * (mg/dL labs, meal patterns, heat/hydration, clinic follow-ups).
- */
 export const LOG_TYPES = [
   {
     id: 'glucose',
@@ -24,8 +20,8 @@ export const LOG_TYPES = [
     label: 'Blood glucose',
     shortLabel: 'Glucose',
     icon: Droplets,
-    why: 'Pakistani meals—roti, rice, biryani, mithai, and sweet chai—can raise sugar quickly. Recording readings before and after food shows what actually affects you, so you and your doctor can adjust diet or medicine with real numbers, not guesswork.',
-    how: 'Enter the reading from your glucometer in mg/dL (the unit used in most Pakistani labs). Choose when you measured (before breakfast, after dinner, bedtime, etc.). Add a short note if you ate something unusual or felt unwell.',
+    why: 'Regular glucose records help you and your clinician see patterns around meals, activity, and medication.',
+    how: 'Enter the reading, select the reading context, and save. Add a note only if something unusual affected the result.',
   },
   {
     id: 'meal',
@@ -35,8 +31,8 @@ export const LOG_TYPES = [
     label: 'Meals & carbs',
     shortLabel: 'Meal',
     icon: Utensils,
-    why: 'Carbohydrates drive blood sugar. Logging what you eat—especially staples like roti, rice, aloo, and sugary drinks—helps you spot which plates push your readings high and which stay steadier.',
-    how: 'Pick the meal type, describe the food in plain words (e.g. “2 roti, daal, salad”), and estimate carbs/calories if you know them. You do not need perfect accuracy—consistency matters more.',
+    why: 'Meal logs link food intake to glucose changes and support carb awareness over time.',
+    how: 'Select meal type and time, describe the food, enter nutrition manually (AI photo analysis coming soon), then save.',
   },
   {
     id: 'insulin',
@@ -46,8 +42,8 @@ export const LOG_TYPES = [
     label: 'Insulin',
     shortLabel: 'Insulin',
     icon: Syringe,
-    why: 'Missing doses or mixing up units is a common cause of highs and lows. A clear insulin log protects you during clinic visits and when family helps with injections.',
-    how: 'Record units exactly as prescribed, insulin name/type, injection site, and whether it was before or after a meal. Never change your dose from this app—only log what you took.',
+    why: 'An accurate insulin record reduces dosing errors and supports safer clinic reviews.',
+    how: 'Log units, insulin type, injection site, and meal relation exactly as administered. Do not change prescribed doses here.',
   },
   {
     id: 'medication',
@@ -57,8 +53,8 @@ export const LOG_TYPES = [
     label: 'Medications',
     shortLabel: 'Medication',
     icon: Pill,
-    why: 'Tablets like metformin are easy to skip on busy days. Tracking Taken / Missed / Skipped gives an honest picture for your next appointment.',
-    how: 'Enter medicine name and dose as on the strip (e.g. “Metformin 500 mg”). Mark status for each dose. Use the reminder field if you take it at a fixed clock time.',
+    why: 'Tracking taken, missed, or skipped doses improves adherence review at follow-up visits.',
+    how: 'Enter medicine name, dose, and status for each dose.',
   },
   {
     id: 'water',
@@ -68,8 +64,8 @@ export const LOG_TYPES = [
     label: 'Water intake',
     shortLabel: 'Water',
     icon: GlassWater,
-    why: 'Heat, fasting days, and low fluid intake can worsen dehydration and confuse glucose trends. Hydration is part of everyday diabetes care in Pakistan’s climate.',
-    how: 'Log millilitres when you drink water (a typical glass is about 200–250 ml). Aim for steady intake across the day unless your doctor has restricted fluids.',
+    why: 'Hydration can influence how you feel and may relate to glucose trends.',
+    how: 'Log volume in millilitres when you drink water.',
   },
   {
     id: 'exercise',
@@ -79,8 +75,8 @@ export const LOG_TYPES = [
     label: 'Activity',
     shortLabel: 'Activity',
     icon: Dumbbell,
-    why: 'Walking after meals, household work, or light exercise often lowers sugar. Logging activity shows the link between movement and your readings.',
-    how: 'Name the activity (e.g. evening walk, stairs), duration in minutes, and intensity. Keep it honest—even 15 minutes counts.',
+    why: 'Activity often lowers glucose; logging it clarifies the effect of movement on your readings.',
+    how: 'Record activity type, duration, and intensity.',
   },
   {
     id: 'weight',
@@ -90,8 +86,8 @@ export const LOG_TYPES = [
     label: 'Weight',
     shortLabel: 'Weight',
     icon: Scale,
-    why: 'Gradual weight change affects insulin sensitivity and medicine needs. Monthly clinic numbers are useful; a home log fills the gaps between visits.',
-    how: 'Weigh at a similar time of day, in kg. Optional BMI or body-fat fields are fine to leave blank if you only have a scale.',
+    why: 'Weight trends inform long-term diabetes and medication management.',
+    how: 'Enter weight in kg. BMI and body fat are optional.',
   },
   {
     id: 'sleep',
@@ -101,8 +97,8 @@ export const LOG_TYPES = [
     label: 'Sleep',
     shortLabel: 'Sleep',
     icon: Moon,
-    why: 'Poor sleep raises next-day glucose and cravings for sugary chai or snacks. Tracking rest helps explain “mystery” highs.',
-    how: 'Enter when you slept and woke, then rate quality. Use notes for night shifts, late dinners, or noisy nights.',
+    why: 'Sleep quality can affect next-day glucose and appetite.',
+    how: 'Enter sleep and wake times, then rate quality.',
   },
   {
     id: 'symptoms',
@@ -112,8 +108,8 @@ export const LOG_TYPES = [
     label: 'Symptoms',
     shortLabel: 'Symptoms',
     icon: Activity,
-    why: 'Trembling, thirst, blurred vision, or unusual fatigue may signal highs, lows, or illness. A dated symptom list is valuable in emergencies and clinic reviews.',
-    how: 'List symptoms separated by commas and rate severity from 1–10. Add context in notes (after meal, during heat, etc.). Seek urgent care for severe or sudden symptoms.',
+    why: 'Documented symptoms support clinical assessment and urgent decision-making.',
+    how: 'List symptoms, rate severity from 1–10, and add notes if needed. Seek urgent care for severe symptoms.',
   },
   {
     id: 'mood',
@@ -123,8 +119,8 @@ export const LOG_TYPES = [
     label: 'Mood & stress',
     shortLabel: 'Mood',
     icon: Smile,
-    why: 'Stress at work or home can raise sugar even when diet is controlled. Noticing patterns supports both mental health and diabetes management.',
-    how: 'Choose how you feel and optionally write a short journal note. This is for your awareness—not a diagnosis.',
+    why: 'Stress and mood can influence glucose independent of meals.',
+    how: 'Select your mood and optionally add a short note.',
   },
 ];
 

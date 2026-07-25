@@ -18,12 +18,15 @@ const calculateGlucoseStatus = (glucoseLevel, unit, readingType) => {
     return 'Low';
   }
 
-  if (readingType.startsWith('Before')) {
+  const beforeLike = readingType === 'Fasting' || (readingType && readingType.startsWith('Before'));
+  const afterLike = readingType && readingType.startsWith('After');
+
+  if (beforeLike) {
     if (valMgDl > 130) return 'High';
-  } else if (readingType.startsWith('After')) {
+  } else if (afterLike) {
     if (valMgDl > 180) return 'High';
   } else {
-    // Bedtime or Random
+    // Bedtime, Night, Random
     if (valMgDl > 150) return 'High';
   }
 
@@ -81,7 +84,7 @@ exports.getTimeline = async (req, res) => {
 
           if (type === 'Glucose') {
             title = `${log.glucoseLevel} ${log.unit}`;
-            subtitle = `${log.readingType} (${log.source})`;
+            subtitle = log.readingType || '';
             valueStr = log.status;
             color = log.status === 'Low' || log.status === 'High' ? 'red' : 'green';
           } else if (type === 'Insulin') {
@@ -92,7 +95,7 @@ exports.getTimeline = async (req, res) => {
           } else if (type === 'Meal') {
             title = log.mealType;
             subtitle = log.foodItems;
-            valueStr = `${log.calories} kcal • ${log.carbohydrates}g Carbs`;
+            valueStr = `${log.calories || 0} kcal • ${log.carbohydrates || 0}g Carbs`;
             color = 'orange';
           } else if (type === 'Medication') {
             title = log.medicineName;
@@ -551,7 +554,19 @@ exports.deleteInsulin = async (req, res) => {
 // ==========================================
 exports.createMeal = async (req, res) => {
   try {
-    const { mealType, foodItems, carbohydrates, protein, fat, calories, imageUrl, waterConsumed, notes, timestamp } = req.body;
+    const {
+      mealType,
+      foodItems,
+      carbohydrates,
+      protein,
+      fat,
+      calories,
+      imageUrl,
+      waterConsumed,
+      bloodSugarImpact,
+      notes,
+      timestamp,
+    } = req.body;
     const log = new MealLog({
       userId: req.user.id,
       mealType,
@@ -562,6 +577,7 @@ exports.createMeal = async (req, res) => {
       calories: Number(calories || 0),
       imageUrl,
       waterConsumed: Number(waterConsumed || 0),
+      bloodSugarImpact: bloodSugarImpact || '',
       notes,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
     });
@@ -584,7 +600,19 @@ exports.createMeal = async (req, res) => {
 
 exports.updateMeal = async (req, res) => {
   try {
-    const { mealType, foodItems, carbohydrates, protein, fat, calories, imageUrl, waterConsumed, notes, timestamp } = req.body;
+    const {
+      mealType,
+      foodItems,
+      carbohydrates,
+      protein,
+      fat,
+      calories,
+      imageUrl,
+      waterConsumed,
+      bloodSugarImpact,
+      notes,
+      timestamp,
+    } = req.body;
     const log = await MealLog.findOne({ _id: req.params.id, userId: req.user.id });
     if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
 
@@ -596,6 +624,7 @@ exports.updateMeal = async (req, res) => {
     if (calories !== undefined) log.calories = Number(calories || 0);
     if (imageUrl !== undefined) log.imageUrl = imageUrl;
     if (waterConsumed !== undefined) log.waterConsumed = Number(waterConsumed || 0);
+    if (bloodSugarImpact !== undefined) log.bloodSugarImpact = bloodSugarImpact || '';
     if (notes !== undefined) log.notes = notes;
     if (timestamp !== undefined) log.timestamp = new Date(timestamp);
 
