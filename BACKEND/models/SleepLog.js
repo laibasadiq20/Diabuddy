@@ -23,7 +23,7 @@ const sleepLogSchema = new mongoose.Schema(
     },
     quality: {
       type: String,
-      enum: ['Poor', 'Average', 'Good', 'Excellent'],
+      enum: ['Poor', 'Fair', 'Average', 'Good', 'Excellent'],
       required: [true, 'Sleep quality is required'],
     },
     notes: {

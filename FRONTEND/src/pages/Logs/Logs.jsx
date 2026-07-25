@@ -105,6 +105,7 @@ export default function Logs() {
                       {item.label}
                     </span>
                     <span
+                      className="db-logs-hub-desc"
                       style={{
                         display: 'block',
                         fontSize: 13,
@@ -126,12 +127,18 @@ export default function Logs() {
       <style>{`
         @media (max-width: 640px) {
           .db-logs-hub-main {
-            padding: 16px 14px 110px !important;
+            padding: 14px 12px 120px !important;
           }
           .db-logs-hub-card {
             align-items: flex-start !important;
             padding: 12px !important;
             gap: 12px !important;
+          }
+          .db-logs-hub-desc {
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
           }
         }
       `}</style>

@@ -26,8 +26,13 @@ const medicationLogSchema = new mongoose.Schema(
       required: [true, 'Status is required'],
       default: 'Taken',
     },
+    route: {
+      type: String,
+      enum: ['', 'Oral', 'Injection', 'Inhaler', 'Other'],
+      default: '',
+    },
     reminderTime: {
-      type: String, // e.g. "08:00 AM" or similar description
+      type: String,
       default: '',
     },
     notes: {

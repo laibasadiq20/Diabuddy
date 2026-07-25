@@ -88,9 +88,9 @@ exports.getTimeline = async (req, res) => {
             valueStr = log.status;
             color = log.status === 'Low' || log.status === 'High' ? 'red' : 'green';
           } else if (type === 'Insulin') {
-            title = `${log.units} Units`;
-            subtitle = `${log.insulinType} • ${log.injectionSite}`;
-            valueStr = log.mealRelation !== 'None' ? log.mealRelation : '';
+            title = log.insulinType || 'Insulin';
+            subtitle = `${log.units} Units`;
+            valueStr = log.mealRelation && log.mealRelation !== 'None' ? log.mealRelation : '';
             color = 'blue';
           } else if (type === 'Meal') {
             title = log.mealType;
@@ -99,7 +99,7 @@ exports.getTimeline = async (req, res) => {
             color = 'orange';
           } else if (type === 'Medication') {
             title = log.medicineName;
-            subtitle = `${log.dose} • ${log.status}`;
+            subtitle = log.dose;
             valueStr = log.status;
             color = log.status === 'Taken' ? 'green' : log.status === 'Missed' ? 'red' : 'yellow';
           } else if (type === 'Water') {
@@ -128,11 +128,34 @@ exports.getTimeline = async (req, res) => {
             valueStr = 'Symptom Log';
             color = log.severity > 6 ? 'red' : log.severity > 3 ? 'yellow' : 'green';
           } else if (type === 'Mood') {
-            const moodEmojis = { Great: '😀', Good: '🙂', Okay: '😐', Low: '😔', Stressed: '😫' };
-            title = `${moodEmojis[log.mood] || ''} ${log.mood}`;
-            subtitle = log.journalEntry || 'No journal entry';
-            valueStr = 'Mood Log';
-            color = log.mood === 'Great' || log.mood === 'Good' ? 'green' : log.mood === 'Okay' ? 'yellow' : 'red';
+            const moodEmojis = {
+              'Very Happy': '🥰',
+              Happy: '😊',
+              Neutral: '😌',
+              Sad: '🥺',
+              Anxious: '🫠',
+              Great: '🥰',
+              Good: '😊',
+              Okay: '😌',
+              Low: '🥺',
+              Stressed: '🫠',
+            };
+            const moodLabel = {
+              Great: 'Very Happy',
+              Good: 'Happy',
+              Okay: 'Neutral',
+              Low: 'Sad',
+              Stressed: 'Anxious',
+            }[log.mood] || log.mood;
+            title = `${moodEmojis[log.mood] || '😊'} ${moodLabel}`;
+            subtitle = log.stressLevel ? `Stress: ${log.stressLevel}` : log.journalEntry || '';
+            valueStr = log.journalEntry || '';
+            color =
+              moodLabel === 'Very Happy' || moodLabel === 'Happy'
+                ? 'green'
+                : moodLabel === 'Neutral'
+                  ? 'yellow'
+                  : 'red';
           }
 
           allLogs.push({
@@ -502,13 +525,13 @@ exports.deleteGlucose = async (req, res) => {
 // ==========================================
 exports.createInsulin = async (req, res) => {
   try {
-    const { units, insulinType, injectionSite, mealRelation, notes, timestamp } = req.body;
+    const { units, insulinType, injectionSite, mealRelation, reason, notes, timestamp } = req.body;
     const log = new InsulinLog({
       userId: req.user.id,
       units: Number(units),
       insulinType,
-      injectionSite,
-      mealRelation,
+      injectionSite: injectionSite || '',
+      mealRelation: reason || mealRelation,
       notes,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
     });
@@ -521,14 +544,14 @@ exports.createInsulin = async (req, res) => {
 
 exports.updateInsulin = async (req, res) => {
   try {
-    const { units, insulinType, injectionSite, mealRelation, notes, timestamp } = req.body;
+    const { units, insulinType, injectionSite, mealRelation, reason, notes, timestamp } = req.body;
     const log = await InsulinLog.findOne({ _id: req.params.id, userId: req.user.id });
     if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
 
     if (units !== undefined) log.units = Number(units);
     if (insulinType !== undefined) log.insulinType = insulinType;
-    if (injectionSite !== undefined) log.injectionSite = injectionSite;
-    if (mealRelation !== undefined) log.mealRelation = mealRelation;
+    if (injectionSite !== undefined) log.injectionSite = injectionSite || '';
+    if (reason !== undefined || mealRelation !== undefined) log.mealRelation = reason || mealRelation;
     if (notes !== undefined) log.notes = notes;
     if (timestamp !== undefined) log.timestamp = new Date(timestamp);
 
@@ -650,12 +673,13 @@ exports.deleteMeal = async (req, res) => {
 // ==========================================
 exports.createMedication = async (req, res) => {
   try {
-    const { medicineName, dose, status, reminderTime, notes, timestamp } = req.body;
+    const { medicineName, dose, status, route, reminderTime, notes, timestamp } = req.body;
     const log = new MedicationLog({
       userId: req.user.id,
       medicineName,
       dose,
       status,
+      route: route || '',
       reminderTime,
       notes,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
@@ -669,13 +693,14 @@ exports.createMedication = async (req, res) => {
 
 exports.updateMedication = async (req, res) => {
   try {
-    const { medicineName, dose, status, reminderTime, notes, timestamp } = req.body;
+    const { medicineName, dose, status, route, reminderTime, notes, timestamp } = req.body;
     const log = await MedicationLog.findOne({ _id: req.params.id, userId: req.user.id });
     if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
 
     if (medicineName !== undefined) log.medicineName = medicineName;
     if (dose !== undefined) log.dose = dose;
     if (status !== undefined) log.status = status;
+    if (route !== undefined) log.route = route || '';
     if (reminderTime !== undefined) log.reminderTime = reminderTime;
     if (notes !== undefined) log.notes = notes;
     if (timestamp !== undefined) log.timestamp = new Date(timestamp);
@@ -702,10 +727,11 @@ exports.deleteMedication = async (req, res) => {
 // ==========================================
 exports.createWater = async (req, res) => {
   try {
-    const { amount, timestamp } = req.body;
+    const { amount, notes, timestamp } = req.body;
     const log = new WaterLog({
       userId: req.user.id,
       amount: Number(amount),
+      notes: notes || '',
       timestamp: timestamp ? new Date(timestamp) : new Date(),
     });
     await log.save();
@@ -730,7 +756,7 @@ exports.deleteWater = async (req, res) => {
 // ==========================================
 exports.createExercise = async (req, res) => {
   try {
-    const { exerciseType, duration, distance, caloriesBurned, intensity, notes, timestamp } = req.body;
+    const { exerciseType, duration, distance, caloriesBurned, intensity, notes, source, timestamp } = req.body;
     const log = new ExerciseLog({
       userId: req.user.id,
       activity: exerciseType,
@@ -739,6 +765,7 @@ exports.createExercise = async (req, res) => {
       caloriesBurned: Number(caloriesBurned || 0),
       intensity,
       notes,
+      source: source === 'Fitbit' ? 'Fitbit' : 'Manual',
       timestamp: timestamp ? new Date(timestamp) : new Date(),
     });
     await log.save();
@@ -940,10 +967,11 @@ exports.deleteSymptoms = async (req, res) => {
 // ==========================================
 exports.createMood = async (req, res) => {
   try {
-    const { mood, journalEntry, timestamp } = req.body;
+    const { mood, stressLevel, journalEntry, timestamp } = req.body;
     const log = new MoodLog({
       userId: req.user.id,
       mood,
+      stressLevel: stressLevel || 'Low',
       journalEntry,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
     });
@@ -956,11 +984,12 @@ exports.createMood = async (req, res) => {
 
 exports.updateMood = async (req, res) => {
   try {
-    const { mood, journalEntry, timestamp } = req.body;
+    const { mood, stressLevel, journalEntry, timestamp } = req.body;
     const log = await MoodLog.findOne({ _id: req.params.id, userId: req.user.id });
     if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
 
     if (mood !== undefined) log.mood = mood;
+    if (stressLevel !== undefined) log.stressLevel = stressLevel;
     if (journalEntry !== undefined) log.journalEntry = journalEntry;
     if (timestamp !== undefined) log.timestamp = new Date(timestamp);
 

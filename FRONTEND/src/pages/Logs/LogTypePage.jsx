@@ -33,6 +33,26 @@ function formatTodayTime(dateLike) {
   return `Today • ${time}`;
 }
 
+function intensityFromApiLabel(intensity) {
+  if (intensity === 'Low') return 'Light';
+  if (intensity === 'High') return 'Vigorous';
+  if (intensity === 'Medium') return 'Moderate';
+  return intensity || '';
+}
+
+const MOOD_CARD = {
+  'Very Happy': { emoji: '🥰', label: 'Very Happy' },
+  Happy: { emoji: '😊', label: 'Happy' },
+  Neutral: { emoji: '😌', label: 'Neutral' },
+  Sad: { emoji: '🥺', label: 'Sad' },
+  Anxious: { emoji: '🫠', label: 'Anxious' },
+  Great: { emoji: '🥰', label: 'Very Happy' },
+  Good: { emoji: '😊', label: 'Happy' },
+  Okay: { emoji: '😌', label: 'Neutral' },
+  Low: { emoji: '🥺', label: 'Sad' },
+  Stressed: { emoji: '🫠', label: 'Anxious' },
+};
+
 export default function LogTypePage() {
   const { typeId } = useParams();
   const navigate = useNavigate();
@@ -43,6 +63,7 @@ export default function LogTypePage() {
   const [saving, setSaving] = useState(false);
   const [editRaw, setEditRaw] = useState(null);
   const [formKey, setFormKey] = useState(0);
+  const [showAllEntries, setShowAllEntries] = useState(false);
   const [toast, setToast] = useState({ message: '', type: '', visible: false });
   const [error, setError] = useState('');
 
@@ -84,6 +105,11 @@ export default function LogTypePage() {
     loadEntries();
   }, [loadEntries]);
 
+  useEffect(() => {
+    setShowAllEntries(false);
+    setEditRaw(null);
+  }, [config?.id]);
+
   if (!config) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', background: t.bg, fontFamily: t.fontBody }}>
@@ -99,6 +125,14 @@ export default function LogTypePage() {
   }
 
   const Icon = config.icon;
+  const waterGoal = 2000;
+  const todayWaterMl = config.id === 'water'
+    ? entries.reduce((sum, item) => sum + (Number(item.raw?.amount) || 0), 0)
+    : 0;
+  const waterPct = Math.min(100, Math.round((todayWaterMl / waterGoal) * 100));
+  const PREVIEW_COUNT = 2;
+  const visibleEntries = showAllEntries ? entries : entries.slice(0, PREVIEW_COUNT);
+  const hasMoreEntries = entries.length > PREVIEW_COUNT;
 
   const handleSubmit = async (body) => {
     setSaving(true);
@@ -185,7 +219,45 @@ export default function LogTypePage() {
             </div>
           </div>
 
-          <section style={guideBox}>
+          {config.id === 'water' && (
+            <section className="db-log-water-box" style={waterProgressBox}>
+              <p style={{ ...guideTitle, margin: 0 }}>Today&apos;s water intake</p>
+              <p
+                style={{
+                  margin: '10px 0 0',
+                  fontFamily: t.fontDisplay,
+                  fontSize: 24,
+                  fontWeight: 500,
+                  color: t.ink,
+                }}
+              >
+                {todayWaterMl} / {waterGoal} ml
+              </p>
+              <div
+                style={{
+                  marginTop: 12,
+                  height: 12,
+                  borderRadius: 999,
+                  background: t.surfaceSunken,
+                  overflow: 'hidden',
+                }}
+                aria-label={`${waterPct}% of daily water goal`}
+              >
+                <div
+                  style={{
+                    width: `${waterPct}%`,
+                    height: '100%',
+                    borderRadius: 999,
+                    background: t.sky,
+                    transition: 'width 0.25s ease',
+                  }}
+                />
+              </div>
+              <p style={{ margin: '8px 0 0', fontSize: 13, fontWeight: 650, color: t.inkSoft }}>{waterPct}%</p>
+            </section>
+          )}
+
+          <section className="db-log-guide-box" style={guideBox}>
             <h2 style={guideTitle}>Why this log matters</h2>
             <p style={guideText}>{config.why}</p>
             <h2 style={{ ...guideTitle, marginTop: 16 }}>How to use it</h2>
@@ -207,7 +279,7 @@ export default function LogTypePage() {
                 </button>
               )}
             </div>
-            <div style={formCard}>
+            <div className="db-log-form-card" style={formCard}>
               <LogEntryForm
                 key={`${config.id}-${editRaw?._id || 'new'}-${formKey}`}
                 typeId={config.id}
@@ -219,9 +291,25 @@ export default function LogTypePage() {
           </section>
 
           <section style={{ marginTop: 32 }}>
-            <h2 style={{ margin: '0 0 14px', fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
-              Today&apos;s entries
-            </h2>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'space-between',
+                gap: 12,
+                marginBottom: 14,
+                flexWrap: 'wrap',
+              }}
+            >
+              <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
+                Today&apos;s entries
+              </h2>
+              {!loading && entries.length > 0 ? (
+                <span style={{ fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
+                  {entries.length} today
+                </span>
+              ) : null}
+            </div>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: t.inkSoft, padding: '20px 0' }}>
                 <Loader2 size={18} className="db-spin" /> Loading…
@@ -234,11 +322,20 @@ export default function LogTypePage() {
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {entries.map((item) => {
+                {visibleEntries.map((item) => {
                   const isMeal = config.id === 'meal';
+                  const isInsulin = config.id === 'insulin';
+                  const isMedication = config.id === 'medication';
+                  const isWater = config.id === 'water';
+                  const isExercise = config.id === 'exercise';
+                  const isSleep = config.id === 'sleep';
+                  const isMood = config.id === 'mood';
                   const raw = item.raw || {};
+                  const moodMeta = MOOD_CARD[raw.mood] || { emoji: '😊', label: raw.mood || 'Mood' };
                   const mealEmoji = MEAL_EMOJI[raw.mealType || item.title] || '🍽';
                   const impact = raw.bloodSugarImpact;
+                  const insulinReason =
+                    raw.mealRelation && raw.mealRelation !== 'None' ? raw.mealRelation : item.valueStr;
 
                   return (
                     <div key={item._id} className="db-log-entry-row" style={entryRow}>
@@ -259,6 +356,101 @@ export default function LogTypePage() {
                                 After meal: {impact === 'High' ? '⬆' : impact === 'Low' ? '⬇' : '➖'} {impact}
                               </p>
                             ) : null}
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                              {formatTodayTime(item.timestamp)}
+                            </p>
+                          </>
+                        ) : isInsulin ? (
+                          <>
+                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                              💉 {raw.insulinType || item.title}
+                            </p>
+                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                              {raw.units ?? 0} Units
+                            </p>
+                            {insulinReason ? (
+                              <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>{insulinReason}</p>
+                            ) : null}
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                              {formatTodayTime(item.timestamp)}
+                            </p>
+                          </>
+                        ) : isMedication ? (
+                          <>
+                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                              💊 {raw.medicineName || item.title}
+                            </p>
+                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                              {raw.dose || item.subtitle}
+                            </p>
+                            <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>
+                              {raw.status || item.valueStr}
+                            </p>
+                            {raw.route ? (
+                              <p style={{ margin: '2px 0 0', fontSize: 12, color: t.inkFaint }}>{raw.route}</p>
+                            ) : null}
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                              {formatTodayTime(item.timestamp)}
+                            </p>
+                          </>
+                        ) : isWater ? (
+                          <>
+                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                              💧 {raw.amount ?? item.title} ml
+                            </p>
+                            {raw.notes ? (
+                              <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>{raw.notes}</p>
+                            ) : null}
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                              {formatTodayTime(item.timestamp)}
+                            </p>
+                          </>
+                        ) : isExercise ? (
+                          <>
+                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                              🏃 {raw.activity || item.title}
+                            </p>
+                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                              {raw.duration ?? 0} minutes
+                              {raw.intensity ? ` · ${intensityFromApiLabel(raw.intensity)}` : ''}
+                            </p>
+                            {(raw.caloriesBurned || raw.distance) ? (
+                              <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
+                                {[
+                                  raw.caloriesBurned ? `${raw.caloriesBurned} kcal` : null,
+                                  raw.distance ? `${raw.distance} km` : null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                              </p>
+                            ) : null}
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                              {formatTodayTime(item.timestamp)}
+                            </p>
+                          </>
+                        ) : isSleep ? (
+                          <>
+                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                              🌙 {raw.totalHours != null ? `${Number(raw.totalHours).toFixed(1)} hours` : item.title}
+                            </p>
+                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                              {(raw.quality === 'Average' ? 'Fair' : raw.quality) || '—'}
+                            </p>
+                            <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
+                              {item.valueStr || ''}
+                            </p>
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                              {formatTodayTime(raw.wakeTime || item.timestamp)}
+                            </p>
+                          </>
+                        ) : isMood ? (
+                          <>
+                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                              {moodMeta.emoji} {moodMeta.label}
+                            </p>
+                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                              Stress: {raw.stressLevel || 'Low'}
+                            </p>
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                               {formatTodayTime(item.timestamp)}
                             </p>
@@ -305,6 +497,15 @@ export default function LogTypePage() {
                     </div>
                   );
                 })}
+                {hasMoreEntries ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllEntries((v) => !v)}
+                    style={viewAllBtn}
+                  >
+                    {showAllEntries ? 'Show less' : `View all (${entries.length})`}
+                  </button>
+                ) : null}
               </div>
             )}
           </section>
@@ -334,20 +535,71 @@ export default function LogTypePage() {
       )}
 
       <style>{`
+        .db-logs-wrap,
+        .db-logs-main {
+          box-sizing: border-box;
+        }
+        .db-logs-wrap input,
+        .db-logs-wrap select,
+        .db-logs-wrap textarea,
+        .db-logs-wrap button {
+          max-width: 100%;
+        }
+        .db-logs-wrap input[type='datetime-local'],
+        .db-logs-wrap input[type='number'],
+        .db-logs-wrap input[type='text'],
+        .db-logs-wrap textarea,
+        .db-logs-wrap select {
+          font-size: 16px;
+        }
         @media (max-width: 640px) {
           .db-logs-main {
-            padding: 16px 14px 110px !important;
+            padding: 14px 12px 120px !important;
+          }
+          .db-logs-wrap {
+            max-width: 100% !important;
+          }
+          .db-log-form-card {
+            padding: 14px 12px !important;
+            border-radius: 12px !important;
+          }
+          .db-log-guide-box,
+          .db-log-water-box {
+            padding: 14px 12px !important;
           }
           .db-log-entry-row {
             flex-direction: column !important;
             align-items: stretch !important;
+            padding: 12px !important;
+            gap: 10px !important;
           }
           .db-log-entry-actions {
             width: 100%;
             justify-content: flex-end;
-            padding-top: 4px;
+            padding-top: 2px;
           }
-          .db-log-form-grid {
+          .db-log-form-grid,
+          .db-log-source-grid,
+          .db-log-quality-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .db-log-segment-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .db-log-mood-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+          .db-log-intensity-grid,
+          .db-log-stress-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+        }
+        @media (max-width: 380px) {
+          .db-log-mood-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .db-log-intensity-grid,
+          .db-log-stress-grid {
             grid-template-columns: 1fr !important;
           }
         }
@@ -385,6 +637,15 @@ const guideBox = {
   borderRadius: 12,
   border: `1px solid ${t.line}`,
   background: t.surfaceRaised,
+};
+
+const waterProgressBox = {
+  marginTop: 20,
+  padding: '18px 18px',
+  borderRadius: 12,
+  border: `1px solid ${t.lineStrong}`,
+  background: '#FFF',
+  boxShadow: '0 1px 2px rgba(43,42,40,0.04)',
 };
 
 const guideTitle = {
@@ -432,6 +693,20 @@ const smallBtn = {
   color: t.inkSoft,
   fontSize: 12,
   fontWeight: 650,
+  cursor: 'pointer',
+  fontFamily: t.fontBody,
+};
+
+const viewAllBtn = {
+  marginTop: 4,
+  width: '100%',
+  padding: '12px 14px',
+  borderRadius: 10,
+  border: `1px solid ${t.lineStrong}`,
+  background: t.surfaceSunken,
+  color: t.forest,
+  fontSize: 14,
+  fontWeight: 700,
   cursor: 'pointer',
   fontFamily: t.fontBody,
 };

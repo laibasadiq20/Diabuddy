@@ -5,9 +5,7 @@ import {
   Pill,
   GlassWater,
   Dumbbell,
-  Scale,
   Moon,
-  Activity,
   Smile,
 } from 'lucide-react';
 
@@ -43,7 +41,7 @@ export const LOG_TYPES = [
     shortLabel: 'Insulin',
     icon: Syringe,
     why: 'An accurate insulin record reduces dosing errors and supports safer clinic reviews.',
-    how: 'Log units, insulin type, injection site, and meal relation exactly as administered. Do not change prescribed doses here.',
+    how: 'Select insulin type, dose, reason, and injection time. Site and notes are optional. Do not change prescribed doses here.',
   },
   {
     id: 'medication',
@@ -54,7 +52,7 @@ export const LOG_TYPES = [
     shortLabel: 'Medication',
     icon: Pill,
     why: 'Tracking taken, missed, or skipped doses improves adherence review at follow-up visits.',
-    how: 'Enter medicine name, dose, and status for each dose.',
+    how: 'Select or type the medicine name, enter dosage and status, then save with date and time.',
   },
   {
     id: 'water',
@@ -64,8 +62,8 @@ export const LOG_TYPES = [
     label: 'Water intake',
     shortLabel: 'Water',
     icon: GlassWater,
-    why: 'Hydration can influence how you feel and may relate to glucose trends.',
-    how: 'Log volume in millilitres when you drink water.',
+    why: 'Monitoring your water intake helps you stay hydrated and maintain your daily wellness goals.',
+    how: 'Enter the amount in ml, or use a quick-add button, then set the date and time.',
   },
   {
     id: 'exercise',
@@ -75,19 +73,8 @@ export const LOG_TYPES = [
     label: 'Activity',
     shortLabel: 'Activity',
     icon: Dumbbell,
-    why: 'Activity often lowers glucose; logging it clarifies the effect of movement on your readings.',
-    how: 'Record activity type, duration, and intensity.',
-  },
-  {
-    id: 'weight',
-    path: 'weight',
-    apiPath: 'weight',
-    timelineType: 'Weight',
-    label: 'Weight',
-    shortLabel: 'Weight',
-    icon: Scale,
-    why: 'Weight trends inform long-term diabetes and medication management.',
-    how: 'Enter weight in kg. BMI and body fat are optional.',
+    why: 'Track your physical activity manually or sync with Fitbit to understand how exercise affects your blood glucose and overall health.',
+    how: 'Choose manual entry to log an activity, or sync from Fitbit to open the Fitbit page.',
   },
   {
     id: 'sleep',
@@ -97,19 +84,8 @@ export const LOG_TYPES = [
     label: 'Sleep',
     shortLabel: 'Sleep',
     icon: Moon,
-    why: 'Sleep quality can affect next-day glucose and appetite.',
-    how: 'Enter sleep and wake times, then rate quality.',
-  },
-  {
-    id: 'symptoms',
-    path: 'symptoms',
-    apiPath: 'symptoms',
-    timelineType: 'Symptoms',
-    label: 'Symptoms',
-    shortLabel: 'Symptoms',
-    icon: Activity,
-    why: 'Documented symptoms support clinical assessment and urgent decision-making.',
-    how: 'List symptoms, rate severity from 1–10, and add notes if needed. Seek urgent care for severe symptoms.',
+    why: 'Track your sleep duration and quality to understand how rest may influence your blood glucose, energy levels, and overall well-being.',
+    how: 'Enter sleep start and wake-up times. Duration is calculated automatically. Rate quality and add notes if useful.',
   },
   {
     id: 'mood',
@@ -119,8 +95,8 @@ export const LOG_TYPES = [
     label: 'Mood & stress',
     shortLabel: 'Mood',
     icon: Smile,
-    why: 'Stress and mood can influence glucose independent of meals.',
-    how: 'Select your mood and optionally add a short note.',
+    why: 'Track your mood and stress levels to better understand how emotional well-being may affect your blood glucose and overall health.',
+    how: 'Choose a mood, rate your stress level, set the date and time, and add a note if you want.',
   },
 ];
 

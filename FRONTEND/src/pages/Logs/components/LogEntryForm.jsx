@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { theme } from '../../../theme';
 import { Loader2 } from 'lucide-react';
 
@@ -35,9 +36,8 @@ const hint = {
 const row = { display: 'flex', flexDirection: 'column', gap: 14 };
 
 function toLocalInput(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
+  const d = value ? new Date(value) : new Date();
+  if (Number.isNaN(d.getTime())) return toLocalInput(new Date());
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
@@ -103,14 +103,8 @@ export function LogEntryForm({ typeId, initialRaw, submitting, onSubmit }) {
   if (typeId === 'exercise') {
     return <ExerciseFields initialRaw={initialRaw} submitting={submitting} isEdit={isEdit} onSubmit={onSubmit} />;
   }
-  if (typeId === 'weight') {
-    return <WeightFields initialRaw={initialRaw} submitting={submitting} isEdit={isEdit} onSubmit={onSubmit} />;
-  }
   if (typeId === 'sleep') {
     return <SleepFields initialRaw={initialRaw} submitting={submitting} isEdit={isEdit} onSubmit={onSubmit} />;
-  }
-  if (typeId === 'symptoms') {
-    return <SymptomsFields initialRaw={initialRaw} submitting={submitting} isEdit={isEdit} onSubmit={onSubmit} />;
   }
   if (typeId === 'mood') {
     return <MoodFields initialRaw={initialRaw} submitting={submitting} isEdit={isEdit} onSubmit={onSubmit} />;
@@ -124,7 +118,7 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
     unit: 'mg/dL',
     readingType: 'Before Breakfast',
     notes: '',
-    timestamp: '',
+    timestamp: toLocalInput(),
   });
 
   useEffect(() => {
@@ -148,11 +142,14 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
           readingType: form.readingType,
           notes: form.notes || undefined,
         };
-        if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
+        body.timestamp = new Date(form.timestamp).toISOString();
         onSubmit(body);
       }}
     >
-      <Field title="Glucose reading">
+      <Field
+        title="Glucose reading"
+        help="Low: below 70 mg/dL · High: above 130 mg/dL before meals, or above 180 mg/dL after meals"
+      >
         <input
           required
           type="number"
@@ -191,8 +188,8 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
           ))}
         </select>
       </Field>
-      <Field title="Date & time (optional)">
-        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
+      <Field title="Date & time">
+        <input required type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
       </Field>
       <Field title="Notes (optional)">
         <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={field} />
@@ -213,7 +210,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     waterConsumed: '',
     bloodSugarImpact: '',
     notes: '',
-    timestamp: '',
+    timestamp: toLocalInput(),
   });
   const [nutritionMode, setNutritionMode] = useState('manual');
 
@@ -255,7 +252,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           bloodSugarImpact: form.bloodSugarImpact || '',
           notes: form.notes || undefined,
         };
-        if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
+        body.timestamp = new Date(form.timestamp).toISOString();
         onSubmit(body);
       }}
     >
@@ -268,7 +265,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
       </Field>
 
       <Field title="Date & time">
-        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
+        <input required type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
       </Field>
 
       <Field title="Food description">
@@ -284,14 +281,21 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
 
       <div>
         <label style={label}>Nutrition</label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+        <div
+          role="tablist"
+          aria-label="Nutrition entry method"
+          className="db-log-source-grid"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}
+        >
           <button
             type="button"
+            role="tab"
+            aria-selected={nutritionMode === 'manual'}
             onClick={() => setNutritionMode('manual')}
             style={{
               padding: '11px 12px',
               borderRadius: 10,
-              border: `1px solid ${nutritionMode === 'manual' ? t.forest : t.lineStrong}`,
+              border: `1.5px solid ${nutritionMode === 'manual' ? t.forest : t.lineStrong}`,
               background: nutritionMode === 'manual' ? t.surfaceSunken : '#FFF',
               color: t.ink,
               fontWeight: 650,
@@ -305,11 +309,13 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={nutritionMode === 'ai'}
             onClick={() => setNutritionMode('ai')}
             style={{
               padding: '11px 12px',
               borderRadius: 10,
-              border: `1px solid ${nutritionMode === 'ai' ? t.forest : t.lineStrong}`,
+              border: `1.5px solid ${nutritionMode === 'ai' ? t.forest : t.lineStrong}`,
               background: nutritionMode === 'ai' ? t.surfaceSunken : '#FFF',
               color: t.ink,
               fontWeight: 650,
@@ -323,23 +329,62 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           </button>
         </div>
 
-        {nutritionMode === 'manual' ? (
-          <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {nutritionMode === 'manual' && (
+          <div
+            key="nutrition-manual"
+            className="db-log-form-grid"
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}
+          >
             <Field title="Carbs (g)">
-              <input type="number" min="0" value={form.carbohydrates} onChange={(e) => setForm({ ...form, carbohydrates: e.target.value })} style={field} />
+              <input
+                type="number"
+                min="0"
+                inputMode="decimal"
+                value={form.carbohydrates}
+                onChange={(e) => setForm({ ...form, carbohydrates: e.target.value })}
+                style={field}
+                placeholder="0"
+              />
             </Field>
             <Field title="Calories">
-              <input type="number" min="0" value={form.calories} onChange={(e) => setForm({ ...form, calories: e.target.value })} style={field} />
+              <input
+                type="number"
+                min="0"
+                inputMode="decimal"
+                value={form.calories}
+                onChange={(e) => setForm({ ...form, calories: e.target.value })}
+                style={field}
+                placeholder="0"
+              />
             </Field>
             <Field title="Protein (g)">
-              <input type="number" min="0" value={form.protein} onChange={(e) => setForm({ ...form, protein: e.target.value })} style={field} />
+              <input
+                type="number"
+                min="0"
+                inputMode="decimal"
+                value={form.protein}
+                onChange={(e) => setForm({ ...form, protein: e.target.value })}
+                style={field}
+                placeholder="0"
+              />
             </Field>
             <Field title="Fat (g)">
-              <input type="number" min="0" value={form.fat} onChange={(e) => setForm({ ...form, fat: e.target.value })} style={field} />
+              <input
+                type="number"
+                min="0"
+                inputMode="decimal"
+                value={form.fat}
+                onChange={(e) => setForm({ ...form, fat: e.target.value })}
+                style={field}
+                placeholder="0"
+              />
             </Field>
           </div>
-        ) : (
+        )}
+
+        {nutritionMode === 'ai' && (
           <div
+            key="nutrition-ai"
             style={{
               padding: '18px 16px',
               borderRadius: 10,
@@ -380,7 +425,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
 
       <div>
         <label style={label}>Blood sugar after meal (optional)</label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        <div className="db-log-segment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {impactOptions.map((opt) => {
             const active = form.bloodSugarImpact === opt.value;
             return (
@@ -421,22 +466,48 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
   );
 }
 
+const INSULIN_TYPES = ['Rapid-Acting', 'Short-Acting', 'Intermediate-Acting', 'Long-Acting'];
+const INSULIN_REASONS = [
+  'Before Breakfast',
+  'After Breakfast',
+  'Before Lunch',
+  'After Lunch',
+  'Before Dinner',
+  'After Dinner',
+  'Bedtime',
+  'Correction',
+  'Other',
+];
+const INSULIN_SITES = ['Abdomen', 'Left Arm', 'Right Arm', 'Left Thigh', 'Right Thigh', 'Buttocks', 'Other'];
+
 function InsulinFields({ initialRaw, submitting, isEdit, onSubmit }) {
   const [form, setForm] = useState({
     units: '',
-    insulinType: '',
-    injectionSite: 'Abdomen',
-    mealRelation: 'None',
+    insulinType: 'Rapid-Acting',
+    injectionSite: '',
+    reason: 'Before Breakfast',
     notes: '',
-    timestamp: '',
+    timestamp: toLocalInput(),
   });
 
   useEffect(() => {
+    const legacyReason = initialRaw?.mealRelation;
+    const reason =
+      legacyReason && INSULIN_REASONS.includes(legacyReason)
+        ? legacyReason
+        : legacyReason === 'Before Meal'
+          ? 'Before Breakfast'
+          : legacyReason === 'After Meal'
+            ? 'After Breakfast'
+            : 'Before Breakfast';
+    const type = INSULIN_TYPES.includes(initialRaw?.insulinType)
+      ? initialRaw.insulinType
+      : initialRaw?.insulinType || 'Rapid-Acting';
     setForm({
       units: initialRaw?.units ?? '',
-      insulinType: initialRaw?.insulinType || '',
-      injectionSite: initialRaw?.injectionSite || 'Abdomen',
-      mealRelation: initialRaw?.mealRelation || 'None',
+      insulinType: type,
+      injectionSite: initialRaw?.injectionSite || '',
+      reason,
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
@@ -450,63 +521,152 @@ function InsulinFields({ initialRaw, submitting, isEdit, onSubmit }) {
         const body = {
           units: Number(form.units),
           insulinType: form.insulinType,
-          injectionSite: form.injectionSite,
-          mealRelation: form.mealRelation,
+          injectionSite: form.injectionSite || '',
+          reason: form.reason,
+          mealRelation: form.reason,
           notes: form.notes || undefined,
         };
-        if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
+        body.timestamp = new Date(form.timestamp).toISOString();
         onSubmit(body);
       }}
     >
-      <Field title="Units taken">
-        <input required type="number" min="0.1" step="0.1" value={form.units} onChange={(e) => setForm({ ...form, units: e.target.value })} style={field} />
+      <Field title="Insulin type">
+        <select
+          required
+          value={form.insulinType}
+          onChange={(e) => setForm({ ...form, insulinType: e.target.value })}
+          style={field}
+        >
+          {INSULIN_TYPES.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+          {form.insulinType && !INSULIN_TYPES.includes(form.insulinType) && (
+            <option value={form.insulinType}>{form.insulinType}</option>
+          )}
+        </select>
       </Field>
-      <Field title="Insulin name / type">
-        <input required type="text" value={form.insulinType} onChange={(e) => setForm({ ...form, insulinType: e.target.value })} style={field} />
+
+      <Field title="Dose (units)">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input
+            required
+            type="number"
+            min="0.1"
+            step="0.1"
+            inputMode="decimal"
+            value={form.units}
+            onChange={(e) => setForm({ ...form, units: e.target.value })}
+            style={{ ...field, flex: 1 }}
+            placeholder="8"
+          />
+          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>Units</span>
+        </div>
       </Field>
-      <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field title="Injection site">
-          <select value={form.injectionSite} onChange={(e) => setForm({ ...form, injectionSite: e.target.value })} style={field}>
-            {['Abdomen', 'Arm', 'Thigh', 'Buttocks'].map((o) => (
-              <option key={o}>{o}</option>
-            ))}
-          </select>
-        </Field>
-        <Field title="Meal relation">
-          <select value={form.mealRelation} onChange={(e) => setForm({ ...form, mealRelation: e.target.value })} style={field}>
-            {['Before Meal', 'After Meal', 'None'].map((o) => (
-              <option key={o}>{o}</option>
-            ))}
-          </select>
-        </Field>
-      </div>
-      <Field title="Date & time (optional)">
-        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
+
+      <Field title="Reason">
+        <select
+          required
+          value={form.reason}
+          onChange={(e) => setForm({ ...form, reason: e.target.value })}
+          style={field}
+        >
+          {INSULIN_REASONS.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
       </Field>
+
+      <Field title="Injection time">
+        <input
+          required
+          type="datetime-local"
+          value={form.timestamp}
+          onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
+          style={field}
+        />
+      </Field>
+
+      <Field title="Injection site (optional)">
+        <select
+          value={form.injectionSite}
+          onChange={(e) => setForm({ ...form, injectionSite: e.target.value })}
+          style={field}
+        >
+          <option value="">Select site</option>
+          {INSULIN_SITES.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
+      </Field>
+
       <Field title="Notes (optional)">
-        <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={field} />
+        <textarea
+          rows={3}
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          style={{ ...field, resize: 'vertical' }}
+          placeholder="Missed dose... Injected later than usual... Felt dizzy afterwards..."
+        />
       </Field>
-      <Submit submitting={submitting} isEdit={isEdit} />
+
+      <Submit submitting={submitting} isEdit={isEdit} label="Save entry" editLabel="Update entry" />
     </form>
   );
+}
+
+const MEDICATION_NAMES = [
+  'Metformin',
+  'Glimepiride',
+  'Gliclazide',
+  'Sitagliptin',
+  'Vildagliptin',
+  'Empagliflozin',
+  'Dapagliflozin',
+  'Pioglitazone',
+  'Acarbose',
+  'Linagliptin',
+  'Canagliflozin',
+  'Repaglinide',
+];
+const DOSE_UNITS = ['mg', 'ml', 'Tablet(s)', 'Capsule(s)'];
+const MED_ROUTES = ['Oral', 'Injection', 'Inhaler', 'Other'];
+
+function parseDose(doseStr) {
+  if (!doseStr) return { amount: '', unit: 'mg' };
+  const matched = String(doseStr).trim().match(/^([\d.]+)\s*(.*)$/);
+  if (!matched) return { amount: '', unit: 'mg' };
+  const unit = matched[2]?.trim();
+  return {
+    amount: matched[1] || '',
+    unit: DOSE_UNITS.includes(unit) ? unit : unit || 'mg',
+  };
 }
 
 function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
   const [form, setForm] = useState({
     medicineName: '',
-    dose: '',
+    doseAmount: '',
+    doseUnit: 'mg',
     status: 'Taken',
-    reminderTime: '',
+    route: '',
     notes: '',
-    timestamp: '',
+    timestamp: toLocalInput(),
   });
 
   useEffect(() => {
+    const next = parseDose(initialRaw?.dose);
     setForm({
       medicineName: initialRaw?.medicineName || '',
-      dose: initialRaw?.dose || '',
+      doseAmount: next.amount,
+      doseUnit: next.unit,
       status: initialRaw?.status || 'Taken',
-      reminderTime: initialRaw?.reminderTime || '',
+      route: initialRaw?.route || '',
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
@@ -518,116 +678,141 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
       onSubmit={(e) => {
         e.preventDefault();
         const body = {
-          medicineName: form.medicineName,
-          dose: form.dose,
+          medicineName: form.medicineName.trim(),
+          dose: `${form.doseAmount} ${form.doseUnit}`.trim(),
           status: form.status,
-          reminderTime: form.reminderTime || undefined,
+          route: form.route || '',
           notes: form.notes || undefined,
         };
-        if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
+        body.timestamp = new Date(form.timestamp).toISOString();
         onSubmit(body);
       }}
     >
-      <Field title="Medicine name">
-        <input required type="text" value={form.medicineName} onChange={(e) => setForm({ ...form, medicineName: e.target.value })} style={field} />
+      <Field title="Medication name">
+        <input
+          required
+          list="db-med-names"
+          type="text"
+          value={form.medicineName}
+          onChange={(e) => setForm({ ...form, medicineName: e.target.value })}
+          style={field}
+          placeholder="Search or type medicine name"
+        />
+        <datalist id="db-med-names">
+          {MEDICATION_NAMES.map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
       </Field>
-      <Field title="Dose">
-        <input required type="text" value={form.dose} onChange={(e) => setForm({ ...form, dose: e.target.value })} style={field} />
-      </Field>
-      <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field title="Status">
-          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} style={field}>
-            {['Taken', 'Missed', 'Skipped'].map((o) => (
-              <option key={o}>{o}</option>
+
+      <Field title="Dosage">
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+          <input
+            required
+            type="number"
+            min="0"
+            step="any"
+            inputMode="decimal"
+            value={form.doseAmount}
+            onChange={(e) => setForm({ ...form, doseAmount: e.target.value })}
+            style={{ ...field, flex: 1 }}
+            placeholder="500"
+          />
+          <select
+            required
+            value={form.doseUnit}
+            onChange={(e) => setForm({ ...form, doseUnit: e.target.value })}
+            style={{ ...field, width: 130, flexShrink: 0 }}
+          >
+            {DOSE_UNITS.map((u) => (
+              <option key={u} value={u}>
+                {u}
+              </option>
             ))}
+            {form.doseUnit && !DOSE_UNITS.includes(form.doseUnit) && (
+              <option value={form.doseUnit}>{form.doseUnit}</option>
+            )}
           </select>
-        </Field>
-        <Field title="Usual time (optional)">
-          <input type="text" placeholder="e.g. 08:00" value={form.reminderTime} onChange={(e) => setForm({ ...form, reminderTime: e.target.value })} style={field} />
-        </Field>
+        </div>
+      </Field>
+
+      <div>
+        <label style={label}>Status</label>
+        <div className="db-log-segment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {['Taken', 'Missed', 'Skipped'].map((status) => {
+            const active = form.status === status;
+            return (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setForm({ ...form, status })}
+                style={{
+                  padding: '11px 8px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
+                  background: active ? t.surfaceSunken : '#FFF',
+                  color: t.ink,
+                  fontWeight: 650,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {status}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <Field title="Date & time (optional)">
-        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
+
+      <Field title="Date & time">
+        <input
+          required
+          type="datetime-local"
+          value={form.timestamp}
+          onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
+          style={field}
+        />
       </Field>
+
+      <Field title="Route (optional)">
+        <select value={form.route} onChange={(e) => setForm({ ...form, route: e.target.value })} style={field}>
+          <option value="">Select route</option>
+          {MED_ROUTES.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+      </Field>
+
       <Field title="Notes (optional)">
-        <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={field} />
+        <textarea
+          rows={3}
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          style={{ ...field, resize: 'vertical' }}
+          placeholder="Took after breakfast... Forgot morning dose... Experienced mild nausea..."
+        />
       </Field>
-      <Submit submitting={submitting} isEdit={isEdit} />
+
+      <Submit submitting={submitting} isEdit={isEdit} label="Save entry" editLabel="Update entry" />
     </form>
   );
 }
+
+const WATER_QUICK = [250, 500, 750, 1000];
 
 function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
-  const [form, setForm] = useState({ amount: '250', timestamp: '' });
-
-  useEffect(() => {
-    setForm({
-      amount: initialRaw?.amount ?? '250',
-      timestamp: toLocalInput(initialRaw?.timestamp),
-    });
-  }, [initialRaw]);
-
-  return (
-    <form
-      style={row}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const body = { amount: Number(form.amount) };
-        if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
-        onSubmit(body);
-      }}
-    >
-      <Field title="Amount (ml)">
-        <input required type="number" min="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} style={field} />
-      </Field>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {[200, 250, 500].map((ml) => (
-          <button
-            key={ml}
-            type="button"
-            onClick={() => setForm({ ...form, amount: String(ml) })}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: `1px solid ${Number(form.amount) === ml ? t.forest : t.line}`,
-              background: Number(form.amount) === ml ? t.surfaceSunken : '#FFF',
-              color: t.ink,
-              fontSize: 13,
-              fontWeight: 650,
-              cursor: 'pointer',
-              fontFamily: t.fontBody,
-            }}
-          >
-            {ml} ml
-          </button>
-        ))}
-      </div>
-      <Field title="Date & time (optional)">
-        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
-      </Field>
-      <Submit submitting={submitting} isEdit={isEdit} />
-    </form>
-  );
-}
-
-function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
   const [form, setForm] = useState({
-    exerciseType: '',
-    duration: '',
-    distance: '',
-    caloriesBurned: '',
-    intensity: 'Medium',
+    amount: '250',
     notes: '',
-    timestamp: '',
+    timestamp: toLocalInput(),
   });
 
   useEffect(() => {
     setForm({
-      exerciseType: initialRaw?.activity || initialRaw?.exerciseType || '',
-      duration: initialRaw?.duration ?? '',
-      distance: initialRaw?.distance ?? '',
-      caloriesBurned: initialRaw?.caloriesBurned ?? '',
-      intensity: initialRaw?.intensity || 'Medium',
+      amount: initialRaw?.amount != null ? String(initialRaw.amount) : '250',
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
@@ -639,200 +824,534 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
       onSubmit={(e) => {
         e.preventDefault();
         const body = {
-          exerciseType: form.exerciseType,
-          duration: Number(form.duration),
-          distance: Number(form.distance) || 0,
-          caloriesBurned: Number(form.caloriesBurned) || 0,
-          intensity: form.intensity,
+          amount: Number(form.amount),
           notes: form.notes || undefined,
         };
-        if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
+        body.timestamp = new Date(form.timestamp).toISOString();
         onSubmit(body);
       }}
     >
-      <Field title="Activity">
-        <input required type="text" value={form.exerciseType} onChange={(e) => setForm({ ...form, exerciseType: e.target.value })} style={field} />
+      <Field title="Water intake">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input
+            required
+            type="number"
+            min="1"
+            inputMode="numeric"
+            value={form.amount}
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            style={{ ...field, flex: 1 }}
+            placeholder="250"
+          />
+          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>ml</span>
+        </div>
       </Field>
-      <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field title="Duration (minutes)">
-          <input required type="number" min="1" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} style={field} />
-        </Field>
-        <Field title="Intensity">
-          <select value={form.intensity} onChange={(e) => setForm({ ...form, intensity: e.target.value })} style={field}>
-            {['Low', 'Medium', 'High'].map((o) => (
-              <option key={o}>{o}</option>
-            ))}
-          </select>
-        </Field>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {WATER_QUICK.map((ml) => {
+          const active = Number(form.amount) === ml;
+          return (
+            <button
+              key={ml}
+              type="button"
+              onClick={() => setForm({ ...form, amount: String(ml) })}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 8,
+                border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
+                background: active ? t.surfaceSunken : '#FFF',
+                color: t.ink,
+                fontSize: 13,
+                fontWeight: 650,
+                cursor: 'pointer',
+                fontFamily: t.fontBody,
+              }}
+            >
+              +{ml} ml
+            </button>
+          );
+        })}
       </div>
-      <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field title="Distance (optional)">
-          <input type="number" min="0" step="0.1" value={form.distance} onChange={(e) => setForm({ ...form, distance: e.target.value })} style={field} />
-        </Field>
-        <Field title="Calories (optional)">
-          <input type="number" min="0" value={form.caloriesBurned} onChange={(e) => setForm({ ...form, caloriesBurned: e.target.value })} style={field} />
-        </Field>
-      </div>
-      <Field title="Date & time (optional)">
-        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
+
+      <Field title="Date & time">
+        <input
+          required
+          type="datetime-local"
+          value={form.timestamp}
+          onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
+          style={field}
+        />
       </Field>
+
       <Field title="Notes (optional)">
-        <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={field} />
+        <textarea
+          rows={3}
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          style={{ ...field, resize: 'vertical' }}
+          placeholder="With meal... After walk..."
+        />
       </Field>
-      <Submit submitting={submitting} isEdit={isEdit} />
+
+      <Submit submitting={submitting} isEdit={isEdit} label="Save entry" editLabel="Update entry" />
     </form>
   );
 }
 
-function WeightFields({ initialRaw, submitting, isEdit, onSubmit }) {
-  const [form, setForm] = useState({ weight: '', bmi: '', bodyFat: '', notes: '', timestamp: '' });
+const ACTIVITY_TYPES = ['Walking', 'Running', 'Cycling', 'Gym', 'Yoga', 'Swimming', 'Other'];
+const INTENSITY_UI = ['Light', 'Moderate', 'Vigorous'];
+const intensityToApi = { Light: 'Low', Moderate: 'Medium', Vigorous: 'High' };
+const intensityFromApi = { Low: 'Light', Medium: 'Moderate', High: 'Vigorous' };
+
+function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
+  const navigate = useNavigate();
+  const [source, setSource] = useState('manual');
+  const [form, setForm] = useState({
+    exerciseType: 'Walking',
+    customType: '',
+    duration: '30',
+    distance: '',
+    caloriesBurned: '',
+    intensity: 'Moderate',
+    notes: '',
+    timestamp: toLocalInput(),
+  });
 
   useEffect(() => {
+    const activity = initialRaw?.activity || initialRaw?.exerciseType || 'Walking';
+    const known = ACTIVITY_TYPES.includes(activity) && activity !== 'Other';
+    setSource('manual');
     setForm({
-      weight: initialRaw?.weight ?? '',
-      bmi: initialRaw?.bmi ?? '',
-      bodyFat: initialRaw?.bodyFat ?? '',
+      exerciseType: known ? activity : 'Other',
+      customType: known ? '' : activity === 'Walking' ? '' : activity,
+      duration: initialRaw?.duration != null ? String(initialRaw.duration) : '30',
+      distance: initialRaw?.distance ? String(initialRaw.distance) : '',
+      caloriesBurned: initialRaw?.caloriesBurned ? String(initialRaw.caloriesBurned) : '',
+      intensity: intensityFromApi[initialRaw?.intensity] || 'Moderate',
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
   }, [initialRaw]);
+
+  const selectSource = (next) => {
+    if (next === 'fitbit') {
+      navigate('/fitbit');
+      return;
+    }
+    setSource('manual');
+  };
 
   return (
     <form
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
+        const activityName =
+          form.exerciseType === 'Other' ? form.customType.trim() : form.exerciseType;
+        if (!activityName) return;
         const body = {
-          weight: Number(form.weight),
-          bmi: form.bmi === '' ? undefined : Number(form.bmi),
-          bodyFat: form.bodyFat === '' ? undefined : Number(form.bodyFat),
+          exerciseType: activityName,
+          duration: Number(form.duration),
+          distance: form.distance === '' ? 0 : Number(form.distance),
+          caloriesBurned: form.caloriesBurned === '' ? 0 : Number(form.caloriesBurned),
+          intensity: intensityToApi[form.intensity] || 'Medium',
+          source: 'Manual',
           notes: form.notes || undefined,
         };
-        if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
+        body.timestamp = new Date(form.timestamp).toISOString();
         onSubmit(body);
       }}
     >
-      <Field title="Weight (kg)">
-        <input required type="number" min="1" step="0.1" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} style={field} />
-      </Field>
-      <div className="db-log-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field title="BMI (optional)">
-          <input type="number" min="0" step="0.1" value={form.bmi} onChange={(e) => setForm({ ...form, bmi: e.target.value })} style={field} />
-        </Field>
-        <Field title="Body fat % (optional)">
-          <input type="number" min="0" max="100" step="0.1" value={form.bodyFat} onChange={(e) => setForm({ ...form, bodyFat: e.target.value })} style={field} />
-        </Field>
+      <div>
+        <label style={label}>Activity source</label>
+        <div className="db-log-source-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {[
+            { id: 'manual', title: 'Manual entry' },
+            { id: 'fitbit', title: 'Sync from Fitbit' },
+          ].map((opt) => {
+            const active = source === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => selectSource(opt.id)}
+                style={{
+                  padding: '11px 12px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
+                  background: active ? t.surfaceSunken : '#FFF',
+                  color: t.ink,
+                  fontWeight: 650,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                  textAlign: 'left',
+                }}
+              >
+                {opt.title}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <Field title="Date & time (optional)">
-        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
+
+      <div>
+        <label style={label}>Activity type</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {ACTIVITY_TYPES.map((type) => {
+            const active = form.exerciseType === type;
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setForm({ ...form, exerciseType: type })}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 999,
+                  border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
+                  background: active ? t.surfaceSunken : '#FFF',
+                  color: t.ink,
+                  fontWeight: 650,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {type}
+              </button>
+            );
+          })}
+        </div>
+        {form.exerciseType === 'Other' && (
+          <input
+            required
+            type="text"
+            value={form.customType}
+            onChange={(e) => setForm({ ...form, customType: e.target.value })}
+            style={{ ...field, marginTop: 10 }}
+            placeholder="Describe the activity"
+          />
+        )}
+      </div>
+
+      <Field title="Duration">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input
+            required
+            type="number"
+            min="1"
+            inputMode="numeric"
+            value={form.duration}
+            onChange={(e) => setForm({ ...form, duration: e.target.value })}
+            style={{ ...field, flex: 1 }}
+            placeholder="30"
+          />
+          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>minutes</span>
+        </div>
       </Field>
+
+      <div>
+        <label style={label}>Intensity</label>
+        <div className="db-log-intensity-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {INTENSITY_UI.map((level) => {
+            const active = form.intensity === level;
+            return (
+              <button
+                key={level}
+                type="button"
+                onClick={() => setForm({ ...form, intensity: level })}
+                style={{
+                  padding: '11px 8px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
+                  background: active ? t.surfaceSunken : '#FFF',
+                  color: t.ink,
+                  fontWeight: 650,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {level}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <Field title="Calories burned (optional)">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input
+            type="number"
+            min="0"
+            inputMode="numeric"
+            value={form.caloriesBurned}
+            onChange={(e) => setForm({ ...form, caloriesBurned: e.target.value })}
+            style={{ ...field, flex: 1 }}
+            placeholder="250"
+          />
+          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>kcal</span>
+        </div>
+      </Field>
+
+      <Field title="Distance (optional)">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            inputMode="decimal"
+            value={form.distance}
+            onChange={(e) => setForm({ ...form, distance: e.target.value })}
+            style={{ ...field, flex: 1 }}
+            placeholder="2.5"
+          />
+          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>km</span>
+        </div>
+      </Field>
+
+      <Field title="Date & time">
+        <input
+          required
+          type="datetime-local"
+          value={form.timestamp}
+          onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
+          style={field}
+        />
+      </Field>
+
       <Field title="Notes (optional)">
-        <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={field} />
+        <textarea
+          rows={3}
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          style={{ ...field, resize: 'vertical' }}
+          placeholder="Morning walk with friends... Leg workout... Felt tired afterwards..."
+        />
       </Field>
-      <Submit submitting={submitting} isEdit={isEdit} />
+
+      <Submit submitting={submitting} isEdit={isEdit} label="Save entry" editLabel="Update entry" />
     </form>
   );
+}
+
+const SLEEP_QUALITY = ['Excellent', 'Good', 'Fair', 'Poor'];
+
+function defaultSleepStart() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  d.setHours(23, 0, 0, 0);
+  return toLocalInput(d);
+}
+
+function defaultWakeTime() {
+  const d = new Date();
+  d.setHours(6, 30, 0, 0);
+  return toLocalInput(d);
+}
+
+function normalizeSleepQuality(quality) {
+  if (quality === 'Average') return 'Fair';
+  return SLEEP_QUALITY.includes(quality) ? quality : 'Good';
+}
+
+function sleepDurationParts(sleepTime, wakeTime) {
+  const start = new Date(sleepTime);
+  const end = new Date(wakeTime);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+    return null;
+  }
+  const totalMinutes = Math.round((end - start) / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
+  return { hours, minutes, totalHours };
 }
 
 function SleepFields({ initialRaw, submitting, isEdit, onSubmit }) {
-  const [form, setForm] = useState({ sleepTime: '', wakeTime: '', quality: 'Good', notes: '' });
+  const [form, setForm] = useState({
+    sleepTime: defaultSleepStart(),
+    wakeTime: defaultWakeTime(),
+    quality: 'Good',
+    notes: '',
+  });
 
   useEffect(() => {
     setForm({
-      sleepTime: toLocalInput(initialRaw?.sleepTime),
-      wakeTime: toLocalInput(initialRaw?.wakeTime),
-      quality: initialRaw?.quality || 'Good',
+      sleepTime: initialRaw?.sleepTime ? toLocalInput(initialRaw.sleepTime) : defaultSleepStart(),
+      wakeTime: initialRaw?.wakeTime ? toLocalInput(initialRaw.wakeTime) : defaultWakeTime(),
+      quality: normalizeSleepQuality(initialRaw?.quality),
       notes: initialRaw?.notes || '',
     });
   }, [initialRaw]);
+
+  const duration = sleepDurationParts(form.sleepTime, form.wakeTime);
 
   return (
     <form
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
+        if (!duration) return;
         onSubmit({
           sleepTime: new Date(form.sleepTime).toISOString(),
           wakeTime: new Date(form.wakeTime).toISOString(),
           quality: form.quality,
           notes: form.notes || undefined,
+          timestamp: new Date(form.wakeTime).toISOString(),
         });
       }}
     >
-      <Field title="Slept at">
-        <input required type="datetime-local" value={form.sleepTime} onChange={(e) => setForm({ ...form, sleepTime: e.target.value })} style={field} />
+      <Field title="Sleep start">
+        <input
+          required
+          type="datetime-local"
+          value={form.sleepTime}
+          onChange={(e) => setForm({ ...form, sleepTime: e.target.value })}
+          style={field}
+        />
       </Field>
-      <Field title="Woke at">
-        <input required type="datetime-local" value={form.wakeTime} onChange={(e) => setForm({ ...form, wakeTime: e.target.value })} style={field} />
+
+      <Field title="Wake-up time">
+        <input
+          required
+          type="datetime-local"
+          value={form.wakeTime}
+          onChange={(e) => setForm({ ...form, wakeTime: e.target.value })}
+          style={field}
+        />
       </Field>
-      <Field title="Quality">
-        <select value={form.quality} onChange={(e) => setForm({ ...form, quality: e.target.value })} style={field}>
-          {['Poor', 'Average', 'Good', 'Excellent'].map((o) => (
-            <option key={o}>{o}</option>
-          ))}
-        </select>
-      </Field>
+
+      <div>
+        <label style={label}>Sleep duration</label>
+        {duration ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                readOnly
+                type="text"
+                value={String(duration.totalHours)}
+                style={{ ...field, flex: 1, background: t.surfaceSunken, cursor: 'default' }}
+                aria-label="Sleep duration in hours"
+              />
+              <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>hours</span>
+            </div>
+            <div
+              className="db-log-form-grid"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10, minWidth: 0 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  readOnly
+                  type="text"
+                  value={String(duration.hours)}
+                  style={{ ...field, background: t.surfaceSunken, cursor: 'default' }}
+                  aria-label="Hours"
+                />
+                <span style={{ fontSize: 13, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>hrs</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  readOnly
+                  type="text"
+                  value={String(duration.minutes)}
+                  style={{ ...field, background: t.surfaceSunken, cursor: 'default' }}
+                  aria-label="Minutes"
+                />
+                <span style={{ fontSize: 13, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>min</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <p style={hint}>Enter sleep start and wake-up times to calculate duration.</p>
+        )}
+      </div>
+
+      <div>
+        <label style={label}>Sleep quality</label>
+        <div className="db-log-quality-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+          {SLEEP_QUALITY.map((level) => {
+            const active = form.quality === level;
+            return (
+              <button
+                key={level}
+                type="button"
+                onClick={() => setForm({ ...form, quality: level })}
+                style={{
+                  padding: '11px 12px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
+                  background: active ? t.surfaceSunken : '#FFF',
+                  color: t.ink,
+                  fontWeight: 650,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {level}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <Field title="Notes (optional)">
-        <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={field} />
+        <textarea
+          rows={3}
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          style={{ ...field, resize: 'vertical' }}
+          placeholder="Woke up during the night... Had trouble falling asleep... Slept later than usual..."
+        />
       </Field>
-      <Submit submitting={submitting} isEdit={isEdit} />
+
+      <Submit
+        submitting={submitting}
+        isEdit={isEdit}
+        label="Save sleep log"
+        editLabel="Update sleep log"
+      />
     </form>
   );
 }
 
-function SymptomsFields({ initialRaw, submitting, isEdit, onSubmit }) {
-  const [form, setForm] = useState({ symptoms: '', severity: 5, notes: '', timestamp: '' });
+const MOOD_OPTIONS = [
+  { id: 'Very Happy', label: 'Very Happy', emoji: '🥰' },
+  { id: 'Happy', label: 'Happy', emoji: '😊' },
+  { id: 'Neutral', label: 'Neutral', emoji: '😌' },
+  { id: 'Sad', label: 'Sad', emoji: '🥺' },
+  { id: 'Anxious', label: 'Anxious', emoji: '🫠' },
+];
 
-  useEffect(() => {
-    setForm({
-      symptoms: Array.isArray(initialRaw?.symptoms) ? initialRaw.symptoms.join(', ') : '',
-      severity: initialRaw?.severity ?? 5,
-      notes: initialRaw?.notes || '',
-      timestamp: toLocalInput(initialRaw?.timestamp),
-    });
-  }, [initialRaw]);
+const LEGACY_MOOD_MAP = {
+  Great: 'Very Happy',
+  Good: 'Happy',
+  Okay: 'Neutral',
+  Low: 'Sad',
+  Stressed: 'Anxious',
+};
 
-  return (
-    <form
-      style={row}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const list = form.symptoms
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean);
-        const body = {
-          symptoms: list,
-          severity: Number(form.severity),
-          notes: form.notes || undefined,
-        };
-        if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
-        onSubmit(body);
-      }}
-    >
-      <Field title="Symptoms">
-        <input required type="text" value={form.symptoms} onChange={(e) => setForm({ ...form, symptoms: e.target.value })} style={field} placeholder="Comma-separated" />
-      </Field>
-      <Field title="Severity (1–10)">
-        <input required type="number" min="1" max="10" value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })} style={field} />
-      </Field>
-      <Field title="Date & time (optional)">
-        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
-      </Field>
-      <Field title="Notes (optional)">
-        <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={field} />
-      </Field>
-      <Submit submitting={submitting} isEdit={isEdit} />
-    </form>
-  );
+const STRESS_LEVELS = ['Low', 'Moderate', 'High'];
+
+function normalizeMood(mood) {
+  if (!mood) return 'Happy';
+  if (LEGACY_MOOD_MAP[mood]) return LEGACY_MOOD_MAP[mood];
+  return MOOD_OPTIONS.some((o) => o.id === mood) ? mood : 'Happy';
 }
 
 function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
-  const [form, setForm] = useState({ mood: 'Good', journalEntry: '', timestamp: '' });
+  const [form, setForm] = useState({
+    mood: 'Happy',
+    stressLevel: 'Low',
+    journalEntry: '',
+    timestamp: toLocalInput(),
+  });
 
   useEffect(() => {
     setForm({
-      mood: initialRaw?.mood || 'Good',
+      mood: normalizeMood(initialRaw?.mood),
+      stressLevel: STRESS_LEVELS.includes(initialRaw?.stressLevel) ? initialRaw.stressLevel : 'Low',
       journalEntry: initialRaw?.journalEntry || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
@@ -843,34 +1362,102 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
-        const body = {
+        onSubmit({
           mood: form.mood,
+          stressLevel: form.stressLevel,
           journalEntry: form.journalEntry || undefined,
-        };
-        if (form.timestamp) body.timestamp = new Date(form.timestamp).toISOString();
-        onSubmit(body);
+          timestamp: new Date(form.timestamp).toISOString(),
+        });
       }}
     >
-      <Field title="How do you feel?">
-        <select value={form.mood} onChange={(e) => setForm({ ...form, mood: e.target.value })} style={field}>
-          {['Great', 'Good', 'Okay', 'Low', 'Stressed'].map((o) => (
-            <option key={o}>{o}</option>
-          ))}
-        </select>
+      <div>
+        <label style={label}>Mood</label>
+        <div
+          className="db-log-mood-grid"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))', gap: 8 }}
+        >
+          {MOOD_OPTIONS.map((opt) => {
+            const active = form.mood === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setForm({ ...form, mood: opt.id })}
+                style={{
+                  padding: '12px 10px',
+                  borderRadius: 12,
+                  border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
+                  background: active ? t.surfaceSunken : '#FFF',
+                  color: t.ink,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 28, lineHeight: 1 }} aria-hidden>
+                  {opt.emoji}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 650 }}>{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <label style={label}>Stress level</label>
+        <div className="db-log-stress-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {STRESS_LEVELS.map((level) => {
+            const active = form.stressLevel === level;
+            return (
+              <button
+                key={level}
+                type="button"
+                onClick={() => setForm({ ...form, stressLevel: level })}
+                style={{
+                  padding: '11px 8px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
+                  background: active ? t.surfaceSunken : '#FFF',
+                  color: t.ink,
+                  fontWeight: 650,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {level}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <Field title="Date & time">
+        <input
+          required
+          type="datetime-local"
+          value={form.timestamp}
+          onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
+          style={field}
+        />
       </Field>
-      <Field title="Journal (optional)">
+
+      <Field title="Notes (optional)">
         <textarea
-          rows={4}
+          rows={3}
           maxLength={1000}
           value={form.journalEntry}
           onChange={(e) => setForm({ ...form, journalEntry: e.target.value })}
           style={{ ...field, resize: 'vertical' }}
+          placeholder="Feeling stressed because of exams... Had a relaxing day... Work was overwhelming..."
         />
       </Field>
-      <Field title="Date & time (optional)">
-        <input type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
-      </Field>
-      <Submit submitting={submitting} isEdit={isEdit} />
+
+      <Submit submitting={submitting} isEdit={isEdit} label="Save entry" editLabel="Update entry" />
     </form>
   );
 }

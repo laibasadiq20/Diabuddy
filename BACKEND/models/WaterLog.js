@@ -13,6 +13,11 @@ const waterLogSchema = new mongoose.Schema(
       required: [true, 'Amount in ml is required'],
       min: [1, 'Amount must be at least 1 ml'],
     },
+    notes: {
+      type: String,
+      maxlength: [500, 'Notes cannot exceed 500 characters'],
+      default: '',
+    },
     timestamp: {
       type: Date,
       default: Date.now,

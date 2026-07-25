@@ -10,8 +10,25 @@ const moodLogSchema = new mongoose.Schema(
     },
     mood: {
       type: String,
-      enum: ['Great', 'Good', 'Okay', 'Low', 'Stressed'],
+      enum: [
+        'Very Happy',
+        'Happy',
+        'Neutral',
+        'Sad',
+        'Anxious',
+        // legacy values
+        'Great',
+        'Good',
+        'Okay',
+        'Low',
+        'Stressed',
+      ],
       required: [true, 'Mood is required'],
+    },
+    stressLevel: {
+      type: String,
+      enum: ['Low', 'Moderate', 'High'],
+      default: 'Low',
     },
     journalEntry: {
       type: String,

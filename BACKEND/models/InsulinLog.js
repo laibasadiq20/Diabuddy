@@ -17,17 +17,43 @@ const insulinLogSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Insulin type is required'],
       trim: true,
-      // Examples: NovoRapid, Humalog, Lantus, Levemir, Tresiba
     },
     injectionSite: {
       type: String,
-      enum: ['Abdomen', 'Arm', 'Thigh', 'Buttocks'],
-      required: [true, 'Injection site is required'],
+      enum: [
+        '',
+        'Abdomen',
+        'Left Arm',
+        'Right Arm',
+        'Left Thigh',
+        'Right Thigh',
+        'Buttocks',
+        'Other',
+        // legacy
+        'Arm',
+        'Thigh',
+      ],
+      default: '',
     },
+    // Stored as mealRelation historically; used as "Reason" in the UI
     mealRelation: {
       type: String,
-      enum: ['Before Meal', 'After Meal', 'None'],
-      default: 'None',
+      enum: [
+        'Before Breakfast',
+        'After Breakfast',
+        'Before Lunch',
+        'After Lunch',
+        'Before Dinner',
+        'After Dinner',
+        'Bedtime',
+        'Correction',
+        'Other',
+        // legacy
+        'Before Meal',
+        'After Meal',
+        'None',
+      ],
+      required: [true, 'Reason is required'],
     },
     notes: {
       type: String,
@@ -55,7 +81,6 @@ const insulinLogSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for efficient user-specific queries
 insulinLogSchema.index({ userId: 1, timestamp: -1 });
 
 module.exports = mongoose.model('InsulinLog', insulinLogSchema);
