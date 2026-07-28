@@ -409,6 +409,31 @@ export default function CommunityFeedStyles() {
           font-weight: 500;
         }
         .db-community-state p { margin: 0 0 20px; font-size: 14px; }
+        .db-community-state--empty p {
+          max-width: 36ch;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .db-community-first-tips {
+          list-style: none;
+          margin: 0 0 20px;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          width: 100%;
+          max-width: 360px;
+          text-align: left;
+        }
+        .db-community-first-tips li {
+          font-size: 13px;
+          color: ${t.inkSoft};
+          background: ${t.surfaceSunken};
+          border-radius: 10px;
+          padding: 10px 12px;
+          line-height: 1.4;
+          font-weight: 500;
+        }
         .db-community-state--error {
           background: ${t.clayTint};
           border-color: ${t.clay}30;

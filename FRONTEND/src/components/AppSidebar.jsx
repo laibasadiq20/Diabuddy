@@ -25,12 +25,12 @@ const t = theme;
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Community', path: '/community', icon: Users },
-  { label: 'Toolbox', path: '/toolbox', icon: Wrench },
   { label: 'Logs', path: '/logs', icon: ClipboardList },
+  { label: 'Community', path: '/community', icon: Users },
+  { label: 'Messages', path: '/messages', icon: MessageSquare },
+  { label: 'Toolbox', path: '/toolbox', icon: Wrench },
   { label: 'Fitbit', path: '/fitbit', icon: Watch },
   { label: 'Reminders', path: '/reminders', icon: Bell },
-  { label: 'Messages', path: '/messages', icon: MessageSquare },
   { label: 'My Account', path: '/account', icon: UserRound },
 ];
 
@@ -47,9 +47,9 @@ const adminNavItems = [
 
 const bottomTabs = [
   { label: 'Home', path: '/dashboard', icon: LayoutDashboard },
+  { label: 'Logs', path: '/logs', icon: ClipboardList },
   { label: 'Community', path: '/community', icon: Users },
-  { label: 'Tools', path: '/toolbox', icon: Wrench },
-  { label: 'Reminders', path: '/reminders', icon: Bell },
+  { label: 'Messages', path: '/messages', icon: MessageSquare },
   { label: 'Account', path: '/account', icon: UserRound },
 ];
 
@@ -388,7 +388,7 @@ export default function AppSidebar() {
           </span>
           <div style={{ textAlign: 'left' }}>
             <p style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, letterSpacing: '0.02em' }}>
-              Diabuddy
+              DiaBuddy
             </p>
             <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(244,240,232,0.55)' }}>
               {isAdmin ? 'Admin console' : 'Your care companion'}
@@ -607,7 +607,7 @@ export default function AppSidebar() {
           onClick={() => go('/')}
           className="db-app-brand"
         >
-          Diabuddy
+          DiaBuddy
         </button>
         <div style={{ position: 'relative', display: 'flex', gap: 4 }}>
           <button
@@ -688,6 +688,7 @@ export default function AppSidebar() {
         {tabs.map(({ label, path, icon: Icon }) => {
           const tabKey = path.includes('tab=') ? path.split('tab=')[1] : path.startsWith('/admin') ? 'overview' : undefined;
           const active = isActive(path, tabKey);
+          const showMsgBadge = !isAdmin && path === '/messages' && unreadMsgCount > 0;
           return (
             <button
               key={`${path}-${label}`}
@@ -695,8 +696,34 @@ export default function AppSidebar() {
               onClick={() => go(path)}
               className={`db-app-tab${active ? ' is-active' : ''}`}
               aria-current={active ? 'page' : undefined}
+              style={{ position: 'relative' }}
             >
-              <Icon size={22} strokeWidth={active ? 2.35 : 1.75} />
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                <Icon size={22} strokeWidth={active ? 2.35 : 1.75} />
+                {showMsgBadge && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: -4,
+                      right: -8,
+                      minWidth: 14,
+                      height: 14,
+                      borderRadius: 999,
+                      background: t.peach,
+                      color: t.forestDeep,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 3px',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {unreadMsgCount > 9 ? '9+' : unreadMsgCount}
+                  </span>
+                )}
+              </span>
               <span>{label}</span>
             </button>
           );

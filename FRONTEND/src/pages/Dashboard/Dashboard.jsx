@@ -5,108 +5,49 @@ import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
 import {
-  Users,
-  Wrench,
   ClipboardList,
-  Watch,
-  Bell,
-  ArrowUpRight,
   MessageSquare,
+  Users,
+  ArrowRight,
+  Droplets,
+  PlusCircle,
 } from 'lucide-react';
 
 const t = theme;
 
-const modules = [
-  {
-    key: 'community',
-    title: 'Community',
-    desc: 'Ask questions, share wins, find people who get it.',
-    path: '/community',
-    icon: Users,
-    area: 'community',
-    bg: `linear-gradient(145deg, ${t.forestDeep} 0%, ${t.forest} 50%, #3a5748 100%)`,
-    text: '#F7F3EC',
-    muted: 'rgba(247,243,236,0.68)',
-    iconBg: 'rgba(232,184,154,0.2)',
-    iconColor: t.peach,
-    dark: true,
-  },
-  {
-    key: 'toolbox',
-    title: 'Toolbox',
-    desc: 'Glucose, carbs, HbA1c & more',
-    path: '/toolbox',
-    icon: Wrench,
-    area: 'toolbox',
-    bg: `linear-gradient(165deg, #dce8ec 0%, #f7fbfc 55%, #fff 100%)`,
-    text: t.ink,
-    muted: t.inkSoft,
-    iconBg: t.skySoft,
-    iconColor: t.skyDeep,
-    ring: t.sky + '45',
-  },
-  {
-    key: 'logs',
-    title: 'Logs',
-    desc: 'Meals · insulin · glucose',
-    path: '/logs',
-    icon: ClipboardList,
-    area: 'logs',
-    bg: `linear-gradient(165deg, ${t.clayTint} 0%, #fff 70%)`,
-    text: t.ink,
-    muted: t.inkSoft,
-    iconBg: t.claySoft,
-    iconColor: t.clay,
-    ring: t.clay + '40',
-  },
-  {
-    key: 'fitbit',
-    title: 'Fitbit',
-    desc: 'Connect your wearable',
-    path: '/fitbit',
-    icon: Watch,
-    area: 'fitbit',
-    bg: `linear-gradient(165deg, ${t.sageTint} 0%, #fff 70%)`,
-    text: t.ink,
-    muted: t.inkSoft,
-    iconBg: t.sageSoft,
-    iconColor: t.sageDeep,
-    ring: t.sage + '45',
-  },
-  {
-    key: 'reminders',
-    title: 'Reminders',
-    desc: 'Soft daily nudges',
-    path: '/reminders',
-    icon: Bell,
-    area: 'reminders',
-    bg: `linear-gradient(165deg, ${t.goldTint} 0%, #fff 70%)`,
-    text: t.ink,
-    muted: t.inkSoft,
-    iconBg: t.goldSoft,
-    iconColor: t.gold,
-    ring: t.gold + '45',
-  },
-];
+function countUnreadConversations(conversations, user) {
+  const myId = String(user?._id || user?.id || '');
+  return (conversations || []).filter((conv) => {
+    const last = conv.lastMessage;
+    if (!last) return false;
+    const senderId = String(last.senderId?._id || last.senderId || '');
+    if (senderId === myId) return false;
+    return !(last.readBy || []).some((r) => String(r?._id || r) === myId);
+  }).length;
+}
 
-function Blob({ style }) {
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: 'absolute',
-        borderRadius: '50%',
-        pointerEvents: 'none',
-        ...style,
-      }}
-    />
-  );
+function summaryDoneCount(summary) {
+  if (!summary) return 0;
+  let n = 0;
+  if (summary.glucose?.count > 0) n += 1;
+  if (summary.meals?.value > 0) n += 1;
+  if (summary.insulin?.value > 0) n += 1;
+  if (summary.medications?.value > 0) n += 1;
+  if (summary.water?.value > 0) n += 1;
+  if (summary.exercise?.value > 0) n += 1;
+  if (summary.sleep?.value > 0) n += 1;
+  if (summary.mood?.value) n += 1;
+  return n;
 }
 
 export default function Dashboard() {
   const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
+  const [summary, setSummary] = useState(null);
+  const [latestPost, setLatestPost] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const firstName = user?.name?.split(' ')[0] || 'Buddy';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -115,34 +56,58 @@ export default function Dashboard() {
     month: 'short',
     day: 'numeric',
   });
-  const tiles = modules;
+  const loggedTypes = summaryDoneCount(summary);
+  const latestGlucose = summary?.glucose?.value || null;
 
   useEffect(() => {
     if (!user) return undefined;
+    let cancelled = false;
+
     const load = async () => {
       try {
-        const res = await fetch(`${API_URL}/conversations`, {
-          credentials: 'include',
-          headers: { ...authHeaders() },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        const myId = String(user._id || user.id || '');
-        const count = (data || []).filter((conv) => {
-          const last = conv.lastMessage;
-          if (!last) return false;
-          const senderId = String(last.senderId?._id || last.senderId || '');
-          if (senderId === myId) return false;
-          return !(last.readBy || []).some((r) => String(r?._id || r) === myId);
-        }).length;
-        setUnreadMsgCount(count);
+        const headers = { ...authHeaders() };
+        const tzOffset = new Date().getTimezoneOffset();
+        const [convRes, sumRes, postRes] = await Promise.all([
+          fetch(`${API_URL}/conversations`, { credentials: 'include', headers }),
+          fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, {
+            credentials: 'include',
+            headers,
+          }),
+          fetch(`${API_URL}/posts?sort=latest&page=1&limit=1`, {
+            credentials: 'include',
+            headers,
+          }),
+        ]);
+
+        if (cancelled) return;
+
+        if (convRes.ok) {
+          const data = await convRes.json();
+          setUnreadMsgCount(countUnreadConversations(data, user));
+        }
+
+        if (sumRes.ok) {
+          const data = await sumRes.json();
+          if (data?.status === 'success') setSummary(data.data);
+        }
+
+        if (postRes.ok) {
+          const data = await postRes.json();
+          setLatestPost(data?.posts?.[0] || null);
+        }
       } catch (err) {
         console.error(err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
+
     load();
-    const id = setInterval(load, 20000);
-    return () => clearInterval(id);
+    const id = setInterval(load, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [user]);
 
   return (
@@ -163,268 +128,244 @@ export default function Dashboard() {
           inset: 0,
           pointerEvents: 'none',
           background: `
-            radial-gradient(ellipse 55% 40% at 0% 0%, rgba(125,143,111,0.22), transparent 55%),
-            radial-gradient(ellipse 45% 35% at 100% 5%, rgba(194,114,79,0.14), transparent 50%),
-            radial-gradient(ellipse 40% 30% at 70% 100%, rgba(94,135,160,0.14), transparent 45%)
+            radial-gradient(ellipse 55% 40% at 0% 0%, rgba(125,143,111,0.18), transparent 55%),
+            radial-gradient(ellipse 40% 30% at 100% 100%, rgba(94,135,160,0.12), transparent 45%)
           `,
         }}
       />
 
       <AppSidebar />
 
-      <main style={{ flex: 1, minWidth: 0, padding: '24px 18px 72px', position: 'relative' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto' }}>
-
-          {/* Greeting bar */}
-          <div className="db-dash-hello">
-            <div>
-              <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
-                {today}
-              </p>
-              <h1 className="db-dash-title">
-                {greeting},{' '}
-                <em style={{ fontStyle: 'italic', color: t.sageDeep }}>{firstName}</em>
-              </h1>
-              <p className="db-dash-sub">
-                Your care companion for today — tap a module to jump in.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => navigate('/messages')}
-              className="db-dash-messages"
+      <main style={{ flex: 1, minWidth: 0, padding: '24px 18px 88px', position: 'relative' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto' }}>
+          <header style={{ marginBottom: 22 }}>
+            <p
               style={{
-                position: 'relative',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '12px 18px',
-                borderRadius: 999,
-                border: `1.5px solid ${t.lineStrong}`,
-                background: '#FFF',
-                color: t.ink,
+                margin: '0 0 6px',
+                fontSize: 12,
                 fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                fontFamily: t.fontBody,
-                boxShadow: t.shadowCard,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: t.inkFaint,
               }}
             >
-              <MessageSquare size={15} />
-              Messages
-              {unreadMsgCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: -4,
-                    right: -4,
-                    minWidth: 18,
-                    height: 18,
-                    borderRadius: 999,
-                    background: t.peach,
-                    color: t.forestDeep,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '0 5px',
-                  }}
-                >
-                  {unreadMsgCount > 99 ? '99+' : unreadMsgCount}
+              {today}
+            </p>
+            <h1
+              style={{
+                margin: 0,
+                fontFamily: t.fontDisplay,
+                fontSize: 'clamp(28px, 6vw, 40px)',
+                fontWeight: 500,
+                color: t.ink,
+                letterSpacing: '-0.03em',
+                lineHeight: 1.1,
+              }}
+            >
+              {greeting},{' '}
+              <em style={{ fontStyle: 'italic', color: t.sageDeep }}>{firstName}</em>
+            </h1>
+            <p style={{ margin: '10px 0 0', fontSize: 14, color: t.inkSoft, lineHeight: 1.45 }}>
+              {loading
+                ? 'Checking today’s next steps…'
+                : loggedTypes > 0
+                  ? `${loggedTypes} log type${loggedTypes === 1 ? '' : 's'} done today.`
+                  : 'Start with one log — glucose is a good first step.'}
+            </p>
+          </header>
+
+          <div className="db-dash-actions">
+            {/* Log today */}
+            <button
+              type="button"
+              className="db-dash-action db-dash-action--primary"
+              onClick={() => navigate('/logs')}
+            >
+              <span className="db-dash-action-icon" style={{ background: t.claySoft, color: t.clay }}>
+                <ClipboardList size={22} strokeWidth={1.75} />
+              </span>
+              <span className="db-dash-action-body">
+                <span className="db-dash-action-title">Log today</span>
+                <span className="db-dash-action-desc">
+                  {latestGlucose
+                    ? `Latest glucose ${latestGlucose}`
+                    : 'Glucose, meals, meds, and habits'}
                 </span>
+              </span>
+              <span className="db-dash-action-cta">
+                <PlusCircle size={16} />
+                Open
+              </span>
+            </button>
+
+            {/* Messages */}
+            <button
+              type="button"
+              className="db-dash-action"
+              onClick={() => navigate('/messages')}
+            >
+              <span className="db-dash-action-icon" style={{ background: t.skySoft, color: t.skyDeep }}>
+                <MessageSquare size={22} strokeWidth={1.75} />
+              </span>
+              <span className="db-dash-action-body">
+                <span className="db-dash-action-title">Messages</span>
+                <span className="db-dash-action-desc">
+                  {unreadMsgCount > 0
+                    ? `${unreadMsgCount} unread conversation${unreadMsgCount === 1 ? '' : 's'}`
+                    : 'No unread chats'}
+                </span>
+              </span>
+              {unreadMsgCount > 0 ? (
+                <span className="db-dash-badge">{unreadMsgCount > 99 ? '99+' : unreadMsgCount}</span>
+              ) : (
+                <ArrowRight size={18} color={t.inkFaint} />
               )}
             </button>
+
+            {/* Community highlight */}
+            <button
+              type="button"
+              className="db-dash-action"
+              onClick={() =>
+                navigate(latestPost?._id ? `/community/posts/${latestPost._id}` : '/community')
+              }
+            >
+              <span className="db-dash-action-icon" style={{ background: t.sageSoft, color: t.sageDeep }}>
+                <Users size={22} strokeWidth={1.75} />
+              </span>
+              <span className="db-dash-action-body">
+                <span className="db-dash-action-title">Community</span>
+                <span className="db-dash-action-desc">
+                  {latestPost?.title
+                    ? latestPost.title
+                    : 'Ask a question or see what others shared'}
+                </span>
+              </span>
+              <ArrowRight size={18} color={t.inkFaint} />
+            </button>
+
+            {/* Soft secondary: glucose quick path */}
+            <button
+              type="button"
+              className="db-dash-action db-dash-action--quiet"
+              onClick={() => navigate('/logs/glucose')}
+            >
+              <span className="db-dash-action-icon" style={{ background: t.surfaceSunken, color: t.forest }}>
+                <Droplets size={20} strokeWidth={1.75} />
+              </span>
+              <span className="db-dash-action-body">
+                <span className="db-dash-action-title">Quick glucose</span>
+                <span className="db-dash-action-desc">Add a reading in one tap</span>
+              </span>
+              <ArrowRight size={18} color={t.inkFaint} />
+            </button>
           </div>
-
-          {/* Asymmetric bento */}
-          <div className="db-bento">
-            {tiles.map((m) => {
-              const Icon = m.icon;
-              return (
-                <button
-                  key={m.key}
-                  type="button"
-                  onClick={() => navigate(m.path)}
-                  className={`db-tile db-tile-${m.area}`}
-                  style={{
-                    position: 'relative',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    padding: 22,
-                    borderRadius: 26,
-                    border: m.ring ? `1.5px solid ${m.ring}` : '1px solid transparent',
-                    background: m.bg,
-                    color: m.text,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    boxShadow: m.dark
-                      ? '0 18px 40px rgba(22,33,25,0.28)'
-                      : t.shadowCard,
-                    fontFamily: t.fontBody,
-                    transition: 'transform 0.18s ease, box-shadow 0.18s ease',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  {m.dark && (
-                    <>
-                      <Blob style={{ right: -40, top: -50, width: 180, height: 180, background: 'rgba(232,184,154,0.16)' }} />
-                      <Blob style={{ right: 50, bottom: -60, width: 140, height: 140, background: 'rgba(94,135,160,0.18)' }} />
-                    </>
-                  )}
-                  {!m.dark && (
-                    <Blob
-                      style={{
-                        right: -24,
-                        bottom: -28,
-                        width: 110,
-                        height: 110,
-                        background: m.iconBg,
-                        opacity: 0.7,
-                      }}
-                    />
-                  )}
-
-                  <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <span
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 16,
-                        background: m.iconBg,
-                        color: m.iconColor,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Icon size={22} strokeWidth={1.75} />
-                    </span>
-                    <span
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        background: m.dark ? 'rgba(255,255,255,0.12)' : 'rgba(31,30,28,0.06)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: m.dark ? '#F7F3EC' : t.inkSoft,
-                      }}
-                    >
-                      <ArrowUpRight size={15} />
-                    </span>
-                  </div>
-
-                  <div style={{ position: 'relative', marginTop: 28 }} className="db-tile-copy">
-                    <p
-                      style={{
-                        margin: 0,
-                        fontFamily: m.dark ? t.fontDisplay : t.fontBody,
-                        fontSize: m.area === 'community' ? 28 : 18,
-                        fontWeight: m.dark ? 500 : 700,
-                        letterSpacing: '-0.02em',
-                      }}
-                    >
-                      {m.title}
-                    </p>
-                    <p style={{ margin: '8px 0 0', fontSize: 13, color: m.muted, lineHeight: 1.5, maxWidth: m.area === 'community' ? 340 : 200 }}>
-                      {m.desc}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <style>{`
-            .db-dash-hello {
-              display: flex;
-              flex-wrap: wrap;
-              align-items: flex-end;
-              justify-content: space-between;
-              gap: 16px;
-              margin-bottom: 20px;
-            }
-            .db-dash-title {
-              margin: 0;
-              font-family: ${t.fontDisplay};
-              font-size: clamp(28px, 6vw, 44px);
-              font-weight: 500;
-              color: ${t.ink};
-              letter-spacing: -0.03em;
-              line-height: 1.05;
-            }
-            .db-dash-sub {
-              display: none;
-              margin: 10px 0 0;
-              font-size: 14px;
-              color: ${t.inkSoft};
-              line-height: 1.45;
-              max-width: 34ch;
-            }
-            .db-bento {
-              display: grid;
-              grid-template-columns: repeat(12, 1fr);
-              grid-auto-rows: minmax(140px, auto);
-              gap: 14px;
-            }
-            .db-tile-community { grid-column: span 7; grid-row: span 2; min-height: 280px; }
-            .db-tile-toolbox { grid-column: span 5; grid-row: span 2; min-height: 280px; }
-            .db-tile-logs { grid-column: span 4; min-height: 160px; }
-            .db-tile-fitbit { grid-column: span 4; min-height: 160px; }
-            .db-tile-reminders { grid-column: span 4; min-height: 160px; }
-
-            @media (hover: hover) and (pointer: fine) {
-              .db-tile:hover {
-                transform: translateY(-4px) scale(1.01);
-                box-shadow: ${t.shadowLifted};
-              }
-            }
-
-            @media (max-width: 800px) {
-              .db-dash-sub { display: block; }
-              .db-dash-messages { display: none !important; }
-              .db-bento {
-                grid-template-columns: 1fr 1fr;
-                gap: 12px;
-              }
-              .db-tile { padding: 18px !important; border-radius: 22px !important; }
-              .db-tile-community {
-                grid-column: span 2;
-                grid-row: span 1;
-                min-height: 176px;
-              }
-              .db-tile-toolbox {
-                grid-column: span 2;
-                grid-row: span 1;
-                min-height: 128px;
-              }
-              .db-tile-logs,
-              .db-tile-fitbit,
-              .db-tile-reminders {
-                grid-column: span 1;
-                min-height: 148px;
-              }
-              .db-tile-reminders { grid-column: span 2; }
-              .db-tile-copy { margin-top: 18px !important; }
-              .db-tile-community .db-tile-copy p:first-child { font-size: 24px !important; }
-            }
-
-            @media (max-width: 420px) {
-              .db-bento { gap: 10px; }
-              .db-tile-logs,
-              .db-tile-fitbit {
-                min-height: 132px;
-              }
-              .db-tile-reminders { min-height: 120px; }
-            }
-          `}</style>
         </div>
       </main>
+
+      <style>{`
+        .db-dash-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .db-dash-action {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          width: 100%;
+          text-align: left;
+          padding: 16px 14px;
+          border-radius: 16px;
+          border: 1.5px solid ${t.lineStrong};
+          background: #fff;
+          cursor: pointer;
+          font-family: ${t.fontBody};
+          box-shadow: 0 1px 2px rgba(43, 42, 40, 0.04);
+          transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .db-dash-action--primary {
+          border-color: ${t.forest}55;
+          background: linear-gradient(165deg, #fff 0%, ${t.sageTint} 100%);
+        }
+        .db-dash-action--quiet {
+          background: transparent;
+          box-shadow: none;
+        }
+        .db-dash-action-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .db-dash-action-body {
+          flex: 1;
+          min-width: 0;
+        }
+        .db-dash-action-title {
+          display: block;
+          font-size: 16px;
+          font-weight: 700;
+          color: ${t.ink};
+          margin-bottom: 2px;
+        }
+        .db-dash-action-desc {
+          display: block;
+          font-size: 13px;
+          color: ${t.inkSoft};
+          line-height: 1.4;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .db-dash-action-cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: ${t.forest};
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .db-dash-badge {
+          min-width: 22px;
+          height: 22px;
+          padding: 0 6px;
+          border-radius: 999px;
+          background: ${t.peach};
+          color: ${t.forestDeep};
+          font-size: 11px;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        @media (hover: hover) and (pointer: fine) {
+          .db-dash-action:hover {
+            border-color: ${t.forest};
+          }
+        }
+        @media (max-width: 640px) {
+          .db-dash-action {
+            padding: 14px 12px;
+            gap: 12px;
+            border-radius: 14px;
+          }
+          .db-dash-action-desc {
+            white-space: normal;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+          }
+        }
+      `}</style>
     </div>
   );
 }

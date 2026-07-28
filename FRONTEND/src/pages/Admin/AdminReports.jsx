@@ -518,7 +518,7 @@ export default function AdminReports() {
           <div className="db-admin-header">
             <div style={{ minWidth: 0 }}>
               <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
-                Diabuddy Admin
+                DiaBuddy Admin
               </p>
               <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 500, color: t.ink, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Shield size={26} color={t.clayDeep} style={{ flexShrink: 0 }} />

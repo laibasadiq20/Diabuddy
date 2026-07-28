@@ -172,7 +172,7 @@ export default function Account() {
                 My Account
               </h1>
               <p style={{ margin: '4px 0 0', color: t.inkSoft, fontSize: 14 }}>
-                Personalize how you appear across Diabuddy
+                Personalize how you appear across DiaBuddy
               </p>
             </div>
           </div>

@@ -1,8 +1,14 @@
 import React from 'react';
-import { RefreshCw, FolderOpen, PlusCircle } from 'lucide-react';
+import { RefreshCw, MessageSquarePlus, PlusCircle } from 'lucide-react';
 import { theme } from '../../../theme';
 
 const t = theme;
+
+const FIRST_POST_IDEAS = [
+  'A question about meals, meds, or a recent reading',
+  'What helped you in the first weeks after diagnosis',
+  'A routine that made logging easier',
+];
 
 export default function FeedState({
   loading,
@@ -33,13 +39,20 @@ export default function FeedState({
 
   if (empty) {
     return (
-      <div className="db-community-state">
-        <FolderOpen size={40} color={t.inkFaint} />
-        <h3>No posts yet</h3>
-        <p>Be the first to start a discussion in this space.</p>
+      <div className="db-community-state db-community-state--empty">
+        <MessageSquarePlus size={36} color={t.sageDeep} strokeWidth={1.6} />
+        <h3>Start the first post</h3>
+        <p>
+          This space is quiet right now. One clear question or tip helps the next person feel less alone.
+        </p>
+        <ul className="db-community-first-tips">
+          {FIRST_POST_IDEAS.map((idea) => (
+            <li key={idea}>{idea}</li>
+          ))}
+        </ul>
         <button type="button" className="db-community-cta" onClick={onCreatePost}>
           <PlusCircle size={16} />
-          <span>Create a post</span>
+          <span>Write your first post</span>
         </button>
       </div>
     );

@@ -154,7 +154,7 @@ const STARTER_POSTS = {
     {
       title: 'New here — where should I start reading?',
       content:
-        'Just joined Diabuddy. Diagnosed not long ago and the information overload is a lot. Which topics here helped you most in the first months? Prefer real-people stories over jargon.',
+        'Just joined DiaBuddy. Diagnosed not long ago and the information overload is a lot. Which topics here helped you most in the first months? Prefer real-people stories over jargon.',
       tags: ['newcomers', 'welcome', SEED_TAG],
     },
     {

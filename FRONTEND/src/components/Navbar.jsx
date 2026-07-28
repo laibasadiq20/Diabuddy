@@ -114,7 +114,7 @@ const Navbar = () => {
               ♥
             </span>
             <span className="truncate font-serif text-[1.05rem] tracking-wide text-[#2F2A25] sm:text-xl">
-              Diabuddy
+              DiaBuddy
             </span>
           </button>
 

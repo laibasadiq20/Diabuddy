@@ -5,7 +5,7 @@ We have successfully implemented the refined user navigation flows, interactive 
 ## Changes Made
 
 ### 1. Navbar & Routing Journey Flow (`Navbar.jsx` & `Hero.jsx`)
-- **Logo Behavior**: Made the "Diabuddy" logo link to `/dashboard` when you are logged in, and to `/` (Landing Page) when logged out.
+- **Logo Behavior**: Made the "DiaBuddy" logo link to `/dashboard` when you are logged in, and to `/` (Landing Page) when logged out.
 - **Dashboard Link**: Added a direct "Dashboard" navigation button next to the community page link in the desktop view.
 - **Responsive Profile Avatar**: Removed `hidden md:flex` so the user's avatar button is always visible on all screen sizes, including mobile.
 - **Mobile Menu Drawer**: Integrated user options (Dashboard, Messages, and a prominent Log Out button) into the mobile hamburger menu drawer when you are signed in, replacing the generic "Get Started" prompt.

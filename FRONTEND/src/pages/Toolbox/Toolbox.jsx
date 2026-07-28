@@ -133,58 +133,54 @@ export default function Toolbox() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
+    <div style={{ minHeight: '100vh', display: 'flex', background: t.bg, fontFamily: t.fontBody }}>
       <AppSidebar />
-      <main style={{ flex: 1, minWidth: 0, padding: '28px 20px 64px' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      <main style={{ flex: 1, minWidth: 0, padding: '24px 18px 88px' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto' }}>
           {!active ? (
             <>
-              <header style={{ marginBottom: 22 }}>
-                <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
+              <header style={{ marginBottom: 18 }}>
+                <h1
+                  style={{
+                    margin: 0,
+                    fontFamily: t.fontDisplay,
+                    fontSize: 'clamp(24px, 4vw, 30px)',
+                    fontWeight: 500,
+                    color: t.ink,
+                  }}
+                >
                   Toolbox
-                </p>
-                <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(26px, 4vw, 34px)', fontWeight: 500, color: t.ink }}>
-                  Diabetes tools
                 </h1>
-                <p style={{ margin: '8px 0 0', fontSize: 14, color: t.inkSoft, lineHeight: 1.5 }}>
-                  Calculators and lookups for day-to-day diabetes management. Estimates only — not medical advice.
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: t.inkSoft, lineHeight: 1.45 }}>
+                  Quick calculators. Estimates only — not medical advice.
                 </p>
               </header>
 
-              <div style={{ display: 'grid', gap: 12 }}>
+              <div style={{ display: 'grid', gap: 8 }}>
                 {TOOLS.map(({ id, title, desc, icon: Icon, tint, accent }) => (
                   <button
                     key={id}
                     type="button"
                     onClick={() => openTool(id)}
+                    className="db-toolbox-row"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 14,
-                      padding: '18px 16px',
-                      borderRadius: 18,
-                      border: `1.5px solid ${t.lineStrong}`,
+                      gap: 12,
+                      padding: '12px',
+                      borderRadius: 12,
+                      border: `1px solid ${t.lineStrong}`,
                       background: '#FFF',
-                      boxShadow: t.shadowCard,
                       cursor: 'pointer',
                       textAlign: 'left',
                       fontFamily: t.fontBody,
-                      transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = accent;
-                      e.currentTarget.style.boxShadow = t.shadowLifted;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = t.lineStrong;
-                      e.currentTarget.style.boxShadow = t.shadowCard;
                     }}
                   >
                     <span
                       style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 14,
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
                         background: tint,
                         color: accent,
                         display: 'flex',
@@ -193,13 +189,25 @@ export default function Toolbox() {
                         flexShrink: 0,
                       }}
                     >
-                      <Icon size={22} />
+                      <Icon size={18} strokeWidth={1.75} />
                     </span>
-                    <span style={{ flex: 1 }}>
-                      <span style={{ display: 'block', fontWeight: 700, fontSize: 16, color: t.ink }}>{title}</span>
-                      <span style={{ display: 'block', fontSize: 13, color: t.inkSoft, marginTop: 2 }}>{desc}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontWeight: 600, fontSize: 15, color: t.ink }}>
+                        {title}
+                      </span>
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: 12,
+                          color: t.inkSoft,
+                          marginTop: 2,
+                          lineHeight: 1.35,
+                        }}
+                      >
+                        {desc}
+                      </span>
                     </span>
-                    <ChevronRight size={18} color={t.inkFaint} />
+                    <ChevronRight size={16} color={t.inkFaint} />
                   </button>
                 ))}
               </div>
@@ -212,11 +220,11 @@ export default function Toolbox() {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 8,
-                  marginBottom: 18,
-                  padding: '8px 12px',
-                  borderRadius: 999,
-                  border: `1.5px solid ${t.lineStrong}`,
+                  gap: 6,
+                  marginBottom: 14,
+                  padding: '7px 10px',
+                  borderRadius: 10,
+                  border: `1px solid ${t.lineStrong}`,
                   background: '#FFF',
                   color: t.inkSoft,
                   fontSize: 13,
@@ -225,25 +233,24 @@ export default function Toolbox() {
                   fontFamily: t.fontBody,
                 }}
               >
-                <ArrowLeft size={15} /> All tools
+                <ArrowLeft size={14} /> All tools
               </button>
 
               <section
                 className="db-tool-panel"
                 style={{
                   background: '#FFF',
-                  borderRadius: 20,
-                  border: `1.5px solid ${t.lineStrong}`,
-                  boxShadow: t.shadowCard,
-                  padding: 22,
+                  borderRadius: 14,
+                  border: `1px solid ${t.lineStrong}`,
+                  padding: 18,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 12,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 9,
                       background: meta.tint,
                       color: meta.accent,
                       display: 'flex',
@@ -251,9 +258,17 @@ export default function Toolbox() {
                       justifyContent: 'center',
                     }}
                   >
-                    <meta.icon size={18} />
+                    <meta.icon size={16} />
                   </span>
-                  <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 22, color: t.ink, fontWeight: 600 }}>
+                  <h2
+                    style={{
+                      margin: 0,
+                      fontFamily: t.fontDisplay,
+                      fontSize: 20,
+                      color: t.ink,
+                      fontWeight: 500,
+                    }}
+                  >
                     {meta.title}
                   </h2>
                 </div>
@@ -264,8 +279,11 @@ export default function Toolbox() {
         </div>
       </main>
       <style>{`
+        @media (hover: hover) and (pointer: fine) {
+          .db-toolbox-row:hover { border-color: ${t.forest}; }
+        }
         @media (max-width: 560px) {
-          .db-tool-panel { padding: 16px !important; border-radius: 18px !important; }
+          .db-tool-panel { padding: 14px !important; border-radius: 12px !important; }
         }
       `}</style>
     </div>
