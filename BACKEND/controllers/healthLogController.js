@@ -493,40 +493,95 @@ exports.deleteGlucose = async (req, res) => {
 // ==========================================
 exports.createInsulin = async (req, res) => {
   try {
-    const { units, insulinType, injectionSite, mealRelation, reason, notes, timestamp } = req.body;
+    const { units, insulinType, injectionSite, mealRelation, reason, notes, timestamp } = req.body || {};
+    const unitsNum = Number(units);
+    if (!Number.isFinite(unitsNum) || unitsNum < 0.1) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Insulin units must be a number of at least 0.1',
+      });
+    }
+
+    const reasonMap = {
+      'Before Meal': 'Before Breakfast',
+      'After Meal': 'After Breakfast',
+    };
+    let resolvedReason = reason || mealRelation || 'Other';
+    if (reasonMap[resolvedReason]) resolvedReason = reasonMap[resolvedReason];
+
+    let site = injectionSite == null ? '' : String(injectionSite);
+    if (site === 'Arm') site = 'Left Arm';
+    if (site === 'Thigh') site = 'Left Thigh';
+
+    let when = timestamp ? new Date(timestamp) : new Date();
+    if (Number.isNaN(when.getTime())) when = new Date();
+
     const log = new InsulinLog({
       userId: req.user.id,
-      units: Number(units),
-      insulinType,
-      injectionSite: injectionSite || '',
-      mealRelation: reason || mealRelation,
-      notes,
-      timestamp: timestamp ? new Date(timestamp) : new Date(),
+      units: unitsNum,
+      insulinType: String(insulinType || '').trim() || 'Rapid-Acting',
+      injectionSite: site,
+      mealRelation: resolvedReason,
+      notes: notes == null ? '' : String(notes),
+      timestamp: when,
     });
     await log.save();
     res.status(201).json({ status: 'success', data: log });
   } catch (err) {
-    res.status(400).json({ status: 'error', message: 'Failed to create insulin log', error: err.message });
+    res.status(400).json({
+      status: 'error',
+      message: err.message || 'Failed to create insulin log',
+      error: err.message,
+    });
   }
 };
 
 exports.updateInsulin = async (req, res) => {
   try {
-    const { units, insulinType, injectionSite, mealRelation, reason, notes, timestamp } = req.body;
+    const { units, insulinType, injectionSite, mealRelation, reason, notes, timestamp } = req.body || {};
     const log = await InsulinLog.findOne({ _id: req.params.id, userId: req.user.id });
     if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
 
-    if (units !== undefined) log.units = Number(units);
-    if (insulinType !== undefined) log.insulinType = insulinType;
-    if (injectionSite !== undefined) log.injectionSite = injectionSite || '';
-    if (reason !== undefined || mealRelation !== undefined) log.mealRelation = reason || mealRelation;
-    if (notes !== undefined) log.notes = notes;
-    if (timestamp !== undefined) log.timestamp = new Date(timestamp);
+    if (units !== undefined) {
+      const unitsNum = Number(units);
+      if (!Number.isFinite(unitsNum) || unitsNum < 0.1) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Insulin units must be a number of at least 0.1',
+        });
+      }
+      log.units = unitsNum;
+    }
+    if (insulinType !== undefined) log.insulinType = String(insulinType || '').trim() || log.insulinType;
+    if (injectionSite !== undefined) {
+      let site = injectionSite == null ? '' : String(injectionSite);
+      if (site === 'Arm') site = 'Left Arm';
+      if (site === 'Thigh') site = 'Left Thigh';
+      log.injectionSite = site;
+    }
+    if (reason !== undefined || mealRelation !== undefined) {
+      const reasonMap = {
+        'Before Meal': 'Before Breakfast',
+        'After Meal': 'After Breakfast',
+      };
+      let resolvedReason = reason || mealRelation;
+      if (reasonMap[resolvedReason]) resolvedReason = reasonMap[resolvedReason];
+      log.mealRelation = resolvedReason;
+    }
+    if (notes !== undefined) log.notes = notes == null ? '' : String(notes);
+    if (timestamp !== undefined) {
+      const when = new Date(timestamp);
+      if (!Number.isNaN(when.getTime())) log.timestamp = when;
+    }
 
     await log.save();
     res.json({ status: 'success', data: log });
   } catch (err) {
-    res.status(400).json({ status: 'error', message: 'Failed to update insulin log', error: err.message });
+    res.status(400).json({
+      status: 'error',
+      message: err.message || 'Failed to update insulin log',
+      error: err.message,
+    });
   }
 };
 

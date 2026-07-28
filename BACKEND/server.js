@@ -71,8 +71,16 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
+
+// Body-parser SyntaxError otherwise returns an HTML "<!DOCTYPE…" page
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ status: 'error', message: 'Invalid JSON body' });
+  }
+  return next(err);
+});
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
@@ -120,6 +128,14 @@ app.get('/api/test', (req, res) => {
     status: 'ok',
     message: 'DiaBuddy backend is running',
     emailConfigured: require('./utils/sendEmail').isEmailConfigured(),
+  });
+});
+
+// JSON 404 for unknown API routes (avoid Express HTML error pages breaking the SPA)
+app.use('/api', (req, res) => {
+  res.status(404).json({
+    status: 'error',
+    message: `API route not found: ${req.method} ${req.originalUrl}`,
   });
 });
 

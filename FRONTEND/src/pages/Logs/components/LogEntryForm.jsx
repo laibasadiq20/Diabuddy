@@ -528,16 +528,19 @@ function InsulinFields({ initialRaw, submitting, isEdit, onSubmit }) {
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
-        const body = {
-          units: Number(form.units),
+        const when = new Date(form.timestamp);
+        if (Number.isNaN(when.getTime())) return;
+        const unitsNum = Number(form.units);
+        if (!Number.isFinite(unitsNum) || unitsNum < 0.1) return;
+        onSubmit({
+          units: unitsNum,
           insulinType: form.insulinType,
           injectionSite: form.injectionSite || '',
           reason: form.reason,
           mealRelation: form.reason,
-          notes: form.notes || undefined,
-        };
-        body.timestamp = new Date(form.timestamp).toISOString();
-        onSubmit(body);
+          notes: form.notes || '',
+          timestamp: when.toISOString(),
+        });
       }}
     >
       <Field title="Insulin type">

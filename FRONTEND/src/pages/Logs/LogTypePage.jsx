@@ -153,7 +153,7 @@ export default function LogTypePage() {
       setFormKey((k) => k + 1);
       await loadEntries();
     } catch (err) {
-      showToast(err.response?.data?.message || 'Could not save entry.', 'error');
+      showToast(err.response?.data?.message || err.response?.data?.error || 'Could not save entry.', 'error');
     } finally {
       setSaving(false);
     }

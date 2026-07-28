@@ -26,7 +26,7 @@ import {
   Minus,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { API_URL } from '../../config/api';
+import api from '../../config/axios';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 
@@ -114,7 +114,7 @@ const tooltipStyle = {
 };
 
 export default function Reports() {
-  const { user, authHeaders } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [preset, setPreset] = useState('7d');
   const [custom, setCustom] = useState(defaultCustomRange);
@@ -156,15 +156,24 @@ export default function Reports() {
         }
       }
 
-      const res = await fetch(`${API_URL}/health-logs/report?${params}`, {
-        credentials: 'include',
-        headers: { ...authHeaders() },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Could not load report');
+      const { data } = await api.get(`/health-logs/report?${params}`);
+      if (data?.status !== 'success' || !data?.data) {
+        throw new Error(data?.message || 'Could not load report');
+      }
       setReport(data.data);
     } catch (err) {
-      setError(err.message || 'Could not load report');
+      const raw = err.response?.data;
+      let message = raw?.message || err.message || 'Could not load report';
+      if (typeof raw === 'string' && /<!DOCTYPE|<\/html>/i.test(raw)) {
+        message = 'Reports API did not respond with data. Make sure the backend is running and up to date.';
+      } else if (/Unexpected token|is not valid JSON/i.test(String(message))) {
+        message = 'Reports API did not respond with data. Make sure the backend is running and up to date.';
+      } else if (err.response?.status === 401) {
+        message = 'Please sign in again to view reports.';
+      } else if (err.response?.status === 404) {
+        message = raw?.message || 'Report endpoint not found. Redeploy or restart the backend.';
+      }
+      setError(message);
       setReport(null);
     } finally {
       setLoading(false);
