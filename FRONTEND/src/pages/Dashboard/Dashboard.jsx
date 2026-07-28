@@ -16,16 +16,21 @@ import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
 import {
   ArrowRight,
+  BarChart3,
+  Bell,
   ClipboardList,
   Droplets,
   Dumbbell,
   Flame,
   Footprints,
   Lightbulb,
+  MessageSquare,
   Pill,
   Syringe,
   Target,
+  Users,
   Utensils,
+  Wrench,
 } from 'lucide-react';
 
 const t = theme;
@@ -59,6 +64,7 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [weekReport, setWeekReport] = useState(null);
   const [streak, setStreak] = useState(null);
+  const [latestPost, setLatestPost] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const firstName = user?.name?.split(' ')[0] || 'Buddy';
@@ -77,6 +83,7 @@ export default function Dashboard() {
   const medsToday = summary?.medications?.value || 0;
   const waterToday = summary?.water?.value || 0;
   const waterGoal = summary?.water?.goal || 2000;
+  const exerciseToday = summary?.exercise?.value || 0;
   const stepsToday = summary?.steps?.value || 0;
   const stepsGoal = summary?.steps?.goal || 8000;
 
@@ -102,7 +109,7 @@ export default function Dashboard() {
       try {
         const headers = { ...authHeaders() };
         const tzOffset = new Date().getTimezoneOffset();
-        const [sumRes, reportRes, streakRes] = await Promise.all([
+        const [sumRes, reportRes, streakRes, postRes] = await Promise.all([
           fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, {
             credentials: 'include',
             headers,
@@ -112,6 +119,10 @@ export default function Dashboard() {
             headers,
           }),
           fetch(`${API_URL}/health-logs/streak?tzOffset=${tzOffset}`, {
+            credentials: 'include',
+            headers,
+          }),
+          fetch(`${API_URL}/posts?sort=latest&page=1&limit=1`, {
             credentials: 'include',
             headers,
           }),
@@ -130,6 +141,10 @@ export default function Dashboard() {
         if (streakRes.ok) {
           const data = await streakRes.json();
           if (data?.status === 'success') setStreak(data.data);
+        }
+        if (postRes.ok) {
+          const data = await postRes.json();
+          setLatestPost(data?.posts?.[0] || null);
         }
       } catch (err) {
         console.error(err);
@@ -346,6 +361,17 @@ export default function Dashboard() {
                       </em>
                     </span>
                   </button>
+                  <button type="button" className="db-home-chip" onClick={() => navigate('/logs/exercise')}>
+                    <Dumbbell size={15} />
+                    <span>
+                      <strong>Exercise</strong>
+                      <em>
+                        {exerciseToday > 0
+                          ? `${exerciseToday} min${stepsToday > 0 ? ` · ${stepsToday.toLocaleString()} steps` : ''}`
+                          : 'None yet'}
+                      </em>
+                    </span>
+                  </button>
                 </div>
               </div>
 
@@ -375,45 +401,72 @@ export default function Dashboard() {
                   </p>
                 )}
               </div>
+
+              <div className="db-home-panel">
+                <header className="db-home-card-head">
+                  <div>
+                    <p className="db-home-kicker">Community</p>
+                    <h2>From the forum</h2>
+                  </div>
+                  <button type="button" className="db-home-text-link" onClick={() => navigate('/community')}>
+                    Open
+                    <ArrowRight size={14} />
+                  </button>
+                </header>
+                <button
+                  type="button"
+                  className="db-home-community"
+                  onClick={() =>
+                    navigate(latestPost?._id ? `/community/posts/${latestPost._id}` : '/community')
+                  }
+                >
+                  <span className="db-home-community-icon">
+                    <Users size={18} strokeWidth={1.75} />
+                  </span>
+                  <span className="db-home-community-body">
+                    <strong>
+                      {latestPost?.title || 'Join the conversation'}
+                    </strong>
+                    <em>
+                      {latestPost?.title
+                        ? 'Latest post in the community'
+                        : 'Ask a question or see what others shared'}
+                    </em>
+                  </span>
+                  <ArrowRight size={16} color={t.inkFaint} />
+                </button>
+              </div>
             </section>
           </div>
 
-          {/* Quick actions / Start here */}
-          <section className="db-home-actions" aria-label="Start here">
+          {/* Quick actions */}
+          <section className="db-home-actions" aria-label="Quick actions">
             <header className="db-home-card-head">
               <div>
-                <p className="db-home-kicker">Start here</p>
+                <p className="db-home-kicker">Navigate</p>
                 <h2>Quick actions</h2>
               </div>
-              <button type="button" className="db-home-text-link" onClick={() => navigate('/logs')}>
-                All logs
-                <ArrowRight size={14} />
-              </button>
             </header>
             <div className="db-home-action-row">
-              <button type="button" className="db-home-action" onClick={() => navigate('/logs/glucose')}>
-                <Droplets size={16} />
-                Log glucose
-              </button>
-              <button type="button" className="db-home-action" onClick={() => navigate('/logs/meal')}>
-                <Utensils size={16} />
-                Log meal
-              </button>
-              <button type="button" className="db-home-action" onClick={() => navigate('/logs/insulin')}>
-                <Syringe size={16} />
-                Log insulin
-              </button>
-              <button type="button" className="db-home-action" onClick={() => navigate('/logs/medication')}>
-                <Pill size={16} />
-                Log meds
-              </button>
-              <button type="button" className="db-home-action" onClick={() => navigate('/logs/exercise')}>
-                <Dumbbell size={16} />
-                Log exercise
-              </button>
-              <button type="button" className="db-home-action db-home-action--muted" onClick={() => navigate('/logs')}>
+              <button type="button" className="db-home-action" onClick={() => navigate('/logs')}>
                 <ClipboardList size={16} />
-                View all logs
+                Logs
+              </button>
+              <button type="button" className="db-home-action" onClick={() => navigate('/reports')}>
+                <BarChart3 size={16} />
+                Reports
+              </button>
+              <button type="button" className="db-home-action" onClick={() => navigate('/messages')}>
+                <MessageSquare size={16} />
+                Messages
+              </button>
+              <button type="button" className="db-home-action" onClick={() => navigate('/reminders')}>
+                <Bell size={16} />
+                Reminders
+              </button>
+              <button type="button" className="db-home-action" onClick={() => navigate('/toolbox')}>
+                <Wrench size={16} />
+                Toolbox
               </button>
             </div>
           </section>
@@ -675,6 +728,50 @@ export default function Dashboard() {
           font-size: 13px;
           color: ${t.inkSoft};
           line-height: 1.45;
+        }
+        .db-home-community {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          text-align: left;
+          padding: 12px;
+          border-radius: 12px;
+          border: 1px solid ${t.line};
+          background: ${t.sageTint};
+          cursor: pointer;
+          font-family: ${t.fontBody};
+        }
+        .db-home-community-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: ${t.sageSoft};
+          color: ${t.sageDeep};
+          flex-shrink: 0;
+        }
+        .db-home-community-body {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .db-home-community-body strong {
+          font-size: 14px;
+          font-weight: 700;
+          color: ${t.ink};
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .db-home-community-body em {
+          font-style: normal;
+          font-size: 12px;
+          color: ${t.inkSoft};
         }
 
         .db-home-action-row {

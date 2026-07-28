@@ -111,7 +111,6 @@ export default function Logs() {
 
   const priority = LOG_TYPES.filter((x) => PRIORITY_IDS.includes(x.id));
   const more = LOG_TYPES.filter((x) => !PRIORITY_IDS.includes(x.id));
-  const doneCount = LOG_TYPES.filter((x) => typeStatus(summary, x.id).done).length;
 
   const renderCard = (item, featured = false) => {
     const Icon = item.icon;
@@ -151,15 +150,13 @@ export default function Logs() {
       <main className="db-logs-hub-main">
         <div className="db-logs-hub-inner">
           <header className="db-logs-hub-header">
-            <p className="db-logs-hub-eyebrow">Today’s record</p>
+            <p className="db-logs-hub-eyebrow">Record what happened</p>
             <h1 className="db-logs-hub-title">
               <ClipboardList size={26} color={t.forest} strokeWidth={1.75} />
               Health logs
             </h1>
             <p className="db-logs-hub-lead">
-              {doneCount > 0
-                ? `${doneCount} of ${LOG_TYPES.length} types logged today. Add another when you’re ready.`
-                : 'One entry is enough to start. Glucose first if you’re unsure.'}
+              Tap a category below to add an entry. Items marked Today are already logged.
             </p>
           </header>
 
@@ -207,12 +204,14 @@ export default function Logs() {
           )}
 
           <section className="db-logs-hub-section">
-            <h2 className="db-logs-hub-section-title">Start here</h2>
+            <h2 className="db-logs-hub-section-title">Most used</h2>
+            <p className="db-logs-hub-section-note">Glucose, meals, insulin, and medications</p>
             <div className="db-logs-hub-list">{priority.map((item) => renderCard(item, true))}</div>
           </section>
 
           <section className="db-logs-hub-section">
-            <h2 className="db-logs-hub-section-title">Also useful</h2>
+            <h2 className="db-logs-hub-section-title">Lifestyle</h2>
+            <p className="db-logs-hub-section-note">Water, activity, sleep, and mood</p>
             <div className="db-logs-hub-list">{more.map((item) => renderCard(item))}</div>
           </section>
         </div>
@@ -328,12 +327,18 @@ export default function Logs() {
           margin-bottom: 20px;
         }
         .db-logs-hub-section-title {
-          margin: 0 0 10px;
+          margin: 0 0 4px;
           font-size: 12px;
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
           color: ${t.inkFaint};
+        }
+        .db-logs-hub-section-note {
+          margin: 0 0 10px;
+          font-size: 13px;
+          color: ${t.inkSoft};
+          line-height: 1.4;
         }
         .db-logs-hub-list {
           display: flex;
