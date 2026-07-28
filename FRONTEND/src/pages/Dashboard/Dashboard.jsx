@@ -23,6 +23,7 @@ import {
   Dumbbell,
   Flame,
   Footprints,
+  GlassWater,
   Lightbulb,
   MessageSquare,
   Pill,
@@ -221,7 +222,7 @@ export default function Dashboard() {
 
               <button type="button" className="db-home-glance-card" onClick={() => navigate('/logs/water')}>
                 <span className="db-home-glance-icon" style={{ background: t.skyTint, color: t.sky }}>
-                  <Droplets size={16} />
+                  <GlassWater size={16} />
                 </span>
                 <span className="db-home-glance-label">Water</span>
                 <strong>
@@ -351,7 +352,7 @@ export default function Dashboard() {
                     </span>
                   </button>
                   <button type="button" className="db-home-chip" onClick={() => navigate('/logs/water')}>
-                    <Droplets size={15} />
+                    <GlassWater size={15} />
                     <span>
                       <strong>Water</strong>
                       <em>
@@ -374,68 +375,70 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
+            </section>
+          </div>
 
-              <div className="db-home-panel">
-                <header className="db-home-card-head">
-                  <div>
-                    <p className="db-home-kicker">Insights</p>
-                    <h2>For you</h2>
-                  </div>
-                  <button type="button" className="db-home-text-link" onClick={() => navigate('/reports')}>
-                    More
-                    <ArrowRight size={14} />
-                  </button>
-                </header>
-                {insights.length > 0 ? (
-                  <ul className="db-home-insights">
-                    {insights.map((ins) => (
-                      <li key={ins.message}>
-                        <Lightbulb size={15} />
-                        <span>{ins.message}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="db-home-empty-note">
-                    Log glucose or meals this week to unlock short insights.
-                  </p>
-                )}
-              </div>
-
-              <div className="db-home-panel">
-                <header className="db-home-card-head">
-                  <div>
-                    <p className="db-home-kicker">Community</p>
-                    <h2>From the forum</h2>
-                  </div>
-                  <button type="button" className="db-home-text-link" onClick={() => navigate('/community')}>
-                    Open
-                    <ArrowRight size={14} />
-                  </button>
-                </header>
-                <button
-                  type="button"
-                  className="db-home-community"
-                  onClick={() =>
-                    navigate(latestPost?._id ? `/community/posts/${latestPost._id}` : '/community')
-                  }
-                >
-                  <span className="db-home-community-icon">
-                    <Users size={18} strokeWidth={1.75} />
-                  </span>
-                  <span className="db-home-community-body">
-                    <strong>
-                      {latestPost?.title || 'Join the conversation'}
-                    </strong>
-                    <em>
-                      {latestPost?.title
-                        ? 'Latest post in the community'
-                        : 'Ask a question or see what others shared'}
-                    </em>
-                  </span>
-                  <ArrowRight size={16} color={t.inkFaint} />
+          <div className="db-home-duo">
+            <section className="db-home-panel">
+              <header className="db-home-card-head">
+                <div>
+                  <p className="db-home-kicker">Insights</p>
+                  <h2>For you</h2>
+                </div>
+                <button type="button" className="db-home-text-link" onClick={() => navigate('/reports')}>
+                  More
+                  <ArrowRight size={14} />
                 </button>
-              </div>
+              </header>
+              {insights.length > 0 ? (
+                <ul className="db-home-insights">
+                  {insights.map((ins) => (
+                    <li key={ins.message}>
+                      <Lightbulb size={15} />
+                      <span>{ins.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="db-home-empty-note">
+                  Log glucose or meals this week to unlock short insights.
+                </p>
+              )}
+            </section>
+
+            <section className="db-home-panel db-home-panel--community">
+              <header className="db-home-card-head">
+                <div>
+                  <p className="db-home-kicker">Community</p>
+                  <h2>From the forum</h2>
+                </div>
+                <button type="button" className="db-home-text-link" onClick={() => navigate('/community')}>
+                  Open
+                  <ArrowRight size={14} />
+                </button>
+              </header>
+              <button
+                type="button"
+                className="db-home-community"
+                onClick={() =>
+                  navigate(latestPost?._id ? `/community/posts/${latestPost._id}` : '/community')
+                }
+              >
+                <span className="db-home-community-icon">
+                  <Users size={18} strokeWidth={1.75} />
+                </span>
+                <span className="db-home-community-body">
+                  <strong>
+                    {latestPost?.title || 'Join the conversation'}
+                  </strong>
+                  <em>
+                    {latestPost?.title
+                      ? 'Latest post in the community'
+                      : 'Ask a question or see what others shared'}
+                  </em>
+                </span>
+                <ArrowRight size={16} color={t.sageDeep} />
+              </button>
             </section>
           </div>
 
@@ -663,6 +666,27 @@ export default function Dashboard() {
           gap: 14px;
           min-width: 0;
         }
+        .db-home-duo {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+          margin-bottom: 18px;
+          align-items: stretch;
+        }
+        .db-home-duo > .db-home-panel {
+          min-height: 100%;
+        }
+        .db-home-panel--community {
+          background: linear-gradient(165deg, ${t.sageTint} 0%, #fff 48%, ${t.skyTint} 100%);
+          border-color: ${t.sage}55;
+          box-shadow: 0 1px 2px rgba(98, 121, 90, 0.06), 0 10px 28px rgba(98, 121, 90, 0.08);
+        }
+        .db-home-panel--community .db-home-kicker {
+          color: ${t.sageDeep};
+        }
+        .db-home-panel--community .db-home-text-link {
+          color: ${t.sageDeep};
+        }
         .db-home-chips {
           display: flex;
           flex-direction: column;
@@ -735,16 +759,16 @@ export default function Dashboard() {
           gap: 12px;
           width: 100%;
           text-align: left;
-          padding: 12px;
-          border-radius: 12px;
-          border: 1px solid ${t.line};
-          background: ${t.sageTint};
+          padding: 14px;
+          border-radius: 14px;
+          border: 1px solid ${t.sage}40;
+          background: rgba(255, 255, 255, 0.72);
           cursor: pointer;
           font-family: ${t.fontBody};
         }
         .db-home-community-icon {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           border-radius: 12px;
           display: inline-flex;
           align-items: center;
@@ -809,6 +833,7 @@ export default function Dashboard() {
 
         @media (max-width: 900px) {
           .db-home-mid { grid-template-columns: 1fr; }
+          .db-home-duo { grid-template-columns: 1fr; }
           .db-home-glance-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
         @media (max-width: 640px) {

@@ -436,12 +436,12 @@ function buildInsights(period) {
     } else if (m.timeInRangePercent < 50) {
       insights.push({
         type: 'Warning',
-        message: `Time in range was only ${m.timeInRangePercent}%. ${m.highReadings} high and ${m.lowReadings} low readings in this period.`,
+        message: `Time in range was ${m.timeInRangePercent}% this period (${m.highReadings} high, ${m.lowReadings} low). Worth a look with meals and timing.`,
       });
     } else {
       insights.push({
         type: 'Suggestion',
-        message: `Time in range was ${m.timeInRangePercent}%. Aim toward 70%+ with steadier meal timing and logging.`,
+        message: `Time in range was ${m.timeInRangePercent}%. A common goal is 70%+ in ${TIR_LOW}–${TIR_HIGH} mg/dL.`,
       });
     }
   }
@@ -449,7 +449,7 @@ function buildInsights(period) {
   if (m.avgGlucose != null) {
     insights.push({
       type: 'Suggestion',
-      message: `Average glucose was ${m.avgGlucose} mg/dL (range ${m.lowestGlucose}–${m.highestGlucose}).`,
+      message: `Average glucose was ${m.avgGlucose} mg/dL (from ${m.lowestGlucose}–${m.highestGlucose}).`,
     });
   }
 
