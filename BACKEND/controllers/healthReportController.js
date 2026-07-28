@@ -49,23 +49,44 @@ function resolveRange({ preset, startDate, endDate, tzOffset }) {
   const end = endOfLocalDayUtc(localNow.y, localNow.m, localNow.d, tzOffset);
 
   if (preset === 'custom' && startDate && endDate) {
-    const s = new Date(startDate);
-    const e = new Date(endDate);
-    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) {
+    const parseYmd = (raw) => {
+      const m = String(raw).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) {
+        return {
+          y: Number(m[1]),
+          m: Number(m[2]) - 1,
+          d: Number(m[3]),
+        };
+      }
+      const dt = new Date(raw);
+      if (Number.isNaN(dt.getTime())) return null;
+      return toLocalParts(dt, tzOffset);
+    };
+    const sParts = parseYmd(startDate);
+    const eParts = parseYmd(endDate);
+    if (!sParts || !eParts) {
       throw Object.assign(new Error('Invalid custom date range'), { statusCode: 400 });
     }
-    const sParts = toLocalParts(s, tzOffset);
-    const eParts = toLocalParts(e, tzOffset);
     const start = startOfLocalDayUtc(sParts.y, sParts.m, sParts.d, tzOffset);
     const finish = endOfLocalDayUtc(eParts.y, eParts.m, eParts.d, tzOffset);
     if (start > finish) {
       throw Object.assign(new Error('Start date must be before end date'), { statusCode: 400 });
     }
-    const days = Math.max(1, Math.round((finish - start) / MS_DAY) + 1);
+    const days = Math.max(1, Math.floor((finish.getTime() - start.getTime()) / MS_DAY) + 1);
     if (days > 366) {
       throw Object.assign(new Error('Custom range cannot exceed 366 days'), { statusCode: 400 });
     }
-    return { start, end: finish, days, label: `${sParts.label} – ${eParts.label}` };
+    const startLabel = new Date(Date.UTC(sParts.y, sParts.m, sParts.d)).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+    const endLabel = new Date(Date.UTC(eParts.y, eParts.m, eParts.d)).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+    return { start, end: finish, days, label: `${startLabel} – ${endLabel}`, shortLabel: `${startLabel} – ${endLabel}` };
   }
 
   const daysMap = { '7d': 7, '30d': 30, '90d': 90 };
@@ -149,6 +170,7 @@ function aggregatePeriod(logs, start, end, tzOffset, label, shortLabel) {
         sleepSamples: [],
         medsTaken: 0,
         medsTotal: 0,
+        mood: 0,
       },
     ])
   );
@@ -270,6 +292,8 @@ function aggregatePeriod(logs, start, end, tzOffset, label, shortLabel) {
       stressSum += stressMap[m.stressLevel];
       stressCount += 1;
     }
+    const key = toLocalParts(new Date(m.timestamp), tzOffset).key;
+    if (dayMap[key]) dayMap[key].mood += 1;
   }
 
   const daily = days.map((d) => {
@@ -285,6 +309,7 @@ function aggregatePeriod(logs, start, end, tzOffset, label, shortLabel) {
       water: b.water,
       exercise: b.exercise,
       sleepHours: b.sleepHours,
+      mood: b.mood,
       medAdherence:
         b.medsTotal > 0 ? Math.round((b.medsTaken / b.medsTotal) * 1000) / 10 : null,
     };
@@ -349,7 +374,8 @@ function aggregatePeriod(logs, start, end, tzOffset, label, shortLabel) {
         d.water ||
         d.exercise ||
         d.sleepHours != null ||
-        d.medAdherence != null
+        d.medAdherence != null ||
+        d.mood
     ).length,
     dayCount: days.length,
   };
@@ -384,7 +410,16 @@ function buildInsights(period) {
   const m = period.metrics;
   const insights = [];
 
-  if (m.glucoseReadings === 0 && m.mealsLogged === 0 && m.medicationsLogged === 0) {
+  if (
+    m.glucoseReadings === 0 &&
+    m.mealsLogged === 0 &&
+    m.medicationsLogged === 0 &&
+    m.totalInsulinUnits === 0 &&
+    m.totalWaterMl === 0 &&
+    m.totalExerciseMinutes === 0 &&
+    m.sleepNights === 0 &&
+    m.moodEntries === 0
+  ) {
     insights.push({
       type: 'Suggestion',
       message: 'No health logs in this period yet. Start with a glucose or meal entry to unlock trends.',
@@ -595,6 +630,142 @@ exports.getHealthReport = async (req, res) => {
       status: 'error',
       message: err.message || 'Failed to generate health report',
       error: code === 500 ? err.message : undefined,
+    });
+  }
+};
+
+function shiftDayKey(key, deltaDays) {
+  const [y, m, d] = key.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + deltaDays);
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+}
+
+/**
+ * GET /api/health-logs/streak
+ * A day counts toward streak if the user logged any health entry that local day.
+ */
+exports.getLoggingStreak = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const tzOffset = parseTzOffset(req.query.tzOffset);
+    const lookbackDays = Math.min(Math.max(parseInt(req.query.days, 10) || 120, 14), 400);
+
+    const now = new Date();
+    const todayParts = toLocalParts(now, tzOffset);
+    const todayKey = todayParts.key;
+    const startLocal = new Date(Date.UTC(todayParts.y, todayParts.m, todayParts.d));
+    startLocal.setUTCDate(startLocal.getUTCDate() - (lookbackDays - 1));
+    const rangeStart = startOfLocalDayUtc(
+      startLocal.getUTCFullYear(),
+      startLocal.getUTCMonth(),
+      startLocal.getUTCDate(),
+      tzOffset
+    );
+    const rangeEnd = endOfLocalDayUtc(todayParts.y, todayParts.m, todayParts.d, tzOffset);
+
+    const query = { userId, timestamp: { $gte: rangeStart, $lte: rangeEnd } };
+    const [glucose, meals, insulin, medications, water, exercise, sleep, mood] = await Promise.all([
+      GlucoseLog.find(query).select('timestamp').lean(),
+      MealLog.find(query).select('timestamp').lean(),
+      InsulinLog.find(query).select('timestamp').lean(),
+      MedicationLog.find(query).select('timestamp').lean(),
+      WaterLog.find(query).select('timestamp').lean(),
+      ExerciseLog.find(query).select('timestamp').lean(),
+      SleepLog.find(query).select('timestamp wakeTime').lean(),
+      MoodLog.find(query).select('timestamp').lean(),
+    ]);
+
+    const loggedDays = new Set();
+    const addTs = (ts) => {
+      if (!ts) return;
+      loggedDays.add(toLocalParts(new Date(ts), tzOffset).key);
+    };
+    glucose.forEach((x) => addTs(x.timestamp));
+    meals.forEach((x) => addTs(x.timestamp));
+    insulin.forEach((x) => addTs(x.timestamp));
+    medications.forEach((x) => addTs(x.timestamp));
+    water.forEach((x) => addTs(x.timestamp));
+    exercise.forEach((x) => addTs(x.timestamp));
+    sleep.forEach((x) => addTs(x.wakeTime || x.timestamp));
+    mood.forEach((x) => addTs(x.timestamp));
+
+    const loggedToday = loggedDays.has(todayKey);
+    const yesterdayKey = shiftDayKey(todayKey, -1);
+
+    // Current streak: count back from today if logged, else from yesterday (streak at risk)
+    let cursor = loggedToday ? todayKey : yesterdayKey;
+    let currentStreak = 0;
+    if (loggedDays.has(cursor) || loggedToday) {
+      if (!loggedToday && !loggedDays.has(yesterdayKey)) {
+        currentStreak = 0;
+      } else {
+        while (loggedDays.has(cursor)) {
+          currentStreak += 1;
+          cursor = shiftDayKey(cursor, -1);
+        }
+      }
+    }
+
+    // Longest streak in window
+    let longestStreak = 0;
+    let run = 0;
+    let walk = `${startLocal.getUTCFullYear()}-${String(startLocal.getUTCMonth() + 1).padStart(2, '0')}-${String(startLocal.getUTCDate()).padStart(2, '0')}`;
+    for (let i = 0; i < lookbackDays; i += 1) {
+      if (loggedDays.has(walk)) {
+        run += 1;
+        if (run > longestStreak) longestStreak = run;
+      } else {
+        run = 0;
+      }
+      walk = shiftDayKey(walk, 1);
+    }
+    if (currentStreak > longestStreak) longestStreak = currentStreak;
+
+    const atRisk = currentStreak > 0 && !loggedToday;
+    let lastLoggedDate = null;
+    if (loggedToday) lastLoggedDate = todayKey;
+    else {
+      let probe = yesterdayKey;
+      for (let i = 0; i < lookbackDays; i += 1) {
+        if (loggedDays.has(probe)) {
+          lastLoggedDate = probe;
+          break;
+        }
+        probe = shiftDayKey(probe, -1);
+      }
+    }
+
+    // Last 7 day dots for UI
+    const last7 = [];
+    for (let i = 6; i >= 0; i -= 1) {
+      const key = shiftDayKey(todayKey, -i);
+      last7.push({ date: key, logged: loggedDays.has(key), isToday: key === todayKey });
+    }
+
+    res.json({
+      status: 'success',
+      data: {
+        currentStreak,
+        longestStreak,
+        loggedToday,
+        atRisk,
+        lastLoggedDate,
+        last7,
+        message: atRisk
+          ? `Your ${currentStreak}-day streak ends tonight if you don’t log something today.`
+          : loggedToday
+            ? currentStreak > 1
+              ? `${currentStreak}-day logging streak — keep it going.`
+              : 'Logged today — streak started.'
+            : 'Log anything today to start a streak.',
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to compute logging streak',
+      error: err.message,
     });
   }
 };

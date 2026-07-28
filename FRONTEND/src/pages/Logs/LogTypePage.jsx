@@ -201,7 +201,14 @@ export default function LogTypePage() {
                 </p>
               ) : null}
               <p style={{ margin: '4px 0 0', fontSize: 14, color: t.inkSoft }}>
-                {raw.carbohydrates ?? 0} g carbs
+                {[
+                  `${raw.carbohydrates ?? 0} g carbs`,
+                  raw.protein ? `${raw.protein} g protein` : null,
+                  raw.fat ? `${raw.fat} g fat` : null,
+                  raw.calories ? `${raw.calories} kcal` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </p>
               {impact ? (
                 <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
@@ -646,6 +653,9 @@ export default function LogTypePage() {
           .db-log-source-grid,
           .db-log-quality-grid {
             grid-template-columns: 1fr !important;
+          }
+          .db-log-macro-grid {
+            grid-template-columns: 1fr 1fr !important;
           }
           .db-log-segment-grid {
             grid-template-columns: 1fr !important;

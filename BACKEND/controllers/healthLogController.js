@@ -86,12 +86,24 @@ exports.getTimeline = async (req, res) => {
           } else if (type === 'Insulin') {
             title = log.insulinType || 'Insulin';
             subtitle = `${log.units} Units`;
-            valueStr = log.mealRelation && log.mealRelation !== 'None' ? log.mealRelation : '';
+            valueStr = [
+              log.mealRelation && log.mealRelation !== 'None' ? log.mealRelation : null,
+              log.injectionSite || null,
+            ]
+              .filter(Boolean)
+              .join(' · ');
             color = 'blue';
           } else if (type === 'Meal') {
             title = log.mealType;
             subtitle = log.foodItems;
-            valueStr = `${log.carbohydrates || 0} g carbs`;
+            valueStr = [
+              `${log.carbohydrates || 0} g carbs`,
+              log.protein ? `${log.protein} g protein` : null,
+              log.fat ? `${log.fat} g fat` : null,
+              log.calories ? `${log.calories} kcal` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ');
             color = 'orange';
           } else if (type === 'Medication') {
             title = log.medicineName;

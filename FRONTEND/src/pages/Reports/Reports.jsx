@@ -390,12 +390,12 @@ export default function Reports() {
               <div className="db-rep-grid">
                 <ChartCard
                   title="Daily average glucose"
-                  subtitle={`Target range ${report.tirTarget.low}–${report.tirTarget.high} mg/dL`}
+                  subtitle={`Target range ${report?.tirTarget?.low ?? 70}–${report?.tirTarget?.high ?? 180} mg/dL`}
                   empty={!dailyGlucose.length}
                 >
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height={260}>
-                      <AreaChart data={dailyGlucose} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                      <AreaChart data={dailyGlucose} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                         <defs>
                           <linearGradient id="gluFill" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor={t.sky} stopOpacity={0.35} />
@@ -422,7 +422,7 @@ export default function Reports() {
 
                 <ChartCard title="Time in range" subtitle="Share of readings" empty={!tirPie.length}>
                   <div className="db-rep-chart-body db-rep-chart-body--pie">
-                    <ResponsiveContainer width="100%" height={260}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                       <PieChart>
                         <Pie
                           data={tirPie}
@@ -446,10 +446,10 @@ export default function Reports() {
                   </div>
                 </ChartCard>
 
-                <ChartCard title="Carbs by day" subtitle="From meal logs" empty={!charts.daily.some((d) => d.carbs > 0)}>
+                <ChartCard title="Carbs by day" subtitle="From meal logs" empty={!charts?.daily?.some((d) => d.carbs > 0)}>
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height={260}>
-                      <BarChart data={charts.daily} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                      <BarChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
@@ -460,10 +460,10 @@ export default function Reports() {
                   </div>
                 </ChartCard>
 
-                <ChartCard title="Insulin by day" subtitle="Units logged" empty={!charts.daily.some((d) => d.insulin > 0)}>
+                <ChartCard title="Insulin by day" subtitle="Units logged" empty={!charts?.daily?.some((d) => d.insulin > 0)}>
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height={260}>
-                      <BarChart data={charts.daily} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                      <BarChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
@@ -474,10 +474,10 @@ export default function Reports() {
                   </div>
                 </ChartCard>
 
-                <ChartCard title="Water & activity" subtitle="Daily totals" empty={!charts.daily.some((d) => d.water > 0 || d.exercise > 0)}>
+                <ChartCard title="Water & activity" subtitle="Daily totals" empty={!charts?.daily?.some((d) => d.water > 0 || d.exercise > 0)}>
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height={260}>
-                      <LineChart data={charts.daily} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                      <LineChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
                         <YAxis yAxisId="left" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
@@ -491,10 +491,10 @@ export default function Reports() {
                   </div>
                 </ChartCard>
 
-                <ChartCard title="Sleep" subtitle="Hours per night" empty={!charts.daily.some((d) => d.sleepHours != null)}>
+                <ChartCard title="Sleep" subtitle="Hours per night" empty={!charts?.daily?.some((d) => d.sleepHours != null)}>
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height={260}>
-                      <AreaChart data={charts.daily} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                      <AreaChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={32} domain={[0, 'auto']} />
@@ -513,11 +513,11 @@ export default function Reports() {
                   </div>
                 </ChartCard>
 
-                {charts.insulinByType?.length > 0 && (
+                {charts?.insulinByType?.length > 0 && (
                   <ChartCard title="Insulin by type" subtitle="Total units in period">
                     <div className="db-rep-chart-body">
-                      <ResponsiveContainer width="100%" height={240}>
-                        <BarChart data={charts.insulinByType} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+                      <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                        <BarChart data={charts?.insulinByType || []} layout="vertical" margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
                           <CartesianGrid stroke={t.line} strokeDasharray="3 3" horizontal={false} />
                           <XAxis type="number" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
                           <YAxis type="category" dataKey="name" width={90} tick={{ fill: t.inkSoft, fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -529,11 +529,11 @@ export default function Reports() {
                   </ChartCard>
                 )}
 
-                {charts.mood?.length > 0 && (
+                {charts?.mood?.length > 0 && (
                   <ChartCard title="Mood entries" subtitle="Counts in period">
                     <div className="db-rep-chart-body">
-                      <ResponsiveContainer width="100%" height={240}>
-                        <BarChart data={charts.mood} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                      <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                        <BarChart data={charts?.mood || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                           <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="name" tick={{ fill: t.inkFaint, fontSize: 10 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={50} />
                           <YAxis allowDecimals={false} tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
@@ -862,6 +862,7 @@ export default function Reports() {
         .db-rep-chart-body {
           margin-top: 8px;
           width: 100%;
+          height: 260px;
           min-height: 260px;
         }
         .db-rep-chart-body--pie {
@@ -909,13 +910,152 @@ export default function Reports() {
         @media (max-width: 860px) {
           .db-rep-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .db-rep-grid { grid-template-columns: 1fr; }
+          .db-rep-chart-body {
+            height: 240px;
+            min-height: 240px;
+          }
         }
         @media (max-width: 640px) {
-          .db-rep-main { padding: 14px 12px 120px; }
-          .db-rep-header { flex-direction: column; }
-          .db-rep-ghost { width: 100%; }
-          .db-rep-metrics { grid-template-columns: 1fr 1fr; }
-          .db-rep-dates input { font-size: 16px; }
+          .db-rep {
+            overflow-x: hidden;
+          }
+          .db-rep-main {
+            padding: 12px 12px calc(112px + env(safe-area-inset-bottom, 0px));
+          }
+          .db-rep-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+            margin-bottom: 14px;
+          }
+          .db-rep-header h1 {
+            font-size: clamp(22px, 6.5vw, 28px);
+            gap: 8px;
+          }
+          .db-rep-header h1 svg {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+          }
+          .db-rep-lead {
+            font-size: 13px;
+            max-width: none;
+          }
+          .db-rep-ghost {
+            width: 100%;
+            text-align: center;
+            min-height: 44px;
+          }
+          .db-rep-primary {
+            width: 100%;
+            min-height: 44px;
+          }
+          .db-rep-controls {
+            padding: 10px;
+            border-radius: 12px;
+            gap: 10px;
+          }
+          .db-rep-presets {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 6px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            margin: 0 -2px;
+            padding: 2px;
+          }
+          .db-rep-presets::-webkit-scrollbar { display: none; }
+          .db-rep-preset {
+            flex: 0 0 auto;
+            padding: 8px 14px;
+            font-size: 12px;
+            min-height: 36px;
+          }
+          .db-rep-dates {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+          }
+          .db-rep-dates label {
+            width: 100%;
+          }
+          .db-rep-dates input {
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 16px;
+            min-height: 44px;
+          }
+          .db-rep-compare-toggle {
+            min-height: 40px;
+            font-size: 13px;
+          }
+          .db-rep-metrics {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+          .db-rep-metric {
+            padding: 10px 12px;
+            border-radius: 10px;
+          }
+          .db-rep-metric-value {
+            font-size: 18px;
+          }
+          .db-rep-metric-value span {
+            font-size: 12px;
+          }
+          .db-rep-period-line {
+            flex-direction: column;
+            gap: 4px;
+            font-size: 12px;
+          }
+          .db-rep-period-line strong {
+            font-size: 14px;
+          }
+          .db-rep-insights,
+          .db-rep-summary,
+          .db-rep-chart,
+          .db-rep-state {
+            border-radius: 12px;
+            padding: 12px;
+          }
+          .db-rep-insights h2,
+          .db-rep-summary h2 {
+            font-size: 16px;
+          }
+          .db-rep-insights li {
+            font-size: 12px;
+            padding: 9px 10px;
+          }
+          .db-rep-chart-head h3 {
+            font-size: 14px;
+          }
+          .db-rep-chart-body {
+            height: 200px;
+            min-height: 200px;
+          }
+          .db-rep-chart-body .recharts-responsive-container {
+            min-height: 200px !important;
+          }
+          .db-rep-tir-center {
+            font-size: 18px;
+            top: 44%;
+          }
+          .db-rep-summary-grid {
+            font-size: 12px;
+            gap: 6px;
+          }
+          .db-rep-state {
+            padding: 28px 16px;
+          }
+          .db-rep-state h2 {
+            font-size: 18px;
+          }
+        }
+        @media (max-width: 380px) {
+          .db-rep-metrics {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
     </div>

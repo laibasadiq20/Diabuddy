@@ -175,33 +175,33 @@ const FeaturesSection = () => {
             </div>
           </article>
 
-          {/* CARD 4 — REMINDERS */}
+          {/* CARD 4 — TOOLBOX */}
           <article className="md:col-span-4 group flex flex-col justify-between rounded-[1.5rem] border border-[var(--line)] bg-[var(--butter)]/35 p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(58,46,36,0.25)]">
 
             <div className="flex items-start justify-between">
               <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
-                04 · Gentle
+                04 · Tools
               </p>
 
             </div>
 
             <div className="mt-8 space-y-3">
               <div className="rounded-xl border border-[var(--line)] bg-[var(--cream-soft)] px-4 py-3 text-sm text-[var(--brown)]">
-                Time for your glucose check
+                Carb ratio &amp; correction calculator
               </div>
 
               <div className="rounded-xl border border-[var(--line)] bg-[var(--cream-soft)] px-4 py-3 text-sm text-[var(--brown)]">
-                You're two glasses away from your goal
+                Glucose zone &amp; GI lookup
               </div>
             </div>
 
             <div className="mt-10">
               <h3 className="font-serif text-3xl text-[var(--brown)]">
-                Reminders that don't <span className="italic text-[var(--sage-deep)]">shout.</span>
+                A toolbox that stays <span className="italic text-[var(--sage-deep)]">practical.</span>
               </h3>
 
               <p className="mt-4 text-sm text-[var(--brown-soft)]">
-                Soft nudges at the right time — never guilt, never pressure.
+                Quick calculators for carbs, corrections, and glucose context — when you need a number, not a lecture.
               </p>
             </div>
           </article>

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
-import { ChevronRight, ClipboardList, Check } from 'lucide-react';
+import { ChevronRight, ClipboardList, Check, Flame, AlertTriangle } from 'lucide-react';
 import { LOG_TYPES } from './logsConfig';
 
 const t = theme;
@@ -71,6 +71,7 @@ export default function Logs() {
   const navigate = useNavigate();
   const { user, authHeaders } = useAuth();
   const [summary, setSummary] = useState(null);
+  const [streak, setStreak] = useState(null);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -78,13 +79,26 @@ export default function Logs() {
     const load = async () => {
       try {
         const tzOffset = new Date().getTimezoneOffset();
-        const res = await fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, {
-          credentials: 'include',
-          headers: { ...authHeaders() },
-        });
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        if (data?.status === 'success') setSummary(data.data);
+        const headers = { ...authHeaders() };
+        const [sumRes, streakRes] = await Promise.all([
+          fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, {
+            credentials: 'include',
+            headers,
+          }),
+          fetch(`${API_URL}/health-logs/streak?tzOffset=${tzOffset}`, {
+            credentials: 'include',
+            headers,
+          }),
+        ]);
+        if (cancelled) return;
+        if (sumRes.ok) {
+          const data = await sumRes.json();
+          if (data?.status === 'success') setSummary(data.data);
+        }
+        if (streakRes.ok) {
+          const data = await streakRes.json();
+          if (data?.status === 'success') setStreak(data.data);
+        }
       } catch {
         /* keep hub usable without summary */
       }
@@ -148,6 +162,32 @@ export default function Logs() {
                 : 'One entry is enough to start. Glucose first if you’re unsure.'}
             </p>
           </header>
+
+          {streak && (
+            <div className={`db-logs-streak${streak.atRisk ? ' is-risk' : ''}`}>
+              <div className="db-logs-streak-main">
+                {streak.atRisk ? <AlertTriangle size={18} /> : <Flame size={18} />}
+                <div>
+                  <strong>
+                    {streak.currentStreak > 0
+                      ? `${streak.currentStreak}-day streak`
+                      : 'No streak yet'}
+                  </strong>
+                  <p>{streak.message}</p>
+                </div>
+              </div>
+              {streak.last7?.length > 0 && (
+                <div className="db-logs-streak-dots" aria-hidden>
+                  {streak.last7.map((d) => (
+                    <span
+                      key={d.date}
+                      className={`db-logs-dot${d.logged ? ' is-on' : ''}${d.isToday ? ' is-today' : ''}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {summary && (
             <div className="db-logs-hub-strip" aria-label="Today at a glance">
@@ -220,6 +260,52 @@ export default function Logs() {
           line-height: 1.55;
           max-width: 42ch;
         }
+        .db-logs-streak {
+          margin: 16px 0 0;
+          padding: 12px 14px;
+          border-radius: 12px;
+          border: 1px solid ${t.lineStrong};
+          background: #fff;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .db-logs-streak.is-risk {
+          border-color: ${t.clay}55;
+          background: ${t.clayTint};
+        }
+        .db-logs-streak-main {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          color: ${t.ink};
+        }
+        .db-logs-streak.is-risk .db-logs-streak-main { color: ${t.clayDeep}; }
+        .db-logs-streak-main strong {
+          display: block;
+          font-size: 14px;
+          font-weight: 700;
+        }
+        .db-logs-streak-main p {
+          margin: 2px 0 0;
+          font-size: 12px;
+          color: ${t.inkSoft};
+          line-height: 1.4;
+        }
+        .db-logs-streak.is-risk .db-logs-streak-main p { color: ${t.clayDeep}; }
+        .db-logs-streak-dots {
+          display: flex;
+          gap: 6px;
+        }
+        .db-logs-dot {
+          flex: 1;
+          height: 7px;
+          border-radius: 999px;
+          background: ${t.line};
+        }
+        .db-logs-dot.is-on { background: ${t.sage}; }
+        .db-logs-streak.is-risk .db-logs-dot.is-on { background: ${t.clay}; }
+        .db-logs-dot.is-today { outline: 2px solid ${t.forest}; outline-offset: 1px; }
         .db-logs-hub-strip {
           display: flex;
           flex-wrap: wrap;

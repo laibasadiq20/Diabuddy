@@ -212,6 +212,9 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     mealType: 'Breakfast',
     foodItems: '',
     carbohydrates: '',
+    protein: '',
+    fat: '',
+    calories: '',
     waterConsumed: '',
     bloodSugarImpact: '',
     notes: '',
@@ -224,6 +227,9 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
       mealType: initialRaw?.mealType || 'Breakfast',
       foodItems: initialRaw?.foodItems || '',
       carbohydrates: initialRaw?.carbohydrates != null ? String(initialRaw.carbohydrates) : '',
+      protein: initialRaw?.protein != null ? String(initialRaw.protein) : '',
+      fat: initialRaw?.fat != null ? String(initialRaw.fat) : '',
+      calories: initialRaw?.calories != null ? String(initialRaw.calories) : '',
       waterConsumed: initialRaw?.waterConsumed ?? '',
       bloodSugarImpact: initialRaw?.bloodSugarImpact || '',
       notes: initialRaw?.notes || '',
@@ -248,6 +254,9 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           mealType: form.mealType,
           foodItems: form.foodItems,
           carbohydrates: Number(form.carbohydrates) || 0,
+          protein: Number(form.protein) || 0,
+          fat: Number(form.fat) || 0,
+          calories: Number(form.calories) || 0,
           waterConsumed: Number(form.waterConsumed) || 0,
           bloodSugarImpact: form.bloodSugarImpact || '',
           notes: form.notes || undefined,
@@ -330,18 +339,65 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
         </div>
 
         {nutritionMode === 'manual' && (
-          <Field title="Carbs (g)">
-            <input
-              required
-              type="number"
-              min="0"
-              inputMode="decimal"
-              value={form.carbohydrates}
-              onChange={(e) => setForm({ ...form, carbohydrates: e.target.value })}
-              style={field}
-              placeholder="45"
-            />
-          </Field>
+          <>
+            <p style={{ ...hint, marginTop: 0, marginBottom: 10 }}>
+              Carbs matter most for glucose. Protein and fat help complete the picture.
+            </p>
+            <div
+              className="db-log-macro-grid"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}
+            >
+              <Field title="Carbs (g)">
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={form.carbohydrates}
+                  onChange={(e) => setForm({ ...form, carbohydrates: e.target.value })}
+                  style={field}
+                  placeholder="45"
+                />
+              </Field>
+              <Field title="Protein (g)">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={form.protein}
+                  onChange={(e) => setForm({ ...form, protein: e.target.value })}
+                  style={field}
+                  placeholder="20"
+                />
+              </Field>
+              <Field title="Fat (g)">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={form.fat}
+                  onChange={(e) => setForm({ ...form, fat: e.target.value })}
+                  style={field}
+                  placeholder="12"
+                />
+              </Field>
+              <Field title="Calories (kcal)">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputMode="numeric"
+                  value={form.calories}
+                  onChange={(e) => setForm({ ...form, calories: e.target.value })}
+                  style={field}
+                  placeholder="350"
+                />
+              </Field>
+            </div>
+          </>
         )}
 
         {nutritionMode === 'ai' && (
@@ -357,7 +413,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           >
             <p style={{ margin: 0, fontSize: 14, fontWeight: 650, color: t.ink }}>AI meal analyzer</p>
             <p style={{ margin: '6px 0 0', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-              Photo-based carb estimates are not available yet. Switch to Manual to enter carbs and save.
+              Photo estimates are not available yet. Switch to Manual to enter carbs, protein, fat, and calories.
             </p>
           </div>
         )}

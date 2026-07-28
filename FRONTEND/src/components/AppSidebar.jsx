@@ -8,7 +8,6 @@ import {
   Users,
   Wrench,
   ClipboardList,
-  Watch,
   Bell,
   UserRound,
   Shield,
@@ -31,8 +30,7 @@ const navItems = [
   { label: 'Community', path: '/community', icon: Users },
   { label: 'Messages', path: '/messages', icon: MessageSquare },
   { label: 'Toolbox', path: '/toolbox', icon: Wrench },
-  { label: 'Fitbit', path: '/fitbit', icon: Watch },
-  { label: 'Reminders', path: '/reminders', icon: Bell },
+  // Fitbit + Reminders stay out of nav until those features ship
   { label: 'My Account', path: '/account', icon: UserRound },
 ];
 
@@ -50,7 +48,7 @@ const adminNavItems = [
 const bottomTabs = [
   { label: 'Home', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Logs', path: '/logs', icon: ClipboardList },
-  { label: 'Community', path: '/community', icon: Users },
+  { label: 'Reports', path: '/reports', icon: BarChart3 },
   { label: 'Messages', path: '/messages', icon: MessageSquare },
   { label: 'Account', path: '/account', icon: UserRound },
 ];

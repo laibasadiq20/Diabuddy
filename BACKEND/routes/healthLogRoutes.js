@@ -13,6 +13,7 @@ router.get('/summary', healthLogController.getTodaySummary);
 router.get('/stats', healthLogController.getStats);
 router.get('/insights', healthLogController.getInsights);
 router.get('/report', healthReportController.getHealthReport);
+router.get('/streak', healthReportController.getLoggingStreak);
 
 // Glucose Log CRUD
 router.post('/glucose', healthLogController.createGlucose);

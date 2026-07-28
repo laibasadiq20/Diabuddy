@@ -34,8 +34,11 @@ const Navbar = () => {
       ]
     : [
         { label: 'Dashboard', path: '/dashboard' },
+        { label: 'Logs', path: '/logs' },
+        { label: 'Reports', path: '/reports' },
         { label: 'Community', path: '/community' },
         { label: 'Messages', path: '/messages' },
+        { label: 'Toolbox', path: '/toolbox' },
         { label: 'Account', path: '/account' },
       ];
 

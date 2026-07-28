@@ -12,6 +12,8 @@ import {
   Droplets,
   PlusCircle,
   BarChart3,
+  Flame,
+  AlertTriangle,
 } from 'lucide-react';
 
 const t = theme;
@@ -47,6 +49,8 @@ export default function Dashboard() {
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const [summary, setSummary] = useState(null);
   const [latestPost, setLatestPost] = useState(null);
+  const [weekReport, setWeekReport] = useState(null);
+  const [streak, setStreak] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const firstName = user?.name?.split(' ')[0] || 'Buddy';
@@ -59,6 +63,11 @@ export default function Dashboard() {
   });
   const loggedTypes = summaryDoneCount(summary);
   const latestGlucose = summary?.glucose?.value || null;
+  const weekMetrics = weekReport?.period?.metrics;
+  const tir = weekMetrics?.timeInRangePercent;
+  const avgG = weekMetrics?.avgGlucose;
+  const loggingDays = weekMetrics?.loggingDays;
+  const dayCount = weekMetrics?.dayCount || 7;
 
   useEffect(() => {
     if (!user) return undefined;
@@ -68,13 +77,21 @@ export default function Dashboard() {
       try {
         const headers = { ...authHeaders() };
         const tzOffset = new Date().getTimezoneOffset();
-        const [convRes, sumRes, postRes] = await Promise.all([
+        const [convRes, sumRes, postRes, reportRes, streakRes] = await Promise.all([
           fetch(`${API_URL}/conversations`, { credentials: 'include', headers }),
           fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, {
             credentials: 'include',
             headers,
           }),
           fetch(`${API_URL}/posts?sort=latest&page=1&limit=1`, {
+            credentials: 'include',
+            headers,
+          }),
+          fetch(`${API_URL}/health-logs/report?preset=7d&tzOffset=${tzOffset}`, {
+            credentials: 'include',
+            headers,
+          }),
+          fetch(`${API_URL}/health-logs/streak?tzOffset=${tzOffset}`, {
             credentials: 'include',
             headers,
           }),
@@ -95,6 +112,16 @@ export default function Dashboard() {
         if (postRes.ok) {
           const data = await postRes.json();
           setLatestPost(data?.posts?.[0] || null);
+        }
+
+        if (reportRes.ok) {
+          const data = await reportRes.json();
+          if (data?.status === 'success') setWeekReport(data.data);
+        }
+
+        if (streakRes.ok) {
+          const data = await streakRes.json();
+          if (data?.status === 'success') setStreak(data.data);
         }
       } catch (err) {
         console.error(err);
@@ -139,7 +166,7 @@ export default function Dashboard() {
 
       <main style={{ flex: 1, minWidth: 0, padding: '24px 18px 88px', position: 'relative' }}>
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
-          <header style={{ marginBottom: 22 }}>
+          <header style={{ marginBottom: 18 }}>
             <p
               style={{
                 margin: '0 0 6px',
@@ -175,8 +202,80 @@ export default function Dashboard() {
             </p>
           </header>
 
+          {streak?.atRisk && (
+            <button
+              type="button"
+              className="db-dash-streak-alert"
+              onClick={() => navigate('/logs')}
+            >
+              <AlertTriangle size={18} />
+              <span>
+                <strong>{streak.currentStreak}-day streak at risk.</strong>{' '}
+                Log anything today to keep it going.
+              </span>
+              <ArrowRight size={16} />
+            </button>
+          )}
+
+          {/* Weekly progress snapshot */}
+          <section className="db-dash-progress">
+            <div className="db-dash-progress-top">
+              <div>
+                <p className="db-dash-progress-eyebrow">This week</p>
+                <h2>Progress snapshot</h2>
+              </div>
+              <button type="button" className="db-dash-progress-link" onClick={() => navigate('/reports')}>
+                Full report
+                <ArrowRight size={14} />
+              </button>
+            </div>
+
+            <div className="db-dash-progress-grid">
+              <div className="db-dash-progress-cell">
+                <span className="db-dash-progress-label">Time in range</span>
+                <strong>{tir != null ? `${tir}%` : '—'}</strong>
+              </div>
+              <div className="db-dash-progress-cell">
+                <span className="db-dash-progress-label">Avg glucose</span>
+                <strong>{avgG != null ? `${avgG}` : '—'}</strong>
+                {avgG != null ? <em>mg/dL</em> : null}
+              </div>
+              <div className="db-dash-progress-cell">
+                <span className="db-dash-progress-label">Days logged</span>
+                <strong>
+                  {loggingDays != null ? `${loggingDays}/${dayCount}` : '—'}
+                </strong>
+              </div>
+              <div className="db-dash-progress-cell db-dash-progress-cell--streak">
+                <span className="db-dash-progress-label">
+                  <Flame size={12} /> Streak
+                </span>
+                <strong>{streak?.currentStreak ?? 0}</strong>
+                <em>days</em>
+              </div>
+            </div>
+
+            {streak?.last7?.length > 0 && (
+              <div className="db-dash-streak-dots" aria-label="Last 7 days logging">
+                {streak.last7.map((d) => (
+                  <span
+                    key={d.date}
+                    className={`db-dash-dot${d.logged ? ' is-on' : ''}${d.isToday ? ' is-today' : ''}`}
+                    title={`${d.date}${d.logged ? ' · logged' : ''}`}
+                  />
+                ))}
+              </div>
+            )}
+
+            <p className="db-dash-progress-note">
+              {streak?.message ||
+                (tir == null
+                  ? 'Log a few readings this week to unlock your snapshot.'
+                  : 'Based on your real logs from the last 7 days.')}
+            </p>
+          </section>
+
           <div className="db-dash-actions">
-            {/* Log today */}
             <button
               type="button"
               className="db-dash-action db-dash-action--primary"
@@ -199,7 +298,21 @@ export default function Dashboard() {
               </span>
             </button>
 
-            {/* Messages */}
+            <button
+              type="button"
+              className="db-dash-action"
+              onClick={() => navigate('/reports')}
+            >
+              <span className="db-dash-action-icon" style={{ background: t.skySoft, color: t.skyDeep }}>
+                <BarChart3 size={22} strokeWidth={1.75} />
+              </span>
+              <span className="db-dash-action-body">
+                <span className="db-dash-action-title">Health reports</span>
+                <span className="db-dash-action-desc">7-day, 30-day, 3-month & compare</span>
+              </span>
+              <ArrowRight size={18} color={t.inkFaint} />
+            </button>
+
             <button
               type="button"
               className="db-dash-action"
@@ -223,7 +336,6 @@ export default function Dashboard() {
               )}
             </button>
 
-            {/* Community highlight */}
             <button
               type="button"
               className="db-dash-action"
@@ -245,7 +357,6 @@ export default function Dashboard() {
               <ArrowRight size={18} color={t.inkFaint} />
             </button>
 
-            {/* Soft secondary: glucose quick path */}
             <button
               type="button"
               className="db-dash-action db-dash-action--quiet"
@@ -260,26 +371,127 @@ export default function Dashboard() {
               </span>
               <ArrowRight size={18} color={t.inkFaint} />
             </button>
-
-            <button
-              type="button"
-              className="db-dash-action db-dash-action--quiet"
-              onClick={() => navigate('/reports')}
-            >
-              <span className="db-dash-action-icon" style={{ background: t.skySoft, color: t.skyDeep }}>
-                <BarChart3 size={20} strokeWidth={1.75} />
-              </span>
-              <span className="db-dash-action-body">
-                <span className="db-dash-action-title">Health reports</span>
-                <span className="db-dash-action-desc">7-day, 30-day, 3-month & compare</span>
-              </span>
-              <ArrowRight size={18} color={t.inkFaint} />
-            </button>
           </div>
         </div>
       </main>
 
       <style>{`
+        .db-dash-streak-alert {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          text-align: left;
+          margin-bottom: 12px;
+          padding: 12px 14px;
+          border-radius: 12px;
+          border: 1px solid ${t.clay}55;
+          background: ${t.clayTint};
+          color: ${t.clayDeep};
+          font-size: 13px;
+          line-height: 1.4;
+          cursor: pointer;
+          font-family: ${t.fontBody};
+        }
+        .db-dash-streak-alert strong { font-weight: 700; }
+        .db-dash-streak-alert svg:last-child { margin-left: auto; flex-shrink: 0; }
+        .db-dash-progress {
+          background: #fff;
+          border: 1.5px solid ${t.lineStrong};
+          border-radius: 16px;
+          padding: 14px;
+          margin-bottom: 14px;
+        }
+        .db-dash-progress-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        .db-dash-progress-eyebrow {
+          margin: 0 0 4px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: ${t.inkFaint};
+        }
+        .db-dash-progress h2 {
+          margin: 0;
+          font-family: ${t.fontDisplay};
+          font-size: 20px;
+          font-weight: 500;
+          color: ${t.ink};
+        }
+        .db-dash-progress-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          border: none;
+          background: none;
+          color: ${t.forest};
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: ${t.fontBody};
+          flex-shrink: 0;
+          padding: 4px 0;
+        }
+        .db-dash-progress-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .db-dash-progress-cell {
+          background: ${t.surfaceSunken};
+          border-radius: 12px;
+          padding: 10px 10px 12px;
+          min-width: 0;
+        }
+        .db-dash-progress-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: ${t.inkFaint};
+        }
+        .db-dash-progress-cell strong {
+          display: block;
+          margin-top: 6px;
+          font-size: 20px;
+          color: ${t.ink};
+          line-height: 1.1;
+        }
+        .db-dash-progress-cell em {
+          font-style: normal;
+          font-size: 11px;
+          font-weight: 600;
+          color: ${t.inkSoft};
+        }
+        .db-dash-progress-cell--streak strong { color: ${t.clay}; }
+        .db-dash-streak-dots {
+          display: flex;
+          gap: 6px;
+          margin-top: 12px;
+        }
+        .db-dash-dot {
+          flex: 1;
+          height: 8px;
+          border-radius: 999px;
+          background: ${t.line};
+        }
+        .db-dash-dot.is-on { background: ${t.sage}; }
+        .db-dash-dot.is-today { outline: 2px solid ${t.forest}; outline-offset: 1px; }
+        .db-dash-progress-note {
+          margin: 10px 0 0;
+          font-size: 12px;
+          color: ${t.inkSoft};
+          line-height: 1.4;
+        }
         .db-dash-actions {
           display: flex;
           flex-direction: column;
@@ -317,10 +529,7 @@ export default function Dashboard() {
           justify-content: center;
           flex-shrink: 0;
         }
-        .db-dash-action-body {
-          flex: 1;
-          min-width: 0;
-        }
+        .db-dash-action-body { flex: 1; min-width: 0; }
         .db-dash-action-title {
           display: block;
           font-size: 16px;
@@ -364,11 +573,10 @@ export default function Dashboard() {
           flex-shrink: 0;
         }
         @media (hover: hover) and (pointer: fine) {
-          .db-dash-action:hover {
-            border-color: ${t.forest};
-          }
+          .db-dash-action:hover { border-color: ${t.forest}; }
         }
         @media (max-width: 640px) {
+          .db-dash-progress-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .db-dash-action {
             padding: 14px 12px;
             gap: 12px;
