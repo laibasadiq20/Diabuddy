@@ -102,28 +102,54 @@ export default function CommunityFeedStyles() {
           border: 1.5px solid ${t.lineStrong};
           border-radius: 12px;
         }
-        .db-community-sort {
+        .db-community-filter-bar {
           display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          padding-bottom: 12px;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding-bottom: 10px;
           border-bottom: 1px solid ${t.line};
         }
-        .db-sort-chip {
-          border: 1.5px solid ${t.lineStrong};
-          background: #fff;
-          color: ${t.inkSoft};
-          border-radius: 999px;
-          padding: 7px 14px;
+        .db-community-sort-label {
           font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          font-family: ${t.fontBody};
+          font-weight: 700;
+          color: ${t.inkFaint};
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          flex-shrink: 0;
         }
-        .db-sort-chip.is-active {
-          background: ${t.forest};
+        .db-community-sort-wrap {
+          position: relative;
+          min-width: 0;
+          flex: 0 1 auto;
+          max-width: 220px;
+        }
+        .db-community-sort-select {
+          width: 100%;
+          appearance: none;
+          -webkit-appearance: none;
+          box-sizing: border-box;
+          padding: 8px 32px 8px 12px;
+          border: 1px solid ${t.lineStrong};
+          border-radius: 10px;
+          background: ${t.surfaceSunken};
+          color: ${t.ink};
+          font-size: 13px;
+          font-weight: 600;
+          font-family: ${t.fontBody};
+          cursor: pointer;
+          outline: none;
+        }
+        .db-community-sort-select:focus {
           border-color: ${t.forest};
-          color: #fff;
+        }
+        .db-community-sort-chevron {
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: ${t.inkSoft};
+          pointer-events: none;
         }
         .db-drafts-banner {
           background: #fff;
@@ -513,16 +539,16 @@ export default function CommunityFeedStyles() {
             gap: 8px;
             border-radius: 12px;
           }
-          .db-community-sort {
-            overflow-x: auto;
-            flex-wrap: nowrap;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
+          .db-community-filter-bar {
             padding-bottom: 8px;
           }
-          .db-community-sort::-webkit-scrollbar { display: none; }
-          .db-sort-chip {
-            flex: 0 0 auto;
+          .db-community-sort-wrap {
+            max-width: none;
+            flex: 1;
+          }
+          .db-community-sort-select {
+            font-size: 16px;
+            padding: 10px 34px 10px 12px;
           }
           .db-community-topics {
             margin: 0 -2px;

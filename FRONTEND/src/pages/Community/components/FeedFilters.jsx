@@ -1,4 +1,10 @@
 import React from 'react';
+import { ChevronDown } from 'lucide-react';
+
+const SORT_OPTIONS = [
+  { id: 'latest', label: 'Latest' },
+  { id: 'most_commented', label: 'Most commented' },
+];
 
 export default function FeedFilters({
   sortMode,
@@ -10,22 +16,26 @@ export default function FeedFilters({
 }) {
   return (
     <div className="db-community-filters">
-      <div className="db-community-sort" role="tablist" aria-label="Sort posts">
-        {[
-          { id: 'latest', label: 'Latest' },
-          { id: 'most_commented', label: 'Most commented' },
-        ].map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            role="tab"
-            aria-selected={sortMode === opt.id}
-            className={`db-sort-chip${sortMode === opt.id ? ' is-active' : ''}`}
-            onClick={() => onSortSelect(opt.id)}
+      <div className="db-community-filter-bar">
+        <label className="db-community-sort-label" htmlFor="db-community-sort">
+          Sort
+        </label>
+        <div className="db-community-sort-wrap">
+          <select
+            id="db-community-sort"
+            className="db-community-sort-select"
+            value={sortMode}
+            onChange={(e) => onSortSelect(e.target.value)}
+            aria-label="Sort posts"
           >
-            {opt.label}
-          </button>
-        ))}
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={14} className="db-community-sort-chevron" aria-hidden />
+        </div>
       </div>
 
       <div className="db-community-topics" role="tablist" aria-label="Topics">

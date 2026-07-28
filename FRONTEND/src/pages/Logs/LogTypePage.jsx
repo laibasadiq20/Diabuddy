@@ -130,7 +130,7 @@ export default function LogTypePage() {
     ? entries.reduce((sum, item) => sum + (Number(item.raw?.amount) || 0), 0)
     : 0;
   const waterPct = Math.min(100, Math.round((todayWaterMl / waterGoal) * 100));
-  const PREVIEW_COUNT = 2;
+  const PREVIEW_COUNT = 5;
   const visibleEntries = showAllEntries ? entries : entries.slice(0, PREVIEW_COUNT);
   const hasMoreEntries = entries.length > PREVIEW_COUNT;
 
@@ -171,6 +171,204 @@ export default function LogTypePage() {
     }
   };
 
+  const renderEntryCard = (item) => {
+    const isMeal = config.id === 'meal';
+    const isInsulin = config.id === 'insulin';
+    const isMedication = config.id === 'medication';
+    const isWater = config.id === 'water';
+    const isExercise = config.id === 'exercise';
+    const isSleep = config.id === 'sleep';
+    const isMood = config.id === 'mood';
+    const raw = item.raw || {};
+    const moodMeta = MOOD_CARD[raw.mood] || { Icon: Smile, label: raw.mood || 'Mood' };
+    const MoodIcon = moodMeta.Icon || Smile;
+    const mealEmoji = MEAL_EMOJI[raw.mealType || item.title] || '🍽';
+    const impact = raw.bloodSugarImpact;
+    const insulinReason =
+      raw.mealRelation && raw.mealRelation !== 'None' ? raw.mealRelation : item.valueStr;
+
+    return (
+      <div key={item._id} className="db-log-entry-row" style={entryRow}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {isMeal ? (
+            <>
+              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                {mealEmoji} {raw.mealType || item.title}
+              </p>
+              {raw.foodItems ? (
+                <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft, wordBreak: 'break-word' }}>
+                  {raw.foodItems}
+                </p>
+              ) : null}
+              <p style={{ margin: '4px 0 0', fontSize: 14, color: t.inkSoft }}>
+                {raw.carbohydrates ?? 0} g carbs
+              </p>
+              {impact ? (
+                <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
+                  After meal: {impact === 'High' ? '⬆' : impact === 'Low' ? '⬇' : '➖'} {impact}
+                </p>
+              ) : null}
+              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                {formatTodayTime(item.timestamp)}
+              </p>
+            </>
+          ) : isInsulin ? (
+            <>
+              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                💉 {raw.insulinType || item.title}
+              </p>
+              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                {raw.units ?? 0} Units
+              </p>
+              {insulinReason ? (
+                <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>{insulinReason}</p>
+              ) : null}
+              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                {formatTodayTime(item.timestamp)}
+              </p>
+            </>
+          ) : isMedication ? (
+            <>
+              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                💊 {raw.medicineName || item.title}
+              </p>
+              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                {raw.dose || item.subtitle}
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>
+                {raw.status || item.valueStr}
+              </p>
+              {raw.route ? (
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: t.inkFaint }}>{raw.route}</p>
+              ) : null}
+              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                {formatTodayTime(item.timestamp)}
+              </p>
+            </>
+          ) : isWater ? (
+            <>
+              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                💧 {raw.amount ?? item.title} ml
+              </p>
+              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                {formatTodayTime(item.timestamp)}
+              </p>
+            </>
+          ) : isExercise ? (
+            <>
+              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                🏃 {raw.activity || item.title}
+              </p>
+              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                {raw.duration ?? 0} minutes
+                {raw.intensity ? ` · ${intensityFromApiLabel(raw.intensity)}` : ''}
+              </p>
+              {(raw.caloriesBurned || raw.distance) ? (
+                <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
+                  {[
+                    raw.caloriesBurned ? `${raw.caloriesBurned} kcal` : null,
+                    raw.distance ? `${raw.distance} km` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              ) : null}
+              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                {formatTodayTime(item.timestamp)}
+              </p>
+            </>
+          ) : isSleep ? (
+            <>
+              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
+                🌙 {raw.totalHours != null ? `${Number(raw.totalHours).toFixed(1)} hours` : item.title}
+              </p>
+              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                {(raw.quality === 'Average' ? 'Fair' : raw.quality) || '—'}
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
+                {item.valueStr || ''}
+              </p>
+              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                {formatTodayTime(raw.wakeTime || item.timestamp)}
+              </p>
+            </>
+          ) : isMood ? (
+            <>
+              <p
+                style={{
+                  margin: 0,
+                  fontWeight: 650,
+                  fontSize: 15,
+                  color: t.ink,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <MoodIcon size={18} strokeWidth={1.75} color={t.forest} aria-hidden />
+                {moodMeta.label}
+              </p>
+              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
+                Stress: {raw.stressLevel || 'Low'}
+              </p>
+              {raw.journalEntry ? <p style={{ ...noteLine }}>{raw.journalEntry}</p> : null}
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                {formatTodayTime(item.timestamp)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: 0, fontWeight: 650, fontSize: 14, color: t.ink }}>{item.title}</p>
+              {item.subtitle && (
+                <p style={{ margin: '3px 0 0', fontSize: 13, color: t.inkSoft, wordBreak: 'break-word' }}>
+                  {item.subtitle}
+                </p>
+              )}
+              {item.valueStr && (
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>{item.valueStr}</p>
+              )}
+              {(raw.notes || item.notes) ? (
+                <p style={{ ...noteLine }}>{raw.notes || item.notes}</p>
+              ) : null}
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                {formatTodayTime(item.timestamp)}
+              </p>
+            </>
+          )}
+        </div>
+        <div className="db-log-entry-actions" style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          {config.apiPath !== 'water' && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditRaw(item.raw || item);
+                const formEl = document.getElementById('db-log-form-anchor');
+                if (formEl) formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              style={smallBtn}
+            >
+              Edit
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label="Delete"
+            onClick={() => handleDelete(item)}
+            style={{ ...smallBtn, color: t.clayDeep }}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       style={{
@@ -182,7 +380,7 @@ export default function LogTypePage() {
     >
       <AppSidebar />
       <main className="db-logs-main" style={{ flex: 1, minWidth: 0, padding: '24px 20px 110px' }}>
-        <div className="db-logs-wrap" style={{ maxWidth: 640, margin: '0 auto', width: '100%' }}>
+        <div className="db-logs-wrap" style={{ maxWidth: 1040, margin: '0 auto', width: '100%' }}>
           <button type="button" onClick={() => navigate('/logs')} style={backBtn}>
             <ArrowLeft size={16} /> All logs
           </button>
@@ -264,286 +462,81 @@ export default function LogTypePage() {
             <p style={guideText}>{config.how}</p>
           </section>
 
-          <section style={{ marginTop: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
-              <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
-                {editRaw ? 'Edit entry' : 'New entry'}
-              </h2>
-              {editRaw && (
-                <button
-                  type="button"
-                  onClick={() => setEditRaw(null)}
-                  style={{ ...linkBtn, padding: 0, border: 'none', background: 'none' }}
-                >
-                  Cancel edit
-                </button>
-              )}
-            </div>
-            <div className="db-log-form-card" style={formCard}>
-              <LogEntryForm
-                key={`${config.id}-${editRaw?._id || 'new'}-${formKey}`}
-                typeId={config.id}
-                initialRaw={editRaw}
-                submitting={saving}
-                onSubmit={handleSubmit}
-              />
-            </div>
-          </section>
-
-          <section style={{ marginTop: 32 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                justifyContent: 'space-between',
-                gap: 12,
-                marginBottom: 14,
-                flexWrap: 'wrap',
-              }}
-            >
-              <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
-                Today&apos;s entries
-              </h2>
-              {!loading && entries.length > 0 ? (
-                <span style={{ fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
-                  {entries.length} today
-                </span>
-              ) : null}
-            </div>
-            {loading ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: t.inkSoft, padding: '20px 0' }}>
-                <Loader2 size={18} className="db-spin" /> Loading…
-              </div>
-            ) : error ? (
-              <p style={{ color: t.clayDeep, fontSize: 14 }}>{error}</p>
-            ) : entries.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 14, color: t.inkFaint, lineHeight: 1.5 }}>
-                No entries for today yet.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {visibleEntries.map((item) => {
-                  const isMeal = config.id === 'meal';
-                  const isInsulin = config.id === 'insulin';
-                  const isMedication = config.id === 'medication';
-                  const isWater = config.id === 'water';
-                  const isExercise = config.id === 'exercise';
-                  const isSleep = config.id === 'sleep';
-                  const isMood = config.id === 'mood';
-                  const raw = item.raw || {};
-                  const moodMeta = MOOD_CARD[raw.mood] || { Icon: Smile, label: raw.mood || 'Mood' };
-                  const MoodIcon = moodMeta.Icon || Smile;
-                  const mealEmoji = MEAL_EMOJI[raw.mealType || item.title] || '🍽';
-                  const impact = raw.bloodSugarImpact;
-                  const insulinReason =
-                    raw.mealRelation && raw.mealRelation !== 'None' ? raw.mealRelation : item.valueStr;
-
-                  return (
-                    <div key={item._id} className="db-log-entry-row" style={entryRow}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {isMeal ? (
-                          <>
-                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                              {mealEmoji} {raw.mealType || item.title}
-                            </p>
-                            {raw.foodItems ? (
-                              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft, wordBreak: 'break-word' }}>
-                                {raw.foodItems}
-                              </p>
-                            ) : null}
-                            <p style={{ margin: '4px 0 0', fontSize: 14, color: t.inkSoft }}>
-                              {raw.carbohydrates ?? 0} g carbs
-                            </p>
-                            {impact ? (
-                              <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
-                                After meal: {impact === 'High' ? '⬆' : impact === 'Low' ? '⬇' : '➖'} {impact}
-                              </p>
-                            ) : null}
-                            {raw.notes ? (
-                              <p style={{ ...noteLine }}>{raw.notes}</p>
-                            ) : null}
-                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                              {formatTodayTime(item.timestamp)}
-                            </p>
-                          </>
-                        ) : isInsulin ? (
-                          <>
-                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                              💉 {raw.insulinType || item.title}
-                            </p>
-                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                              {raw.units ?? 0} Units
-                            </p>
-                            {insulinReason ? (
-                              <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>{insulinReason}</p>
-                            ) : null}
-                            {raw.notes ? (
-                              <p style={{ ...noteLine }}>{raw.notes}</p>
-                            ) : null}
-                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                              {formatTodayTime(item.timestamp)}
-                            </p>
-                          </>
-                        ) : isMedication ? (
-                          <>
-                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                              💊 {raw.medicineName || item.title}
-                            </p>
-                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                              {raw.dose || item.subtitle}
-                            </p>
-                            <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>
-                              {raw.status || item.valueStr}
-                            </p>
-                            {raw.route ? (
-                              <p style={{ margin: '2px 0 0', fontSize: 12, color: t.inkFaint }}>{raw.route}</p>
-                            ) : null}
-                            {raw.notes ? (
-                              <p style={{ ...noteLine }}>{raw.notes}</p>
-                            ) : null}
-                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                              {formatTodayTime(item.timestamp)}
-                            </p>
-                          </>
-                        ) : isWater ? (
-                          <>
-                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                              💧 {raw.amount ?? item.title} ml
-                            </p>
-                            {raw.notes ? (
-                              <p style={{ ...noteLine }}>{raw.notes}</p>
-                            ) : null}
-                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                              {formatTodayTime(item.timestamp)}
-                            </p>
-                          </>
-                        ) : isExercise ? (
-                          <>
-                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                              🏃 {raw.activity || item.title}
-                            </p>
-                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                              {raw.duration ?? 0} minutes
-                              {raw.intensity ? ` · ${intensityFromApiLabel(raw.intensity)}` : ''}
-                            </p>
-                            {(raw.caloriesBurned || raw.distance) ? (
-                              <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
-                                {[
-                                  raw.caloriesBurned ? `${raw.caloriesBurned} kcal` : null,
-                                  raw.distance ? `${raw.distance} km` : null,
-                                ]
-                                  .filter(Boolean)
-                                  .join(' · ')}
-                              </p>
-                            ) : null}
-                            {raw.notes ? (
-                              <p style={{ ...noteLine }}>{raw.notes}</p>
-                            ) : null}
-                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                              {formatTodayTime(item.timestamp)}
-                            </p>
-                          </>
-                        ) : isSleep ? (
-                          <>
-                            <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                              🌙 {raw.totalHours != null ? `${Number(raw.totalHours).toFixed(1)} hours` : item.title}
-                            </p>
-                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                              {(raw.quality === 'Average' ? 'Fair' : raw.quality) || '—'}
-                            </p>
-                            <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
-                              {item.valueStr || ''}
-                            </p>
-                            {raw.notes ? (
-                              <p style={{ ...noteLine }}>{raw.notes}</p>
-                            ) : null}
-                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                              {formatTodayTime(raw.wakeTime || item.timestamp)}
-                            </p>
-                          </>
-                        ) : isMood ? (
-                          <>
-                            <p
-                              style={{
-                                margin: 0,
-                                fontWeight: 650,
-                                fontSize: 15,
-                                color: t.ink,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                              }}
-                            >
-                              <MoodIcon size={18} strokeWidth={1.75} color={t.forest} aria-hidden />
-                              {moodMeta.label}
-                            </p>
-                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                              Stress: {raw.stressLevel || 'Low'}
-                            </p>
-                            {raw.journalEntry ? (
-                              <p style={{ ...noteLine }}>{raw.journalEntry}</p>
-                            ) : null}
-                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                              {formatTodayTime(item.timestamp)}
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <p style={{ margin: 0, fontWeight: 650, fontSize: 14, color: t.ink }}>{item.title}</p>
-                            {item.subtitle && (
-                              <p style={{ margin: '3px 0 0', fontSize: 13, color: t.inkSoft, wordBreak: 'break-word' }}>
-                                {item.subtitle}
-                              </p>
-                            )}
-                            {item.valueStr && (
-                              <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>{item.valueStr}</p>
-                            )}
-                            {(raw.notes || item.notes) ? (
-                              <p style={{ ...noteLine }}>{raw.notes || item.notes}</p>
-                            ) : null}
-                            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                              {formatTodayTime(item.timestamp)}
-                            </p>
-                          </>
-                        )}
-                      </div>
-                      <div className="db-log-entry-actions" style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                        {config.apiPath !== 'water' && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditRaw(item.raw || item);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            style={smallBtn}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          aria-label="Delete"
-                          onClick={() => handleDelete(item)}
-                          style={{ ...smallBtn, color: t.clayDeep }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-                {hasMoreEntries ? (
+          <div className="db-log-split">
+            <section id="db-log-form-anchor" className="db-log-split-form">
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+                <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
+                  {editRaw ? 'Edit entry' : 'New entry'}
+                </h2>
+                {editRaw && (
                   <button
                     type="button"
-                    onClick={() => setShowAllEntries((v) => !v)}
-                    style={viewAllBtn}
+                    onClick={() => setEditRaw(null)}
+                    style={{ ...linkBtn, padding: 0, border: 'none', background: 'none', marginTop: 0 }}
                   >
-                    {showAllEntries ? 'Show less' : `View all (${entries.length})`}
+                    Cancel edit
                   </button>
+                )}
+              </div>
+              <div className="db-log-form-card" style={formCard}>
+                <LogEntryForm
+                  key={`${config.id}-${editRaw?._id || 'new'}-${formKey}`}
+                  typeId={config.id}
+                  initialRaw={editRaw}
+                  submitting={saving}
+                  onSubmit={handleSubmit}
+                />
+              </div>
+            </section>
+
+            <section className="db-log-split-entries">
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  marginBottom: 14,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
+                  Today&apos;s entries
+                </h2>
+                {!loading && entries.length > 0 ? (
+                  <span style={{ fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
+                    {entries.length} today
+                  </span>
                 ) : null}
               </div>
-            )}
-          </section>
+              <div className="db-log-entries-panel">
+                {loading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: t.inkSoft, padding: '12px 0' }}>
+                    <Loader2 size={18} className="db-spin" /> Loading…
+                  </div>
+                ) : error ? (
+                  <p style={{ color: t.clayDeep, fontSize: 14, margin: 0 }}>{error}</p>
+                ) : entries.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: 14, color: t.inkFaint, lineHeight: 1.5 }}>
+                    No entries for today yet.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {visibleEntries.map(renderEntryCard)}
+                    {hasMoreEntries ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllEntries((v) => !v)}
+                        style={viewAllBtn}
+                      >
+                        {showAllEntries ? 'Show less' : `View all (${entries.length})`}
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
       </main>
 
@@ -586,6 +579,43 @@ export default function LogTypePage() {
         .db-logs-wrap textarea,
         .db-logs-wrap select {
           font-size: 16px;
+        }
+        .db-log-split {
+          display: grid;
+          grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+          gap: 20px;
+          align-items: start;
+          margin-top: 24px;
+        }
+        .db-log-split-entries {
+          position: sticky;
+          top: 16px;
+        }
+        .db-log-entries-panel {
+          background: #fff;
+          border: 1px solid ${t.lineStrong};
+          border-radius: 14px;
+          padding: 14px;
+          max-height: min(70vh, 720px);
+          overflow-y: auto;
+          box-shadow: 0 1px 2px rgba(43,42,40,0.04);
+        }
+        @media (max-width: 900px) {
+          .db-log-split {
+            grid-template-columns: 1fr;
+            gap: 28px;
+          }
+          .db-log-split-entries {
+            position: static;
+          }
+          .db-log-entries-panel {
+            max-height: none;
+            overflow: visible;
+            background: transparent;
+            border: none;
+            padding: 0;
+            box-shadow: none;
+          }
         }
         @media (max-width: 640px) {
           .db-logs-main {
