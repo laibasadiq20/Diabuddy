@@ -10,11 +10,11 @@ export default function CommunityGuidelinesBanner() {
       style={{
         background: t.sageTint,
         border: `1.5px solid ${t.lineStrong}`,
-        borderRadius: 14,
-        padding: '12px 14px',
-        marginBottom: 14,
-        fontSize: 13,
-        lineHeight: 1.5,
+        borderRadius: 10,
+        padding: '8px 12px',
+        marginBottom: 10,
+        fontSize: 12,
+        lineHeight: 1.4,
         color: t.inkSoft,
         fontWeight: 500,
       }}

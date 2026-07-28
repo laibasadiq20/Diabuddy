@@ -105,7 +105,6 @@ export default function Logs() {
                       {item.label}
                     </span>
                     <span
-                      className="db-logs-hub-desc"
                       style={{
                         display: 'block',
                         fontSize: 13,
@@ -113,7 +112,7 @@ export default function Logs() {
                         lineHeight: 1.45,
                       }}
                     >
-                      {item.why}
+                      {item.hubLine}
                     </span>
                   </span>
                   <ChevronRight size={18} color={t.inkFaint} style={{ flexShrink: 0 }} />
@@ -133,12 +132,6 @@ export default function Logs() {
             align-items: flex-start !important;
             padding: 12px !important;
             gap: 12px !important;
-          }
-          .db-logs-hub-desc {
-            display: -webkit-box !important;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
           }
         }
       `}</style>

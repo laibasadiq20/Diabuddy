@@ -41,20 +41,10 @@ router.post('/exercise', healthLogController.createExercise);
 router.put('/exercise/:id', healthLogController.updateExercise);
 router.delete('/exercise/:id', healthLogController.deleteExercise);
 
-// Weight Log CRUD
-router.post('/weight', healthLogController.createWeight);
-router.put('/weight/:id', healthLogController.updateWeight);
-router.delete('/weight/:id', healthLogController.deleteWeight);
-
 // Sleep Log CRUD
 router.post('/sleep', healthLogController.createSleep);
 router.put('/sleep/:id', healthLogController.updateSleep);
 router.delete('/sleep/:id', healthLogController.deleteSleep);
-
-// Symptoms Log CRUD
-router.post('/symptoms', healthLogController.createSymptoms);
-router.put('/symptoms/:id', healthLogController.updateSymptoms);
-router.delete('/symptoms/:id', healthLogController.deleteSymptoms);
 
 // Mood Log CRUD
 router.post('/mood', healthLogController.createMood);

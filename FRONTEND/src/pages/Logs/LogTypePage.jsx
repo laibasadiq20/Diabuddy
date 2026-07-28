@@ -153,7 +153,7 @@ export default function LogTypePage() {
       setFormKey((k) => k + 1);
       await loadEntries();
     } catch (err) {
-      showToast(err.response?.data?.message || 'Save failed', 'error');
+      showToast(err.response?.data?.message || 'Could not save entry.', 'error');
     } finally {
       setSaving(false);
     }
@@ -167,7 +167,7 @@ export default function LogTypePage() {
       if (editRaw?._id === item._id) setEditRaw(null);
       await loadEntries();
     } catch (err) {
-      showToast(err.response?.data?.message || 'Delete failed', 'error');
+      showToast(err.response?.data?.message || 'Could not delete entry.', 'error');
     }
   };
 
@@ -346,16 +346,21 @@ export default function LogTypePage() {
                             <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
                               {mealEmoji} {raw.mealType || item.title}
                             </p>
-                            <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                              {raw.calories ?? 0} kcal
-                            </p>
-                            <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>
-                              {raw.carbohydrates ?? 0}g Carbs
+                            {raw.foodItems ? (
+                              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft, wordBreak: 'break-word' }}>
+                                {raw.foodItems}
+                              </p>
+                            ) : null}
+                            <p style={{ margin: '4px 0 0', fontSize: 14, color: t.inkSoft }}>
+                              {raw.carbohydrates ?? 0} g carbs
                             </p>
                             {impact ? (
                               <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
                                 After meal: {impact === 'High' ? '⬆' : impact === 'Low' ? '⬇' : '➖'} {impact}
                               </p>
+                            ) : null}
+                            {raw.notes ? (
+                              <p style={{ ...noteLine }}>{raw.notes}</p>
                             ) : null}
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                               {formatTodayTime(item.timestamp)}
@@ -371,6 +376,9 @@ export default function LogTypePage() {
                             </p>
                             {insulinReason ? (
                               <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>{insulinReason}</p>
+                            ) : null}
+                            {raw.notes ? (
+                              <p style={{ ...noteLine }}>{raw.notes}</p>
                             ) : null}
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                               {formatTodayTime(item.timestamp)}
@@ -390,6 +398,9 @@ export default function LogTypePage() {
                             {raw.route ? (
                               <p style={{ margin: '2px 0 0', fontSize: 12, color: t.inkFaint }}>{raw.route}</p>
                             ) : null}
+                            {raw.notes ? (
+                              <p style={{ ...noteLine }}>{raw.notes}</p>
+                            ) : null}
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                               {formatTodayTime(item.timestamp)}
                             </p>
@@ -400,7 +411,7 @@ export default function LogTypePage() {
                               💧 {raw.amount ?? item.title} ml
                             </p>
                             {raw.notes ? (
-                              <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>{raw.notes}</p>
+                              <p style={{ ...noteLine }}>{raw.notes}</p>
                             ) : null}
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                               {formatTodayTime(item.timestamp)}
@@ -425,6 +436,9 @@ export default function LogTypePage() {
                                   .join(' · ')}
                               </p>
                             ) : null}
+                            {raw.notes ? (
+                              <p style={{ ...noteLine }}>{raw.notes}</p>
+                            ) : null}
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                               {formatTodayTime(item.timestamp)}
                             </p>
@@ -440,6 +454,9 @@ export default function LogTypePage() {
                             <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
                               {item.valueStr || ''}
                             </p>
+                            {raw.notes ? (
+                              <p style={{ ...noteLine }}>{raw.notes}</p>
+                            ) : null}
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                               {formatTodayTime(raw.wakeTime || item.timestamp)}
                             </p>
@@ -463,6 +480,9 @@ export default function LogTypePage() {
                             <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
                               Stress: {raw.stressLevel || 'Low'}
                             </p>
+                            {raw.journalEntry ? (
+                              <p style={{ ...noteLine }}>{raw.journalEntry}</p>
+                            ) : null}
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                               {formatTodayTime(item.timestamp)}
                             </p>
@@ -478,6 +498,9 @@ export default function LogTypePage() {
                             {item.valueStr && (
                               <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>{item.valueStr}</p>
                             )}
+                            {(raw.notes || item.notes) ? (
+                              <p style={{ ...noteLine }}>{raw.notes || item.notes}</p>
+                            ) : null}
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                               {formatTodayTime(item.timestamp)}
                             </p>
@@ -590,7 +613,6 @@ export default function LogTypePage() {
             justify-content: flex-end;
             padding-top: 2px;
           }
-          .db-log-form-grid,
           .db-log-source-grid,
           .db-log-quality-grid {
             grid-template-columns: 1fr !important;
@@ -604,6 +626,13 @@ export default function LogTypePage() {
           .db-log-intensity-grid,
           .db-log-stress-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+          .db-log-dose-row {
+            flex-wrap: wrap !important;
+          }
+          .db-log-dose-row select {
+            width: 100% !important;
+            max-width: 100% !important;
           }
         }
         @media (max-width: 380px) {
@@ -692,6 +721,14 @@ const entryRow = {
   borderRadius: 12,
   border: `1px solid ${t.line}`,
   background: '#FFF',
+};
+
+const noteLine = {
+  margin: '4px 0 0',
+  fontSize: 13,
+  color: t.inkSoft,
+  lineHeight: 1.45,
+  wordBreak: 'break-word',
 };
 
 const smallBtn = {

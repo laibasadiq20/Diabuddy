@@ -8,27 +8,19 @@ export default function CommunityFeedStyles() {
     <style>{`
         .db-community-header {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           justify-content: space-between;
           gap: 16px;
-          margin-bottom: 22px;
+          margin-bottom: 14px;
         }
         @media (max-width: 640px) {
           .db-community-main {
             padding: 18px 14px 88px !important;
           }
         }
-        .db-community-eyebrow {
-          margin: 0 0 8px;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: ${t.forest};
-        }
         .db-community-title {
           font-family: ${t.fontDisplay};
-          font-size: clamp(28px, 5vw, 40px);
+          font-size: clamp(24px, 4vw, 32px);
           margin: 0;
           font-weight: 500;
           color: ${t.ink};
@@ -36,10 +28,10 @@ export default function CommunityFeedStyles() {
         }
         .db-community-lead {
           color: ${t.inkSoft};
-          font-size: 15px;
-          margin: 8px 0 0;
+          font-size: 13px;
+          margin: 4px 0 0;
           max-width: 42ch;
-          line-height: 1.55;
+          line-height: 1.4;
           font-weight: 500;
         }
         .db-community-actions {
@@ -52,16 +44,16 @@ export default function CommunityFeedStyles() {
           background: ${t.forest};
           color: #fff;
           border: none;
-          border-radius: 12px;
-          padding: 12px 18px;
-          font-size: 14px;
+          border-radius: 10px;
+          padding: 10px 14px;
+          font-size: 13px;
           font-weight: 600;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          box-shadow: 0 10px 24px rgba(22, 33, 25, 0.22);
+          gap: 6px;
+          box-shadow: 0 8px 18px rgba(22, 33, 25, 0.18);
           font-family: ${t.fontBody};
           white-space: nowrap;
           flex-shrink: 0;
@@ -76,12 +68,12 @@ export default function CommunityFeedStyles() {
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          border: 1.5px solid ${t.forest};
+          border: 1px solid ${t.forest};
           background: ${t.forest};
           color: #fff;
-          border-radius: 999px;
-          padding: 5px 10px;
-          font-size: 12px;
+          border-radius: 8px;
+          padding: 4px 8px;
+          font-size: 11px;
           font-weight: 600;
           cursor: pointer;
           font-family: ${t.fontBody};
@@ -93,11 +85,11 @@ export default function CommunityFeedStyles() {
         }
         .db-community-search {
           position: relative;
-          margin-bottom: 14px;
+          margin-bottom: 10px;
         }
         .db-community-search-icon {
           position: absolute;
-          left: 14px;
+          left: 12px;
           top: 50%;
           transform: translateY(-50%);
           color: ${t.inkSoft};
@@ -106,16 +98,15 @@ export default function CommunityFeedStyles() {
         .db-community-search input {
           width: 100%;
           box-sizing: border-box;
-          padding: 13px 14px 13px 42px;
+          padding: 10px 12px 10px 38px;
           background: #fff;
           border: 1.5px solid ${t.lineStrong};
-          border-radius: 14px;
+          border-radius: 10px;
           font-size: 14px;
           color: ${t.ink};
           font-weight: 500;
           outline: none;
           font-family: ${t.fontBody};
-          box-shadow: ${t.shadowCard};
         }
         .db-community-search input:focus {
           border-color: ${t.forest};
@@ -123,13 +114,12 @@ export default function CommunityFeedStyles() {
         .db-community-filters {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          margin-bottom: 18px;
-          padding: 14px 16px;
+          gap: 10px;
+          margin-bottom: 12px;
+          padding: 10px 12px;
           background: #fff;
           border: 1.5px solid ${t.lineStrong};
-          border-radius: 16px;
-          box-shadow: ${t.shadowCard};
+          border-radius: 12px;
         }
         .db-community-sort {
           display: flex;
@@ -213,105 +203,125 @@ export default function CommunityFeedStyles() {
         .db-community-feed {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-        }
-        .db-post-card {
           background: #fff;
           border: 1.5px solid ${t.lineStrong};
-          border-radius: 16px;
-          padding: 18px 20px;
+          border-radius: 14px;
+          overflow: hidden;
+        }
+        .db-post-card {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 12px 16px;
+          align-items: start;
+          background: #fff;
+          border: none;
+          border-bottom: 1px solid ${t.line};
+          border-radius: 0;
+          padding: 12px 14px;
           cursor: pointer;
-          box-shadow: ${t.shadowCard};
-          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          box-shadow: none;
+          transition: background 0.12s ease;
           outline: none;
         }
+        .db-post-card:last-of-type {
+          border-bottom: none;
+        }
         .db-post-card:focus-visible {
-          border-color: ${t.forest};
-          box-shadow: 0 0 0 3px rgba(39, 57, 46, 0.15);
+          background: ${t.sageTint};
+          box-shadow: inset 0 0 0 2px ${t.forest};
         }
         @media (hover: hover) and (pointer: fine) {
           .db-post-card:hover {
-            border-color: ${t.forest};
-            box-shadow: 0 14px 30px rgba(55, 45, 35, 0.1);
+            background: #f7f3ec;
           }
         }
-        .db-post-meta-row {
+        .db-post-card-main {
+          min-width: 0;
+        }
+        .db-post-title-row {
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          margin-bottom: 10px;
+          gap: 8px;
+          min-width: 0;
+          margin-bottom: 4px;
         }
         .db-post-badges {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          min-width: 0;
+          display: inline-flex;
+          flex-shrink: 0;
+          gap: 4px;
         }
         .db-badge {
           display: inline-flex;
           align-items: center;
-          gap: 4px;
-          font-size: 10px;
-          font-weight: 700;
-          padding: 2px 8px;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          padding: 0;
           border-radius: 4px;
-          text-transform: uppercase;
         }
         .db-badge--pin { color: ${t.sageDeep}; background: ${t.sageTint}; }
         .db-badge--lock { color: ${t.clayDeep}; background: ${t.clayTint}; }
         .db-badge--solved { color: ${t.gold}; background: ${t.goldTint}; }
         .db-post-topic {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 600;
-          padding: 3px 8px;
-          border-radius: 6px;
+          padding: 2px 7px;
+          border-radius: 4px;
           flex-shrink: 0;
           white-space: nowrap;
+          margin-left: auto;
         }
         .db-post-title {
-          font-size: 17px;
+          font-size: 15px;
           color: ${t.ink};
-          font-weight: 700;
-          margin: 0 0 8px;
+          font-weight: 600;
+          margin: 0;
           font-family: ${t.fontBody};
-          line-height: 1.35;
+          line-height: 1.3;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          min-width: 0;
+          flex: 1;
         }
         .db-post-excerpt {
-          font-size: 14px;
+          font-size: 13px;
           color: ${t.inkSoft};
-          margin: 0 0 16px;
-          line-height: 1.55;
+          margin: 0 0 6px;
+          line-height: 1.4;
           font-weight: 500;
           overflow: hidden;
           display: -webkit-box;
-          -webkit-line-clamp: 2;
+          -webkit-line-clamp: 1;
           -webkit-box-orient: vertical;
         }
-        .db-post-footer {
+        .db-post-meta {
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          gap: 6px;
+          min-width: 0;
           flex-wrap: wrap;
-          gap: 12px;
-          border-top: 1px solid ${t.line};
-          padding-top: 14px;
+        }
+        .db-post-meta-sep {
+          color: ${t.inkFaint};
+          font-size: 12px;
+          line-height: 1;
         }
         .db-post-author {
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           min-width: 0;
         }
         .db-post-avatar {
-          width: 28px;
-          height: 28px;
+          width: 20px;
+          height: 20px;
           border-radius: 50%;
           background: ${t.sageSoft};
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 12px;
+          font-size: 10px;
           font-weight: 700;
           color: ${t.sageDeep};
           overflow: hidden;
@@ -323,7 +333,7 @@ export default function CommunityFeedStyles() {
           object-fit: cover;
         }
         .db-post-author-name {
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
           color: ${t.ink};
           margin: 0;
@@ -333,29 +343,35 @@ export default function CommunityFeedStyles() {
         }
         .db-pro-tag {
           margin-left: 4px;
-          font-size: 10px;
+          font-size: 9px;
           background: ${t.skyDeep};
           color: #fff;
-          padding: 1px 5px;
-          border-radius: 4px;
+          padding: 1px 4px;
+          border-radius: 3px;
           vertical-align: middle;
           font-weight: 700;
         }
         .db-post-date {
-          font-size: 11px;
+          font-size: 12px;
           color: ${t.inkFaint};
           margin: 0;
+          white-space: nowrap;
         }
         .db-post-stats {
           display: flex;
-          gap: 14px;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 10px;
           color: ${t.inkSoft};
-          font-size: 13px;
+          font-size: 12px;
+          padding-top: 2px;
+          white-space: nowrap;
         }
         .db-post-stats span {
           display: inline-flex;
           align-items: center;
-          gap: 4px;
+          gap: 3px;
+          min-width: 2.25rem;
         }
         .db-community-state {
           background: #fff;
@@ -399,7 +415,10 @@ export default function CommunityFeedStyles() {
           justify-content: center;
           align-items: center;
           gap: 12px;
-          margin-top: 8px;
+          margin: 0;
+          padding: 10px 14px;
+          border-top: 1px solid ${t.line};
+          background: #faf8f4;
         }
         .db-community-pager button {
           background: #fff;
@@ -426,14 +445,14 @@ export default function CommunityFeedStyles() {
           .db-community-header {
             flex-direction: column;
             align-items: stretch;
-            gap: 12px;
-            margin-bottom: 16px;
+            gap: 10px;
+            margin-bottom: 12px;
           }
           .db-community-title {
-            font-size: 1.65rem;
+            font-size: 1.45rem;
           }
           .db-community-lead {
-            font-size: 13.5px;
+            font-size: 13px;
             max-width: none;
           }
           .db-community-actions {
@@ -442,28 +461,28 @@ export default function CommunityFeedStyles() {
           }
           .db-community-cta {
             width: 100%;
-            padding: 12px 16px;
-            border-radius: 14px;
+            padding: 11px 14px;
+            border-radius: 12px;
             justify-content: center;
           }
           .db-community-filters {
-            padding: 12px;
-            gap: 10px;
-            border-radius: 14px;
+            padding: 10px;
+            gap: 8px;
+            border-radius: 12px;
           }
           .db-community-sort {
             overflow-x: auto;
             flex-wrap: nowrap;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
           }
           .db-community-sort::-webkit-scrollbar { display: none; }
           .db-sort-chip {
             flex: 0 0 auto;
           }
           .db-drafts-banner {
-            padding: 12px;
+            padding: 10px 12px;
           }
           .db-drafts-list {
             flex-direction: column;
@@ -471,35 +490,35 @@ export default function CommunityFeedStyles() {
           .db-drafts-list button {
             width: 100%;
             text-align: left;
-            border-radius: 12px;
+            border-radius: 10px;
           }
           .db-post-card {
-            padding: 14px;
-            border-radius: 14px;
-          }
-          .db-post-title { font-size: 16px; }
-          .db-post-footer {
-            flex-direction: row;
-            flex-wrap: wrap;
-            align-items: center;
+            grid-template-columns: 1fr;
             gap: 8px;
+            padding: 12px;
+          }
+          .db-post-title {
+            font-size: 14.5px;
+            white-space: normal;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+          }
+          .db-post-topic {
+            display: none;
           }
           .db-post-stats {
-            width: auto;
-            flex: 1 1 auto;
+            width: 100%;
             justify-content: flex-start;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding-top: 0;
+            gap: 12px;
+            border-top: 1px solid ${t.line};
+            padding-top: 8px;
+          }
+          .db-post-stats span {
+            min-width: 0;
           }
           .db-post-dm {
-            order: 0;
-            width: auto;
-            flex: 0 0 auto;
-            justify-content: center;
-            padding: 7px 12px;
-            border-radius: 999px;
-            font-size: 12px;
+            margin-right: auto;
           }
         }
       `}</style>

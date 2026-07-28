@@ -25,6 +25,13 @@ export default function PostCard({
   const authorId = post.authorId?._id;
   const canMessage =
     !post.isAnonymous && authorId && String(authorId) !== myId;
+  const authorName = post.isAnonymous
+    ? 'Anonymous Buddy'
+    : post.authorId?.name || 'Member';
+  const dateLabel = new Date(post.createdAt).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
 
   return (
     <article
@@ -39,106 +46,105 @@ export default function PostCard({
       role="link"
       tabIndex={0}
     >
-      <div className="db-post-meta-row">
-        <div className="db-post-badges">
-          {post.isPinned && (
-            <span className="db-badge db-badge--pin">
-              <Pin size={10} /> Pinned
+      <div className="db-post-card-main">
+        <div className="db-post-title-row">
+          {(post.isPinned || post.isLocked || hasBestAnswer) && (
+            <span className="db-post-badges">
+              {post.isPinned && (
+                <span className="db-badge db-badge--pin" title="Pinned">
+                  <Pin size={10} />
+                </span>
+              )}
+              {post.isLocked && (
+                <span className="db-badge db-badge--lock" title="Locked">
+                  <Lock size={10} />
+                </span>
+              )}
+              {hasBestAnswer && (
+                <span className="db-badge db-badge--solved" title="Solved">
+                  <Award size={10} />
+                </span>
+              )}
             </span>
           )}
-          {post.isLocked && (
-            <span className="db-badge db-badge--lock">
-              <Lock size={10} /> Locked
-            </span>
-          )}
-          {hasBestAnswer && (
-            <span className="db-badge db-badge--solved">
-              <Award size={10} /> Solved
-            </span>
-          )}
+          <h2 className="db-post-title">{post.title}</h2>
+          <span
+            className="db-post-topic"
+            style={{ color: postTopicColor, background: `${postTopicColor}18` }}
+          >
+            {post.topicId?.name || 'General'}
+          </span>
         </div>
-        <span
-          className="db-post-topic"
-          style={{ color: postTopicColor, background: `${postTopicColor}18` }}
-        >
-          {post.topicId?.name || 'General'}
-        </span>
-      </div>
 
-      <h2 className="db-post-title">{post.title}</h2>
-      <p className="db-post-excerpt">{post.content}</p>
+        {post.content ? (
+          <p className="db-post-excerpt">{post.content}</p>
+        ) : null}
 
-      <div className="db-post-footer">
-        <div
-          className="db-post-author"
-          role={!post.isAnonymous && authorId ? 'link' : undefined}
-          tabIndex={!post.isAnonymous && authorId ? 0 : undefined}
-          onClick={(e) => {
-            if (post.isAnonymous || !authorId) return;
-            e.stopPropagation();
-            onOpenAuthor(post.authorId);
-          }}
-          onKeyDown={(e) => {
-            if (post.isAnonymous || !authorId) return;
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
+        <div className="db-post-meta">
+          <div
+            className="db-post-author"
+            role={!post.isAnonymous && authorId ? 'link' : undefined}
+            tabIndex={!post.isAnonymous && authorId ? 0 : undefined}
+            onClick={(e) => {
+              if (post.isAnonymous || !authorId) return;
               e.stopPropagation();
               onOpenAuthor(post.authorId);
-            }
-          }}
-          style={{ cursor: !post.isAnonymous && authorId ? 'pointer' : 'default' }}
-        >
-          <div className="db-post-avatar">
-            {post.isAnonymous ? (
-              'A'
-            ) : post.authorId?.profileImageUrl ? (
-              <img src={post.authorId.profileImageUrl} alt="" />
-            ) : (
-              post.authorId?.name?.charAt(0).toUpperCase() || '?'
-            )}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <p className="db-post-author-name">
-              {post.isAnonymous ? 'Anonymous Buddy' : post.authorId?.name}
+            }}
+            onKeyDown={(e) => {
+              if (post.isAnonymous || !authorId) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                onOpenAuthor(post.authorId);
+              }
+            }}
+            style={{ cursor: !post.isAnonymous && authorId ? 'pointer' : 'default' }}
+          >
+            <div className="db-post-avatar">
+              {post.isAnonymous ? (
+                'A'
+              ) : post.authorId?.profileImageUrl ? (
+                <img src={post.authorId.profileImageUrl} alt="" />
+              ) : (
+                post.authorId?.name?.charAt(0).toUpperCase() || '?'
+              )}
+            </div>
+            <span className="db-post-author-name">
+              {authorName}
               {!post.isAnonymous && post.authorId?.isVerifiedProfessional && (
                 <span className="db-pro-tag">PRO</span>
               )}
-            </p>
-            <p className="db-post-date">
-              {!post.isAnonymous && post.authorId?.diabetesType
-                ? `${post.authorId.diabetesType} · `
-                : ''}
-              {new Date(post.createdAt).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-              })}
-            </p>
+            </span>
           </div>
+          <span className="db-post-meta-sep" aria-hidden>
+            ·
+          </span>
+          <span className="db-post-date">{dateLabel}</span>
         </div>
+      </div>
 
-        <div className="db-post-stats">
-          {canMessage && (
-            <button
-              type="button"
-              className="db-post-dm"
-              onClick={(e) => onStartDm(post.authorId, e)}
-              disabled={dmLoadingId === authorId}
-              aria-label={`Message ${post.authorId?.name || 'user'}`}
-            >
-              <MessageSquare size={14} />
-              <span>{dmLoadingId === authorId ? '…' : 'Message'}</span>
-            </button>
-          )}
-          <span>
-            <ThumbsUp size={14} /> {post.likesCount || 0}
-          </span>
-          <span>
-            <MessageSquare size={14} /> {post.commentsCount || 0}
-          </span>
-          <span>
-            <Eye size={14} /> {post.viewsCount || 0}
-          </span>
-        </div>
+      <div className="db-post-stats">
+        {canMessage && (
+          <button
+            type="button"
+            className="db-post-dm"
+            onClick={(e) => onStartDm(post.authorId, e)}
+            disabled={dmLoadingId === authorId}
+            aria-label={`Message ${post.authorId?.name || 'user'}`}
+          >
+            <MessageSquare size={13} />
+            <span>{dmLoadingId === authorId ? '…' : 'DM'}</span>
+          </button>
+        )}
+        <span title="Likes">
+          <ThumbsUp size={13} /> {post.likesCount || 0}
+        </span>
+        <span title="Comments">
+          <MessageSquare size={13} /> {post.commentsCount || 0}
+        </span>
+        <span title="Views">
+          <Eye size={13} /> {post.viewsCount || 0}
+        </span>
       </div>
     </article>
   );

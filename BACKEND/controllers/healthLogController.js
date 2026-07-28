@@ -4,9 +4,7 @@ const MealLog = require('../models/MealLog');
 const MedicationLog = require('../models/MedicationLog');
 const WaterLog = require('../models/WaterLog');
 const ExerciseLog = require('../models/ExerciseLog');
-const WeightLog = require('../models/WeightLog');
 const SleepLog = require('../models/SleepLog');
-const SymptomLog = require('../models/SymptomLog');
 const MoodLog = require('../models/MoodLog');
 
 // Helper to calculate glucose status
@@ -56,9 +54,7 @@ exports.getTimeline = async (req, res) => {
       medication: { model: MedicationLog, type: 'Medication' },
       water: { model: WaterLog, type: 'Water' },
       exercise: { model: ExerciseLog, type: 'Exercise' },
-      weight: { model: WeightLog, type: 'Weight' },
       sleep: { model: SleepLog, type: 'Sleep' },
-      symptoms: { model: SymptomLog, type: 'Symptoms' },
       mood: { model: MoodLog, type: 'Mood' },
     };
 
@@ -95,7 +91,7 @@ exports.getTimeline = async (req, res) => {
           } else if (type === 'Meal') {
             title = log.mealType;
             subtitle = log.foodItems;
-            valueStr = `${log.calories || 0} kcal • ${log.carbohydrates || 0}g Carbs`;
+            valueStr = `${log.carbohydrates || 0} g carbs`;
             color = 'orange';
           } else if (type === 'Medication') {
             title = log.medicineName;
@@ -112,21 +108,11 @@ exports.getTimeline = async (req, res) => {
             subtitle = `${log.duration} mins • ${log.intensity} Intensity`;
             valueStr = log.caloriesBurned ? `${log.caloriesBurned} kcal` : '';
             color = 'emerald';
-          } else if (type === 'Weight') {
-            title = `${log.weight} kg`;
-            subtitle = log.bmi ? `BMI: ${log.bmi.toFixed(1)}` : 'Weight Log';
-            valueStr = log.bodyFat ? `Fat: ${log.bodyFat}%` : '';
-            color = 'purple';
           } else if (type === 'Sleep') {
             title = `${log.totalHours.toFixed(1)} Hours`;
             subtitle = `Quality: ${log.quality}`;
             valueStr = `${new Date(log.sleepTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(log.wakeTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
             color = 'indigo';
-          } else if (type === 'Symptoms') {
-            title = log.symptoms.join(', ');
-            subtitle = `Severity: ${log.severity}/10`;
-            valueStr = 'Symptom Log';
-            color = log.severity > 6 ? 'red' : log.severity > 3 ? 'yellow' : 'green';
           } else if (type === 'Mood') {
             const moodLabel = {
               Great: 'Very Happy',
@@ -250,11 +236,7 @@ exports.getTodaySummary = async (req, res) => {
     const sleepLogs = await SleepLog.find(todayQuery).sort({ timestamp: -1 });
     const sleepHours = sleepLogs[0] ? sleepLogs[0].totalHours : 0;
 
-    // 8. Latest weight in the database
-    const latestWeightLog = await WeightLog.findOne({ userId }).sort({ timestamp: -1 });
-    const latestWeight = latestWeightLog ? latestWeightLog.weight : null;
-
-    // 9. Mood today
+    // 8. Mood today
     const moodLogs = await MoodLog.find(todayQuery).sort({ timestamp: -1 });
     const moodToday = moodLogs[0] ? moodLogs[0].mood : null;
 
@@ -268,7 +250,6 @@ exports.getTodaySummary = async (req, res) => {
         water: { value: waterTotal, goal: 2000 }, // default 2L
         exercise: { value: exerciseTotal, goal: 30 }, // default 30 mins
         sleep: { value: sleepHours, goal: 8 },
-        weight: { value: latestWeight },
         mood: { value: moodToday },
       },
     });
@@ -293,14 +274,13 @@ exports.getStats = async (req, res) => {
     };
 
     // Parallel fetch logs of last N days
-    const [glucose, meals, insulin, water, exercise, sleep, weight] = await Promise.all([
+    const [glucose, meals, insulin, water, exercise, sleep] = await Promise.all([
       GlucoseLog.find(query).sort({ timestamp: 1 }),
       MealLog.find(query).sort({ timestamp: 1 }),
       InsulinLog.find(query).sort({ timestamp: 1 }),
       WaterLog.find(query).sort({ timestamp: 1 }),
       ExerciseLog.find(query).sort({ timestamp: 1 }),
       SleepLog.find(query).sort({ timestamp: 1 }),
-      WeightLog.find({ userId }).sort({ timestamp: 1 }), // weights get entire history for trends
     ]);
 
     // Compute averages
@@ -319,12 +299,6 @@ exports.getStats = async (req, res) => {
     const sleepHours = sleep.map((s) => s.totalHours);
     const avgSleep = sleepHours.length ? parseFloat((sleepHours.reduce((s, v) => s + v, 0) / sleepHours.length).toFixed(1)) : null;
 
-    // Weight difference (latest weight - weight at start of period)
-    let weightChange = 0;
-    if (weight.length > 1) {
-      weightChange = parseFloat((weight[weight.length - 1].weight - weight[0].weight).toFixed(1));
-    }
-
     res.json({
       status: 'success',
       data: {
@@ -338,7 +312,6 @@ exports.getStats = async (req, res) => {
           totalWater,
           totalExercise,
           avgSleep,
-          weightChange,
         },
         charts: {
           glucose: glucose.map((g) => ({
@@ -372,11 +345,6 @@ exports.getStats = async (req, res) => {
             date: new Date(s.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' }),
             hours: s.totalHours,
             quality: s.quality,
-          })),
-          weight: weight.slice(-10).map((w) => ({ // last 10 readings
-            date: new Date(w.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' }),
-            weight: w.weight,
-            bmi: w.bmi,
           })),
         },
       },
@@ -434,7 +402,7 @@ exports.getInsights = async (req, res) => {
     // 4. Default Insights
     if (insights.length === 0) {
       insights.push('Your fasting glucose has remained stable and in range this week.');
-      insights.push('Keep up the good work logging your meals and symptoms!');
+      insights.push('Keep up the good work logging your meals and activity!');
     }
 
     // Return a curated list of recommendations
@@ -795,56 +763,6 @@ exports.deleteExercise = async (req, res) => {
 };
 
 // ==========================================
-// WEIGHT CRUD
-// ==========================================
-exports.createWeight = async (req, res) => {
-  try {
-    const { weight, bmi, bodyFat, notes, timestamp } = req.body;
-    const log = new WeightLog({
-      userId: req.user.id,
-      weight: Number(weight),
-      bmi: bmi ? Number(bmi) : undefined,
-      bodyFat: bodyFat ? Number(bodyFat) : undefined,
-      notes,
-      timestamp: timestamp ? new Date(timestamp) : new Date(),
-    });
-    await log.save();
-    res.status(201).json({ status: 'success', data: log });
-  } catch (err) {
-    res.status(400).json({ status: 'error', message: 'Failed to log weight', error: err.message });
-  }
-};
-
-exports.updateWeight = async (req, res) => {
-  try {
-    const { weight, bmi, bodyFat, notes, timestamp } = req.body;
-    const log = await WeightLog.findOne({ _id: req.params.id, userId: req.user.id });
-    if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
-
-    if (weight !== undefined) log.weight = Number(weight);
-    if (bmi !== undefined) log.bmi = bmi ? Number(bmi) : undefined;
-    if (bodyFat !== undefined) log.bodyFat = bodyFat ? Number(bodyFat) : undefined;
-    if (notes !== undefined) log.notes = notes;
-    if (timestamp !== undefined) log.timestamp = new Date(timestamp);
-
-    await log.save();
-    res.json({ status: 'success', data: log });
-  } catch (err) {
-    res.status(400).json({ status: 'error', message: 'Failed to update weight log', error: err.message });
-  }
-};
-
-exports.deleteWeight = async (req, res) => {
-  try {
-    const log = await WeightLog.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
-    if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
-    res.json({ status: 'success', message: 'Log deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ status: 'error', message: 'Failed to delete weight log', error: err.message });
-  }
-};
-
-// ==========================================
 // SLEEP CRUD
 // ==========================================
 exports.createSleep = async (req, res) => {
@@ -899,54 +817,6 @@ exports.deleteSleep = async (req, res) => {
     res.json({ status: 'success', message: 'Log deleted successfully' });
   } catch (err) {
     res.status(500).json({ status: 'error', message: 'Failed to delete sleep log', error: err.message });
-  }
-};
-
-// ==========================================
-// SYMPTOMS CRUD
-// ==========================================
-exports.createSymptoms = async (req, res) => {
-  try {
-    const { symptoms, severity, notes, timestamp } = req.body;
-    const log = new SymptomLog({
-      userId: req.user.id,
-      symptoms,
-      severity: Number(severity),
-      notes,
-      timestamp: timestamp ? new Date(timestamp) : new Date(),
-    });
-    await log.save();
-    res.status(201).json({ status: 'success', data: log });
-  } catch (err) {
-    res.status(400).json({ status: 'error', message: 'Failed to log symptoms', error: err.message });
-  }
-};
-
-exports.updateSymptoms = async (req, res) => {
-  try {
-    const { symptoms, severity, notes, timestamp } = req.body;
-    const log = await SymptomLog.findOne({ _id: req.params.id, userId: req.user.id });
-    if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
-
-    if (symptoms !== undefined) log.symptoms = symptoms;
-    if (severity !== undefined) log.severity = Number(severity);
-    if (notes !== undefined) log.notes = notes;
-    if (timestamp !== undefined) log.timestamp = new Date(timestamp);
-
-    await log.save();
-    res.json({ status: 'success', data: log });
-  } catch (err) {
-    res.status(400).json({ status: 'error', message: 'Failed to update symptom log', error: err.message });
-  }
-};
-
-exports.deleteSymptoms = async (req, res) => {
-  try {
-    const log = await SymptomLog.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
-    if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
-    res.json({ status: 'success', message: 'Log deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ status: 'error', message: 'Failed to delete symptom log', error: err.message });
   }
 };
 

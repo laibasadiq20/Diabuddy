@@ -25,7 +25,7 @@ export default function CommunityFeed() {
       <AppSidebar />
 
       <main style={{ flexGrow: 1, minWidth: 0, padding: '28px 24px 72px' }} className="db-community-main">
-        <div className="db-community" style={{ maxWidth: 720, margin: '0 auto' }}>
+        <div className="db-community" style={{ maxWidth: 820, margin: '0 auto' }}>
           <FeedHeader
             onNewPost={() => f.navigate('/community/new-post')}
           />
