@@ -64,25 +64,6 @@ export default function CommunityFeedStyles() {
           border: 1.5px solid ${t.forest};
           box-shadow: none;
         }
-        .db-post-dm {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          border: 1px solid ${t.forest};
-          background: ${t.forest};
-          color: #fff;
-          border-radius: 8px;
-          padding: 4px 8px;
-          font-size: 11px;
-          font-weight: 600;
-          cursor: pointer;
-          font-family: ${t.fontBody};
-          line-height: 1;
-        }
-        .db-post-dm:disabled {
-          opacity: 0.7;
-          cursor: wait;
-        }
         .db-community-search {
           position: relative;
           margin-bottom: 10px;
@@ -269,7 +250,12 @@ export default function CommunityFeedStyles() {
           border-radius: 4px;
           flex-shrink: 0;
           white-space: nowrap;
+        }
+        .db-post-topic--desktop {
           margin-left: auto;
+        }
+        .db-post-topic--mobile {
+          display: none;
         }
         .db-post-title {
           font-size: 15px;
@@ -357,6 +343,14 @@ export default function CommunityFeedStyles() {
           margin: 0;
           white-space: nowrap;
         }
+        .db-post-aside {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 8px;
+          flex-shrink: 0;
+          padding-top: 2px;
+        }
         .db-post-stats {
           display: flex;
           align-items: center;
@@ -364,7 +358,6 @@ export default function CommunityFeedStyles() {
           gap: 10px;
           color: ${t.inkSoft};
           font-size: 12px;
-          padding-top: 2px;
           white-space: nowrap;
         }
         .db-post-stats span {
@@ -372,6 +365,26 @@ export default function CommunityFeedStyles() {
           align-items: center;
           gap: 3px;
           min-width: 2.25rem;
+        }
+        .db-post-dm {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          border: 1px solid ${t.forest};
+          background: ${t.forest};
+          color: #fff;
+          border-radius: 8px;
+          padding: 5px 10px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: ${t.fontBody};
+          line-height: 1;
+        }
+        .db-post-dm:disabled {
+          opacity: 0.7;
+          cursor: wait;
         }
         .db-community-state {
           background: #fff;
@@ -465,6 +478,11 @@ export default function CommunityFeedStyles() {
             border-radius: 12px;
             justify-content: center;
           }
+          .db-community-search input {
+            font-size: 16px;
+            padding: 11px 12px 11px 38px;
+            border-radius: 12px;
+          }
           .db-community-filters {
             padding: 10px;
             gap: 8px;
@@ -481,6 +499,10 @@ export default function CommunityFeedStyles() {
           .db-sort-chip {
             flex: 0 0 auto;
           }
+          .db-community-topics {
+            margin: 0 -2px;
+            padding: 0 2px 2px;
+          }
           .db-drafts-banner {
             padding: 10px 12px;
           }
@@ -492,33 +514,67 @@ export default function CommunityFeedStyles() {
             text-align: left;
             border-radius: 10px;
           }
+          .db-community-feed {
+            border-radius: 12px;
+          }
           .db-post-card {
             grid-template-columns: 1fr;
-            gap: 8px;
+            gap: 10px;
             padding: 12px;
           }
+          .db-post-title-row {
+            align-items: flex-start;
+            margin-bottom: 6px;
+          }
           .db-post-title {
-            font-size: 14.5px;
+            font-size: 15px;
             white-space: normal;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
+            line-height: 1.35;
           }
-          .db-post-topic {
+          .db-post-topic--desktop {
             display: none;
+          }
+          .db-post-topic--mobile {
+            display: inline-flex;
+            margin-left: 2px;
+          }
+          .db-post-excerpt {
+            -webkit-line-clamp: 2;
+            margin-bottom: 8px;
+          }
+          .db-post-aside {
+            width: 100%;
+            align-items: stretch;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px solid ${t.line};
           }
           .db-post-stats {
             width: 100%;
             justify-content: flex-start;
-            gap: 12px;
-            border-top: 1px solid ${t.line};
-            padding-top: 8px;
+            gap: 14px;
           }
           .db-post-stats span {
             min-width: 0;
           }
           .db-post-dm {
-            margin-right: auto;
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+          }
+          .db-community-pager {
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 12px;
+          }
+          .db-community-pager button {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 10px 12px;
           }
         }
       `}</style>

@@ -69,7 +69,7 @@ export default function PostCard({
           )}
           <h2 className="db-post-title">{post.title}</h2>
           <span
-            className="db-post-topic"
+            className="db-post-topic db-post-topic--desktop"
             style={{ color: postTopicColor, background: `${postTopicColor}18` }}
           >
             {post.topicId?.name || 'General'}
@@ -120,10 +120,27 @@ export default function PostCard({
             ·
           </span>
           <span className="db-post-date">{dateLabel}</span>
+          <span
+            className="db-post-topic db-post-topic--mobile"
+            style={{ color: postTopicColor, background: `${postTopicColor}18` }}
+          >
+            {post.topicId?.name || 'General'}
+          </span>
         </div>
       </div>
 
-      <div className="db-post-stats">
+      <div className="db-post-aside">
+        <div className="db-post-stats">
+          <span title="Likes">
+            <ThumbsUp size={13} /> {post.likesCount || 0}
+          </span>
+          <span title="Comments">
+            <MessageSquare size={13} /> {post.commentsCount || 0}
+          </span>
+          <span title="Views">
+            <Eye size={13} /> {post.viewsCount || 0}
+          </span>
+        </div>
         {canMessage && (
           <button
             type="button"
@@ -136,15 +153,6 @@ export default function PostCard({
             <span>{dmLoadingId === authorId ? '…' : 'DM'}</span>
           </button>
         )}
-        <span title="Likes">
-          <ThumbsUp size={13} /> {post.likesCount || 0}
-        </span>
-        <span title="Comments">
-          <MessageSquare size={13} /> {post.commentsCount || 0}
-        </span>
-        <span title="Views">
-          <Eye size={13} /> {post.viewsCount || 0}
-        </span>
       </div>
     </article>
   );
