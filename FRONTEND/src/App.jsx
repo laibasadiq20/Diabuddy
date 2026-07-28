@@ -29,6 +29,7 @@ import Logs from './pages/Logs/Logs';
 import LogTypePage from './pages/Logs/LogTypePage';
 import Fitbit from './pages/Fitbit/Fitbit';
 import Reminders from './pages/Reminders/Reminders';
+import Reports from './pages/Reports/Reports';
 
 // ProtectedRoute wrapper to guard private paths
 function ProtectedRoute({ children, adminOnly = false }) {
@@ -93,6 +94,7 @@ function App() {
         <Route path="/toolbox" element={<ProtectedRoute><Toolbox /></ProtectedRoute>} />
         <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
         <Route path="/logs/:typeId" element={<ProtectedRoute><LogTypePage /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/fitbit" element={<ProtectedRoute><Fitbit /></ProtectedRoute>} />
         <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />

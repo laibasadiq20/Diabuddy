@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
 const healthLogController = require('../controllers/healthLogController');
+const healthReportController = require('../controllers/healthReportController');
 
 // All health log endpoints require authentication
 router.use(protect);
@@ -11,6 +12,7 @@ router.get('/timeline', healthLogController.getTimeline);
 router.get('/summary', healthLogController.getTodaySummary);
 router.get('/stats', healthLogController.getStats);
 router.get('/insights', healthLogController.getInsights);
+router.get('/report', healthReportController.getHealthReport);
 
 // Glucose Log CRUD
 router.post('/glucose', healthLogController.createGlucose);

@@ -19,6 +19,7 @@ import {
   MessageSquare,
   BellRing,
   BadgeCheck,
+  BarChart3,
 } from 'lucide-react';
 
 const t = theme;
@@ -26,6 +27,7 @@ const t = theme;
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Logs', path: '/logs', icon: ClipboardList },
+  { label: 'Reports', path: '/reports', icon: BarChart3 },
   { label: 'Community', path: '/community', icon: Users },
   { label: 'Messages', path: '/messages', icon: MessageSquare },
   { label: 'Toolbox', path: '/toolbox', icon: Wrench },

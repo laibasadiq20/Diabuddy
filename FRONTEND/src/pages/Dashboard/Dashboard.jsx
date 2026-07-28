@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Droplets,
   PlusCircle,
+  BarChart3,
 } from 'lucide-react';
 
 const t = theme;
@@ -256,6 +257,21 @@ export default function Dashboard() {
               <span className="db-dash-action-body">
                 <span className="db-dash-action-title">Quick glucose</span>
                 <span className="db-dash-action-desc">Add a reading in one tap</span>
+              </span>
+              <ArrowRight size={18} color={t.inkFaint} />
+            </button>
+
+            <button
+              type="button"
+              className="db-dash-action db-dash-action--quiet"
+              onClick={() => navigate('/reports')}
+            >
+              <span className="db-dash-action-icon" style={{ background: t.skySoft, color: t.skyDeep }}>
+                <BarChart3 size={20} strokeWidth={1.75} />
+              </span>
+              <span className="db-dash-action-body">
+                <span className="db-dash-action-title">Health reports</span>
+                <span className="db-dash-action-desc">7-day, 30-day, 3-month & compare</span>
               </span>
               <ArrowRight size={18} color={t.inkFaint} />
             </button>
