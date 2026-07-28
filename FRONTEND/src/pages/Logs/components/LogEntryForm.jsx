@@ -924,6 +924,7 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
     customType: '',
     duration: '30',
     distance: '',
+    steps: '',
     caloriesBurned: '',
     intensity: 'Moderate',
     notes: '',
@@ -939,6 +940,7 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
       customType: known ? '' : activity === 'Walking' ? '' : activity,
       duration: initialRaw?.duration != null ? String(initialRaw.duration) : '30',
       distance: initialRaw?.distance ? String(initialRaw.distance) : '',
+      steps: initialRaw?.steps ? String(initialRaw.steps) : '',
       caloriesBurned: initialRaw?.caloriesBurned ? String(initialRaw.caloriesBurned) : '',
       intensity: intensityFromApi[initialRaw?.intensity] || 'Moderate',
       notes: initialRaw?.notes || '',
@@ -966,6 +968,7 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
           exerciseType: activityName,
           duration: Number(form.duration),
           distance: form.distance === '' ? 0 : Number(form.distance),
+          steps: form.steps === '' ? 0 : Number(form.steps),
           caloriesBurned: form.caloriesBurned === '' ? 0 : Number(form.caloriesBurned),
           intensity: intensityToApi[form.intensity] || 'Medium',
           source: 'Manual',
@@ -1121,6 +1124,19 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
           />
           <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>km</span>
         </div>
+      </Field>
+
+      <Field title="Steps (optional)" help="Add steps from a walk or pedometer — shown on your dashboard.">
+        <input
+          type="number"
+          min="0"
+          step="1"
+          inputMode="numeric"
+          value={form.steps}
+          onChange={(e) => setForm({ ...form, steps: e.target.value })}
+          style={field}
+          placeholder="e.g. 4500"
+        />
       </Field>
 
       <Field title="Date & time">

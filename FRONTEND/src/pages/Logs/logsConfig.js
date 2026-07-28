@@ -68,7 +68,7 @@ export const LOG_TYPES = [
     icon: Dumbbell,
     hubLine: 'Log type, duration, intensity, distance, and calories.',
     why: 'Activity records help you see how exercise relates to glucose and energy.',
-    how: 'Choose activity type, duration, and intensity. Add distance or calories if you have them.',
+    how: 'Choose activity type, duration, and intensity. Add steps, distance, or calories if you have them.',
   },
   {
     id: 'sleep',

@@ -240,9 +240,10 @@ exports.getTodaySummary = async (req, res) => {
     const waterLogs = await WaterLog.find(todayQuery);
     const waterTotal = waterLogs.reduce((sum, log) => sum + log.amount, 0);
 
-    // 6. Exercise Minutes total
+    // 6. Exercise Minutes + steps
     const exerciseLogs = await ExerciseLog.find(todayQuery);
-    const exerciseTotal = exerciseLogs.reduce((sum, log) => sum + log.duration, 0);
+    const exerciseTotal = exerciseLogs.reduce((sum, log) => sum + (Number(log.duration) || 0), 0);
+    const stepsTotal = exerciseLogs.reduce((sum, log) => sum + (Number(log.steps) || 0), 0);
 
     // 7. Sleep Hours
     const sleepLogs = await SleepLog.find(todayQuery).sort({ timestamp: -1 });
@@ -261,6 +262,7 @@ exports.getTodaySummary = async (req, res) => {
         medications: { value: medsTaken },
         water: { value: waterTotal, goal: 2000 }, // default 2L
         exercise: { value: exerciseTotal, goal: 30 }, // default 30 mins
+        steps: { value: stepsTotal, goal: 8000 },
         sleep: { value: sleepHours, goal: 8 },
         mood: { value: moodToday },
       },
@@ -779,12 +781,13 @@ exports.deleteWater = async (req, res) => {
 // ==========================================
 exports.createExercise = async (req, res) => {
   try {
-    const { exerciseType, duration, distance, caloriesBurned, intensity, notes, source, timestamp } = req.body;
+    const { exerciseType, duration, distance, steps, caloriesBurned, intensity, notes, source, timestamp } = req.body;
     const log = new ExerciseLog({
       userId: req.user.id,
       activity: exerciseType,
       duration: Number(duration),
       distance: Number(distance || 0),
+      steps: Number(steps || 0),
       caloriesBurned: Number(caloriesBurned || 0),
       intensity,
       notes,
@@ -800,13 +803,14 @@ exports.createExercise = async (req, res) => {
 
 exports.updateExercise = async (req, res) => {
   try {
-    const { exerciseType, duration, distance, caloriesBurned, intensity, notes, timestamp } = req.body;
+    const { exerciseType, duration, distance, steps, caloriesBurned, intensity, notes, timestamp } = req.body;
     const log = await ExerciseLog.findOne({ _id: req.params.id, userId: req.user.id });
     if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
 
     if (exerciseType !== undefined) log.activity = exerciseType;
     if (duration !== undefined) log.duration = Number(duration);
     if (distance !== undefined) log.distance = Number(distance || 0);
+    if (steps !== undefined) log.steps = Number(steps || 0);
     if (caloriesBurned !== undefined) log.caloriesBurned = Number(caloriesBurned || 0);
     if (intensity !== undefined) log.intensity = intensity;
     if (notes !== undefined) log.notes = notes;

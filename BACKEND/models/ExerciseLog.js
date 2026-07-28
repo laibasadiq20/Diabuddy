@@ -24,6 +24,11 @@ const exerciseLogSchema = new mongoose.Schema(
       default: 0,
       min: [0, 'Distance cannot be negative'],
     },
+    steps: {
+      type: Number,
+      default: 0,
+      min: [0, 'Steps cannot be negative'],
+    },
     caloriesBurned: {
       type: Number,
       min: [0, 'Calories burned cannot be negative'],
