@@ -9,7 +9,7 @@ import { LOG_TYPES } from './logsConfig';
 
 const t = theme;
 
-const PRIORITY_IDS = ['glucose', 'meal', 'insulin', 'medication'];
+const PRIORITY_IDS = ['glucose', 'meal', 'insulin', 'medication', 'exercise'];
 
 function typeStatus(summary, typeId) {
   if (!summary) return { done: false, detail: '' };
@@ -174,13 +174,28 @@ export default function Logs() {
                 </div>
               </div>
               {streak.last7?.length > 0 && (
-                <div className="db-logs-streak-dots" aria-hidden>
-                  {streak.last7.map((d) => (
-                    <span
-                      key={d.date}
-                      className={`db-logs-dot${d.logged ? ' is-on' : ''}${d.isToday ? ' is-today' : ''}`}
-                    />
-                  ))}
+                <div className="db-logs-week" aria-label="Logging activity this week">
+                  <span className="db-logs-week-label">This week</span>
+                  <div className="db-logs-week-days">
+                    {streak.last7.map((d) => {
+                      const weekday = new Date(`${d.date}T12:00:00`).toLocaleDateString(undefined, {
+                        weekday: 'narrow',
+                      });
+                      const status = d.logged ? 'Logged' : d.isToday ? 'Today — not yet' : 'Missed';
+                      return (
+                        <div
+                          key={d.date}
+                          className={`db-logs-day${d.logged ? ' is-on' : ''}${d.isToday ? ' is-today' : ''}`}
+                          title={status}
+                        >
+                          <span className="db-logs-day-mark" aria-hidden>
+                            {d.logged ? '✓' : d.isToday ? '·' : ''}
+                          </span>
+                          <span className="db-logs-day-name">{weekday}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -205,13 +220,13 @@ export default function Logs() {
 
           <section className="db-logs-hub-section">
             <h2 className="db-logs-hub-section-title">Most used</h2>
-            <p className="db-logs-hub-section-note">Glucose, meals, insulin, and medications</p>
+            <p className="db-logs-hub-section-note">Glucose, meals, insulin, medications, and activity</p>
             <div className="db-logs-hub-list">{priority.map((item) => renderCard(item, true))}</div>
           </section>
 
           <section className="db-logs-hub-section">
             <h2 className="db-logs-hub-section-title">Lifestyle</h2>
-            <p className="db-logs-hub-section-note">Water, activity, sleep, and mood</p>
+            <p className="db-logs-hub-section-note">Water, sleep, and mood</p>
             <div className="db-logs-hub-list">{more.map((item) => renderCard(item))}</div>
           </section>
         </div>
@@ -261,13 +276,13 @@ export default function Logs() {
         }
         .db-logs-streak {
           margin: 16px 0 0;
-          padding: 12px 14px;
-          border-radius: 12px;
+          padding: 14px;
+          border-radius: 14px;
           border: 1px solid ${t.lineStrong};
           background: #fff;
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 14px;
         }
         .db-logs-streak.is-risk {
           border-color: ${t.clay}55;
@@ -292,19 +307,76 @@ export default function Logs() {
           line-height: 1.4;
         }
         .db-logs-streak.is-risk .db-logs-streak-main p { color: ${t.clayDeep}; }
-        .db-logs-streak-dots {
+        .db-logs-week {
           display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .db-logs-week-label {
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: ${t.inkFaint};
+        }
+        .db-logs-week-days {
+          display: grid;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
           gap: 6px;
         }
-        .db-logs-dot {
-          flex: 1;
-          height: 7px;
-          border-radius: 999px;
-          background: ${t.line};
+        .db-logs-day {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          min-width: 0;
         }
-        .db-logs-dot.is-on { background: ${t.sage}; }
-        .db-logs-streak.is-risk .db-logs-dot.is-on { background: ${t.clay}; }
-        .db-logs-dot.is-today { outline: 2px solid ${t.forest}; outline-offset: 1px; }
+        .db-logs-day-mark {
+          width: 100%;
+          aspect-ratio: 1;
+          max-width: 36px;
+          border-radius: 10px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1;
+          background: ${t.surfaceSunken};
+          color: transparent;
+          border: 1px solid transparent;
+        }
+        .db-logs-day.is-on .db-logs-day-mark {
+          background: ${t.sageSoft};
+          color: ${t.sageDeep};
+        }
+        .db-logs-streak.is-risk .db-logs-day.is-on .db-logs-day-mark {
+          background: ${t.claySoft};
+          color: ${t.clayDeep};
+        }
+        .db-logs-day.is-today:not(.is-on) .db-logs-day-mark {
+          background: #fff;
+          border-color: ${t.forest};
+          color: ${t.forest};
+          box-shadow: inset 0 0 0 1px ${t.forest}22;
+        }
+        .db-logs-day-name {
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          color: ${t.inkFaint};
+          text-transform: uppercase;
+        }
+        .db-logs-day.is-today .db-logs-day-name {
+          color: ${t.forest};
+        }
+        @media (max-width: 420px) {
+          .db-logs-week-days { gap: 4px; }
+          .db-logs-day-mark {
+            border-radius: 8px;
+            font-size: 11px;
+          }
+        }
         .db-logs-hub-strip {
           display: flex;
           flex-wrap: wrap;
