@@ -15,9 +15,8 @@ import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
 import {
+  AlertTriangle,
   ArrowRight,
-  BarChart3,
-  Bell,
   ClipboardList,
   Droplets,
   Dumbbell,
@@ -25,13 +24,12 @@ import {
   Footprints,
   GlassWater,
   Lightbulb,
-  MessageSquare,
   Pill,
   Syringe,
   Target,
   Users,
   Utensils,
-  Wrench,
+  Watch,
 } from 'lucide-react';
 
 const t = theme;
@@ -169,6 +167,39 @@ export default function Dashboard() {
         : `${waterToday} ml`
       : '—';
 
+  const waterPct = Math.min(100, Math.round((waterToday / waterGoal) * 100));
+  const stepsPct = Math.min(100, Math.round((stepsToday / stepsGoal) * 100));
+
+  const nextAction = useMemo(() => {
+    if (loading) return null;
+    if (!glucoseCount) {
+      return { label: 'Log a glucose reading', path: '/logs/glucose' };
+    }
+    if (!mealsToday && hour >= 11) {
+      return { label: 'Add a meal when you eat', path: '/logs/meal' };
+    }
+    if (mealsToday > 0 && !insulinToday && hour >= 12) {
+      return { label: 'Log insulin if you took a dose', path: '/logs/insulin' };
+    }
+    if (waterToday < waterGoal * 0.4) {
+      return { label: 'Log water toward your daily goal', path: '/logs/water' };
+    }
+    if (!exerciseToday && stepsToday === 0 && hour >= 16) {
+      return { label: 'Log activity or connect a watch for steps', path: '/logs/exercise' };
+    }
+    return { label: 'Review your weekly report', path: '/reports' };
+  }, [
+    loading,
+    glucoseCount,
+    mealsToday,
+    insulinToday,
+    waterToday,
+    waterGoal,
+    exerciseToday,
+    stepsToday,
+    hour,
+  ]);
+
   return (
     <div className="db-home">
       <AppSidebar />
@@ -193,64 +224,123 @@ export default function Dashboard() {
             </button>
           </header>
 
+          {streak?.atRisk && (
+            <button
+              type="button"
+              className="db-home-alert"
+              onClick={() => navigate('/logs')}
+            >
+              <AlertTriangle size={16} />
+              <span>
+                <strong>{streak.currentStreak}-day streak at risk.</strong>
+                {' '}Log anything today to keep it.
+              </span>
+              <ArrowRight size={14} />
+            </button>
+          )}
+
+          {nextAction && (
+            <button
+              type="button"
+              className="db-home-next"
+              onClick={() => navigate(nextAction.path)}
+            >
+              <span>Next</span>
+              <strong>{nextAction.label}</strong>
+              <ArrowRight size={14} />
+            </button>
+          )}
+
           <section className="db-home-glance" aria-label="Today at a glance">
+            <p className="db-home-kicker">Today at a glance</p>
             <div className="db-home-glance-grid">
               <button type="button" className="db-home-glance-card" onClick={() => navigate('/logs/glucose')}>
-                <span className="db-home-glance-label">
-                  <Droplets size={14} /> Glucose
+                <span className="db-home-glance-icon" style={{ background: t.skySoft, color: t.skyDeep }}>
+                  <Droplets size={16} />
                 </span>
+                <span className="db-home-glance-label">Glucose</span>
                 <strong>
                   {latestGlucose != null ? latestGlucose : '—'}
                   {latestGlucose != null ? <small>mg/dL</small> : null}
                 </strong>
                 <span className="db-home-glance-sub">
-                  {glucoseCount > 0 ? `${glucoseCount} today` : 'No reading'}
+                  {glucoseCount > 0 ? `${glucoseCount} reading${glucoseCount === 1 ? '' : 's'}` : 'No reading yet'}
                 </span>
               </button>
 
               <button type="button" className="db-home-glance-card" onClick={() => navigate('/reports')}>
-                <span className="db-home-glance-label">
-                  <Target size={14} /> Time in range
+                <span className="db-home-glance-icon" style={{ background: t.sageSoft, color: t.sageDeep }}>
+                  <Target size={16} />
                 </span>
+                <span className="db-home-glance-label">Time in range</span>
                 <strong>{tir != null ? `${tir}%` : '—'}</strong>
-                <span className="db-home-glance-sub">{TIR_LOW}–{TIR_HIGH} · 7d</span>
+                <span className="db-home-glance-sub">{TIR_LOW}–{TIR_HIGH} mg/dL · 7 days</span>
               </button>
 
               <button type="button" className="db-home-glance-card" onClick={() => navigate('/logs/exercise')}>
-                <span className="db-home-glance-label">
-                  <Footprints size={14} /> Steps
+                <span className="db-home-glance-icon" style={{ background: t.goldSoft, color: t.gold }}>
+                  <Footprints size={16} />
                 </span>
+                <span className="db-home-glance-label">Steps</span>
                 <strong>{formatSteps(stepsToday)}</strong>
                 <span className="db-home-glance-sub">
-                  {stepsToday > 0 ? `goal ${stepsGoal.toLocaleString()}` : 'From activity log'}
+                  {stepsToday > 0
+                    ? `of ${stepsGoal.toLocaleString()} goal`
+                    : 'Manual activity or watch'}
+                </span>
+                <span className="db-home-glance-bar" aria-hidden>
+                  <span style={{ width: `${stepsPct}%` }} />
                 </span>
               </button>
 
               <button type="button" className="db-home-glance-card" onClick={() => navigate('/logs/water')}>
-                <span className="db-home-glance-label">
-                  <GlassWater size={14} /> Water
+                <span className="db-home-glance-icon" style={{ background: t.skyTint, color: t.sky }}>
+                  <GlassWater size={16} />
                 </span>
+                <span className="db-home-glance-label">Water</span>
                 <strong>
-                  {waterToday > 0 ? (waterToday >= 1000 ? (waterToday / 1000).toFixed(1) : waterToday) : '—'}
+                  {waterToday > 0 ? (waterToday >= 1000 ? `${(waterToday / 1000).toFixed(1)}` : waterToday) : '—'}
                   {waterToday > 0 ? <small>{waterToday >= 1000 ? 'L' : 'ml'}</small> : null}
                 </strong>
-                <span className="db-home-glance-sub">goal {(waterGoal / 1000).toFixed(1)} L</span>
+                <span className="db-home-glance-sub">of {(waterGoal / 1000).toFixed(1)} L goal</span>
+                <span className="db-home-glance-bar" aria-hidden>
+                  <span style={{ width: `${waterPct}%` }} />
+                </span>
               </button>
 
               <button type="button" className="db-home-glance-card" onClick={() => navigate('/logs')}>
-                <span className="db-home-glance-label">
-                  <Flame size={14} /> Streak
+                <span className="db-home-glance-icon" style={{ background: t.claySoft, color: t.clayDeep }}>
+                  <Flame size={16} />
                 </span>
+                <span className="db-home-glance-label">Streak</span>
                 <strong>
                   {streak?.currentStreak ?? 0}
                   <small>days</small>
                 </strong>
                 <span className="db-home-glance-sub">
-                  {streak?.atRisk ? 'At risk today' : streak?.currentStreak ? 'Active' : 'Start today'}
+                  {streak?.atRisk ? 'At risk — log today' : streak?.currentStreak ? 'Keep it going' : 'Start today'}
                 </span>
               </button>
             </div>
           </section>
+
+          <button
+            type="button"
+            className="db-home-watch"
+            onClick={() => navigate('/fitbit')}
+          >
+            <span className="db-home-watch-icon">
+              <Watch size={18} strokeWidth={1.75} />
+            </span>
+            <span className="db-home-watch-copy">
+              <strong>Connect smartwatch</strong>
+              <em>Auto steps later — use Activity log for now.</em>
+            </span>
+            <span className="db-home-watch-cta">
+              Soon
+              <ArrowRight size={14} />
+            </span>
+          </button>
 
           <div className="db-home-mid">
             <section className="db-home-chart-card" aria-label="Glucose trend">
@@ -420,32 +510,6 @@ export default function Dashboard() {
               </span>
             </button>
           </div>
-
-          <section className="db-home-actions" aria-label="Quick actions">
-            <p className="db-home-kicker">Navigate</p>
-            <div className="db-home-action-row">
-              <button type="button" className="db-home-action" onClick={() => navigate('/logs')}>
-                <ClipboardList size={16} />
-                Logs
-              </button>
-              <button type="button" className="db-home-action" onClick={() => navigate('/reports')}>
-                <BarChart3 size={16} />
-                Reports
-              </button>
-              <button type="button" className="db-home-action" onClick={() => navigate('/messages')}>
-                <MessageSquare size={16} />
-                Messages
-              </button>
-              <button type="button" className="db-home-action" onClick={() => navigate('/reminders')}>
-                <Bell size={16} />
-                Reminders
-              </button>
-              <button type="button" className="db-home-action" onClick={() => navigate('/toolbox')}>
-                <Wrench size={16} />
-                Toolbox
-              </button>
-            </div>
-          </section>
         </div>
       </main>
 
@@ -522,38 +586,96 @@ export default function Dashboard() {
           min-height: 44px;
         }
 
-        .db-home-glance {
-          margin-bottom: 16px;
-          background: #fff;
-          border: 1px solid ${t.lineStrong};
-          border-radius: 18px;
-          padding: 4px;
-          box-shadow: ${t.shadowCard};
+        .db-home-alert {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          text-align: left;
+          margin-bottom: 10px;
+          padding: 11px 14px;
+          border-radius: 12px;
+          border: 1px solid ${t.clay}55;
+          background: ${t.claySoft};
+          color: ${t.clayDeep};
+          cursor: pointer;
+          font-family: ${t.fontBody};
+          font-size: 13px;
+          line-height: 1.4;
         }
+        .db-home-alert svg:first-child { flex-shrink: 0; }
+        .db-home-alert span { flex: 1; min-width: 0; }
+        .db-home-alert strong { font-weight: 700; }
+        .db-home-alert svg:last-child { flex-shrink: 0; opacity: 0.7; }
+
+        .db-home-next {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          text-align: left;
+          margin-bottom: 16px;
+          padding: 10px 14px;
+          border-radius: 12px;
+          border: 1px solid ${t.line};
+          background: rgba(255, 255, 255, 0.72);
+          cursor: pointer;
+          font-family: ${t.fontBody};
+        }
+        .db-home-next > span:first-child {
+          flex-shrink: 0;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: ${t.inkFaint};
+        }
+        .db-home-next strong {
+          flex: 1;
+          min-width: 0;
+          font-size: 13px;
+          font-weight: 600;
+          color: ${t.ink};
+        }
+        .db-home-next svg {
+          flex-shrink: 0;
+          color: ${t.forest};
+        }
+
+        .db-home-glance { margin-bottom: 14px; }
         .db-home-glance-grid {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 10px;
         }
         .db-home-glance-card {
+          position: relative;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
           gap: 6px;
           text-align: left;
           padding: 14px 14px 16px;
-          border: none;
-          border-right: 1px solid ${t.line};
-          background: transparent;
+          border-radius: 16px;
+          border: 1px solid ${t.lineStrong};
+          background: rgba(255, 255, 255, 0.92);
           cursor: pointer;
           font-family: ${t.fontBody};
           min-width: 0;
-          border-radius: 14px;
+          box-shadow: ${t.shadowCard};
+          transition: border-color 0.15s ease;
+          overflow: hidden;
         }
-        .db-home-glance-card:last-child { border-right: none; }
-        .db-home-glance-label {
+        .db-home-glance-icon {
+          width: 30px;
+          height: 30px;
+          border-radius: 9px;
           display: inline-flex;
           align-items: center;
-          gap: 6px;
+          justify-content: center;
+          margin-bottom: 2px;
+        }
+        .db-home-glance-label {
           font-size: 11px;
           font-weight: 700;
           letter-spacing: 0.04em;
@@ -561,10 +683,10 @@ export default function Dashboard() {
           color: ${t.inkFaint};
         }
         .db-home-glance-card strong {
-          font-size: 24px;
+          font-size: 22px;
           font-weight: 700;
-          letter-spacing: -0.03em;
-          line-height: 1.05;
+          letter-spacing: -0.02em;
+          line-height: 1.1;
           color: ${t.ink};
         }
         .db-home-glance-card strong small {
@@ -576,6 +698,75 @@ export default function Dashboard() {
         .db-home-glance-sub {
           font-size: 11px;
           color: ${t.inkSoft};
+          line-height: 1.35;
+        }
+        .db-home-glance-bar {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 3px;
+          background: ${t.line};
+        }
+        .db-home-glance-bar > span {
+          display: block;
+          height: 100%;
+          background: ${t.sage};
+          border-radius: 0 2px 0 0;
+          max-width: 100%;
+        }
+
+        .db-home-watch {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          text-align: left;
+          margin-bottom: 16px;
+          padding: 11px 14px;
+          border-radius: 14px;
+          border: 1px solid ${t.gold}40;
+          background: linear-gradient(100deg, ${t.goldTint} 0%, #fff 58%);
+          cursor: pointer;
+          font-family: ${t.fontBody};
+        }
+        .db-home-watch-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 11px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: ${t.goldSoft};
+          color: ${t.gold};
+          flex-shrink: 0;
+        }
+        .db-home-watch-copy {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .db-home-watch-copy strong {
+          font-size: 13px;
+          font-weight: 700;
+          color: ${t.ink};
+        }
+        .db-home-watch-copy em {
+          font-style: normal;
+          font-size: 12px;
+          color: ${t.inkSoft};
+          line-height: 1.35;
+        }
+        .db-home-watch-cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          flex-shrink: 0;
+          font-size: 12px;
+          font-weight: 700;
+          color: ${t.gold};
         }
 
         .db-home-mid {
@@ -587,8 +778,7 @@ export default function Dashboard() {
         }
         .db-home-chart-card,
         .db-home-today-panel,
-        .db-home-panel,
-        .db-home-actions {
+        .db-home-panel {
           background: #fff;
           border: 1px solid ${t.lineStrong};
           border-radius: 18px;
@@ -623,10 +813,12 @@ export default function Dashboard() {
           cursor: pointer;
           font-family: ${t.fontBody};
           padding: 2px 0;
+          min-height: 36px;
         }
         .db-home-chart-body {
           height: 250px;
           width: 100%;
+          min-width: 0;
         }
         .db-home-chart-empty {
           height: 220px;
@@ -639,6 +831,8 @@ export default function Dashboard() {
           font-size: 13px;
           background: ${t.surfaceSunken};
           border-radius: 12px;
+          padding: 16px;
+          text-align: center;
         }
         .db-home-chart-empty button {
           border: none;
@@ -650,6 +844,7 @@ export default function Dashboard() {
           font-size: 13px;
           cursor: pointer;
           font-family: ${t.fontBody};
+          min-height: 40px;
         }
         .db-home-chart-footnote {
           margin: 10px 0 0;
@@ -816,76 +1011,81 @@ export default function Dashboard() {
           color: ${t.forest};
           font-size: 13px;
           font-weight: 700;
-        }
-
-        .db-home-actions {
-          padding-top: 14px;
-          padding-bottom: 14px;
-        }
-        .db-home-action-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .db-home-action {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          border: 1px solid ${t.lineStrong};
-          background: ${t.surfaceSunken};
-          color: ${t.ink};
-          border-radius: 999px;
-          padding: 10px 14px;
-          font-size: 13px;
-          font-weight: 650;
-          cursor: pointer;
-          font-family: ${t.fontBody};
           min-height: 40px;
         }
 
         @media (hover: hover) and (pointer: fine) {
-          .db-home-glance-card:hover { background: ${t.surfaceSunken}; }
-          .db-home-today-cell:hover,
-          .db-home-action:hover { border-color: ${t.forest}; }
+          .db-home-glance-card:hover { border-color: ${t.forest}; }
+          .db-home-watch:hover { border-color: ${t.gold}; }
+          .db-home-today-cell:hover { border-color: ${t.forest}; }
           .db-home-hero-cta:hover { background: ${t.forestDeep}; }
+          .db-home-alert:hover { border-color: ${t.clay}; }
+          .db-home-next:hover { border-color: ${t.forest}; }
           .db-home-community-fill:hover .db-home-community-cta {
             background: ${t.peachSoft};
           }
         }
 
+        @media (max-width: 1100px) {
+          .db-home-glance-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+          .db-home-glance-grid .db-home-glance-card:nth-child(4),
+          .db-home-glance-grid .db-home-glance-card:nth-child(5) {
+            grid-column: span 1;
+          }
+        }
         @media (max-width: 960px) {
           .db-home-mid,
           .db-home-duo { grid-template-columns: 1fr; }
-          .db-home-glance-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-          .db-home-glance-card:nth-child(3) { border-right: none; }
-          .db-home-glance-card:nth-child(n + 4) {
-            border-top: 1px solid ${t.line};
-          }
-          .db-home-glance-card:nth-child(5) { border-right: none; }
+          .db-home-mid { gap: 12px; }
+          .db-home-panel--insights,
+          .db-home-community-fill { min-height: 0; }
         }
-        @media (max-width: 640px) {
+        @media (max-width: 720px) {
           .db-home-main {
             padding: 16px 14px calc(112px + env(safe-area-inset-bottom, 0px));
           }
           .db-home-hero {
             flex-direction: column;
             align-items: stretch;
+            gap: 12px;
+            margin-bottom: 14px;
+            padding-bottom: 14px;
           }
+          .db-home-hero h1 { font-size: clamp(26px, 7vw, 34px); }
+          .db-home-lead { max-width: none; font-size: 13px; }
           .db-home-hero-cta { width: 100%; justify-content: center; }
-          .db-home-glance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .db-home-glance-card {
-            border-right: 1px solid ${t.line};
-            border-top: none;
+          .db-home-glance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+          .db-home-glance-grid .db-home-glance-card:last-child { grid-column: 1 / -1; }
+          .db-home-glance-card { padding: 12px 12px 14px; }
+          .db-home-glance-card strong { font-size: 20px; }
+          .db-home-alert,
+          .db-home-next { padding: 12px; }
+          .db-home-watch {
+            gap: 10px;
+            padding: 12px;
           }
-          .db-home-glance-card:nth-child(2n) { border-right: none; }
-          .db-home-glance-card:nth-child(n + 3) { border-top: 1px solid ${t.line}; }
-          .db-home-glance-card:last-child {
-            grid-column: 1 / -1;
-            border-right: none;
-          }
+          .db-home-watch-cta { display: none; }
+          .db-home-chart-card,
+          .db-home-today-panel,
+          .db-home-panel { padding: 14px; border-radius: 16px; }
+          .db-home-card-head h2 { font-size: 20px; }
           .db-home-chart-body { height: 200px; }
-          .db-home-community-fill { min-height: 200px; }
-          .db-home-action { flex: 1 1 calc(50% - 8px); justify-content: center; }
+          .db-home-chart-empty { height: 180px; }
+          .db-home-today-cell { min-height: 84px; padding: 12px; }
+          .db-home-community-fill {
+            min-height: 0;
+            padding: 16px;
+            border-radius: 16px;
+          }
+          .db-home-community-fill h2 { max-width: none; }
+          .db-home-community-fill > p { max-width: none; }
+        }
+        @media (max-width: 380px) {
+          .db-home-main { padding-left: 12px; padding-right: 12px; }
+          .db-home-glance-card strong { font-size: 18px; }
+          .db-home-today-grid { gap: 6px; }
+          .db-home-today-cell { min-height: 78px; padding: 10px; }
+          .db-home-today-cell strong { font-size: 18px; }
         }
       `}</style>
     </div>
