@@ -61,18 +61,3 @@ export const theme = {
   shadowCard: '0 1px 2px rgba(43,42,40,0.04), 0 8px 24px rgba(43,42,40,0.06)',
   shadowLifted: '0 4px 12px rgba(43,42,40,0.06), 0 16px 40px rgba(43,42,40,0.08)',
 };
-
-// Convenience status -> color mapping used across logs/badges
-export const statusColor = (status) => {
-  switch (status) {
-    case 'high':
-    case 'low':
-    case 'alert':
-      return { fg: theme.clayDeep, bg: theme.claySoft, border: theme.clay + '40' };
-    case 'time':
-      return { fg: theme.goldDeep || theme.gold, bg: theme.goldSoft, border: theme.gold + '40' };
-    case 'ok':
-    default:
-      return { fg: theme.sageDeep, bg: theme.sageSoft, border: theme.sage + '40' };
-  }
-};

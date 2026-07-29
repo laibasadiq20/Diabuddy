@@ -10,8 +10,6 @@ router.use(protect);
 // Dashboards, timelines, and statistics
 router.get('/timeline', healthLogController.getTimeline);
 router.get('/summary', healthLogController.getTodaySummary);
-router.get('/stats', healthLogController.getStats);
-router.get('/insights', healthLogController.getInsights);
 router.get('/report', healthReportController.getHealthReport);
 router.get('/streak', healthReportController.getLoggingStreak);
 

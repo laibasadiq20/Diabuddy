@@ -1,69 +1,84 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import ScrollToTop from './components/ScrollToTop';
-
 import { useAuth } from './context/AuthContext';
 
+// Eager: first paint / auth (small, always needed)
 import LandingPage from './pages/LandingPage/LandingPage';
 import AuthFlipCard from './pages/login/AuthFlipCard';
 import VerifyOtp from './pages/login/VerifyOtp';
 import ForgotPassword from './pages/login/ForgotPassword';
 import ResetPassword from './pages/login/ResetPassword';
 
-import WarningSignsPage from './pages/LandingPage/sections/Learn/WarningSignsPage';
-import DiabetesTypesPage from './pages/LandingPage/sections/Learn/DiabetesTypesPage';
-import BlogPage from './pages/LandingPage/sections/Learn/BlogPage';
-import RiskAssessment from './pages/LandingPage/sections/Learn/RiskAssessment';
+// Lazy: app modules load only when the route is opened
+const WarningSignsPage = lazy(() => import('./pages/LandingPage/sections/Learn/WarningSignsPage'));
+const DiabetesTypesPage = lazy(() => import('./pages/LandingPage/sections/Learn/DiabetesTypesPage'));
+const BlogPage = lazy(() => import('./pages/LandingPage/sections/Learn/BlogPage'));
+const RiskAssessment = lazy(() => import('./pages/LandingPage/sections/Learn/RiskAssessment'));
 
-import Dashboard from './pages/Dashboard/Dashboard';
-import CommunityFeed from './pages/Community/CommunityFeed';
-import PostDetails from './pages/Community/PostDetails';
-import NewPost from './pages/Community/NewPost';
-import UserProfile from './pages/Community/UserProfile';
-import Messages from './pages/Messages/Messages';
-import Notifications from './pages/Notifications/Notifications';
-import Account from './pages/Account/Account';
-import AdminReports from './pages/Admin/AdminReports';
-import Toolbox from './pages/Toolbox/Toolbox';
-import Logs from './pages/Logs/Logs';
-import LogTypePage from './pages/Logs/LogTypePage';
-import Fitbit from './pages/Fitbit/Fitbit';
-import Reminders from './pages/Reminders/Reminders';
-import Reports from './pages/Reports/Reports';
+const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
+const CommunityFeed = lazy(() => import('./pages/Community/CommunityFeed'));
+const PostDetails = lazy(() => import('./pages/Community/PostDetails'));
+const NewPost = lazy(() => import('./pages/Community/NewPost'));
+const UserProfile = lazy(() => import('./pages/Community/UserProfile'));
+const Messages = lazy(() => import('./pages/Messages/Messages'));
+const Notifications = lazy(() => import('./pages/Notifications/Notifications'));
+const Account = lazy(() => import('./pages/Account/Account'));
+const AdminReports = lazy(() => import('./pages/Admin/AdminReports'));
+const Toolbox = lazy(() => import('./pages/Toolbox/Toolbox'));
+const Logs = lazy(() => import('./pages/Logs/Logs'));
+const LogTypePage = lazy(() => import('./pages/Logs/LogTypePage'));
+const Fitbit = lazy(() => import('./pages/Fitbit/Fitbit'));
+const Reminders = lazy(() => import('./pages/Reminders/Reminders'));
+const Reports = lazy(() => import('./pages/Reports/Reports'));
 
-// ProtectedRoute wrapper to guard private paths
+function RouteFallback() {
+  return (
+    <div
+      style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#F7F3EC',
+      }}
+    >
+      <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", color: '#6B6660', margin: 0 }}>
+        Loading…
+      </p>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  
+
   if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7F3EC' }}>
-        <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", color: '#6B6660' }}>Loading profile...</p>
-      </div>
-    );
+    return <RouteFallback />;
   }
-  
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  
+
   if (adminOnly && user.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Admins belong in the console, not the patient dashboard / health modules
   const patientModule =
     location.pathname === '/dashboard' ||
     location.pathname.startsWith('/logs') ||
     location.pathname === '/fitbit' ||
     location.pathname === '/reminders' ||
-    location.pathname === '/toolbox';
+    location.pathname === '/toolbox' ||
+    location.pathname === '/reports';
 
   if (user.role === 'admin' && !adminOnly && patientModule) {
     return <Navigate to="/admin" replace />;
   }
-  
+
   return children;
 }
 
@@ -71,43 +86,42 @@ function App() {
   return (
     <Router>
       <ScrollToTop />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/register" element={<AuthFlipCard startFlipped />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-otp" element={<VerifyOtp />} />
-        <Route path="/learn/warning-signs" element={<WarningSignsPage />} />
-        <Route path="/learn/diabetes-types" element={<DiabetesTypesPage />} />
-        <Route path="/learn/risk-assessment" element={<RiskAssessment />} />
-        <Route path="/learn/blog" element={<BlogPage />} />
-        <Route path="/login" element={<AuthFlipCard />} />
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/register" element={<AuthFlipCard startFlipped />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-otp" element={<VerifyOtp />} />
+          <Route path="/learn/warning-signs" element={<WarningSignsPage />} />
+          <Route path="/learn/diabetes-types" element={<DiabetesTypesPage />} />
+          <Route path="/learn/risk-assessment" element={<RiskAssessment />} />
+          <Route path="/learn/blog" element={<BlogPage />} />
+          <Route path="/login" element={<AuthFlipCard />} />
 
-        {/* Private Protected Routes */}
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/community" element={<ProtectedRoute><CommunityFeed /></ProtectedRoute>} />
-        <Route path="/community/new-post" element={<ProtectedRoute><NewPost /></ProtectedRoute>} />
-        <Route path="/community/posts/:id" element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
-        <Route path="/users/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-        <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-        <Route path="/toolbox" element={<ProtectedRoute><Toolbox /></ProtectedRoute>} />
-        <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
-        <Route path="/logs/:typeId" element={<ProtectedRoute><LogTypePage /></ProtectedRoute>} />
-        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-        <Route path="/fitbit" element={<ProtectedRoute><Fitbit /></ProtectedRoute>} />
-        <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
-        <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
-        
-        {/* Admin console */}
-        <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminReports /></ProtectedRoute>} />
-        <Route path="/admin/reports" element={<ProtectedRoute adminOnly={true}><AdminReports /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/community" element={<ProtectedRoute><CommunityFeed /></ProtectedRoute>} />
+          <Route path="/community/new-post" element={<ProtectedRoute><NewPost /></ProtectedRoute>} />
+          <Route path="/community/posts/:id" element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
+          <Route path="/users/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/toolbox" element={<ProtectedRoute><Toolbox /></ProtectedRoute>} />
+          <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
+          <Route path="/logs/:typeId" element={<ProtectedRoute><LogTypePage /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/fitbit" element={<ProtectedRoute><Fitbit /></ProtectedRoute>} />
+          <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
+          <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="/admin" element={<ProtectedRoute adminOnly><AdminReports /></ProtectedRoute>} />
+          <Route path="/admin/reports" element={<ProtectedRoute adminOnly><AdminReports /></ProtectedRoute>} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }
-
 
 export default App;

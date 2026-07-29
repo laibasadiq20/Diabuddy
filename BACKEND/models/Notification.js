@@ -22,7 +22,6 @@ const notificationSchema = new mongoose.Schema(
         'comment_reply',
         'new_comment',
         'new_message',
-        'mention',
         'best_answer_selected',
         'new_report',
         'moderation_notice',
