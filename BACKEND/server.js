@@ -122,6 +122,9 @@ app.use('/api/upload', uploadRoutes);
 const healthLogRoutes = require('./routes/healthLogRoutes');
 app.use('/api/health-logs', healthLogRoutes);
 
+const googleHealthRoutes = require('./routes/googleHealthRoutes');
+app.use('/api/google-health', googleHealthRoutes);
+
 // Test / health routes
 app.get('/api/test', (req, res) => {
   res.json({

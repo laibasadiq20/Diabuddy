@@ -334,7 +334,7 @@ export default function Dashboard() {
             </span>
             <span className="db-home-watch-copy">
               <strong>Connect smartwatch</strong>
-              <em>Auto steps later — use Activity log for now.</em>
+              <em>Google Health sync for steps — or log activity by hand.</em>
             </span>
             <span className="db-home-watch-cta">
               Soon

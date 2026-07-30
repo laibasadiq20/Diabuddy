@@ -64,6 +64,15 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    googleHealth: {
+      connected: { type: Boolean, default: false },
+      accessToken: { type: String, default: '' },
+      refreshToken: { type: String, default: '' },
+      tokenExpiresAt: { type: Date },
+      lastSyncAt: { type: Date },
+      lastSteps: { type: Number, default: 0 },
+    },
+    // Legacy field kept empty; tokens live under googleHealth
     fitbit: {
       connected: { type: Boolean, default: false },
       accessToken: { type: String, default: '' },
@@ -193,13 +202,17 @@ likesReceived: {
   }
 );
 
-// Never return passwordHash or fitbit tokens in JSON responses
+// Never return passwordHash or wearable tokens in JSON responses
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.passwordHash;
   if (user.fitbit) {
     delete user.fitbit.accessToken;
     delete user.fitbit.refreshToken;
+  }
+  if (user.googleHealth) {
+    delete user.googleHealth.accessToken;
+    delete user.googleHealth.refreshToken;
   }
   return user;
 };

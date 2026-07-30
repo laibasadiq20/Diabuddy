@@ -1,13 +1,111 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { theme } from '../../theme';
+import { API_URL } from '../../config/api';
+import { useAuth } from '../../context/AuthContext';
 import AppSidebar from '../../components/AppSidebar';
-import { ArrowLeft, Watch } from 'lucide-react';
+import { ArrowLeft, Link2Off, RefreshCw, Watch } from 'lucide-react';
 
 const t = theme;
 
 export default function Fitbit() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, authHeaders } = useAuth();
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const loadStatus = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_URL}/google-health/status`, {
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.status === 'success') {
+        setStatus(data.data);
+      } else {
+        setError(data.message || 'Could not load connection status');
+      }
+    } catch (err) {
+      setError(err.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStatus();
+  }, [user]);
+
+  useEffect(() => {
+    const connected = searchParams.get('connected');
+    const err = searchParams.get('error');
+    if (connected === '1') {
+      setMessage('Google Health connected. You can sync steps now.');
+      setSearchParams({}, { replace: true });
+      loadStatus();
+    } else if (err) {
+      setError(decodeURIComponent(err));
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams]);
+
+  const connect = () => {
+    // Full navigation so Google OAuth redirect works with session cookie
+    window.location.href = `${API_URL}/google-health/connect`;
+  };
+
+  const sync = async () => {
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const res = await fetch(`${API_URL}/google-health/sync`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.status !== 'success') {
+        throw new Error(data.message || 'Sync failed');
+      }
+      setMessage(`Synced ${Number(data.data?.steps || 0).toLocaleString()} steps for today.`);
+      await loadStatus();
+    } catch (err) {
+      setError(err.message || 'Sync failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disconnect = async () => {
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const res = await fetch(`${API_URL}/google-health/disconnect`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Disconnect failed');
+      setMessage('Disconnected from Google Health.');
+      await loadStatus();
+    } catch (err) {
+      setError(err.message || 'Disconnect failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const connected = Boolean(status?.connected);
+  const configured = status?.configured !== false;
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
@@ -27,7 +125,7 @@ export default function Fitbit() {
               color: t.inkSoft,
               fontSize: 13,
               fontWeight: 600,
-              cursor: pointer,
+              cursor: 'pointer',
               fontFamily: t.fontBody,
               padding: 0,
             }}
@@ -42,8 +140,19 @@ export default function Fitbit() {
             Connect smartwatch
           </h1>
           <p style={{ margin: '8px 0 24px', fontSize: 14, color: t.inkSoft, lineHeight: 1.5 }}>
-            Sync steps and activity automatically. Until this is ready, you can still log steps manually in Activity.
+            Sync steps through Google Health (works with Fitbit accounts linked to Google). You can still log activity manually anytime.
           </p>
+
+          {message && (
+            <p style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 12, background: t.sageSoft, color: t.sageDeep, fontSize: 13 }}>
+              {message}
+            </p>
+          )}
+          {error && (
+            <p style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 12, background: t.claySoft, color: t.clayDeep, fontSize: 13 }}>
+              {error}
+            </p>
+          )}
 
           <div
             style={{
@@ -70,49 +179,119 @@ export default function Fitbit() {
             >
               <Watch size={28} />
             </span>
-            <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: 17, color: t.ink }}>
-              Coming soon
-            </p>
-            <p style={{ margin: '0 0 20px', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-              Fitbit (and other watches) will connect here later. For now, add steps when you log exercise.
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-              <button
-                type="button"
-                disabled
-                style={{
-                  padding: '12px 22px',
-                  borderRadius: 999,
-                  border: 'none',
-                  background: t.forest,
-                  color: '#FFF',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  opacity: 0.55,
-                  cursor: 'not-allowed',
-                  fontFamily: t.fontBody,
-                }}
-              >
-                Connect watch — soon
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/logs/exercise')}
-                style={{
-                  padding: '12px 22px',
-                  borderRadius: 999,
-                  border: `1.5px solid ${t.lineStrong}`,
-                  background: '#FFF',
-                  color: t.ink,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  cursor: 'pointer',
-                  fontFamily: t.fontBody,
-                }}
-              >
-                Log activity manually
-              </button>
-            </div>
+
+            {loading ? (
+              <p style={{ margin: 0, color: t.inkSoft, fontSize: 14 }}>Checking connection…</p>
+            ) : !configured ? (
+              <>
+                <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: 17, color: t.ink }}>
+                  Not configured
+                </p>
+                <p style={{ margin: '0 0 20px', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
+                  Add Google OAuth env vars on the server, then restart.
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: 17, color: t.ink }}>
+                  {connected ? 'Google Health connected' : 'Connect with Google'}
+                </p>
+                <p style={{ margin: '0 0 8px', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
+                  {connected
+                    ? status?.lastSyncAt
+                      ? `Last sync: ${new Date(status.lastSyncAt).toLocaleString()} · ${Number(status.lastSteps || 0).toLocaleString()} steps`
+                      : 'Connected — sync to pull today’s steps.'
+                    : 'Sign in with Google to allow DiaBuddy to read activity and steps.'}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 16 }}>
+                  {!connected ? (
+                    <button
+                      type="button"
+                      onClick={connect}
+                      disabled={busy}
+                      style={{
+                        padding: '12px 22px',
+                        borderRadius: 999,
+                        border: 'none',
+                        background: t.forest,
+                        color: '#FFF',
+                        fontWeight: 700,
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        fontFamily: t.fontBody,
+                      }}
+                    >
+                      Connect Google Health
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={sync}
+                        disabled={busy}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '12px 22px',
+                          borderRadius: 999,
+                          border: 'none',
+                          background: t.forest,
+                          color: '#FFF',
+                          fontWeight: 700,
+                          fontSize: 14,
+                          cursor: busy ? 'wait' : 'pointer',
+                          fontFamily: t.fontBody,
+                          opacity: busy ? 0.7 : 1,
+                        }}
+                      >
+                        <RefreshCw size={16} />
+                        Sync steps
+                      </button>
+                      <button
+                        type="button"
+                        onClick={disconnect}
+                        disabled={busy}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '12px 22px',
+                          borderRadius: 999,
+                          border: `1.5px solid ${t.lineStrong}`,
+                          background: '#FFF',
+                          color: t.ink,
+                          fontWeight: 700,
+                          fontSize: 14,
+                          cursor: busy ? 'wait' : 'pointer',
+                          fontFamily: t.fontBody,
+                        }}
+                      >
+                        <Link2Off size={16} />
+                        Disconnect
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/logs/exercise')}
+                    style={{
+                      padding: '12px 22px',
+                      borderRadius: 999,
+                      border: `1.5px solid ${t.lineStrong}`,
+                      background: '#FFF',
+                      color: t.ink,
+                      fontWeight: 700,
+                      fontSize: 14,
+                      cursor: 'pointer',
+                      fontFamily: t.fontBody,
+                    }}
+                  >
+                    Log activity manually
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </main>

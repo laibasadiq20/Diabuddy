@@ -46,7 +46,7 @@ const exerciseLogSchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      enum: ['Manual', 'Fitbit'],
+      enum: ['Manual', 'Fitbit', 'GoogleHealth'],
       default: 'Manual',
     },
     fitbitLogId: {
