@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme';
 import { API_URL } from '../config/api';
+import AlarmPopupModal from './AlarmPopupModal';
 import {
   LayoutDashboard,
   Users,
@@ -26,6 +27,7 @@ const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Logs', path: '/logs', icon: ClipboardList },
   { label: 'Reports', path: '/reports', icon: BarChart3 },
+  { label: 'Reminders', path: '/reminders', icon: BellRing },
   { label: 'Community', path: '/community', icon: Users },
   { label: 'Messages', path: '/messages', icon: MessageSquare },
   { label: 'Toolbox', path: '/toolbox', icon: Wrench },
@@ -749,6 +751,8 @@ export default function AppSidebar() {
           </div>
         </div>
       )}
+
+      <AlarmPopupModal />
     </>
   );
 }

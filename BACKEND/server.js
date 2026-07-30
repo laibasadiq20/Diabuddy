@@ -124,6 +124,11 @@ app.use('/api/health-logs', healthLogRoutes);
 
 const googleHealthRoutes = require('./routes/googleHealthRoutes');
 app.use('/api/google-health', googleHealthRoutes);
+const reminderRoutes = require('./routes/reminderRoutes');
+app.use('/api/reminders', reminderRoutes);
+
+const { initReminderScheduler } = require('./utils/reminderScheduler');
+initReminderScheduler();
 
 // Test / health routes
 app.get('/api/test', (req, res) => {

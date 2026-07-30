@@ -25,6 +25,7 @@ const notificationSchema = new mongoose.Schema(
         'best_answer_selected',
         'new_report',
         'moderation_notice',
+        'reminder',
       ],
       required: true,
     },

@@ -18,13 +18,18 @@ import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
 import {
   AlertTriangle,
   ArrowRight,
+  Calendar,
+  CheckCircle2,
+  Circle,
   ClipboardList,
-  Droplets,
+  Clock,
   Dumbbell,
   Flame,
   Footprints,
   GlassWater,
   Lightbulb,
+  MessageSquare,
+  Moon,
   Pill,
   Syringe,
   Target,
@@ -60,7 +65,27 @@ export default function Dashboard() {
   const [weekReport, setWeekReport] = useState(null);
   const [streak, setStreak] = useState(null);
   const [latestPost, setLatestPost] = useState(null);
+  const [todayReminders, setTodayReminders] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const toggleReminderComplete = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/reminders/${id}/complete`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        const updated = data.data;
+        setTodayReminders((prev) =>
+          prev.map((r) => (r.id === id || r._id === id ? updated : r))
+        );
+      }
+    } catch (err) {
+      console.error('Toggle complete error:', err);
+    }
+  };
 
   const firstName = user?.name?.split(' ')[0] || 'Buddy';
   const hour = new Date().getHours();
@@ -108,7 +133,7 @@ export default function Dashboard() {
       try {
         const headers = { ...authHeaders() };
         const tzOffset = new Date().getTimezoneOffset();
-        const [sumRes, reportRes, streakRes, postRes] = await Promise.all([
+        const [sumRes, reportRes, streakRes, postRes, remRes] = await Promise.all([
           fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, {
             credentials: 'include',
             headers,
@@ -122,6 +147,10 @@ export default function Dashboard() {
             headers,
           }),
           fetch(`${API_URL}/posts?sort=latest&page=1&limit=1`, {
+            credentials: 'include',
+            headers,
+          }),
+          fetch(`${API_URL}/reminders/today`, {
             credentials: 'include',
             headers,
           }),
@@ -144,6 +173,10 @@ export default function Dashboard() {
         if (postRes.ok) {
           const data = await postRes.json();
           setLatestPost(data?.posts?.[0] || null);
+        }
+        if (remRes.ok) {
+          const data = await remRes.json();
+          if (data?.status === 'success') setTodayReminders(data.data || []);
         }
       } catch (err) {
         console.error(err);
@@ -456,6 +489,92 @@ export default function Dashboard() {
                   <strong>All</strong>
                   <span>Open logs</span>
                 </button>
+              </div>
+
+              {/* Today's Reminders Card */}
+              <div className="db-home-panel">
+                <header className="db-home-card-head">
+                  <div>
+                    <p className="db-home-kicker">Reminders</p>
+                    <h2>Today's Schedule</h2>
+                  </div>
+                  <button type="button" className="db-home-text-link" onClick={() => navigate('/reminders')}>
+                    Manage
+                    <ArrowRight size={14} />
+                  </button>
+                </header>
+
+                {todayReminders.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {todayReminders.map((r) => {
+                      const isComp = r.isCompletedToday;
+                      const iconName = r.icon || '💊';
+                      const titleLower = (r.title || '').toLowerCase();
+                      let iconEl = <Bell size={15} />;
+                      if (iconName === '💉' || titleLower.includes('insulin')) iconEl = <Syringe size={15} />;
+                      else if (iconName === '💊' || titleLower.includes('med')) iconEl = <Pill size={15} />;
+                      else if (iconName === '🩸' || titleLower.includes('glucose')) iconEl = <Droplets size={15} />;
+                      else if (iconName === '🌙' || titleLower.includes('bed')) iconEl = <Moon size={15} />;
+                      else if (iconName === '📅' || titleLower.includes('doctor')) iconEl = <Calendar size={15} />;
+
+                      let timeStr = 'Not Set';
+                      if (r.time && /^([01]\d|2[0-3]):([0-5]\d)$/.test(r.time)) {
+                        const [h, m] = r.time.split(':').map(Number);
+                        const period = h >= 12 ? 'PM' : 'AM';
+                        const h12 = h % 12 || 12;
+                        timeStr = `${h12}:${m.toString().padStart(2, '0')} ${period}`;
+                      }
+
+                      return (
+                        <div
+                          key={r.id || r._id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justify: 'space-between',
+                            gap: 10,
+                            padding: '10px 12px',
+                            borderRadius: 12,
+                            border: `1px solid ${t.line}`,
+                            background: isComp ? t.sageTint : t.surfaceSunken,
+                            opacity: isComp ? 0.75 : 1,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            <span style={{ color: isComp ? t.sageDeep : t.ink, display: 'flex' }}>{iconEl}</span>
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: t.ink, textDecoration: isComp ? 'line-through' : 'none' }}>
+                                {r.title}
+                              </p>
+                              <p style={{ margin: '1px 0 0', fontSize: 11, color: t.inkSoft }}>
+                                {timeStr}
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => toggleReminderComplete(r.id || r._id)}
+                            style={{
+                              border: 'none',
+                              background: 'none',
+                              cursor: 'pointer',
+                              color: isComp ? t.sageDeep : t.inkFaint,
+                              padding: 4,
+                              display: 'flex',
+                              alignItems: 'center',
+                            }}
+                            title={isComp ? 'Mark as Pending' : 'Mark as Completed'}
+                          >
+                            {isComp ? <CheckCircle2 size={20} color={t.sageDeep} /> : <Circle size={20} color={t.lineStrong} />}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="db-home-empty-note">No active reminders scheduled for today.</p>
+                )}
               </div>
             </section>
           </div>

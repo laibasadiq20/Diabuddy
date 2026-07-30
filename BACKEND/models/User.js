@@ -167,6 +167,14 @@ likesReceived: {
   type: Number,
   default: 0,
 },
+
+pushSubscription: {
+  endpoint: { type: String, default: '' },
+  keys: {
+    p256dh: { type: String, default: '' },
+    auth: { type: String, default: '' },
+  },
+},
   },
   {
     timestamps: true,

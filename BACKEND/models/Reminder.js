@@ -8,36 +8,61 @@ const reminderSchema = new mongoose.Schema(
       required: [true, 'User ID is required'],
       index: true,
     },
-    type: {
-      type: String,
-      enum: ['Insulin', 'Glucose Check', 'Medication', 'Custom'],
-      required: [true, 'Reminder type is required'],
-    },
     title: {
       type: String,
       required: [true, 'Reminder title is required'],
       trim: true,
       maxlength: [100, 'Title cannot exceed 100 characters'],
     },
+    type: {
+      type: String,
+      enum: ['default', 'custom'],
+      default: 'custom',
+    },
     time: {
       type: String,
-      required: [true, 'Time is required'],
-      match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Time must be in HH:mm 24-hour format'],
-      // e.g., "08:00", "14:30", "21:00"
+      default: '',
+      // Store in 24-hour HH:mm format e.g., "08:00", "14:30", "22:00" or ""
+    },
+    repeat: {
+      type: String,
+      enum: ['daily', 'weekly', 'custom'],
+      default: 'daily',
     },
     days: {
       type: [String],
-      enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      required: [true, 'At least one day must be selected'],
+      enum: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      default: [],
     },
-    isActive: {
+    appointmentDate: {
+      type: Date,
+      default: null,
+    },
+    enabled: {
       type: Boolean,
       default: true,
+    },
+    nextTriggerAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    lastCompletedAt: {
+      type: Date,
+      default: null,
     },
     lastTriggeredAt: {
       type: Date,
       default: null,
-      // Used to prevent duplicate notification firing
+    },
+    icon: {
+      type: String,
+      default: '🔔',
+    },
+    tzOffset: {
+      type: Number,
+      default: 0,
+      // Timezone offset in minutes (e.g. -300 for GMT+5)
     },
   },
   {
@@ -45,7 +70,7 @@ const reminderSchema = new mongoose.Schema(
   }
 );
 
-// Index for scheduler to find active reminders
-reminderSchema.index({ isActive: 1, time: 1 });
+// Index for scheduler query: enabled reminders due on or before current time
+reminderSchema.index({ enabled: 1, nextTriggerAt: 1 });
 
 module.exports = mongoose.model('Reminder', reminderSchema);
