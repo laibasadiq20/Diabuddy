@@ -23,6 +23,14 @@ const waterLogSchema = new mongoose.Schema(
       default: Date.now,
       index: true,
     },
+    // Set when this water entry was auto-created from a meal's `waterConsumed`
+    // field, so it can stay in sync when that meal is edited or deleted.
+    relatedMealLogId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'MealLog',
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,

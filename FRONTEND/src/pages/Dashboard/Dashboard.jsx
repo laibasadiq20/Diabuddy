@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
+import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
 import {
   AlertTriangle,
   ArrowRight,
@@ -33,15 +34,10 @@ import {
 } from 'lucide-react';
 
 const t = theme;
-const TIR_LOW = 70;
-const TIR_HIGH = 180;
-
-function parseGlucoseNumber(value) {
-  if (value == null) return null;
-  if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value);
-  const n = parseFloat(String(value));
-  return Number.isFinite(n) ? Math.round(n) : null;
-}
+// Backend always reports glucose in mg/dL; these are the mg/dL thresholds
+// converted for display via fromMgdl() based on the user's glucoseUnit preference.
+const TIR_LOW_MGDL = 70;
+const TIR_HIGH_MGDL = 180;
 
 function formatSteps(n) {
   if (n == null || n <= 0) return '—';
@@ -75,8 +71,12 @@ export default function Dashboard() {
     day: 'numeric',
   });
 
-  const latestGlucose = parseGlucoseNumber(summary?.glucose?.value);
+  const glucoseUnit = user?.glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
+  const unitLabel = glucoseUnitLabel(glucoseUnit);
+  const latestGlucose = fromMgdl(summary?.glucose?.valueMgDl, glucoseUnit);
   const glucoseCount = summary?.glucose?.count || 0;
+  const tirLow = fromMgdl(TIR_LOW_MGDL, glucoseUnit);
+  const tirHigh = fromMgdl(TIR_HIGH_MGDL, glucoseUnit);
   const mealsToday = summary?.meals?.value || 0;
   const insulinToday = summary?.insulin?.value || 0;
   const medsToday = summary?.medications?.value || 0;
@@ -96,9 +96,9 @@ export default function Dashboard() {
       .filter((d) => d.avgGlucose != null)
       .map((d) => ({
         label: d.label,
-        avgGlucose: d.avgGlucose,
+        avgGlucose: fromMgdl(d.avgGlucose, glucoseUnit),
       }));
-  }, [weekReport]);
+  }, [weekReport, glucoseUnit]);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -261,7 +261,7 @@ export default function Dashboard() {
                 <span className="db-home-glance-label">Glucose</span>
                 <strong>
                   {latestGlucose != null ? latestGlucose : '—'}
-                  {latestGlucose != null ? <small>mg/dL</small> : null}
+                  {latestGlucose != null ? <small>{unitLabel}</small> : null}
                 </strong>
                 <span className="db-home-glance-sub">
                   {glucoseCount > 0 ? `${glucoseCount} reading${glucoseCount === 1 ? '' : 's'}` : 'No reading yet'}
@@ -274,7 +274,7 @@ export default function Dashboard() {
                 </span>
                 <span className="db-home-glance-label">Time in range</span>
                 <strong>{tir != null ? `${tir}%` : '—'}</strong>
-                <span className="db-home-glance-sub">{TIR_LOW}–{TIR_HIGH} mg/dL · 7 days</span>
+                <span className="db-home-glance-sub">{tirLow}–{tirHigh} {unitLabel} · 7 days</span>
               </button>
 
               <button type="button" className="db-home-glance-card" onClick={() => navigate('/logs/exercise')}>
@@ -327,17 +327,17 @@ export default function Dashboard() {
           <button
             type="button"
             className="db-home-watch"
-            onClick={() => navigate('/fitbit')}
+            onClick={() => navigate('/google-health')}
           >
             <span className="db-home-watch-icon">
               <Watch size={18} strokeWidth={1.75} />
             </span>
             <span className="db-home-watch-copy">
               <strong>Connect smartwatch</strong>
-              <em>Google Health sync for steps — or log activity by hand.</em>
+              <em>Sync steps, calories, and distance with Google Health.</em>
             </span>
             <span className="db-home-watch-cta">
-              Soon
+              Open
               <ArrowRight size={14} />
             </span>
           </button>
@@ -381,10 +381,10 @@ export default function Dashboard() {
                       />
                       <Tooltip
                         contentStyle={tooltipStyle}
-                        formatter={(value) => [`${value} mg/dL`, 'Avg']}
+                        formatter={(value) => [`${value} ${unitLabel}`, 'Avg']}
                       />
-                      <ReferenceLine y={TIR_HIGH} stroke={t.clay} strokeDasharray="4 4" strokeOpacity={0.5} />
-                      <ReferenceLine y={TIR_LOW} stroke={t.sky} strokeDasharray="4 4" strokeOpacity={0.5} />
+                      <ReferenceLine y={tirHigh} stroke={t.clay} strokeDasharray="4 4" strokeOpacity={0.5} />
+                      <ReferenceLine y={tirLow} stroke={t.sky} strokeDasharray="4 4" strokeOpacity={0.5} />
                       <Area
                         type="monotone"
                         dataKey="avgGlucose"
@@ -408,7 +408,7 @@ export default function Dashboard() {
 
               {latestGlucose != null && (
                 <p className="db-home-chart-footnote">
-                  Latest today <strong>{latestGlucose} mg/dL</strong>
+                  Latest today <strong>{latestGlucose} {unitLabel}</strong>
                   {glucoseCount > 0 ? ` · ${glucoseCount} reading${glucoseCount === 1 ? '' : 's'}` : ''}
                 </p>
               )}
@@ -444,7 +444,11 @@ export default function Dashboard() {
                 </button>
                 <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/exercise')}>
                   <Dumbbell size={16} />
-                  <strong>{exerciseToday > 0 ? `${exerciseToday}m` : '—'}</strong>
+                  <strong>
+                    {exerciseToday > 0 || stepsToday > 0
+                      ? `${exerciseToday > 0 ? `${exerciseToday}m` : '—'}${stepsToday > 0 ? ` · ${formatSteps(stepsToday)}` : ''}`
+                      : '—'}
+                  </strong>
                   <span>Exercise</span>
                 </button>
                 <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs')}>
@@ -1064,7 +1068,6 @@ export default function Dashboard() {
             gap: 10px;
             padding: 12px;
           }
-          .db-home-watch-cta { display: none; }
           .db-home-chart-card,
           .db-home-today-panel,
           .db-home-panel { padding: 14px; border-radius: 16px; }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
@@ -16,7 +16,6 @@ import {
   FileText,
   Users,
   BarChart3,
-  BadgeCheck,
   Ban,
   UserCog,
   FolderKanban,
@@ -31,14 +30,13 @@ import {
 
 const t = theme;
 
-const VALID_TABS = ['overview', 'users', 'reports', 'topics', 'notifications', 'pros'];
+const VALID_TABS = ['overview', 'users', 'reports', 'topics', 'notifications'];
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'reports', label: 'Reports', icon: Shield },
   { id: 'topics', label: 'Topics', icon: FolderKanban },
-  { id: 'pros', label: 'Pro requests', icon: BadgeCheck },
   { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
@@ -90,10 +88,26 @@ export default function AdminReports() {
   const [moveToId, setMoveToId] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [notifUnread, setNotifUnread] = useState(0);
-  const [proRequests, setProRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState(null);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState(null); // { message, type }
+  const [confirmState, setConfirmState] = useState(null); // { title, message, confirmLabel, danger, onConfirm }
+  const [promptState, setPromptState] = useState(null); // { title, message, placeholder, defaultValue, confirmLabel, onConfirm }
+  const toastTimerRef = useRef(null);
+
+  const showToast = useCallback((message, type = 'info') => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message, type });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3200);
+  }, []);
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
+
+  const askConfirm = useCallback((options) => setConfirmState(options), []);
+  const askPrompt = useCallback((options) => setPromptState(options), []);
 
   useEffect(() => {
     if (!user) navigate('/login');
@@ -139,16 +153,6 @@ export default function AdminReports() {
     setReports(Array.isArray(data) ? data : data.data || []);
   }, [headers, reportView]);
 
-  const fetchProRequests = useCallback(async () => {
-    const res = await fetch(`${API_URL}/admin/pro-requests`, {
-      credentials: 'include',
-      headers: headers(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to load pro requests');
-    setProRequests(data.data || []);
-  }, [headers]);
-
   const fetchTopics = useCallback(async () => {
     const res = await fetch(`${API_URL}/topics`, {
       credentials: 'include',
@@ -179,13 +183,12 @@ export default function AdminReports() {
       else if (tab === 'reports') await fetchQueue(reportView);
       else if (tab === 'topics') await fetchTopics();
       else if (tab === 'notifications') await fetchNotifications();
-      else if (tab === 'pros') await fetchProRequests();
     } catch (err) {
       setError(err.message || 'Load failed');
     } finally {
       setLoading(false);
     }
-  }, [tab, reportView, fetchStats, fetchUsers, fetchQueue, fetchTopics, fetchNotifications, fetchProRequests]);
+  }, [tab, reportView, fetchStats, fetchUsers, fetchQueue, fetchTopics, fetchNotifications]);
 
   useEffect(() => {
     if (user?.role === 'admin') refresh();
@@ -218,19 +221,7 @@ export default function AdminReports() {
     };
   }, [user, tab, headers]);
 
-  useEffect(() => {
-    if (user?.role !== 'admin' || tab === 'pros') return undefined;
-    fetchProRequests().catch(() => {});
-  }, [user, tab, fetchProRequests]);
-
-  const handleResolveReport = async (reportId, actionType) => {
-    const labels = {
-      dismiss: 'Dismiss this report?',
-      hide_content: 'Hide this content from the community?',
-      delete_content: 'Soft-delete this content?',
-      ban_user: 'Ban the author and hide their posts & comments?',
-    };
-    if (!window.confirm(labels[actionType] || `Perform action: "${actionType}"?`)) return;
+  const performResolveReport = async (reportId, actionType) => {
     setActioningId(reportId);
     try {
       const res = await fetch(`${API_URL}/admin/reports/${reportId}`, {
@@ -249,40 +240,32 @@ export default function AdminReports() {
         if (stats) setStats((s) => s && { ...s, reports: { ...s.reports, pending: Math.max(0, (s.reports?.pending || 1) - 1) } });
       } else {
         const data = await res.json();
-        alert(data.message || 'Resolution failed.');
+        showToast(data.message || 'Resolution failed.', 'error');
       }
     } catch {
-      alert('Connection error resolving report.');
+      showToast('Connection error resolving report.', 'error');
     } finally {
       setActioningId(null);
     }
   };
 
-  const reviewProRequest = async (userId, decision) => {
-    if (!window.confirm(decision === 'approve' ? 'Approve verified-pro badge?' : 'Reject this request?')) return;
-    setActioningId(userId);
-    try {
-      const res = await fetch(`${API_URL}/admin/pro-requests/${userId}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: headers(),
-        body: JSON.stringify({ decision }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.message || 'Review failed');
-        return;
-      }
-      setProRequests((prev) => prev.filter((u) => u._id !== userId));
-    } catch {
-      alert('Connection error reviewing request.');
-    } finally {
-      setActioningId(null);
-    }
+  const handleResolveReport = (reportId, actionType) => {
+    const labels = {
+      dismiss: 'Dismiss this report?',
+      hide_content: 'Hide this content from the community?',
+      delete_content: 'Soft-delete this content?',
+      ban_user: 'Ban the author and hide their posts & comments?',
+    };
+    askConfirm({
+      title: 'Resolve report',
+      message: labels[actionType] || `Perform action: "${actionType}"?`,
+      confirmLabel: actionType === 'ban_user' ? 'Ban author' : 'Confirm',
+      danger: actionType === 'ban_user' || actionType === 'delete_content',
+      onConfirm: () => performResolveReport(reportId, actionType),
+    });
   };
 
-  const updateUser = async (id, body, confirmMsg) => {
-    if (confirmMsg && !window.confirm(confirmMsg)) return;
+  const performUpdateUser = async (id, body) => {
     setActioningId(id);
     try {
       const res = await fetch(`${API_URL}/admin/users/${id}`, {
@@ -293,23 +276,32 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || 'Update failed');
+        showToast(data.message || 'Update failed', 'error');
         return;
       }
       await fetchUsers();
-      if (body.warnMessage) alert('Warning sent.');
+      if (body.warnMessage) showToast('Warning sent.', 'success');
     } catch {
-      alert('Connection error updating user.');
+      showToast('Connection error updating user.', 'error');
     } finally {
       setActioningId(null);
     }
   };
 
-  const deleteUser = async (id, hard = false) => {
-    const msg = hard
-      ? 'Permanently delete this user and scrub their content? This cannot be undone.'
-      : 'Ban this user and hide their active posts?';
-    if (!window.confirm(msg)) return;
+  const updateUser = (id, body, confirmMsg) => {
+    if (confirmMsg) {
+      askConfirm({
+        title: 'Confirm action',
+        message: confirmMsg,
+        danger: body.isActive === false || !!body.muteHours,
+        onConfirm: () => performUpdateUser(id, body),
+      });
+      return;
+    }
+    performUpdateUser(id, body);
+  };
+
+  const performDeleteUser = async (id, hard) => {
     setActioningId(id);
     try {
       const res = await fetch(`${API_URL}/admin/users/${id}${hard ? '?hard=true' : ''}`, {
@@ -319,16 +311,28 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || 'Delete failed');
+        showToast(data.message || 'Delete failed', 'error');
         return;
       }
       await fetchUsers();
       if (tab === 'overview') await fetchStats().catch(() => {});
     } catch {
-      alert('Connection error deleting user.');
+      showToast('Connection error deleting user.', 'error');
     } finally {
       setActioningId(null);
     }
+  };
+
+  const deleteUser = (id, hard = false) => {
+    askConfirm({
+      title: hard ? 'Delete user permanently' : 'Ban user',
+      message: hard
+        ? 'Permanently delete this user and scrub their content? This cannot be undone.'
+        : 'Ban this user and hide their active posts?',
+      confirmLabel: hard ? 'Delete forever' : 'Ban user',
+      danger: true,
+      onConfirm: () => performDeleteUser(id, hard),
+    });
   };
 
   const resetTopicForm = () => {
@@ -361,7 +365,7 @@ export default function AdminReports() {
     const name = topicForm.name.trim();
     const slug = (topicForm.slug || slugify(name)).trim();
     if (!name || !slug) {
-      alert('Name and slug are required.');
+      showToast('Name and slug are required.', 'error');
       return;
     }
     setCreatingTopic(true);
@@ -379,30 +383,20 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || (editingTopicId ? 'Failed to update topic' : 'Failed to create topic'));
+        showToast(data.message || (editingTopicId ? 'Failed to update topic' : 'Failed to create topic'), 'error');
         return;
       }
       resetTopicForm();
       await fetchTopics();
+      showToast(editingTopicId ? 'Topic updated.' : 'Topic created.', 'success');
     } catch {
-      alert(editingTopicId ? 'Connection error updating topic.' : 'Connection error creating topic.');
+      showToast(editingTopicId ? 'Connection error updating topic.' : 'Connection error creating topic.', 'error');
     } finally {
       setCreatingTopic(false);
     }
   };
 
-  const moveTopicPosts = async (fromId, toId) => {
-    if (!fromId || !toId) {
-      alert('Choose a destination topic.');
-      return;
-    }
-    if (fromId === toId) {
-      alert('Pick a different destination topic.');
-      return;
-    }
-    const from = topics.find((x) => x._id === fromId);
-    const to = topics.find((x) => x._id === toId);
-    if (!window.confirm(`Move all posts from “${from?.name}” to “${to?.name}”? Threads stay intact.`)) return;
+  const performMoveTopicPosts = async (fromId, toId) => {
     setActioningId(fromId);
     try {
       const res = await fetch(`${API_URL}/topics/${fromId}/move-posts`, {
@@ -413,18 +407,37 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || 'Failed to move posts');
+        showToast(data.message || 'Failed to move posts', 'error');
         return;
       }
       setMoveFromId('');
       setMoveToId('');
       await fetchTopics();
-      alert(data.message || 'Posts moved.');
+      showToast(data.message || 'Posts moved.', 'success');
     } catch {
-      alert('Connection error moving posts.');
+      showToast('Connection error moving posts.', 'error');
     } finally {
       setActioningId(null);
     }
+  };
+
+  const moveTopicPosts = (fromId, toId) => {
+    if (!fromId || !toId) {
+      showToast('Choose a destination topic.', 'error');
+      return;
+    }
+    if (fromId === toId) {
+      showToast('Pick a different destination topic.', 'error');
+      return;
+    }
+    const from = topics.find((x) => x._id === fromId);
+    const to = topics.find((x) => x._id === toId);
+    askConfirm({
+      title: 'Move posts',
+      message: `Move all posts from "${from?.name}" to "${to?.name}"? Threads stay intact.`,
+      confirmLabel: 'Move posts',
+      onConfirm: () => performMoveTopicPosts(fromId, toId),
+    });
   };
 
   const markAllNotificationsRead = async () => {
@@ -463,12 +476,7 @@ export default function AdminReports() {
     setTab('reports');
   };
 
-  const deleteTopic = async (id, name, postsCount) => {
-    if (postsCount > 0) {
-      alert('Cannot delete a topic that still has posts. Move or remove posts first.');
-      return;
-    }
-    if (!window.confirm(`Delete topic "${name}"? This cannot be undone.`)) return;
+  const performDeleteTopic = async (id) => {
     setActioningId(id);
     try {
       const res = await fetch(`${API_URL}/topics/${id}`, {
@@ -478,15 +486,29 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || 'Delete failed');
+        showToast(data.message || 'Delete failed', 'error');
         return;
       }
       setTopics((prev) => prev.filter((topic) => topic._id !== id));
     } catch {
-      alert('Connection error deleting topic.');
+      showToast('Connection error deleting topic.', 'error');
     } finally {
       setActioningId(null);
     }
+  };
+
+  const deleteTopic = (id, name, postsCount) => {
+    if (postsCount > 0) {
+      showToast('Cannot delete a topic that still has posts. Move or remove posts first.', 'error');
+      return;
+    }
+    askConfirm({
+      title: 'Delete topic',
+      message: `Delete topic "${name}"? This cannot be undone.`,
+      confirmLabel: 'Delete topic',
+      danger: true,
+      onConfirm: () => performDeleteTopic(id),
+    });
   };
 
   const card = {
@@ -526,10 +548,9 @@ export default function AdminReports() {
               </h1>
               <p style={{ margin: '8px 0 0', color: t.inkSoft, fontSize: 14, lineHeight: 1.45, maxWidth: 420 }}>
                 {tab === 'overview' && 'Platform health at a glance.'}
-                {tab === 'users' && 'Search, verify, ban, or promote accounts.'}
+                {tab === 'users' && 'Search, ban, mute, or promote accounts.'}
                 {tab === 'reports' && 'Review flagged posts and comments.'}
                 {tab === 'topics' && 'Organize the community feed.'}
-                {tab === 'pros' && 'Approve or reject verified professional requests.'}
                 {tab === 'notifications' && 'New content reports waiting for review.'}
               </p>
             </div>
@@ -601,11 +622,6 @@ export default function AdminReports() {
                 {id === 'notifications' && notifUnread > 0 && (
                   <span style={{ background: tab === id ? 'rgba(255,255,255,0.22)' : t.clay, color: '#FFF', borderRadius: 999, fontSize: 11, padding: '1px 7px', fontWeight: 700 }}>
                     {notifUnread > 99 ? '99+' : notifUnread}
-                  </span>
-                )}
-                {id === 'pros' && proRequests.length > 0 && (
-                  <span style={{ background: tab === id ? 'rgba(255,255,255,0.22)' : t.sageDeep, color: '#FFF', borderRadius: 999, fontSize: 11, padding: '1px 7px', fontWeight: 700 }}>
-                    {proRequests.length}
                   </span>
                 )}
               </button>
@@ -716,9 +732,6 @@ export default function AdminReports() {
                           {u.role === 'admin' && (
                             <span style={{ marginLeft: 8, fontSize: 11, background: t.clayTint, color: t.clayDeep, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>ADMIN</span>
                           )}
-                          {u.isVerifiedProfessional && (
-                            <span style={{ marginLeft: 6, fontSize: 11, background: t.sageSoft, color: t.sageDeep, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>PRO</span>
-                          )}
                           {!u.isActive && (
                             <span style={{ marginLeft: 6, fontSize: 11, background: '#FFECEC', color: '#D32F2F', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>BANNED</span>
                           )}
@@ -753,18 +766,17 @@ export default function AdminReports() {
                             color={t.clayDeep}
                             bg={t.claySoft}
                             border={`${t.clay}30`}
-                            onClick={() => {
-                              const msg = window.prompt(
-                                'Warning message (sent to the user):',
-                                'Please follow community guidelines — especially around medical advice.'
-                              );
-                              if (msg === null) return;
-                              if (!msg.trim()) {
-                                alert('Warning message is required.');
-                                return;
-                              }
-                              updateUser(u._id, { warnMessage: msg.trim() }, null);
-                            }}
+                            onClick={() =>
+                              askPrompt({
+                                title: 'Send warning',
+                                message: `This moderation notice will be sent to ${u.name}.`,
+                                placeholder: 'Warning message',
+                                defaultValue: 'Please follow community guidelines — especially around medical advice.',
+                                confirmLabel: 'Send warning',
+                                required: true,
+                                onConfirm: (value) => updateUser(u._id, { warnMessage: value.trim() }, null),
+                              })
+                            }
                             disabled={!!actioningId}
                           >
                             <Megaphone size={14} /> Warn
@@ -837,21 +849,6 @@ export default function AdminReports() {
                           <Check size={14} /> Unban
                         </ActionBtn>
                       )}
-                      <ActionBtn
-                        color={t.sageDeep}
-                        bg={t.sageSoft}
-                        border={`${t.sage}40`}
-                        onClick={() =>
-                          updateUser(
-                            u._id,
-                            { isVerifiedProfessional: !u.isVerifiedProfessional },
-                            u.isVerifiedProfessional ? 'Remove verified-pro badge?' : 'Mark as verified professional?'
-                          )
-                        }
-                        disabled={!!actioningId}
-                      >
-                        <BadgeCheck size={14} /> {u.isVerifiedProfessional ? 'Unverify pro' : 'Verify pro'}
-                      </ActionBtn>
                       {u.role !== 'admin' ? (
                         <ActionBtn color={t.clayDeep} bg={t.claySoft} border={`${t.clay}30`} onClick={() => updateUser(u._id, { role: 'admin' }, 'Promote this user to admin?')} disabled={!!actioningId}>
                           <UserCog size={14} /> Make admin
@@ -1203,64 +1200,6 @@ export default function AdminReports() {
                 </div>
               )}
             </div>
-          ) : tab === 'pros' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {proRequests.length === 0 ? (
-                <div style={{ ...card, padding: '56px 24px', textAlign: 'center' }}>
-                  <BadgeCheck size={40} color={t.inkFaint} style={{ margin: '0 auto 12px' }} />
-                  <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: '0 0 8px', color: t.ink, fontWeight: 500 }}>No pending requests</h3>
-                  <p style={{ color: t.inkSoft, fontSize: 14, margin: 0 }}>Members request a verified-pro badge from their Account page.</p>
-                </div>
-              ) : (
-                proRequests.map((u) => (
-                  <div key={u._id} style={{ ...card, opacity: actioningId === u._id ? 0.6 : 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
-                      <div>
-                        <p style={{ margin: 0, fontWeight: 700, color: t.ink, fontSize: 15 }}>
-                          {u.name} <span style={{ color: t.inkFaint, fontWeight: 500 }}>@{u.username}</span>
-                        </p>
-                        <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>
-                          {u.email}
-                          {u.diabetesType ? ` · ${u.diabetesType}` : ''}
-                          {u.professionalVerification?.requestedAt
-                            ? ` · requested ${new Date(u.professionalVerification.requestedAt).toLocaleDateString()}`
-                            : ''}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/users/${u._id}`)}
-                        style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                      >
-                        Profile <ExternalLink size={12} />
-                      </button>
-                    </div>
-                    <div style={{ background: t.bg, borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
-                      <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Credentials</p>
-                      <p style={{ margin: '6px 0 0', fontSize: 14, color: t.ink, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                        {u.professionalVerification?.credentials || '—'}
-                      </p>
-                      {u.professionalVerification?.note && (
-                        <>
-                          <p style={{ margin: '12px 0 0', fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Note</p>
-                          <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft, lineHeight: 1.5 }}>
-                            {u.professionalVerification.note}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                    <div className="db-admin-user-actions" style={{ justifyContent: 'flex-end' }}>
-                      <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => reviewProRequest(u._id, 'reject')} disabled={!!actioningId}>
-                        Reject
-                      </ActionBtn>
-                      <ActionBtn color={t.sageDeep} bg={t.sageSoft} border={`${t.sage}40`} onClick={() => reviewProRequest(u._id, 'approve')} disabled={!!actioningId}>
-                        <BadgeCheck size={14} /> Approve
-                      </ActionBtn>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
           ) : tab === 'reports' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -1368,6 +1307,250 @@ export default function AdminReports() {
           ) : null}
         </div>
       </main>
+
+      <ConfirmDialog
+        open={!!confirmState}
+        title={confirmState?.title}
+        message={confirmState?.message}
+        confirmLabel={confirmState?.confirmLabel}
+        danger={confirmState?.danger}
+        onCancel={() => setConfirmState(null)}
+        onConfirm={() => {
+          const action = confirmState?.onConfirm;
+          setConfirmState(null);
+          action?.();
+        }}
+      />
+
+      <PromptDialog
+        open={!!promptState}
+        title={promptState?.title}
+        message={promptState?.message}
+        placeholder={promptState?.placeholder}
+        defaultValue={promptState?.defaultValue}
+        confirmLabel={promptState?.confirmLabel}
+        required={promptState?.required}
+        onCancel={() => setPromptState(null)}
+        onConfirm={(value) => {
+          const action = promptState?.onConfirm;
+          setPromptState(null);
+          action?.(value);
+        }}
+      />
+
+      {toast && (
+        <div
+          role="status"
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 200,
+            padding: '12px 18px',
+            borderRadius: 10,
+            background: toast.type === 'error' ? t.claySoft : toast.type === 'success' ? t.sageSoft : t.forest,
+            color: toast.type === 'error' ? t.clayDeep : toast.type === 'success' ? t.sageDeep : '#F7F3EC',
+            fontSize: 13,
+            fontWeight: 650,
+            boxShadow: t.shadowLifted,
+            maxWidth: '90vw',
+            fontFamily: t.fontBody,
+          }}
+        >
+          {toast.message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConfirmDialog({ open, title, message, confirmLabel, danger, onCancel, onConfirm }) {
+  if (!open) return null;
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 300,
+        fontFamily: theme.fontBody,
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          background: '#FFF',
+          border: `1.5px solid ${theme.lineStrong}`,
+          borderRadius: 18,
+          width: '100%',
+          maxWidth: 420,
+          padding: 24,
+          boxShadow: theme.shadowLifted,
+        }}
+      >
+        <h3 style={{ fontFamily: theme.fontDisplay, fontSize: 20, margin: '0 0 10px', color: theme.ink }}>
+          {title || 'Confirm action'}
+        </h3>
+        <p style={{ margin: '0 0 22px', fontSize: 14, color: theme.inkSoft, lineHeight: 1.5 }}>{message}</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              background: 'none',
+              border: `1px solid ${theme.line}`,
+              borderRadius: 8,
+              padding: '9px 16px',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: theme.fontBody,
+              color: theme.inkSoft,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            style={{
+              background: danger ? '#D32F2F' : theme.forest,
+              color: '#FFF',
+              border: 'none',
+              borderRadius: 8,
+              padding: '9px 18px',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: theme.fontBody,
+            }}
+          >
+            {confirmLabel || 'Confirm'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PromptDialog({ open, title, message, placeholder, defaultValue, confirmLabel, required, onCancel, onConfirm }) {
+  const [value, setValue] = useState('');
+  const [fieldError, setFieldError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setValue(defaultValue || '');
+      setFieldError('');
+    }
+  }, [open, defaultValue]);
+
+  if (!open) return null;
+
+  const handleSubmit = () => {
+    if (required && !value.trim()) {
+      setFieldError('This field is required.');
+      return;
+    }
+    onConfirm(value);
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 300,
+        fontFamily: theme.fontBody,
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          background: '#FFF',
+          border: `1.5px solid ${theme.lineStrong}`,
+          borderRadius: 18,
+          width: '100%',
+          maxWidth: 460,
+          padding: 24,
+          boxShadow: theme.shadowLifted,
+        }}
+      >
+        <h3 style={{ fontFamily: theme.fontDisplay, fontSize: 20, margin: '0 0 10px', color: theme.ink }}>
+          {title || 'Enter details'}
+        </h3>
+        {message && <p style={{ margin: '0 0 14px', fontSize: 14, color: theme.inkSoft, lineHeight: 1.5 }}>{message}</p>}
+        <textarea
+          autoFocus
+          rows={3}
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            if (fieldError) setFieldError('');
+          }}
+          placeholder={placeholder}
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            padding: 10,
+            borderRadius: 8,
+            border: `1.5px solid ${fieldError ? '#D32F2F' : theme.line}`,
+            fontSize: 13,
+            fontFamily: theme.fontBody,
+            resize: 'vertical',
+          }}
+        />
+        {fieldError && (
+          <p style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 600, color: '#D32F2F' }}>{fieldError}</p>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              background: 'none',
+              border: `1px solid ${theme.line}`,
+              borderRadius: 8,
+              padding: '9px 16px',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: theme.fontBody,
+              color: theme.inkSoft,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            style={{
+              background: theme.forest,
+              color: '#FFF',
+              border: 'none',
+              borderRadius: 8,
+              padding: '9px 18px',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: theme.fontBody,
+            }}
+          >
+            {confirmLabel || 'Submit'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

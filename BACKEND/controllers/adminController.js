@@ -16,7 +16,6 @@ exports.getStats = async (req, res) => {
       activeUsers,
       bannedUsers,
       admins,
-      verifiedPros,
       totalPosts,
       hiddenPosts,
       totalComments,
@@ -27,7 +26,6 @@ exports.getStats = async (req, res) => {
       User.countDocuments({ isActive: true }),
       User.countDocuments({ isActive: false }),
       User.countDocuments({ role: 'admin' }),
-      User.countDocuments({ isVerifiedProfessional: true }),
       ForumPost.countDocuments({ status: { $ne: 'deleted' } }),
       ForumPost.countDocuments({ status: 'hidden' }),
       Comment.countDocuments({ status: { $ne: 'deleted' } }),
@@ -43,7 +41,7 @@ exports.getStats = async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        users: { total: totalUsers, active: activeUsers, banned: bannedUsers, admins, verifiedPros },
+        users: { total: totalUsers, active: activeUsers, banned: bannedUsers, admins },
         content: { posts: totalPosts, hiddenPosts, comments: totalComments },
         reports: { pending: pendingReports, reviewed: reviewedReports },
         recentUsers,
@@ -86,7 +84,7 @@ exports.listUsers = async (req, res) => {
         .skip(skip)
         .limit(lim)
         .select(
-          'name username email role isActive isVerified isVerifiedProfessional postsCount commentsCount createdAt diabetesType mutedUntil warnings'
+          'name username email role isActive isVerified postsCount commentsCount createdAt diabetesType mutedUntil warnings'
         ),
       User.countDocuments(query),
     ]);
@@ -105,7 +103,7 @@ exports.listUsers = async (req, res) => {
 };
 
 /**
- * @desc    Update user (ban/unban, verify pro, role)
+ * @desc    Update user (ban/unban, role, mute/warn)
  * @route   PUT /api/admin/users/:id
  */
 exports.updateUser = async (req, res) => {
@@ -122,7 +120,6 @@ exports.updateUser = async (req, res) => {
 
     const {
       isActive,
-      isVerifiedProfessional,
       role,
       warnMessage,
       muteHours,
@@ -132,17 +129,6 @@ exports.updateUser = async (req, res) => {
     let noticeMessage = null;
 
     if (typeof isActive === 'boolean') target.isActive = isActive;
-    if (typeof isVerifiedProfessional === 'boolean') {
-      target.isVerifiedProfessional = isVerifiedProfessional;
-      if (isVerifiedProfessional) {
-        target.professionalVerification = {
-          ...(target.professionalVerification?.toObject?.() || target.professionalVerification || {}),
-          status: 'approved',
-          reviewedAt: new Date(),
-          reviewedBy: req.user.id,
-        };
-      }
-    }
     if (role === 'admin' || role === 'patient') {
       // Prevent demoting the last admin
       if (target.role === 'admin' && role === 'patient') {
@@ -202,9 +188,7 @@ exports.updateUser = async (req, res) => {
       });
     }
 
-    const u = target.toObject();
-    delete u.passwordHash;
-    res.json({ status: 'success', message: 'User updated', data: u });
+    res.json({ status: 'success', message: 'User updated', data: target.toJSON() });
   } catch (err) {
     console.error('Admin update user error:', err);
     res.status(500).json({ status: 'error', message: 'Failed to update user' });
@@ -303,64 +287,10 @@ exports.moderateComment = async (req, res) => {
       req.params.id,
       { status },
       { new: true }
-    ).populate('authorId', 'name username profileImageUrl isVerifiedProfessional');
+    ).populate('authorId', 'name username profileImageUrl');
     if (!comment) return res.status(404).json({ status: 'error', message: 'Comment not found' });
     res.json({ status: 'success', data: comment });
   } catch (err) {
     res.status(500).json({ status: 'error', message: 'Failed to moderate comment' });
-  }
-};
-
-/**
- * @desc    Pending verified-pro requests
- * @route   GET /api/admin/pro-requests
- */
-exports.listProRequests = async (req, res) => {
-  try {
-    const users = await User.find({ 'professionalVerification.status': 'pending' })
-      .sort({ 'professionalVerification.requestedAt': -1 })
-      .select(
-        'name username email professionalVerification isVerifiedProfessional createdAt diabetesType'
-      );
-    res.json({ status: 'success', data: users });
-  } catch (err) {
-    res.status(500).json({ status: 'error', message: 'Failed to load pro requests' });
-  }
-};
-
-/**
- * @desc    Approve or reject a verified-pro request
- * @route   PUT /api/admin/pro-requests/:id
- * body: { decision: 'approve' | 'reject' }
- */
-exports.reviewProRequest = async (req, res) => {
-  try {
-    const { decision } = req.body;
-    if (!['approve', 'reject'].includes(decision)) {
-      return res.status(400).json({ status: 'error', message: 'decision must be approve or reject' });
-    }
-
-    const target = await User.findById(req.params.id);
-    if (!target) return res.status(404).json({ status: 'error', message: 'User not found' });
-
-    const current = target.professionalVerification?.status || 'none';
-    if (current !== 'pending') {
-      return res.status(400).json({ status: 'error', message: 'No pending verification request' });
-    }
-
-    target.professionalVerification = {
-      ...(target.professionalVerification?.toObject?.() || target.professionalVerification || {}),
-      status: decision === 'approve' ? 'approved' : 'rejected',
-      reviewedAt: new Date(),
-      reviewedBy: req.user.id,
-    };
-    target.isVerifiedProfessional = decision === 'approve';
-    await target.save();
-
-    const u = target.toObject();
-    delete u.passwordHash;
-    res.json({ status: 'success', message: `Request ${decision}d`, data: u });
-  } catch (err) {
-    res.status(500).json({ status: 'error', message: 'Failed to review pro request' });
   }
 };

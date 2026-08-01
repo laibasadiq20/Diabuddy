@@ -71,6 +71,8 @@ const userSchema = new mongoose.Schema(
       tokenExpiresAt: { type: Date },
       lastSyncAt: { type: Date },
       lastSteps: { type: Number, default: 0 },
+      lastCalories: { type: Number, default: 0 },
+      lastDistanceKm: { type: Number, default: 0 },
     },
     // Legacy field kept empty; tokens live under googleHealth
     fitbit: {
@@ -145,37 +147,6 @@ diagnosisYear: {
   // used to compute the "T1D · 7y" style badge on the profile card
 },
 
-isVerifiedProfessional: {
-  type: Boolean,
-  default: false,
-  // shows the "Verified pro" badge (e.g. Dr. Aisha Rahman) next to name on posts
-},
-
-professionalVerification: {
-  status: {
-    type: String,
-    enum: ['none', 'pending', 'approved', 'rejected'],
-    default: 'none',
-  },
-  credentials: {
-    type: String,
-    maxlength: [500, 'Credentials cannot exceed 500 characters'],
-    default: '',
-  },
-  note: {
-    type: String,
-    maxlength: [500, 'Note cannot exceed 500 characters'],
-    default: '',
-  },
-  requestedAt: { type: Date, default: null },
-  reviewedAt: { type: Date, default: null },
-  reviewedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null,
-  },
-},
-
 reputationScore: {
   type: Number,
   default: 0,
@@ -202,10 +173,16 @@ likesReceived: {
   }
 );
 
-// Never return passwordHash or wearable tokens in JSON responses
+// Never return passwordHash, wearable tokens, or OTP/reset fields in JSON responses.
+// Any controller returning a user to the client MUST use toJSON() (or spread its
+// output) instead of toObject() — toObject() bypasses this stripping entirely.
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.passwordHash;
+  delete user.verificationCode;
+  delete user.verificationCodeExpires;
+  delete user.resetPasswordCode;
+  delete user.resetPasswordExpires;
   if (user.fitbit) {
     delete user.fitbit.accessToken;
     delete user.fitbit.refreshToken;

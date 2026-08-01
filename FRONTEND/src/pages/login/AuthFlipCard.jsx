@@ -39,7 +39,9 @@ export default function AuthFlipCard({ startFlipped = false }) {
     const available = panel.clientHeight - 12;
     const needed = fit.scrollHeight;
     if (needed > available && available > 0) {
-      setFitScale(Math.max(0.72, available / needed));
+      // Only shrink a little — anything shorter scrolls inside the panel instead
+      // of squashing text/inputs to the point the register form is unusable.
+      setFitScale(Math.max(0.88, available / needed));
     } else {
       setFitScale(1);
     }
@@ -120,7 +122,18 @@ export default function AuthFlipCard({ startFlipped = false }) {
       <div
         ref={panelRef}
         className="db-auth-panel flex-1 flex items-center justify-center"
-        style={{ height: '100%', minHeight: 0, overflow: 'hidden', padding: '8px 12px', background: t.surfaceRaised }}
+        style={{
+          height: '100%',
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '8px 12px',
+          background: t.surfaceRaised,
+          // "safe center" keeps content centered when it fits, but falls back to
+          // top-aligned (scrollable) instead of clipping the top when it doesn't —
+          // this is what keeps the register form reachable on short viewports.
+          alignItems: 'safe center',
+        }}
       >
         <div
           ref={fitRef}

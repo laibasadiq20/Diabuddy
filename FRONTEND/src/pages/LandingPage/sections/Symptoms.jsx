@@ -90,19 +90,6 @@ const warningLevels = [
     ],
   },
   {
-    level: 'Schedule a Visit',
-    short: 'Soon',
-    description:
-      'Make an appointment with your healthcare provider soon.',
-    accent: 'text-[var(--butter)]',
-    items: [
-      'Persistent fatigue',
-      'Frequent infections',
-      'Numbness in hands or feet',
-      'Blurred vision',
-    ],
-  },
-  {
     level: 'Keep Monitoring',
     short: 'Watch',
     description: 'Stay aware and track any changes in your symptoms.',
@@ -174,7 +161,7 @@ const Symptoms = ({
                 </p>
                 <div className="mt-6 inline-flex items-center gap-2 font-sans text-xs font-bold uppercase tracking-[0.18em] text-[var(--ink-soft)]">
                   <Activity size={14} strokeWidth={2.5} />
-                  06 signals · 03 response levels
+                  06 signals · 02 response levels
                 </div>
               </div>
             </header>
@@ -333,32 +320,56 @@ const Symptoms = ({
           </div>
 
           {/* CTA band — dark green risk assessment box */}
-          <div className="relative overflow-hidden rounded-[var(--radius)] border border-[var(--sage-deep)] bg-[var(--sage-deep)] p-10 md:p-14">
-            <div className="grid items-end gap-10 md:grid-cols-12">
-              <div className="md:col-span-7">
-                <div className="mb-5 inline-flex items-center gap-2 font-sans text-xs font-extrabold uppercase tracking-[0.22em] text-[var(--cream)]">
-                  <span className="h-[1.5px] w-7 bg-[var(--cream)]" />
+          <div className="dbx-cta-band group relative overflow-hidden rounded-[var(--radius)] border border-[color-mix(in_srgb,var(--cream)_12%,transparent)] bg-[var(--sage-deep)] p-10 shadow-[0_28px_60px_-36px_rgba(42,33,23,0.55)] md:p-14">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_18%_20%,rgba(185,143,58,0.22),transparent_42%),radial-gradient(ellipse_at_92%_88%,rgba(220,231,204,0.14),transparent_48%),linear-gradient(135deg,#24361e_0%,var(--sage-deep)_48%,#3a552f_100%)]"
+            />
+            <div
+              aria-hidden
+              className="dbx-cta-grain pointer-events-none absolute inset-0 opacity-[0.07]"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full border border-[color-mix(in_srgb,var(--cream)_18%,transparent)] transition-transform duration-700 ease-out group-hover:scale-105"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -bottom-28 -right-10 h-80 w-80 rounded-full border border-[color-mix(in_srgb,var(--butter)_28%,transparent)] transition-transform duration-700 ease-out group-hover:scale-110"
+            />
+
+            <div className="relative z-[1] grid items-end gap-10 md:grid-cols-12">
+              <div className="md:col-span-8">
+                <div className="mb-5 inline-flex items-center gap-2.5 font-sans text-xs font-extrabold uppercase tracking-[0.22em] text-[color-mix(in_srgb,var(--cream)_88%,transparent)]">
+                  <span className="h-[1.5px] w-7 bg-[var(--butter)]" />
                   Next step
                 </div>
                 <h2 className="m-0 font-serif text-[clamp(34px,5vw,56px)] font-bold leading-[1.02] tracking-[-0.03em] text-[var(--cream)]">
-                  Not sure if you're
+                  Not sure if you&apos;re
                   <br />
-                  <em className="font-semibold not-italic italic text-[var(--butter)]">
+                  <em className="font-semibold italic text-[#D4A84A]">
                     experiencing warning signs?
                   </em>
                 </h2>
-                <p className="my-[18px] max-w-[52ch] font-sans text-base font-semibold leading-relaxed text-[var(--cream)] opacity-85">
-                  Take our quick self-assessment — it only takes a couple of minutes.
+                <p className="mt-5 max-w-[48ch] font-sans text-base font-semibold leading-relaxed text-[color-mix(in_srgb,var(--cream)_86%,transparent)]">
+                  Take our quick self-assessment — it only takes a couple of
+                  minutes.
+                </p>
+                <p className="mt-4 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--cream)_55%,transparent)]">
+                  Free · 2–3 minutes · No account needed
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-3 md:col-span-5 md:justify-end">
+              <div className="flex flex-col gap-3 sm:flex-row md:col-span-4 md:items-end md:justify-end">
                 <Link
                   to="/learn/risk-assessment"
-                  className="dbx-cta-solid inline-flex items-center gap-2 rounded-full bg-[var(--cream)] px-6 py-3 font-sans text-sm font-bold tracking-[0.04em] text-[var(--sage-deep)] no-underline transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(42,33,23,0.28)]"
+                  className="dbx-cta-solid inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-[var(--cream)] px-7 py-3.5 font-sans text-sm font-bold tracking-[0.04em] text-[var(--sage-deep)] no-underline shadow-[0_12px_28px_-16px_rgba(42,33,23,0.55)] transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-[var(--butter)] hover:text-[var(--brown)] hover:shadow-[0_18px_36px_-14px_rgba(42,33,23,0.45)] sm:w-auto"
                 >
                   Take Assessment
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1"
+                    strokeWidth={2.5}
+                  />
                 </Link>
               </div>
             </div>
@@ -411,6 +422,12 @@ const Symptoms = ({
           .dbx-symptom-row:hover {
             transform: translateX(8px);
             background: var(--sage-tint);
+          }
+
+          .dbx-cta-grain {
+            background-image:
+              radial-gradient(rgba(243, 238, 226, 0.55) 0.6px, transparent 0.6px);
+            background-size: 3px 3px;
           }
         `}</style>
       </section>

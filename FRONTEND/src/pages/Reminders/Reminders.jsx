@@ -27,10 +27,10 @@ export default function Reminders() {
             Reminders
           </p>
           <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(26px, 6vw, 32px)', fontWeight: 500, color: t.ink }}>
-            Notifications
+            Reminders
           </h1>
           <p style={{ margin: '8px 0 24px', fontSize: 14, color: t.inkSoft }}>
-            Soft nudges for checks and meds. Toggle what’s on for now.
+            A preview of soft nudges for checks and meds. Reminders aren’t sending yet — toggle what you’d want on so it’s ready when they go live.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

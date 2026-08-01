@@ -111,11 +111,6 @@ export default function PostThreadCard({
           <div>
             <h3 style={{ fontSize: '15px', fontWeight: '700', color: t.ink, margin: 0 }}>
               {post.isAnonymous ? 'Anonymous Buddy' : post.authorId?.name}
-              {!post.isAnonymous && post.authorId?.isVerifiedProfessional && (
-                <span style={{ marginLeft: '6px', fontSize: '9px', background: t.skyDeep, color: '#FFF', padding: '1px 6px', borderRadius: '4px', fontWeight: '700', verticalAlign: 'middle' }}>
-                  PRO
-                </span>
-              )}
             </h3>
             <p style={{ fontSize: '12px', color: t.inkFaint, margin: 0 }}>
               {!post.isAnonymous && post.authorId?.diabetesType ? `${post.authorId.diabetesType} · ` : ''}

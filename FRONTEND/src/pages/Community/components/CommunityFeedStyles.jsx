@@ -353,16 +353,6 @@ export default function CommunityFeedStyles() {
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-        .db-pro-tag {
-          margin-left: 4px;
-          font-size: 9px;
-          background: ${t.skyDeep};
-          color: #fff;
-          padding: 1px 4px;
-          border-radius: 3px;
-          vertical-align: middle;
-          font-weight: 700;
-        }
         .db-post-date {
           font-size: 12px;
           color: ${t.inkFaint};

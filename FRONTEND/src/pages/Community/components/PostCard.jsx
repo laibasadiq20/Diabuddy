@@ -111,9 +111,6 @@ export default function PostCard({
             </div>
             <span className="db-post-author-name">
               {authorName}
-              {!post.isAnonymous && post.authorId?.isVerifiedProfessional && (
-                <span className="db-pro-tag">PRO</span>
-              )}
             </span>
           </div>
           <span className="db-post-meta-sep" aria-hidden>

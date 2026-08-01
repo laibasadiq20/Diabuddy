@@ -79,7 +79,6 @@ export default function UserProfile() {
             username: preview.username,
             profileImageUrl: preview.profileImageUrl,
             diabetesType: preview.diabetesType,
-            isVerifiedProfessional: preview.isVerifiedProfessional,
             bio: preview.bio || '',
             location: preview.location || '',
           };
@@ -245,11 +244,6 @@ export default function UserProfile() {
                       <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 500, color: t.ink }}>
                         {profile.name}
                       </h1>
-                      {profile.isVerifiedProfessional && (
-                        <span style={{ fontSize: 10, fontWeight: 700, background: t.skyDeep, color: '#FFF', padding: '2px 7px', borderRadius: 6 }}>
-                          PRO
-                        </span>
-                      )}
                     </div>
                     {profile.username && (
                       <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkFaint }}>@{profile.username}</p>

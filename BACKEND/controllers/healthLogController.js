@@ -117,8 +117,17 @@ exports.getTimeline = async (req, res) => {
             color = 'teal';
           } else if (type === 'Exercise') {
             title = log.activity;
-            subtitle = `${log.duration} mins • ${log.intensity} Intensity`;
-            valueStr = log.caloriesBurned ? `${log.caloriesBurned} kcal` : '';
+            subtitle = [
+              log.duration > 0 ? `${log.duration} min` : null,
+              log.steps ? `${log.steps} steps` : null,
+              log.caloriesBurned ? `${log.caloriesBurned} kcal` : null,
+              log.distance ? `${log.distance} km` : null,
+              log.intensity ? `${log.intensity}` : null,
+              log.source && log.source !== 'Manual' ? log.source : null,
+            ]
+              .filter(Boolean)
+              .join(' · ');
+            valueStr = subtitle;
             color = 'emerald';
           } else if (type === 'Sleep') {
             title = `${log.totalHours.toFixed(1)} Hours`;
@@ -221,7 +230,14 @@ exports.getTodaySummary = async (req, res) => {
 
     // 1. Blood sugar count & latest
     const glucoseLogs = await GlucoseLog.find(todayQuery).sort({ timestamp: -1 });
-    const latestGlucose = glucoseLogs[0] ? `${glucoseLogs[0].glucoseLevel} ${glucoseLogs[0].unit}` : null;
+    const latestGlucoseLog = glucoseLogs[0] || null;
+    const latestGlucose = latestGlucoseLog ? `${latestGlucoseLog.glucoseLevel} ${latestGlucoseLog.unit}` : null;
+    // mg/dL-normalized value so the frontend can convert to the user's preferred unit
+    const latestGlucoseMgDl = latestGlucoseLog
+      ? latestGlucoseLog.unit === 'mmol/L'
+        ? latestGlucoseLog.glucoseLevel * 18
+        : latestGlucoseLog.glucoseLevel
+      : null;
     const glucoseCount = glucoseLogs.length;
 
     // 2. Meals logged
@@ -241,6 +257,11 @@ exports.getTodaySummary = async (req, res) => {
     const waterTotal = waterLogs.reduce((sum, log) => sum + log.amount, 0);
 
     // 6. Exercise Minutes + steps
+    // NOTE: for GoogleHealth-sourced logs, the sync writes a `gh-day-*` daily rollup
+    // (steps for the whole day) plus one row per `gh-ex-*` workout. To avoid double
+    // counting, googleHealthController zeroes out the overlapping field on one side
+    // (rollup duration when workouts exist, workout steps always) — so a plain sum
+    // here is already de-duplicated. Manual logs have no such overlap and just add up.
     const exerciseLogs = await ExerciseLog.find(todayQuery);
     const exerciseTotal = exerciseLogs.reduce((sum, log) => sum + (Number(log.duration) || 0), 0);
     const stepsTotal = exerciseLogs.reduce((sum, log) => sum + (Number(log.steps) || 0), 0);
@@ -256,7 +277,7 @@ exports.getTodaySummary = async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        glucose: { value: latestGlucose, count: glucoseCount },
+        glucose: { value: latestGlucose, valueMgDl: latestGlucoseMgDl, count: glucoseCount },
         meals: { value: mealsCount, goal: 3 },
         insulin: { value: insulinUnits },
         medications: { value: medsTaken },
@@ -474,12 +495,14 @@ exports.createMeal = async (req, res) => {
     });
     await log.save();
 
-    // If water was logged within the meal, also optionally save a WaterLog entry
+    // If water was logged within the meal, also save a linked WaterLog entry.
+    // The link (relatedMealLogId) is what updateMeal/deleteMeal use to keep it in sync.
     if (waterConsumed && Number(waterConsumed) > 0) {
       await new WaterLog({
         userId: req.user.id,
         amount: Number(waterConsumed),
         timestamp: log.timestamp,
+        relatedMealLogId: log._id,
       }).save();
     }
 
@@ -520,6 +543,29 @@ exports.updateMeal = async (req, res) => {
     if (timestamp !== undefined) log.timestamp = new Date(timestamp);
 
     await log.save();
+
+    // Keep the linked WaterLog (if any) in sync with this meal's water amount/time
+    if (waterConsumed !== undefined || timestamp !== undefined) {
+      const linkedWater = await WaterLog.findOne({ relatedMealLogId: log._id });
+      if (log.waterConsumed > 0) {
+        if (linkedWater) {
+          linkedWater.amount = log.waterConsumed;
+          linkedWater.timestamp = log.timestamp;
+          await linkedWater.save();
+        } else {
+          await new WaterLog({
+            userId: req.user.id,
+            amount: log.waterConsumed,
+            timestamp: log.timestamp,
+            relatedMealLogId: log._id,
+          }).save();
+        }
+      } else if (linkedWater) {
+        // Water was cleared from the meal — remove the now-stale water entry
+        await WaterLog.findByIdAndDelete(linkedWater._id);
+      }
+    }
+
     res.json({ status: 'success', data: log });
   } catch (err) {
     res.status(400).json({ status: 'error', message: 'Failed to update meal log', error: err.message });
@@ -530,6 +576,8 @@ exports.deleteMeal = async (req, res) => {
   try {
     const log = await MealLog.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
     if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
+    // Remove the linked water entry so deleting a meal doesn't leave orphaned intake
+    await WaterLog.deleteMany({ relatedMealLogId: log._id });
     res.json({ status: 'success', message: 'Log deleted successfully' });
   } catch (err) {
     res.status(500).json({ status: 'error', message: 'Failed to delete meal log', error: err.message });

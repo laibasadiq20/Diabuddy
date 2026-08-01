@@ -219,7 +219,7 @@ export default function Logs() {
           )}
 
           <section className="db-logs-hub-section">
-            <h2 className="db-logs-hub-section-title">Most used</h2>
+            <h2 className="db-logs-hub-section-title">Daily diabetes essentials</h2>
             <p className="db-logs-hub-section-note">Glucose, meals, insulin, medications, and activity</p>
             <div className="db-logs-hub-list">{priority.map((item) => renderCard(item, true))}</div>
           </section>

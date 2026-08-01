@@ -16,7 +16,7 @@ exports.getComments = async (req, res) => {
 
     const comments = await Comment.find(filter)
       .sort({ createdAt: 1 })
-      .populate('authorId', 'name username profileImageUrl isVerifiedProfessional');
+      .populate('authorId', 'name username profileImageUrl');
 
     res.json(comments);
   } catch (err) {
@@ -82,7 +82,7 @@ exports.createComment = async (req, res) => {
       });
     }
 
-    const populated = await comment.populate('authorId', 'name username profileImageUrl isVerifiedProfessional');
+    const populated = await comment.populate('authorId', 'name username profileImageUrl');
     res.status(201).json(populated);
   } catch (err) {
     res.status(400).json({ message: 'Failed to create comment', error: err.message });
@@ -104,7 +104,7 @@ exports.updateComment = async (req, res) => {
     comment.isEdited = true;
     await comment.save();
 
-    const populated = await comment.populate('authorId', 'name username profileImageUrl isVerifiedProfessional');
+    const populated = await comment.populate('authorId', 'name username profileImageUrl');
     res.json(populated);
   } catch (err) {
     res.status(400).json({ message: 'Failed to update comment', error: err.message });

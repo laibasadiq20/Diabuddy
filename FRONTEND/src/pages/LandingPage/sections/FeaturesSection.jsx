@@ -13,13 +13,13 @@ const FeaturesSection = () => {
 
         <div className="mb-14 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <h2 className="max-w-2xl font-serif text-4xl leading-[1.05] tracking-tight text-[var(--brown)] md:text-6xl">
-            Four small things,
+            Everything you need,
             <br />
             done <span className="italic text-[var(--sage-deep)]">beautifully.</span>
           </h2>
 
           <p className="max-w-xs text-sm leading-relaxed text-[var(--brown-soft)]">
-            We resisted the urge to do everything. Instead — four essentials, made with care.
+            Logging, reports, a toolbox, and a community that gets it — each one made with care.
           </p>
         </div>
 
@@ -114,12 +114,12 @@ const FeaturesSection = () => {
 
             <div className="mt-10">
               <h3 className="font-serif text-3xl leading-tight text-[var(--brown)]">
-                Reports that read like{' '}
-                <span className="italic text-[var(--sage-deep)]">letters.</span>
+                Clear trends, with a{' '}
+                <span className="italic text-[var(--sage-deep)]">warm note.</span>
               </h3>
 
               <p className="mt-4 text-sm text-[var(--brown-soft)]">
-                Weekly notes about your patterns — in plain, warm language.
+                Charts on your patterns, plus a short care note in plain language — export it anytime.
               </p>
             </div>
           </article>

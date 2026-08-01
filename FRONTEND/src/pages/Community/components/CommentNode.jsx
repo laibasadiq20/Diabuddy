@@ -134,11 +134,6 @@ export default function CommentNode({
 
             <span style={{ fontSize: '13px', fontWeight: '600', color: t.ink }}>
               {node.authorId?.name || 'Deleted Account'}
-              {node.authorId?.isVerifiedProfessional && (
-                <span style={{ marginLeft: '4px', fontSize: '9px', background: t.skyDeep, color: '#FFF', padding: '1px 4px', borderRadius: '3px', fontWeight: '700' }}>
-                  PRO
-                </span>
-              )}
             </span>
           </button>
 

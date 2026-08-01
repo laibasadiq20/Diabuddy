@@ -18,23 +18,26 @@ import {
   YAxis,
 } from 'recharts';
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   BarChart3,
   CalendarRange,
+  FileText,
   Loader2,
-  Minus,
+  Activity,
+  Droplets,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../config/axios';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
+import { downloadReportPdf } from './reportExport';
+import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
 
 const t = theme;
 
 const PRESETS = [
-  { id: '7d', label: '7 days' },
-  { id: '30d', label: '30 days' },
+  { id: '1d', label: 'Daily' },
+  { id: '7d', label: 'Weekly' },
+  { id: '30d', label: 'Monthly' },
   { id: '90d', label: '3 months' },
   { id: 'custom', label: 'Custom' },
 ];
@@ -62,25 +65,26 @@ function defaultCustomRange() {
   return { start: toInputDate(start.toISOString()), end: toInputDate(end.toISOString()) };
 }
 
-function DeltaBadge({ value, invert = false, suffix = '' }) {
+function DeltaBadge({ value, invert = false, against, unit = '' }) {
   if (value == null || Number.isNaN(Number(value))) {
-    return <span className="db-rep-delta is-flat"><Minus size={12} /> —</span>;
+    return null;
   }
   const n = Number(value);
   const better = invert ? n < 0 : n > 0;
   const worse = invert ? n > 0 : n < 0;
-  const Icon = n > 0 ? ArrowUpRight : n < 0 ? ArrowDownRight : Minus;
+  const abs = Math.abs(n);
+  const text =
+    n === 0
+      ? `No change${against ? ` from ${against}` : ''}`
+      : `${n > 0 ? '↑' : '↓'} ${abs}${unit}${against ? ` from ${against}` : ''}`;
   return (
     <span className={`db-rep-delta${better ? ' is-up' : ''}${worse ? ' is-down' : ''}${n === 0 ? ' is-flat' : ''}`}>
-      <Icon size={12} />
-      {n > 0 ? '+' : ''}
-      {n}
-      {suffix}
+      {text}
     </span>
   );
 }
 
-function MetricCard({ label, value, unit, delta, invertDelta }) {
+function MetricCard({ label, value, unit, delta, invertDelta, hint, against }) {
   return (
     <div className="db-rep-metric">
       <p className="db-rep-metric-label">{label}</p>
@@ -88,19 +92,43 @@ function MetricCard({ label, value, unit, delta, invertDelta }) {
         {value == null || value === '' ? '—' : value}
         {value != null && value !== '' && unit ? <span>{unit}</span> : null}
       </p>
-      {delta !== undefined ? <DeltaBadge value={delta} invert={invertDelta} /> : null}
+      {hint ? <p className="db-rep-metric-hint">{hint}</p> : null}
+      {delta !== undefined && delta !== null ? (
+        <DeltaBadge value={delta} invert={invertDelta} against={against} unit={unit || ''} />
+      ) : null}
     </div>
   );
 }
 
-function ChartCard({ title, subtitle, children, empty }) {
+function ChartCard({ title, subtitle, children, empty, wide }) {
   return (
-    <section className="db-rep-chart">
+    <section className={`db-rep-chart${wide ? ' is-wide' : ''}`}>
       <header className="db-rep-chart-head">
         <h3>{title}</h3>
         {subtitle ? <p>{subtitle}</p> : null}
       </header>
       {empty ? <p className="db-rep-empty-inline">No data in this period.</p> : children}
+    </section>
+  );
+}
+
+// Surfaces the same warm "care letter" narrative that reportExport.js renders in the
+// PDF, so it's readable in-app too — above the charts, not buried in a download.
+function CareLetter({ story }) {
+  if (!story?.careLetter && !story?.narrative && !story?.summary) return null;
+  const letter = story.careLetter || story.narrative || story.summary;
+  const rating = story.rating || 'fair';
+  return (
+    <section className="db-rep-letter">
+      <p className="db-rep-letter-eyebrow">From DiaBuddy</p>
+      <div className="db-rep-letter-head">
+        <h2>{story.careLetterTitle || story.headline || 'Your care letter'}</h2>
+        {story.ratingLabel ? (
+          <span className={`db-rep-letter-rating is-${rating}`}>{story.ratingLabel}</span>
+        ) : null}
+      </div>
+      <p className="db-rep-letter-body">{letter}</p>
+      <p className="db-rep-letter-signoff">— Your DiaBuddy companion</p>
     </section>
   );
 }
@@ -129,6 +157,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [report, setReport] = useState(null);
+  const [exportError, setExportError] = useState('');
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -149,11 +178,9 @@ export default function Reports() {
         params.set('startDate', custom.start);
         params.set('endDate', custom.end);
       }
-      if (compare) {
-        if (compareCustom.start && compareCustom.end) {
-          params.set('compareStartDate', compareCustom.start);
-          params.set('compareEndDate', compareCustom.end);
-        }
+      if (compare && compareCustom.start && compareCustom.end) {
+        params.set('compareStartDate', compareCustom.start);
+        params.set('compareEndDate', compareCustom.end);
       }
 
       const { data } = await api.get(`/health-logs/report?${params}`);
@@ -189,6 +216,13 @@ export default function Reports() {
   const charts = period?.charts;
   const deltas = report?.deltas;
   const comparePeriod = report?.comparePeriod;
+  const compareAgainst = report?.compareAgainst;
+  const story = report?.story;
+
+  // Backend always reports glucose in mg/dL — convert for display based on the
+  // signed-in user's glucoseUnit preference (Account page).
+  const glucoseUnit = user?.glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
+  const unitLabel = glucoseUnitLabel(glucoseUnit);
 
   const tirPie = useMemo(() => {
     if (!charts?.tir) return [];
@@ -200,56 +234,121 @@ export default function Reports() {
   }, [charts]);
 
   const dailyGlucose = useMemo(
-    () => (charts?.daily || []).filter((d) => d.avgGlucose != null),
-    [charts]
+    () =>
+      (charts?.daily || [])
+        .filter((d) => d.avgGlucose != null)
+        .map((d) => ({ ...d, avgGlucose: fromMgdl(d.avgGlucose, glucoseUnit) })),
+    [charts, glucoseUnit]
   );
 
-  const hasAnyData = metrics && (
-    metrics.glucoseReadings > 0 ||
-    metrics.mealsLogged > 0 ||
-    metrics.totalInsulinUnits > 0 ||
-    metrics.medicationsLogged > 0 ||
-    metrics.totalWaterMl > 0 ||
-    metrics.totalExerciseMinutes > 0 ||
-    metrics.sleepNights > 0 ||
-    metrics.moodEntries > 0
+  const readingTypeChart = useMemo(
+    () => (charts?.glucoseByReadingType || []).map((r) => ({ ...r, avgGlucose: fromMgdl(r.avgGlucose, glucoseUnit) })),
+    [charts, glucoseUnit]
   );
+
+  const avgGlucoseDisplay = fromMgdl(metrics?.avgGlucose, glucoseUnit);
+  const glucoseStdDevDisplay = fromMgdl(metrics?.glucoseStdDev, glucoseUnit);
+  const avgGlucoseDeltaDisplay = deltas?.avgGlucose != null ? fromMgdl(deltas.avgGlucose, glucoseUnit) : deltas?.avgGlucose;
+  const glucoseStdDevDeltaDisplay =
+    deltas?.glucoseStdDev != null ? fromMgdl(deltas.glucoseStdDev, glucoseUnit) : deltas?.glucoseStdDev;
+  const glucoseRangeHint =
+    metrics?.lowestGlucose != null
+      ? `Range ${fromMgdl(metrics.lowestGlucose, glucoseUnit)}–${fromMgdl(metrics.highestGlucose, glucoseUnit)}`
+      : undefined;
+  const tirTargetLow = fromMgdl(report?.tirTarget?.low ?? 70, glucoseUnit);
+  const tirTargetHigh = fromMgdl(report?.tirTarget?.high ?? 180, glucoseUnit);
+
+  const hasAnyData =
+    metrics &&
+    (metrics.glucoseReadings > 0 ||
+      metrics.mealsLogged > 0 ||
+      metrics.totalInsulinUnits > 0 ||
+      metrics.medicationsLogged > 0 ||
+      metrics.totalWaterMl > 0 ||
+      metrics.totalExerciseMinutes > 0 ||
+      metrics.sleepNights > 0 ||
+      metrics.moodEntries > 0);
+
+  const exportUserName = user?.name || user?.fullName || user?.email || '';
+
+  const handleExportPdf = () => {
+    if (!report) return;
+    setExportError('');
+    try {
+      downloadReportPdf(report, { userName: exportUserName });
+    } catch (err) {
+      setExportError(err.message || 'Could not export PDF');
+    }
+  };
+
+  const generatedLabel = report?.generatedAt
+    ? new Date(report.generatedAt).toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '';
 
   return (
     <div className="db-rep">
       <AppSidebar />
       <main className="db-rep-main">
         <div className="db-rep-inner">
-          <header className="db-rep-header">
-            <div>
-              <p className="db-rep-eyebrow">From your logs</p>
-              <h1>
-                <BarChart3 size={26} strokeWidth={1.75} color={t.forest} />
-                Health reports
-              </h1>
+          <header className="db-rep-hero">
+            <div className="db-rep-hero-copy">
+              <p className="db-rep-eyebrow">Progress reporting</p>
+              <h1>Health reports</h1>
               <p className="db-rep-lead">
-                Patterns from your real glucose, meals, insulin, meds, and lifestyle entries.
+                Daily, weekly, and monthly summaries built from your logged glucose, meals,
+                insulin, medications, and lifestyle data.
               </p>
             </div>
-            <button type="button" className="db-rep-ghost" onClick={() => navigate('/logs')}>
-              Open logs
-            </button>
+            <div className="db-rep-header-actions">
+              <button
+                type="button"
+                className="db-rep-export db-rep-export--primary"
+                onClick={handleExportPdf}
+                disabled={!hasAnyData || loading}
+              >
+                <FileText size={15} strokeWidth={2} />
+                Export PDF
+              </button>
+              <button type="button" className="db-rep-ghost" onClick={() => navigate('/logs')}>
+                Open logs
+              </button>
+            </div>
           </header>
+          {exportError ? <p className="db-rep-export-error">{exportError}</p> : null}
 
           <div className="db-rep-controls">
-            <div className="db-rep-presets" role="tablist" aria-label="Report range">
-              {PRESETS.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={preset === p.id}
-                  className={`db-rep-preset${preset === p.id ? ' is-active' : ''}`}
-                  onClick={() => setPreset(p.id)}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div className="db-rep-controls-top">
+              <div>
+                <p className="db-rep-controls-label">Report period</p>
+                <div className="db-rep-presets" role="tablist" aria-label="Report range">
+                  {PRESETS.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={preset === p.id}
+                      className={`db-rep-preset${preset === p.id ? ' is-active' : ''}`}
+                      onClick={() => setPreset(p.id)}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="db-rep-compare-toggle">
+                <input
+                  type="checkbox"
+                  checked={compare}
+                  onChange={(e) => setCompare(e.target.checked)}
+                />
+                Compare periods
+              </label>
             </div>
 
             {preset === 'custom' && (
@@ -274,15 +373,6 @@ export default function Reports() {
                 </label>
               </div>
             )}
-
-            <label className="db-rep-compare-toggle">
-              <input
-                type="checkbox"
-                checked={compare}
-                onChange={(e) => setCompare(e.target.checked)}
-              />
-              Compare two periods
-            </label>
 
             {compare && (
               <div className="db-rep-dates db-rep-dates--compare">
@@ -319,10 +409,13 @@ export default function Reports() {
           ) : error ? (
             <div className="db-rep-state db-rep-state--error">
               <p>{error}</p>
-              <button type="button" onClick={load}>Try again</button>
+              <button type="button" onClick={load}>
+                Try again
+              </button>
             </div>
           ) : !hasAnyData ? (
             <div className="db-rep-state">
+              <BarChart3 size={28} color={t.inkFaint} />
               <h2>No log data in this range</h2>
               <p>Add glucose, meals, or meds for these dates, then reopen the report.</p>
               <button type="button" className="db-rep-primary" onClick={() => navigate('/logs')}>
@@ -339,21 +432,45 @@ export default function Reports() {
                     vs {comparePeriod.label} ({comparePeriod.shortLabel})
                   </span>
                 ) : null}
+                {generatedLabel ? <span className="db-rep-generated">Generated {generatedLabel}</span> : null}
               </div>
+
+              <CareLetter story={story} />
 
               <div className="db-rep-metrics">
                 <MetricCard
                   label="Avg glucose"
-                  value={metrics.avgGlucose}
-                  unit=" mg/dL"
-                  delta={deltas?.avgGlucose}
+                  value={avgGlucoseDisplay}
+                  unit={` ${unitLabel}`}
+                  delta={avgGlucoseDeltaDisplay}
                   invertDelta
+                  against={compareAgainst}
+                  hint={glucoseRangeHint}
                 />
                 <MetricCard
                   label="Time in range"
                   value={metrics.timeInRangePercent}
                   unit="%"
                   delta={deltas?.timeInRangePercent}
+                  against={compareAgainst}
+                />
+                <MetricCard
+                  label="Est. A1c"
+                  value={metrics.estimatedA1c}
+                  unit="%"
+                  delta={deltas?.estimatedA1c}
+                  invertDelta
+                  against={compareAgainst}
+                  hint="From logged average"
+                />
+                <MetricCard
+                  label="Variability"
+                  value={glucoseStdDevDisplay}
+                  unit={` ${unitLabel}`}
+                  delta={glucoseStdDevDeltaDisplay}
+                  invertDelta
+                  against={compareAgainst}
+                  hint="Std. deviation"
                 />
                 <MetricCard
                   label="Insulin total"
@@ -361,46 +478,38 @@ export default function Reports() {
                   unit=" u"
                   delta={deltas?.totalInsulinUnits}
                   invertDelta
+                  against={compareAgainst}
                 />
                 <MetricCard
                   label="Med adherence"
                   value={metrics.adherencePercent}
                   unit="%"
                   delta={deltas?.adherencePercent}
+                  against={compareAgainst}
                 />
                 <MetricCard
                   label="Avg sleep"
                   value={metrics.avgSleepHours}
                   unit=" h"
                   delta={deltas?.avgSleepHours}
+                  against={compareAgainst}
                 />
                 <MetricCard
                   label="Activity"
                   value={metrics.totalExerciseMinutes}
                   unit=" min"
                   delta={deltas?.totalExerciseMinutes}
+                  against={compareAgainst}
                 />
               </div>
 
-              {report.insights?.length > 0 && (
-                <section className="db-rep-insights">
-                  <h2>Insights</h2>
-                  <ul>
-                    {report.insights.map((ins) => (
-                      <li key={ins.message} className={`is-${(ins.type || 'Suggestion').toLowerCase()}`}>
-                        <span>{ins.type}</span>
-                        {ins.message}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
+              <p className="db-rep-section-label">Trends & charts</p>
               <div className="db-rep-grid">
                 <ChartCard
                   title="Daily average glucose"
-                  subtitle={`Target range ${report?.tirTarget?.low ?? 70}–${report?.tirTarget?.high ?? 180} mg/dL`}
+                  subtitle={`Target ${tirTargetLow}–${tirTargetHigh} ${unitLabel}`}
                   empty={!dailyGlucose.length}
+                  wide
                 >
                   <div className="db-rep-chart-body">
                     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
@@ -418,7 +527,7 @@ export default function Reports() {
                         <Area
                           type="monotone"
                           dataKey="avgGlucose"
-                          name="Avg mg/dL"
+                          name={`Avg ${unitLabel}`}
                           stroke={t.skyDeep}
                           fill="url(#gluFill)"
                           strokeWidth={2}
@@ -455,6 +564,37 @@ export default function Reports() {
                   </div>
                 </ChartCard>
 
+                <ChartCard
+                  title="Glucose by reading type"
+                  subtitle={`Average ${unitLabel} · fasting vs meals`}
+                  empty={!readingTypeChart.length}
+                >
+                  <div className="db-rep-chart-body">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                      <BarChart data={readingTypeChart} layout="vertical" margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+                        <CartesianGrid stroke={t.line} strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          width={88}
+                          tick={{ fill: t.inkSoft, fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          formatter={(value, _n, item) => [
+                            `${value} ${unitLabel} · ${item?.payload?.count ?? 0} readings`,
+                            'Average',
+                          ]}
+                        />
+                        <Bar dataKey="avgGlucose" name={`Avg ${unitLabel}`} fill={t.skyDeep} radius={[0, 6, 6, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </ChartCard>
+
                 <ChartCard title="Carbs by day" subtitle="From meal logs" empty={!charts?.daily?.some((d) => d.carbs > 0)}>
                   <div className="db-rep-chart-body">
                     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
@@ -483,7 +623,11 @@ export default function Reports() {
                   </div>
                 </ChartCard>
 
-                <ChartCard title="Water & activity" subtitle="Daily totals" empty={!charts?.daily?.some((d) => d.water > 0 || d.exercise > 0)}>
+                <ChartCard
+                  title="Water & activity"
+                  subtitle="Daily totals"
+                  empty={!charts?.daily?.some((d) => d.water > 0 || d.exercise > 0)}
+                >
                   <div className="db-rep-chart-body">
                     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                       <LineChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
@@ -526,7 +670,7 @@ export default function Reports() {
                   <ChartCard title="Insulin by type" subtitle="Total units in period">
                     <div className="db-rep-chart-body">
                       <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                        <BarChart data={charts?.insulinByType || []} layout="vertical" margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+                        <BarChart data={charts.insulinByType} layout="vertical" margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
                           <CartesianGrid stroke={t.line} strokeDasharray="3 3" horizontal={false} />
                           <XAxis type="number" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
                           <YAxis type="category" dataKey="name" width={90} tick={{ fill: t.inkSoft, fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -542,7 +686,7 @@ export default function Reports() {
                   <ChartCard title="Mood entries" subtitle="Counts in period">
                     <div className="db-rep-chart-body">
                       <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                        <BarChart data={charts?.mood || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                        <BarChart data={charts.mood} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                           <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="name" tick={{ fill: t.inkFaint, fontSize: 10 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={50} />
                           <YAxis allowDecimals={false} tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
@@ -555,15 +699,42 @@ export default function Reports() {
                 )}
               </div>
 
-              <section className="db-rep-summary">
+              <section className="db-rep-totals">
                 <h2>Period totals</h2>
-                <div className="db-rep-summary-grid">
-                  <p><strong>{metrics.glucoseReadings}</strong> glucose readings</p>
-                  <p><strong>{metrics.mealsLogged}</strong> meals · <strong>{metrics.totalCarbs}</strong> g carbs</p>
-                  <p><strong>{metrics.medsTaken}</strong> meds taken · <strong>{metrics.medsMissed + metrics.medsSkipped}</strong> missed/skipped</p>
-                  <p><strong>{metrics.totalWaterMl}</strong> ml water · avg <strong>{metrics.avgWaterPerDay ?? '—'}</strong>/day</p>
-                  <p><strong>{metrics.loggingDays}</strong> of <strong>{metrics.dayCount}</strong> days had at least one log</p>
+                <div className="db-rep-totals-grid">
+                  <div>
+                    <Droplets size={16} />
+                    <p>
+                      <strong>{metrics.glucoseReadings}</strong> glucose readings
+                    </p>
+                  </div>
+                  <div>
+                    <Activity size={16} />
+                    <p>
+                      <strong>{metrics.mealsLogged}</strong> meals · <strong>{metrics.totalCarbs}</strong> g carbs
+                    </p>
+                  </div>
+                  <div>
+                    <p>
+                      <strong>{metrics.medsTaken}</strong> meds taken ·{' '}
+                      <strong>{(metrics.medsMissed || 0) + (metrics.medsSkipped || 0)}</strong> missed/skipped
+                    </p>
+                  </div>
+                  <div>
+                    <p>
+                      <strong>{metrics.totalWaterMl}</strong> ml water · avg{' '}
+                      <strong>{metrics.avgWaterPerDay ?? '—'}</strong>/day
+                    </p>
+                  </div>
+                  <div>
+                    <p>
+                      Logged on <strong>{metrics.loggingDays}</strong> of <strong>{metrics.dayCount}</strong> days
+                    </p>
+                  </div>
                 </div>
+                <p className="db-rep-disclaimer">
+                  Informational self-management summary only — not a substitute for clinical advice or lab results.
+                </p>
               </section>
             </>
           )}
@@ -574,61 +745,97 @@ export default function Reports() {
         .db-rep {
           min-height: 100dvh;
           display: flex;
-          background: linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 42%);
+          background:
+            radial-gradient(ellipse at 0% 0%, rgba(94,135,160,0.08), transparent 42%),
+            linear-gradient(180deg, #E8E1D4 0%, ${t.bg} 38%);
           font-family: ${t.fontBody};
         }
         .db-rep-main {
           flex: 1;
           min-width: 0;
-          padding: 24px 18px 100px;
+          padding: 28px 20px 110px;
         }
         .db-rep-inner {
-          max-width: 1080px;
+          max-width: 1120px;
           margin: 0 auto;
         }
-        .db-rep-header {
+        .db-rep-hero {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 18px;
+          gap: 20px;
+          margin-bottom: 20px;
+          padding: 22px 24px;
+          border-radius: 18px;
+          background: linear-gradient(135deg, ${t.forest} 0%, #1f3228 55%, #2f4a38 100%);
+          color: #f3eee2;
+          box-shadow: ${t.shadowLifted};
         }
         .db-rep-eyebrow {
-          margin: 0 0 6px;
+          margin: 0 0 8px;
           font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.14em;
+          letter-spacing: 0.16em;
           text-transform: uppercase;
-          color: ${t.inkFaint};
+          color: rgba(243,238,226,0.62);
         }
-        .db-rep-header h1 {
+        .db-rep-hero h1 {
           margin: 0;
           font-family: ${t.fontDisplay};
-          font-size: clamp(26px, 5vw, 34px);
+          font-size: clamp(28px, 5vw, 38px);
           font-weight: 500;
-          color: ${t.ink};
-          display: flex;
-          align-items: center;
-          gap: 10px;
+          letter-spacing: -0.02em;
+          color: #fff;
         }
         .db-rep-lead {
-          margin: 8px 0 0;
+          margin: 10px 0 0;
           font-size: 14px;
-          color: ${t.inkSoft};
-          max-width: 44ch;
-          line-height: 1.5;
+          color: rgba(243,238,226,0.82);
+          max-width: 48ch;
+          line-height: 1.55;
+        }
+        .db-rep-header-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          flex-shrink: 0;
         }
         .db-rep-ghost {
-          border: 1px solid ${t.lineStrong};
-          background: #fff;
-          color: ${t.inkSoft};
+          border: 1px solid rgba(243,238,226,0.28);
+          background: transparent;
+          color: #f3eee2;
           border-radius: 10px;
           padding: 10px 14px;
           font-size: 13px;
           font-weight: 600;
           cursor: pointer;
           font-family: ${t.fontBody};
-          flex-shrink: 0;
+        }
+        .db-rep-ghost:hover { background: rgba(255,255,255,0.08); }
+        .db-rep-export {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border: 1px solid transparent;
+          background: #fff;
+          color: ${t.forest};
+          border-radius: 10px;
+          padding: 10px 14px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: ${t.fontBody};
+        }
+        .db-rep-export:disabled { opacity: 0.45; cursor: not-allowed; }
+        .db-rep-export--primary:hover:not(:disabled) {
+          background: ${t.goldSoft};
+        }
+        .db-rep-export-error {
+          margin: -8px 0 12px;
+          font-size: 12px;
+          font-weight: 600;
+          color: ${t.clayDeep};
         }
         .db-rep-primary {
           border: none;
@@ -644,12 +851,28 @@ export default function Reports() {
         .db-rep-controls {
           background: #fff;
           border: 1px solid ${t.lineStrong};
-          border-radius: 14px;
-          padding: 12px;
-          margin-bottom: 16px;
+          border-radius: 16px;
+          padding: 16px;
+          margin-bottom: 18px;
           display: flex;
           flex-direction: column;
+          gap: 14px;
+          box-shadow: ${t.shadowCard};
+        }
+        .db-rep-controls-top {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-between;
           gap: 12px;
+          align-items: flex-end;
+        }
+        .db-rep-controls-label {
+          margin: 0 0 8px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: ${t.inkFaint};
         }
         .db-rep-presets {
           display: flex;
@@ -658,11 +881,11 @@ export default function Reports() {
         }
         .db-rep-preset {
           border: 1px solid ${t.lineStrong};
-          background: #fff;
+          background: ${t.surfaceSunken};
           color: ${t.inkSoft};
-          border-radius: 999px;
-          padding: 7px 12px;
-          font-size: 12px;
+          border-radius: 10px;
+          padding: 8px 14px;
+          font-size: 13px;
           font-weight: 600;
           cursor: pointer;
           font-family: ${t.fontBody};
@@ -698,7 +921,7 @@ export default function Reports() {
           background: ${t.surfaceSunken};
         }
         .db-rep-dates--compare {
-          padding-top: 4px;
+          padding-top: 10px;
           border-top: 1px solid ${t.line};
         }
         .db-rep-dates--compare > p {
@@ -725,14 +948,15 @@ export default function Reports() {
         .db-rep-state {
           background: #fff;
           border: 1px solid ${t.lineStrong};
-          border-radius: 14px;
-          padding: 36px 20px;
+          border-radius: 16px;
+          padding: 40px 20px;
           text-align: center;
           color: ${t.inkSoft};
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 10px;
+          box-shadow: ${t.shadowCard};
         }
         .db-rep-state h2 {
           margin: 0;
@@ -751,6 +975,65 @@ export default function Reports() {
           font-weight: 600;
           cursor: pointer;
         }
+        .db-rep-letter {
+          background: linear-gradient(180deg, #fcfaf5 0%, ${t.surfaceRaised} 100%);
+          border: 1px solid ${t.lineStrong};
+          border-radius: 16px;
+          padding: 20px 22px;
+          margin-bottom: 18px;
+          box-shadow: ${t.shadowCard};
+        }
+        .db-rep-letter-eyebrow {
+          margin: 0 0 8px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: ${t.inkFaint};
+        }
+        .db-rep-letter-head {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 10px;
+        }
+        .db-rep-letter-head h2 {
+          margin: 0;
+          font-family: ${t.fontDisplay};
+          font-size: 22px;
+          font-weight: 500;
+          color: ${t.ink};
+          letter-spacing: -0.01em;
+        }
+        .db-rep-letter-rating {
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          padding: 4px 10px;
+          border-radius: 999px;
+          background: ${t.surfaceSunken};
+          color: ${t.inkSoft};
+        }
+        .db-rep-letter-rating.is-excellent, .db-rep-letter-rating.is-good {
+          background: ${t.sageSoft};
+          color: ${t.sageDeep};
+        }
+        .db-rep-letter-rating.is-fair { background: ${t.goldSoft}; color: ${t.forest}; }
+        .db-rep-letter-rating.is-needs_attention { background: ${t.claySoft}; color: ${t.clayDeep}; }
+        .db-rep-letter-body {
+          margin: 14px 0 0;
+          font-size: 14px;
+          line-height: 1.7;
+          color: ${t.inkSoft};
+          max-width: 74ch;
+        }
+        .db-rep-letter-signoff {
+          margin: 12px 0 0;
+          font-size: 12px;
+          font-weight: 700;
+          color: ${t.forest};
+        }
         .db-rep-period-line {
           display: flex;
           flex-wrap: wrap;
@@ -762,17 +1045,27 @@ export default function Reports() {
         }
         .db-rep-period-line strong { color: ${t.ink}; font-size: 15px; }
         .db-rep-vs { color: ${t.inkFaint}; }
+        .db-rep-generated { margin-left: auto; font-size: 11px; color: ${t.inkFaint}; }
+        .db-rep-section-label {
+          margin: 4px 0 10px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: ${t.inkFaint};
+        }
         .db-rep-metrics {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 10px;
-          margin-bottom: 16px;
+          margin-bottom: 18px;
         }
         .db-rep-metric {
           background: #fff;
           border: 1px solid ${t.lineStrong};
-          border-radius: 12px;
-          padding: 12px 14px;
+          border-radius: 14px;
+          padding: 14px 15px;
+          box-shadow: ${t.shadowCard};
         }
         .db-rep-metric-label {
           margin: 0;
@@ -783,68 +1076,35 @@ export default function Reports() {
           color: ${t.inkFaint};
         }
         .db-rep-metric-value {
-          margin: 6px 0 0;
-          font-size: 22px;
+          margin: 8px 0 0;
+          font-size: 24px;
           font-weight: 700;
           color: ${t.ink};
+          letter-spacing: -0.02em;
         }
         .db-rep-metric-value span {
           font-size: 13px;
           font-weight: 600;
           color: ${t.inkSoft};
         }
+        .db-rep-metric-hint {
+          margin: 4px 0 0;
+          font-size: 11px;
+          color: ${t.inkFaint};
+        }
         .db-rep-delta {
           display: inline-flex;
           align-items: center;
+          flex-wrap: wrap;
           gap: 2px;
           margin-top: 6px;
           font-size: 11px;
           font-weight: 700;
           color: ${t.inkFaint};
+          line-height: 1.35;
         }
         .db-rep-delta.is-up { color: ${t.sageDeep}; }
         .db-rep-delta.is-down { color: ${t.clayDeep}; }
-        .db-rep-insights {
-          background: #fff;
-          border: 1px solid ${t.lineStrong};
-          border-radius: 14px;
-          padding: 14px 16px;
-          margin-bottom: 16px;
-        }
-        .db-rep-insights h2 {
-          margin: 0 0 10px;
-          font-family: ${t.fontDisplay};
-          font-size: 18px;
-          font-weight: 500;
-          color: ${t.ink};
-        }
-        .db-rep-insights ul {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .db-rep-insights li {
-          font-size: 13px;
-          color: ${t.inkSoft};
-          line-height: 1.45;
-          background: ${t.surfaceSunken};
-          border-radius: 10px;
-          padding: 10px 12px;
-        }
-        .db-rep-insights li span {
-          display: inline-block;
-          margin-right: 8px;
-          font-size: 10px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: ${t.forest};
-        }
-        .db-rep-insights li.is-warning span { color: ${t.clayDeep}; }
-        .db-rep-insights li.is-achievement span { color: ${t.sageDeep}; }
         .db-rep-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -853,9 +1113,13 @@ export default function Reports() {
         .db-rep-chart {
           background: #fff;
           border: 1px solid ${t.lineStrong};
-          border-radius: 14px;
-          padding: 14px;
+          border-radius: 16px;
+          padding: 16px;
           min-width: 0;
+          box-shadow: ${t.shadowCard};
+        }
+        .db-rep-chart.is-wide {
+          grid-column: 1 / -1;
         }
         .db-rep-chart-head h3 {
           margin: 0;
@@ -874,9 +1138,7 @@ export default function Reports() {
           height: 260px;
           min-height: 260px;
         }
-        .db-rep-chart-body--pie {
-          position: relative;
-        }
+        .db-rep-chart-body--pie { position: relative; }
         .db-rep-tir-center {
           position: absolute;
           left: 50%;
@@ -894,177 +1156,88 @@ export default function Reports() {
           color: ${t.inkFaint};
           font-size: 13px;
         }
-        .db-rep-summary {
+        .db-rep-totals {
           margin-top: 16px;
           background: #fff;
           border: 1px solid ${t.lineStrong};
-          border-radius: 14px;
-          padding: 14px 16px;
+          border-radius: 16px;
+          padding: 18px 20px;
+          box-shadow: ${t.shadowCard};
         }
-        .db-rep-summary h2 {
-          margin: 0 0 10px;
+        .db-rep-totals h2 {
+          margin: 0 0 12px;
           font-family: ${t.fontDisplay};
-          font-size: 18px;
+          font-size: 20px;
           font-weight: 500;
         }
-        .db-rep-summary-grid {
+        .db-rep-totals-grid {
           display: grid;
-          gap: 8px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
           font-size: 13px;
           color: ${t.inkSoft};
         }
-        .db-rep-summary-grid strong { color: ${t.ink}; }
+        .db-rep-totals-grid > div {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          padding: 10px 12px;
+          background: ${t.surfaceSunken};
+          border-radius: 10px;
+        }
+        .db-rep-totals-grid p { margin: 0; }
+        .db-rep-totals-grid strong { color: ${t.ink}; }
+        .db-rep-disclaimer {
+          margin: 14px 0 0;
+          font-size: 11px;
+          color: ${t.inkFaint};
+          line-height: 1.45;
+        }
         .db-spin { animation: db-spin 0.9s linear infinite; }
         @keyframes db-spin { to { transform: rotate(360deg); } }
-        @media (max-width: 860px) {
+        @media (max-width: 960px) {
           .db-rep-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 860px) {
           .db-rep-grid { grid-template-columns: 1fr; }
-          .db-rep-chart-body {
-            height: 240px;
-            min-height: 240px;
-          }
+          .db-rep-chart.is-wide { grid-column: auto; }
+          .db-rep-chart-body { height: 240px; min-height: 240px; }
+          .db-rep-totals-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 640px) {
-          .db-rep {
-            overflow-x: hidden;
-          }
           .db-rep-main {
             padding: 12px 12px calc(112px + env(safe-area-inset-bottom, 0px));
           }
-          .db-rep-header {
+          .db-rep-hero {
             flex-direction: column;
-            align-items: stretch;
-            gap: 12px;
-            margin-bottom: 14px;
+            padding: 18px 16px;
+            border-radius: 14px;
           }
-          .db-rep-header h1 {
-            font-size: clamp(22px, 6.5vw, 28px);
-            gap: 8px;
-          }
-          .db-rep-header h1 svg {
-            width: 22px;
-            height: 22px;
-            flex-shrink: 0;
-          }
-          .db-rep-lead {
-            font-size: 13px;
-            max-width: none;
-          }
-          .db-rep-ghost {
-            width: 100%;
-            text-align: center;
+          .db-rep-header-actions { width: 100%; }
+          .db-rep-ghost,
+          .db-rep-export {
+            flex: 1 1 auto;
+            justify-content: center;
             min-height: 44px;
-          }
-          .db-rep-primary {
-            width: 100%;
-            min-height: 44px;
-          }
-          .db-rep-controls {
-            padding: 10px;
-            border-radius: 12px;
-            gap: 10px;
           }
           .db-rep-presets {
-            display: flex;
             flex-wrap: nowrap;
-            gap: 6px;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
-            margin: 0 -2px;
-            padding: 2px;
           }
           .db-rep-presets::-webkit-scrollbar { display: none; }
-          .db-rep-preset {
-            flex: 0 0 auto;
-            padding: 8px 14px;
-            font-size: 12px;
-            min-height: 36px;
-          }
-          .db-rep-dates {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 10px;
-          }
-          .db-rep-dates label {
-            width: 100%;
-          }
-          .db-rep-dates input {
-            width: 100%;
-            box-sizing: border-box;
-            font-size: 16px;
-            min-height: 44px;
-          }
-          .db-rep-compare-toggle {
-            min-height: 40px;
-            font-size: 13px;
-          }
-          .db-rep-metrics {
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-          }
-          .db-rep-metric {
-            padding: 10px 12px;
-            border-radius: 10px;
-          }
-          .db-rep-metric-value {
-            font-size: 18px;
-          }
-          .db-rep-metric-value span {
-            font-size: 12px;
-          }
-          .db-rep-period-line {
-            flex-direction: column;
-            gap: 4px;
-            font-size: 12px;
-          }
-          .db-rep-period-line strong {
-            font-size: 14px;
-          }
-          .db-rep-insights,
-          .db-rep-summary,
-          .db-rep-chart,
-          .db-rep-state {
-            border-radius: 12px;
-            padding: 12px;
-          }
-          .db-rep-insights h2,
-          .db-rep-summary h2 {
-            font-size: 16px;
-          }
-          .db-rep-insights li {
-            font-size: 12px;
-            padding: 9px 10px;
-          }
-          .db-rep-chart-head h3 {
-            font-size: 14px;
-          }
-          .db-rep-chart-body {
-            height: 200px;
-            min-height: 200px;
-          }
-          .db-rep-chart-body .recharts-responsive-container {
-            min-height: 200px !important;
-          }
-          .db-rep-tir-center {
-            font-size: 18px;
-            top: 44%;
-          }
-          .db-rep-summary-grid {
-            font-size: 12px;
-            gap: 6px;
-          }
-          .db-rep-state {
-            padding: 28px 16px;
-          }
-          .db-rep-state h2 {
-            font-size: 18px;
-          }
+          .db-rep-preset { flex: 0 0 auto; }
+          .db-rep-dates { flex-direction: column; align-items: stretch; }
+          .db-rep-dates input { width: 100%; box-sizing: border-box; font-size: 16px; min-height: 44px; }
+          .db-rep-metrics { grid-template-columns: 1fr 1fr; gap: 8px; }
+          .db-rep-metric-value { font-size: 20px; }
+          .db-rep-period-line { flex-direction: column; gap: 4px; }
+          .db-rep-generated { margin-left: 0; }
+          .db-rep-chart-body { height: 200px; min-height: 200px; }
         }
         @media (max-width: 380px) {
-          .db-rep-metrics {
-            grid-template-columns: 1fr;
-          }
+          .db-rep-metrics { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>

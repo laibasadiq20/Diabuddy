@@ -8,7 +8,7 @@ import { ArrowLeft, Link2Off, RefreshCw, Watch } from 'lucide-react';
 
 const t = theme;
 
-export default function Fitbit() {
+export default function GoogleHealth() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, authHeaders } = useAuth();
@@ -68,13 +68,28 @@ export default function Fitbit() {
       const res = await fetch(`${API_URL}/google-health/sync`, {
         method: 'POST',
         credentials: 'include',
-        headers: { ...authHeaders() },
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders(),
+        },
+        body: JSON.stringify({ tzOffset: new Date().getTimezoneOffset() }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.status !== 'success') {
         throw new Error(data.message || 'Sync failed');
       }
-      setMessage(`Synced ${Number(data.data?.steps || 0).toLocaleString()} steps for today.`);
+      const parts = [
+        `${Number(data.data?.steps || 0).toLocaleString()} steps`,
+        data.data?.calories != null ? `${data.data.calories} kcal` : null,
+        data.data?.distanceKm ? `${data.data.distanceKm} km` : null,
+        data.data?.durationMinutes ? `${data.data.durationMinutes} min` : null,
+      ].filter(Boolean);
+      const when = data.data?.lastSyncAt
+        ? new Date(data.data.lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : null;
+      setMessage(
+        `Synced for today${when ? ` at ${when}` : ''}: ${parts.join(' · ')}. Saved in Activity logs.`
+      );
       await loadStatus();
     } catch (err) {
       setError(err.message || 'Sync failed');
@@ -114,7 +129,7 @@ export default function Fitbit() {
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/logs/exercise')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -131,13 +146,13 @@ export default function Fitbit() {
             }}
           >
             <ArrowLeft size={16} />
-            Back
+            Back to activity
           </button>
           <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
             Activity
           </p>
           <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(26px, 6vw, 32px)', fontWeight: 500, color: t.ink }}>
-            Connect smartwatch
+            Connect Google Health
           </h1>
           <p style={{ margin: '8px 0 24px', fontSize: 14, color: t.inkSoft, lineHeight: 1.5 }}>
             Sync steps through Google Health (works with Fitbit accounts linked to Google). You can still log activity manually anytime.
@@ -199,8 +214,14 @@ export default function Fitbit() {
                 <p style={{ margin: '0 0 8px', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
                   {connected
                     ? status?.lastSyncAt
-                      ? `Last sync: ${new Date(status.lastSyncAt).toLocaleString()} · ${Number(status.lastSteps || 0).toLocaleString()} steps`
-                      : 'Connected — sync to pull today’s steps.'
+                      ? `Last sync: ${new Date(status.lastSyncAt).toLocaleString()} · ${[
+                          `${Number(status.lastSteps || 0).toLocaleString()} steps`,
+                          status.lastCalories ? `${status.lastCalories} kcal` : null,
+                          status.lastDistanceKm ? `${status.lastDistanceKm} km` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}`
+                      : 'Connected — sync to pull today’s steps, calories, and distance.'
                     : 'Sign in with Google to allow DiaBuddy to read activity and steps.'}
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 16 }}>

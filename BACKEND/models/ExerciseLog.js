@@ -17,7 +17,7 @@ const exerciseLogSchema = new mongoose.Schema(
     duration: {
       type: Number,
       required: [true, 'Duration is required'],
-      min: [1, 'Duration must be at least 1 minute'],
+      min: [0, 'Duration cannot be negative'],
     },
     distance: {
       type: Number,

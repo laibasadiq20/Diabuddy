@@ -17,7 +17,6 @@ import {
   Heart,
   MessageSquare,
   BellRing,
-  BadgeCheck,
   BarChart3,
 } from 'lucide-react';
 
@@ -30,7 +29,7 @@ const navItems = [
   { label: 'Community', path: '/community', icon: Users },
   { label: 'Messages', path: '/messages', icon: MessageSquare },
   { label: 'Toolbox', path: '/toolbox', icon: Wrench },
-  // Fitbit + Reminders stay out of nav until those features ship
+  // Reminders stay out of nav until that feature ships (friend’s work)
   { label: 'My Account', path: '/account', icon: UserRound },
 ];
 
@@ -39,7 +38,6 @@ const adminNavItems = [
   { label: 'Users', path: '/admin?tab=users', icon: Users, tab: 'users' },
   { label: 'Reports', path: '/admin?tab=reports', icon: BellRing, tab: 'reports' },
   { label: 'Topics', path: '/admin?tab=topics', icon: ClipboardList, tab: 'topics' },
-  { label: 'Pro requests', path: '/admin?tab=pros', icon: BadgeCheck, tab: 'pros' },
   { label: 'Notifications', path: '/admin?tab=notifications', icon: Bell, tab: 'notifications' },
   { label: 'View community', path: '/community', icon: MessageSquare, soft: true },
   { label: 'Account', path: '/account', icon: UserRound },

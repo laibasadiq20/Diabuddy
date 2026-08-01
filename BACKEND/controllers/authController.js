@@ -387,6 +387,14 @@ const login = async (req, res) => {
       });
     }
 
+    // 4. Banned accounts must never receive a session, even with correct credentials
+    if (user.isActive === false) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'This account has been banned. Contact support if you believe this is a mistake.',
+      });
+    }
+
     const token = generateToken(user._id);
     setAuthCookie(res, token);
 
@@ -430,7 +438,7 @@ const login = async (req, res) => {
  */
 const getMe = async (req, res) => {
   try {
-    const u = req.user.toObject ? req.user.toObject() : req.user;
+    const u = req.user.toJSON ? req.user.toJSON() : req.user;
     return res.json({
       status: 'success',
       data: {
@@ -480,7 +488,7 @@ const searchUsers = async (req, res) => {
     }
 
     const users = await User.find(query)
-      .select('name username profileImageUrl diabetesType diagnosisYear isVerifiedProfessional')
+      .select('name username profileImageUrl diabetesType diagnosisYear')
       .limit(20);
 
     return res.json({
@@ -516,7 +524,7 @@ const getPublicProfile = async (req, res) => {
       _id: id,
       isActive: true,
     }).select(
-      'name username bio location profileImageUrl diabetesType diagnosisYear isVerifiedProfessional postsCount commentsCount createdAt'
+      'name username bio location profileImageUrl diabetesType diagnosisYear postsCount commentsCount createdAt'
     );
 
     if (!profile) {
@@ -688,13 +696,13 @@ const updateProfile = async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
       new: true,
       runValidators: true,
-    }).select('-passwordHash');
+    });
 
     if (!user) {
       return res.status(404).json({ status: 'error', message: 'User not found' });
     }
 
-    const u = user.toObject();
+    const u = user.toJSON();
     return res.json({
       status: 'success',
       message: 'Profile updated',
@@ -709,59 +717,6 @@ const updateProfile = async (req, res) => {
   }
 };
 
-/**
- * @desc    Request verified professional badge
- * @route   POST /api/auth/pro-request
- * @access  Private
- */
-const requestProVerification = async (req, res) => {
-  try {
-    if (req.user.role === 'admin') {
-      return res.status(400).json({ status: 'error', message: 'Admins do not need a pro badge request' });
-    }
-
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ status: 'error', message: 'User not found' });
-
-    if (user.isVerifiedProfessional || user.professionalVerification?.status === 'approved') {
-      return res.status(400).json({ status: 'error', message: 'You are already a verified professional' });
-    }
-    if (user.professionalVerification?.status === 'pending') {
-      return res.status(400).json({ status: 'error', message: 'Your request is already pending review' });
-    }
-
-    const credentials = String(req.body.credentials || '').trim();
-    const note = String(req.body.note || '').trim();
-    if (credentials.length < 8) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Please describe your credentials (at least 8 characters)',
-      });
-    }
-
-    user.professionalVerification = {
-      status: 'pending',
-      credentials: credentials.slice(0, 500),
-      note: note.slice(0, 500),
-      requestedAt: new Date(),
-      reviewedAt: null,
-      reviewedBy: null,
-    };
-    await user.save();
-
-    const u = user.toObject();
-    delete u.passwordHash;
-    return res.status(201).json({
-      status: 'success',
-      message: 'Verification request submitted',
-      data: { ...u, id: u._id, _id: u._id },
-    });
-  } catch (err) {
-    console.error('Pro request error:', err);
-    return res.status(500).json({ status: 'error', message: 'Failed to submit request' });
-  }
-};
-
 module.exports = {
   register,
   verifyEmail,
@@ -770,7 +725,6 @@ module.exports = {
   logout,
   getMe,
   updateProfile,
-  requestProVerification,
   searchUsers,
   getPublicProfile,
   forgotPassword,

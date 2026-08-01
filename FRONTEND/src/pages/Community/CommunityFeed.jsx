@@ -57,7 +57,7 @@ export default function CommunityFeed() {
               loading={f.postsLoading}
               error={f.error}
               empty={!f.postsLoading && !f.error && f.posts.length === 0}
-              onRetry={f.clearFilters}
+              onRetry={f.retryFeed}
               onCreatePost={() => f.navigate('/community/new-post')}
             />
           ) : (

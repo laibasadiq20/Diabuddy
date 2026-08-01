@@ -72,6 +72,11 @@ export default function LogTypePage() {
     setTimeout(() => setToast((p) => ({ ...p, visible: false })), 2800);
   };
 
+  const scrollToForm = () => {
+    const formEl = document.getElementById('db-log-form-anchor');
+    if (formEl) formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const loadEntries = useCallback(async () => {
     if (!config) return;
     setLoading(true);
@@ -271,14 +276,20 @@ export default function LogTypePage() {
                 🏃 {raw.activity || item.title}
               </p>
               <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                {raw.duration ?? 0} minutes
-                {raw.intensity ? ` · ${intensityFromApiLabel(raw.intensity)}` : ''}
+                {[
+                  raw.duration > 0 ? `${raw.duration} min` : null,
+                  raw.steps ? `${Number(raw.steps).toLocaleString()} steps` : null,
+                  raw.caloriesBurned ? `${raw.caloriesBurned} kcal` : null,
+                  raw.distance ? `${raw.distance} km` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </p>
-              {(raw.caloriesBurned || raw.distance) ? (
+              {(raw.intensity || (raw.source && raw.source !== 'Manual')) ? (
                 <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
                   {[
-                    raw.caloriesBurned ? `${raw.caloriesBurned} kcal` : null,
-                    raw.distance ? `${raw.distance} km` : null,
+                    raw.intensity ? intensityFromApiLabel(raw.intensity) : null,
+                    raw.source && raw.source !== 'Manual' ? raw.source : null,
                   ]
                     .filter(Boolean)
                     .join(' · ')}
@@ -355,8 +366,7 @@ export default function LogTypePage() {
               type="button"
               onClick={() => {
                 setEditRaw(item.raw || item);
-                const formEl = document.getElementById('db-log-form-anchor');
-                if (formEl) formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                scrollToForm();
               }}
               style={smallBtn}
             >
@@ -524,9 +534,17 @@ export default function LogTypePage() {
                 ) : error ? (
                   <p style={{ color: t.clayDeep, fontSize: 14, margin: 0 }}>{error}</p>
                 ) : entries.length === 0 ? (
-                  <p style={{ margin: 0, fontSize: 14, color: t.inkFaint, lineHeight: 1.5 }}>
-                    No entries for today yet.
-                  </p>
+                  <div style={emptyStateBox}>
+                    <span style={emptyStateIcon}>
+                      <Icon size={20} strokeWidth={1.75} />
+                    </span>
+                    <p style={emptyStateText}>
+                      No {config.label.toLowerCase()} logged today yet — your first entry only takes a moment.
+                    </p>
+                    <button type="button" onClick={scrollToForm} style={emptyStateCta}>
+                      Log {config.label.toLowerCase()} now
+                    </button>
+                  </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {visibleEntries.map(renderEntryCard)}
@@ -795,6 +813,49 @@ const viewAllBtn = {
   background: t.surfaceSunken,
   color: t.forest,
   fontSize: 14,
+  fontWeight: 700,
+  cursor: 'pointer',
+  fontFamily: t.fontBody,
+};
+
+const emptyStateBox = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  gap: 10,
+  padding: '18px 4px 4px',
+};
+
+const emptyStateIcon = {
+  width: 38,
+  height: 38,
+  borderRadius: 10,
+  background: t.surfaceSunken,
+  color: t.forest,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+};
+
+const emptyStateText = {
+  margin: 0,
+  fontSize: 14,
+  color: t.inkSoft,
+  lineHeight: 1.55,
+  maxWidth: '32ch',
+};
+
+const emptyStateCta = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '10px 16px',
+  borderRadius: 10,
+  border: 'none',
+  background: t.forest,
+  color: '#fff',
+  fontSize: 13,
   fontWeight: 700,
   cursor: 'pointer',
   fontFamily: t.fontBody,

@@ -502,7 +502,7 @@ export default function NewPost() {
                 <textarea 
                   value={content}
                   onChange={e => setContent(e.target.value)}
-                  placeholder="Share details of your logging, ask professionals, or explain your recipe..."
+                  placeholder="Share what's on your mind — your logging, your routine, or a recipe you love..."
                   required
                   rows={8}
                   style={{

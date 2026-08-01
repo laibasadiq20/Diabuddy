@@ -18,8 +18,8 @@ const Hero = () => {
     document.getElementById('about')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const goCommunity = () => {
-    navigate(user ? '/community' : '/login');
+  const goStart = () => {
+    navigate(user ? '/dashboard' : '/login');
   };
 
   return (
@@ -63,10 +63,10 @@ const Hero = () => {
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <button
-              onClick={goCommunity}
+              onClick={goStart}
               className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#1E2A24] px-7 py-3.5 text-[0.95rem] font-semibold text-white transition-all duration-300 hover:bg-[#C56A3E] hover:-translate-y-0.5"
             >
-              Join the community
+              Start logging
             </button>
 
             <button

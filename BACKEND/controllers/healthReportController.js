@@ -89,7 +89,7 @@ function resolveRange({ preset, startDate, endDate, tzOffset }) {
     return { start, end: finish, days, label: `${startLabel} – ${endLabel}`, shortLabel: `${startLabel} – ${endLabel}` };
   }
 
-  const daysMap = { '7d': 7, '30d': 30, '90d': 90 };
+  const daysMap = { '1d': 1, '7d': 7, '30d': 30, '90d': 90 };
   const days = daysMap[preset] || 7;
   const startLocal = new Date(Date.UTC(localNow.y, localNow.m, localNow.d));
   startLocal.setUTCDate(startLocal.getUTCDate() - (days - 1));
@@ -101,12 +101,42 @@ function resolveRange({ preset, startDate, endDate, tzOffset }) {
   );
   const startParts = toLocalParts(start, tzOffset);
   const endParts = toLocalParts(end, tzOffset);
-  const labels = { '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 3 months' };
+  const labels = {
+    '1d': 'Daily report',
+    '7d': 'Weekly report',
+    '30d': 'Monthly report',
+    '90d': '3-month report',
+  };
   return {
     start,
     end,
     days,
     label: labels[preset] || `Last ${days} days`,
+    shortLabel: `${startParts.label} – ${endParts.label}`,
+  };
+}
+
+/** Don't start a report before the user created their account. */
+function clampRangeToAccountStart(range, accountCreatedAt, tzOffset) {
+  if (!range || !accountCreatedAt) return range;
+  const joined = new Date(accountCreatedAt);
+  if (Number.isNaN(joined.getTime())) return range;
+
+  const joinParts = toLocalParts(joined, tzOffset);
+  const joinStart = startOfLocalDayUtc(joinParts.y, joinParts.m, joinParts.d, tzOffset);
+  if (range.start >= joinStart) return range;
+
+  // Account created after the selected window ended — keep original (empty report).
+  if (joinStart > range.end) return range;
+
+  const start = joinStart;
+  const days = Math.max(1, Math.floor((range.end.getTime() - start.getTime()) / MS_DAY) + 1);
+  const startParts = toLocalParts(start, tzOffset);
+  const endParts = toLocalParts(range.end, tzOffset);
+  return {
+    ...range,
+    start,
+    days,
     shortLabel: `${startParts.label} – ${endParts.label}`,
   };
 }
@@ -128,9 +158,36 @@ function round1(n) {
   return Math.round(n * 10) / 10;
 }
 
+function round2(n) {
+  return Math.round(n * 100) / 100;
+}
+
 function avg(nums) {
   if (!nums.length) return null;
   return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
+function stdDev(nums) {
+  if (!nums || nums.length < 2) return null;
+  const mean = avg(nums);
+  if (mean == null) return null;
+  const variance = nums.reduce((sum, n) => sum + (n - mean) ** 2, 0) / (nums.length - 1);
+  return Math.sqrt(variance);
+}
+
+/** Estimated A1c (%) from mean glucose (mg/dL) — Nathan formula. Informational only. */
+function estimatedA1cFromAvg(avgMgDl) {
+  if (avgMgDl == null || !Number.isFinite(avgMgDl)) return null;
+  return round2((avgMgDl + 46.7) / 28.7);
+}
+
+function classifyReadingType(readingType) {
+  const rt = String(readingType || '');
+  if (rt === 'Fasting' || rt === 'Before Breakfast') return 'Fasting';
+  if (rt.startsWith('After ')) return 'After meal';
+  if (rt.startsWith('Before ')) return 'Before meal';
+  if (rt === 'Bedtime' || rt === 'Night') return 'Bedtime';
+  return 'Other';
 }
 
 async function fetchLogs(userId, start, end) {
@@ -176,6 +233,7 @@ function aggregatePeriod(logs, start, end, tzOffset, label, shortLabel) {
   );
 
   const glucoseMg = [];
+  const byReadingType = {};
   let inRange = 0;
   let high = 0;
   let low = 0;
@@ -184,6 +242,10 @@ function aggregatePeriod(logs, start, end, tzOffset, label, shortLabel) {
     const mg = toMgDl(g.glucoseLevel, g.unit);
     if (mg == null) continue;
     glucoseMg.push(mg);
+    const typeKey = classifyReadingType(g.readingType);
+    if (!byReadingType[typeKey]) byReadingType[typeKey] = { sum: 0, count: 0 };
+    byReadingType[typeKey].sum += mg;
+    byReadingType[typeKey].count += 1;
     const key = toLocalParts(new Date(g.timestamp), tzOffset).key;
     const bucket = dayMap[key];
     if (bucket) {
@@ -318,6 +380,16 @@ function aggregatePeriod(logs, start, end, tzOffset, label, shortLabel) {
   const readings = glucoseMg.length;
   const timeInRangePercent =
     readings > 0 ? Math.round((inRange / readings) * 1000) / 10 : null;
+  const avgGlucose = readings ? Math.round(avg(glucoseMg)) : null;
+  const glucoseStdDev = readings >= 2 ? round1(stdDev(glucoseMg)) : null;
+  const estimatedA1c = estimatedA1cFromAvg(avgGlucose);
+  const glucoseByReadingType = Object.entries(byReadingType)
+    .map(([name, v]) => ({
+      name,
+      count: v.count,
+      avgGlucose: Math.round(v.sum / v.count),
+    }))
+    .sort((a, b) => b.count - a.count);
 
   const glucoseSeries = logs.glucose.map((g) => {
     const mg = toMgDl(g.glucoseLevel, g.unit);
@@ -335,9 +407,11 @@ function aggregatePeriod(logs, start, end, tzOffset, label, shortLabel) {
 
   const metrics = {
     glucoseReadings: readings,
-    avgGlucose: readings ? Math.round(avg(glucoseMg)) : null,
+    avgGlucose,
     highestGlucose: readings ? Math.round(Math.max(...glucoseMg)) : null,
     lowestGlucose: readings ? Math.round(Math.min(...glucoseMg)) : null,
+    glucoseStdDev,
+    estimatedA1c,
     timeInRangePercent,
     highReadings: high,
     lowReadings: low,
@@ -396,6 +470,7 @@ function aggregatePeriod(logs, start, end, tzOffset, label, shortLabel) {
         targetLow: TIR_LOW,
         targetHigh: TIR_HIGH,
       },
+      glucoseByReadingType,
       insulinByType: Object.entries(insulinByType).map(([name, units]) => ({
         name,
         units: round1(units),
@@ -403,6 +478,336 @@ function aggregatePeriod(logs, start, end, tzOffset, label, shortLabel) {
       mealTypes: Object.entries(mealTypeCounts).map(([name, count]) => ({ name, count })),
       mood: Object.entries(moodCounts).map(([name, count]) => ({ name, count })),
     },
+  };
+}
+
+function periodPhrase(label) {
+  const lower = String(label || '').toLowerCase();
+  if (lower.includes('daily')) {
+    return {
+      when: 'today',
+      nextGoals: 'Recommended Goals for Tomorrow',
+      careLetterTitle: 'Daily Care Letter',
+    };
+  }
+  if (lower.includes('weekly')) {
+    return {
+      when: 'this week',
+      nextGoals: 'Recommended Goals Next Week',
+      careLetterTitle: 'Weekly Care Letter',
+    };
+  }
+  if (lower.includes('monthly')) {
+    return {
+      when: 'this month',
+      nextGoals: 'Recommended Goals Next Month',
+      careLetterTitle: 'Monthly Care Letter',
+    };
+  }
+  return {
+    when: 'this period',
+    nextGoals: 'Recommended Goals Ahead',
+    careLetterTitle: 'Care Letter',
+  };
+}
+
+function variabilityLabel(stdDev) {
+  if (stdDev == null || !Number.isFinite(stdDev)) return null;
+  if (stdDev < 30) return 'Low';
+  if (stdDev < 50) return 'Moderate';
+  return 'High';
+}
+
+/**
+ * Story-first report block: headline, narrative, rating, feedback, goals.
+ * Answers “How did my week go?” in one glance.
+ */
+function buildStoryReport(period) {
+  const m = period.metrics;
+  const phrase = periodPhrase(period.label);
+  const hasData =
+    m.glucoseReadings > 0 ||
+    m.mealsLogged > 0 ||
+    m.medicationsLogged > 0 ||
+    m.totalInsulinUnits > 0 ||
+    m.totalExerciseMinutes > 0 ||
+    m.sleepNights > 0;
+
+  if (!hasData) {
+    const emptyLetter =
+      `We don’t have enough health logs from ${phrase.when} yet to write a full care letter. ` +
+      'Add glucose, meals, or medication entries as you go — even a few days of consistent logging will unlock clearer insights and friendlier next steps. You’ve got this.';
+    return {
+      rating: 'empty',
+      ratingLabel: 'No data yet',
+      careLetterTitle: phrase.careLetterTitle,
+      careLetter: emptyLetter,
+      headline: phrase.careLetterTitle,
+      narrative: emptyLetter,
+      summary: emptyLetter,
+      variabilityLabel: null,
+      positiveNotes: [],
+      recommendations: [
+        'Log at least one glucose reading each day',
+        'Record meals and medications as you go',
+        'Check back after a few days of consistent logging',
+      ],
+      goalsTitle: phrase.nextGoals,
+      sections: {
+        glucose: 'No glucose readings logged.',
+        medication: 'No medication doses logged.',
+        nutrition: 'No meals logged.',
+        lifestyle: 'No activity, water, or sleep logged.',
+      },
+    };
+  }
+
+  const tir = m.timeInRangePercent;
+  const highs = m.highReadings || 0;
+  const lows = m.lowReadings || 0;
+  const varLabel = variabilityLabel(m.glucoseStdDev);
+  let rating = 'fair';
+  if (tir != null) {
+    if (tir >= 80 && lows === 0 && (m.adherencePercent == null || m.adherencePercent >= 90)) {
+      rating = 'excellent';
+    } else if (tir >= 70) {
+      rating = 'good';
+    } else if (tir >= 50) {
+      rating = 'fair';
+    } else {
+      rating = 'needs_attention';
+    }
+  } else if (m.adherencePercent != null && m.adherencePercent >= 90) {
+    rating = 'good';
+  }
+
+  const ratingLabels = {
+    excellent: 'Excellent',
+    good: 'Good',
+    fair: 'Fair',
+    needs_attention: 'Needs attention',
+  };
+
+  const headline = phrase.careLetterTitle;
+
+  // Warm companion-style care letter (one flowing paragraph).
+  const letterParts = [];
+  if (rating === 'excellent') {
+    letterParts.push(
+      `You maintained excellent glucose control throughout ${phrase.when.replace('this ', 'the ')}.`
+    );
+  } else if (rating === 'good') {
+    letterParts.push(
+      `You kept solid diabetes management through ${phrase.when}, with most readings near your target zone.`
+    );
+  } else if (rating === 'fair') {
+    letterParts.push(
+      `${phrase.when.charAt(0).toUpperCase() + phrase.when.slice(1)} had mixed results — there is a clear path to steadier control.`
+    );
+  } else {
+    letterParts.push(
+      `${phrase.when.charAt(0).toUpperCase() + phrase.when.slice(1)} was more challenging for glucose control, and small adjustments can help.`
+    );
+  }
+
+  if (m.glucoseReadings > 0) {
+    if (highs === 0 && lows === 0) {
+      letterParts.push('There were no recorded high or low glucose events.');
+    } else {
+      letterParts.push(
+        `There were ${highs} high and ${lows} low reading${highs + lows === 1 ? '' : 's'} worth a closer look.`
+      );
+    }
+    if (tir != null) {
+      letterParts.push(
+        `Time in range was ${tir}%${m.avgGlucose != null ? ` with an average of ${m.avgGlucose} mg/dL` : ''}.`
+      );
+    }
+  }
+
+  if (m.adherencePercent != null) {
+    if (m.adherencePercent >= 90) {
+      letterParts.push(
+        'Your medication routine was consistent, which supports steadier glucose levels.'
+      );
+    } else {
+      letterParts.push(
+        `Medication adherence was ${m.adherencePercent}% — tightening that routine can make a real difference.`
+      );
+    }
+  } else if (m.totalInsulinUnits > 0) {
+    letterParts.push(`You logged ${m.totalInsulinUnits} units of insulin across the period.`);
+  }
+
+  const gentleNudge = [];
+  if (m.avgWaterPerDay != null && m.avgWaterPerDay < 1500 && m.totalWaterMl > 0) {
+    gentleNudge.push('increasing your daily water intake');
+  }
+  if (m.loggingDays < (m.dayCount || 0)) {
+    gentleNudge.push('logging glucose more frequently');
+  }
+  if (m.totalExerciseMinutes === 0 && (m.dayCount || 0) >= 3) {
+    gentleNudge.push('adding short walks after meals');
+  }
+  if (tir != null && tir < 70) {
+    gentleNudge.push('aiming for more readings in the target range');
+  }
+
+  if (gentleNudge.length) {
+    const nudgeText =
+      gentleNudge.length === 1
+        ? gentleNudge[0].charAt(0).toUpperCase() + gentleNudge[0].slice(1)
+        : gentleNudge.length === 2
+          ? `${gentleNudge[0].charAt(0).toUpperCase() + gentleNudge[0].slice(1)} and ${gentleNudge[1]}`
+          : `${gentleNudge
+              .slice(0, -1)
+              .map((s, i) => (i === 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s))
+              .join(', ')}, and ${gentleNudge[gentleNudge.length - 1]}`;
+    letterParts.push(
+      `${nudgeText} will provide even better insights in future reports.`
+    );
+  }
+
+  if (rating === 'excellent' || rating === 'good') {
+    letterParts.push('Keep up the great work!');
+  } else {
+    letterParts.push('DiaBuddy is here with you — steady progress still counts.');
+  }
+
+  const careLetter = letterParts.join(' ');
+
+  const positiveNotes = [];
+  if (tir != null && tir >= 70) {
+    positiveNotes.push(`Solid time in range at ${tir}% — keep reinforcing what’s working.`);
+  }
+  if (m.adherencePercent != null && m.adherencePercent >= 90) {
+    positiveNotes.push('Great consistency with medications — that discipline protects long-term control.');
+  }
+  if (varLabel === 'Low') {
+    positiveNotes.push('Glucose variability stayed low, which usually means steadier day-to-day control.');
+  }
+  if (m.avgSleepHours != null && m.avgSleepHours >= 7) {
+    positiveNotes.push(`Sleep averaged ${m.avgSleepHours} h — a helpful foundation for glucose stability.`);
+  }
+  if (m.totalExerciseMinutes > 0) {
+    positiveNotes.push(`You logged ${m.totalExerciseMinutes} activity minutes — movement supports post-meal glucose.`);
+  }
+  if (m.loggingDays >= Math.max(1, Math.ceil((m.dayCount || 1) * 0.7))) {
+    positiveNotes.push('Logging consistency was strong enough to make this summary meaningful.');
+  }
+  if (!positiveNotes.length && hasData) {
+    positiveNotes.push('Showing up to log your data is already a meaningful step in self-management.');
+  }
+
+  const when = phrase.when;
+  const recommendations = [];
+
+  if (tir != null && tir < 70) {
+    recommendations.push(
+      `Raise time in range toward at least 70% (${TIR_LOW}–${TIR_HIGH} mg/dL); it was ${tir}% ${when} across ${m.glucoseReadings} reading${m.glucoseReadings === 1 ? '' : 's'}.`
+    );
+  }
+  if (highs > 0) {
+    recommendations.push(
+      `Review meal timing and carbohydrate portions on days with highs — ${highs} high reading${highs === 1 ? '' : 's'} ${when}${m.highestGlucose != null ? ` (peak ${m.highestGlucose} mg/dL)` : ''}.`
+    );
+  }
+  if (lows > 0) {
+    recommendations.push(
+      `Watch for lows relative to insulin, meals, and activity — ${lows} low reading${lows === 1 ? '' : 's'} ${when}${m.lowestGlucose != null ? ` (lowest ${m.lowestGlucose} mg/dL)` : ''}.`
+    );
+  }
+  if (m.adherencePercent != null && m.adherencePercent < 90) {
+    const missed = (m.medsMissed || 0) + (m.medsSkipped || 0);
+    recommendations.push(
+      `Improve medication adherence to at least 90% of logged doses; it was ${m.adherencePercent}% ${when} (${m.medsTaken} taken, ${missed} missed/skipped).`
+    );
+  }
+  if (varLabel === 'High' && m.glucoseStdDev != null) {
+    recommendations.push(
+      `Reduce glucose swings with steadier meal spacing — variability was high at ${m.glucoseStdDev} mg/dL std. deviation ${when}.`
+    );
+  }
+  if (m.avgWaterPerDay != null && m.avgWaterPerDay < 1500 && m.totalWaterMl > 0) {
+    const liters = (m.avgWaterPerDay / 1000).toFixed(1);
+    recommendations.push(
+      `Increase water intake to at least 2 L/day, as your average intake ${when} was ${liters} L (${m.avgWaterPerDay} ml/day), below the common recommended level.`
+    );
+  }
+  if (m.totalExerciseMinutes === 0 && (m.dayCount || 0) >= 3) {
+    recommendations.push(
+      `Add about 10–15 minutes of walking after meals on most days — no activity minutes were logged ${when}.`
+    );
+  } else if (m.avgExercisePerDay != null && m.avgExercisePerDay < 20 && m.totalExerciseMinutes > 0) {
+    recommendations.push(
+      `Build toward ~20–30 activity minutes most days; you averaged about ${m.avgExercisePerDay} min/day ${when} (${m.totalExerciseMinutes} min total).`
+    );
+  }
+  if (m.avgSleepHours != null && m.avgSleepHours < 7) {
+    recommendations.push(
+      `Aim for 7–9 hours of sleep most nights; average sleep was ${m.avgSleepHours} h across ${m.sleepNights} night${m.sleepNights === 1 ? '' : 's'} ${when}.`
+    );
+  }
+  // One logging tip max (avoid stacking “more days” + “more readings”).
+  if (m.loggingDays < (m.dayCount || 0)) {
+    const gap = (m.dayCount || 0) - (m.loggingDays || 0);
+    recommendations.push(
+      `Log glucose or meals on more days for clearer insights — entries covered ${m.loggingDays} of ${m.dayCount} days ${when} (${gap} day${gap === 1 ? '' : 's'} without a log).`
+    );
+  } else if (m.glucoseReadings > 0 && m.glucoseReadings < Math.max(3, (m.dayCount || 1))) {
+    recommendations.push(
+      `Log glucose more frequently (ideally at least once most days); only ${m.glucoseReadings} reading${m.glucoseReadings === 1 ? '' : 's'} ${when} limits how precise the trend can be.`
+    );
+  }
+  if (!recommendations.length) {
+    recommendations.push(
+      `Keep the same routines that supported ${rating === 'excellent' ? 'excellent' : 'strong'} control ${when}${tir != null ? ` (${tir}% time in range)` : ''}.`
+    );
+    recommendations.push(
+      `Maintain daily logging so next ${when.includes('week') ? 'week’s' : when.includes('month') ? 'month’s' : 'period’s'} report stays as clear as this one.`
+    );
+  }
+
+  const sections = {
+    glucose:
+      m.glucoseReadings > 0
+        ? `${m.glucoseReadings} reading${m.glucoseReadings === 1 ? '' : 's'}; avg ${m.avgGlucose ?? '—'} mg/dL; TIR ${tir ?? '—'}%; range ${m.lowestGlucose ?? '—'}–${m.highestGlucose ?? '—'}; ${highs} high / ${lows} low.`
+        : 'No glucose readings logged.',
+    medication:
+      m.medicationsLogged > 0
+        ? `${m.medsTaken} taken, ${m.medsMissed + m.medsSkipped} missed/skipped (${m.adherencePercent ?? '—'}% adherence). Insulin total ${m.totalInsulinUnits || 0} u.`
+        : m.totalInsulinUnits > 0
+          ? `Insulin logged: ${m.totalInsulinUnits} u. No oral/other medication status entries.`
+          : 'No medication or insulin doses logged.',
+    nutrition:
+      m.mealsLogged > 0
+        ? `${m.mealsLogged} meal${m.mealsLogged === 1 ? '' : 's'}; ${m.totalCarbs} g carbs total${m.avgCarbsPerMeal != null ? ` (avg ${m.avgCarbsPerMeal} g/meal)` : ''}.`
+        : 'No meals logged.',
+    lifestyle: [
+      m.totalExerciseMinutes > 0 ? `${m.totalExerciseMinutes} activity min` : null,
+      m.totalWaterMl > 0 ? `${m.totalWaterMl} ml water` : null,
+      m.avgSleepHours != null ? `${m.avgSleepHours} h avg sleep` : null,
+      m.moodEntries > 0 ? `${m.moodEntries} mood entries` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ') || 'No activity, water, sleep, or mood logged.',
+  };
+
+  const summary = careLetter;
+
+  return {
+    rating,
+    ratingLabel: ratingLabels[rating],
+    careLetterTitle: phrase.careLetterTitle,
+    careLetter,
+    headline,
+    narrative: careLetter,
+    summary,
+    variabilityLabel: varLabel,
+    positiveNotes: positiveNotes.slice(0, 2),
+    recommendations: recommendations.slice(0, 3),
+    goalsTitle: phrase.nextGoals,
+    sections,
   };
 }
 
@@ -449,8 +854,40 @@ function buildInsights(period) {
   if (m.avgGlucose != null) {
     insights.push({
       type: 'Suggestion',
-      message: `Average glucose was ${m.avgGlucose} mg/dL (from ${m.lowestGlucose}–${m.highestGlucose}).`,
+      message: `Average glucose was ${m.avgGlucose} mg/dL (range ${m.lowestGlucose}–${m.highestGlucose}).`,
     });
+  }
+
+  if (m.estimatedA1c != null && m.glucoseReadings >= 3) {
+    insights.push({
+      type: 'Suggestion',
+      message: `Estimated A1c from this period’s average is about ${m.estimatedA1c}% (not a lab result — for self-tracking only).`,
+    });
+  }
+
+  if (m.glucoseStdDev != null && m.glucoseStdDev >= 50) {
+    insights.push({
+      type: 'Warning',
+      message: `Glucose variability was high (std. dev. ${m.glucoseStdDev} mg/dL). Large swings may relate to meals, timing, or missed meds.`,
+    });
+  } else if (m.glucoseStdDev != null && m.glucoseReadings >= 5) {
+    insights.push({
+      type: 'Suggestion',
+      message: `Glucose variability (std. dev.) was ${m.glucoseStdDev} mg/dL across ${m.glucoseReadings} readings.`,
+    });
+  }
+
+  const byType = period.charts?.glucoseByReadingType || [];
+  const fasting = byType.find((x) => x.name === 'Fasting');
+  const afterMeal = byType.find((x) => x.name === 'After meal');
+  if (fasting?.count >= 2 && afterMeal?.count >= 2) {
+    const diff = afterMeal.avgGlucose - fasting.avgGlucose;
+    if (diff >= 40) {
+      insights.push({
+        type: 'Suggestion',
+        message: `After-meal averages (${afterMeal.avgGlucose} mg/dL) ran about ${diff} mg/dL above fasting (${fasting.avgGlucose} mg/dL).`,
+      });
+    }
   }
 
   if (m.adherencePercent != null) {
@@ -505,13 +942,15 @@ function buildInsights(period) {
     });
   }
 
-  return insights.slice(0, 6);
+  return insights.slice(0, 8);
 }
 
 function metricDeltas(current, previous) {
   const keys = [
     'avgGlucose',
     'timeInRangePercent',
+    'estimatedA1c',
+    'glucoseStdDev',
     'totalInsulinUnits',
     'totalCarbs',
     'adherencePercent',
@@ -534,10 +973,34 @@ function metricDeltas(current, previous) {
   return deltas;
 }
 
+/** Human label for the previous equal-length window (PDF / UI copy). */
+function previousPeriodPhrase(preset, periodLabel) {
+  const lower = String(periodLabel || preset || '').toLowerCase();
+  if (preset === '1d' || lower.includes('daily')) return 'yesterday';
+  if (preset === '7d' || lower.includes('weekly')) return 'last week';
+  if (preset === '30d' || lower.includes('monthly')) return 'last month';
+  if (preset === '90d') return 'the previous 3 months';
+  return 'the previous period';
+}
+
+function buildPrecedingRange(primary, tzOffset) {
+  const prevEnd = new Date(primary.start.getTime() - 1);
+  const prevStart = new Date(prevEnd.getTime() - (primary.days - 1) * MS_DAY);
+  const sParts = toLocalParts(prevStart, tzOffset);
+  const eParts = toLocalParts(prevEnd, tzOffset);
+  return {
+    start: startOfLocalDayUtc(sParts.y, sParts.m, sParts.d, tzOffset),
+    end: endOfLocalDayUtc(eParts.y, eParts.m, eParts.d, tzOffset),
+    days: primary.days,
+    label: 'Previous period',
+    shortLabel: `${sParts.label} – ${eParts.label}`,
+  };
+}
+
 /**
  * GET /api/health-logs/report
  * Query:
- *  preset=7d|30d|90d|custom
+ *  preset=1d|7d|30d|90d|custom
  *  startDate, endDate (ISO) when custom
  *  compare=true
  *  comparePreset | compareStartDate + compareEndDate
@@ -550,12 +1013,14 @@ exports.getHealthReport = async (req, res) => {
     const preset = req.query.preset || '7d';
     const compare = String(req.query.compare || '') === 'true' || req.query.compare === '1';
 
-    const primary = resolveRange({
+    const accountCreatedAt = req.user.createdAt;
+    let primary = resolveRange({
       preset,
       startDate: req.query.startDate,
       endDate: req.query.endDate,
       tzOffset,
     });
+    primary = clampRangeToAccountStart(primary, accountCreatedAt, tzOffset);
 
     const primaryLogs = await fetchLogs(userId, primary.start, primary.end);
     const period = aggregatePeriod(
@@ -567,12 +1032,17 @@ exports.getHealthReport = async (req, res) => {
       primary.shortLabel
     );
     const insights = buildInsights(period);
+    const story = buildStoryReport(period);
+    const summary = story.summary;
 
     let comparePeriod = null;
     let deltas = null;
+    const compareAgainst = previousPeriodPhrase(preset, primary.label);
 
+    // Always compute previous equal-length window so PDF/UI can show “↓ 6 from last week”.
+    // Explicit compare=true can override with custom dates / preset.
+    let compareRange = buildPrecedingRange(primary, tzOffset);
     if (compare) {
-      let compareRange;
       if (req.query.compareStartDate && req.query.compareEndDate) {
         compareRange = resolveRange({
           preset: 'custom',
@@ -585,21 +1055,11 @@ exports.getHealthReport = async (req, res) => {
           preset: req.query.comparePreset,
           tzOffset,
         });
-      } else {
-        // Default: immediately preceding window of same length
-        const prevEnd = new Date(primary.start.getTime() - 1);
-        const prevStart = new Date(prevEnd.getTime() - (primary.days - 1) * MS_DAY);
-        const sParts = toLocalParts(prevStart, tzOffset);
-        const eParts = toLocalParts(prevEnd, tzOffset);
-        compareRange = {
-          start: startOfLocalDayUtc(sParts.y, sParts.m, sParts.d, tzOffset),
-          end: endOfLocalDayUtc(eParts.y, eParts.m, eParts.d, tzOffset),
-          days: primary.days,
-          label: 'Previous period',
-          shortLabel: `${sParts.label} – ${eParts.label}`,
-        };
       }
+    }
+    compareRange = clampRangeToAccountStart(compareRange, accountCreatedAt, tzOffset);
 
+    if (compareRange.start <= compareRange.end) {
       const compareLogs = await fetchLogs(userId, compareRange.start, compareRange.end);
       comparePeriod = aggregatePeriod(
         compareLogs,
@@ -620,8 +1080,11 @@ exports.getHealthReport = async (req, res) => {
         tirTarget: { low: TIR_LOW, high: TIR_HIGH },
         period,
         comparePeriod,
+        compareAgainst,
         deltas,
         insights,
+        summary,
+        story,
       },
     });
   } catch (err) {

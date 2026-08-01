@@ -30,7 +30,7 @@ exports.getFeed = async (req, res) => {
       .sort(sortStage)
       .skip((page - 1) * limit)
       .limit(Number(limit))
-      .populate('authorId', 'name username profileImageUrl isVerifiedProfessional diabetesType diagnosisYear')
+      .populate('authorId', 'name username profileImageUrl diabetesType diagnosisYear')
       .populate('topicId', 'name color icon');
 
     const total = await ForumPost.countDocuments(query);
@@ -62,7 +62,7 @@ exports.getMyDrafts = async (req, res) => {
 exports.getPostById = async (req, res) => {
   try {
     const post = await ForumPost.findById(req.params.id)
-      .populate('authorId', 'name username profileImageUrl isVerifiedProfessional diabetesType diagnosisYear')
+      .populate('authorId', 'name username profileImageUrl diabetesType diagnosisYear')
       .populate('topicId', 'name color icon');
 
     if (!post || post.status === 'deleted') {

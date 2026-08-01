@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
-import { UserRound, Save, CheckCircle2, BadgeCheck } from 'lucide-react';
+import { UserRound, Save, CheckCircle2 } from 'lucide-react';
 
 const t = theme;
 
@@ -21,11 +21,6 @@ export default function Account() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [proCredentials, setProCredentials] = useState('');
-  const [proNote, setProNote] = useState('');
-  const [proSubmitting, setProSubmitting] = useState(false);
-  const [proMessage, setProMessage] = useState('');
-  const [proError, setProError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -84,43 +79,6 @@ export default function Account() {
       setSaving(false);
     }
   };
-
-  const handleProRequest = async (e) => {
-    e.preventDefault();
-    setProSubmitting(true);
-    setProMessage('');
-    setProError('');
-    try {
-      const res = await fetch(`${API_URL}/auth/pro-request`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...authHeaders(),
-        },
-        body: JSON.stringify({
-          credentials: proCredentials.trim(),
-          note: proNote.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setProError(data.message || 'Could not submit request');
-        return;
-      }
-      setUser(data.data);
-      setProMessage('Request submitted — an admin will review it.');
-      setProCredentials('');
-      setProNote('');
-    } catch {
-      setProError('Connection error. Please try again.');
-    } finally {
-      setProSubmitting(false);
-    }
-  };
-
-  const proStatus = user?.professionalVerification?.status || 'none';
-  const showProForm = user?.role !== 'admin' && !user?.isVerifiedProfessional && proStatus !== 'pending' && proStatus !== 'approved';
 
   const fieldStyle = {
     width: '100%',
@@ -320,106 +278,6 @@ export default function Account() {
               </button>
             </form>
           </div>
-
-          {user?.role !== 'admin' && (
-            <div
-              className="db-account-card"
-              style={{
-                background: '#FFF',
-                border: `1.5px solid ${t.lineStrong}`,
-                borderRadius: 20,
-                padding: '28px',
-                boxShadow: t.shadowCard,
-                marginBottom: 20,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <BadgeCheck size={20} color={t.sageDeep} />
-                <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
-                  Verified professional
-                </h2>
-              </div>
-              <p style={{ margin: '0 0 16px', fontSize: 14, color: t.inkSoft, lineHeight: 1.5 }}>
-                Clinicians and diabetes educators can request a verified-pro badge shown next to their name in the community.
-              </p>
-
-              {user?.isVerifiedProfessional || proStatus === 'approved' ? (
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: t.sageDeep, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <CheckCircle2 size={15} /> Your account is verified.
-                </p>
-              ) : proStatus === 'pending' ? (
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: t.gold }}>
-                  Your request is pending admin review.
-                </p>
-              ) : (
-                <>
-                  {proStatus === 'rejected' && (
-                    <p style={{ margin: '0 0 12px', fontSize: 13, color: t.clayDeep }}>
-                      Your last request was not approved. You can submit again with clearer credentials.
-                    </p>
-                  )}
-                  {showProForm && (
-                    <form onSubmit={handleProRequest} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <div>
-                        <label style={labelStyle}>Credentials</label>
-                        <textarea
-                          style={{ ...fieldStyle, minHeight: 90, resize: 'vertical', lineHeight: 1.5 }}
-                          value={proCredentials}
-                          onChange={(e) => {
-                            setProCredentials(e.target.value);
-                            setProError('');
-                            setProMessage('');
-                          }}
-                          placeholder="e.g. Registered dietitian, CDE — license # / clinic"
-                          maxLength={500}
-                          required
-                          minLength={8}
-                        />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Optional note</label>
-                        <input
-                          style={fieldStyle}
-                          value={proNote}
-                          onChange={(e) => setProNote(e.target.value)}
-                          placeholder="Anything else admins should know"
-                          maxLength={500}
-                        />
-                      </div>
-                      {proError && <p style={{ margin: 0, color: t.clayDeep, fontSize: 13 }}>{proError}</p>}
-                      {proMessage && (
-                        <p style={{ margin: 0, color: t.sageDeep, fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <CheckCircle2 size={15} /> {proMessage}
-                        </p>
-                      )}
-                      <button
-                        type="submit"
-                        disabled={proSubmitting}
-                        style={{
-                          alignSelf: 'flex-start',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          background: t.forest,
-                          color: '#FFF',
-                          border: 'none',
-                          borderRadius: 12,
-                          padding: '11px 18px',
-                          fontSize: 14,
-                          fontWeight: 600,
-                          cursor: proSubmitting ? 'wait' : 'pointer',
-                          opacity: proSubmitting ? 0.7 : 1,
-                        }}
-                      >
-                        <BadgeCheck size={16} />
-                        {proSubmitting ? 'Submitting…' : 'Request verification'}
-                      </button>
-                    </form>
-                  )}
-                </>
-              )}
-            </div>
-          )}
 
           <p style={{ fontSize: 12, color: t.inkFaint, margin: 0 }}>
             Email is tied to your login and can’t be changed here. Use Forgot password on the sign-in page to reset access.

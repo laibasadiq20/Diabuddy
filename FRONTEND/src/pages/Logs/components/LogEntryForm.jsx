@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../../../theme';
+import { useAuth } from '../../../context/AuthContext';
 import { Annoyed, Frown, Laugh, Loader2, Meh, Smile } from 'lucide-react';
 
 const t = theme;
@@ -113,9 +114,11 @@ export function LogEntryForm({ typeId, initialRaw, submitting, onSubmit }) {
 }
 
 function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
+  const { user } = useAuth();
+  const preferredUnit = user?.glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
   const [form, setForm] = useState({
     glucoseLevel: '',
-    unit: 'mg/dL',
+    unit: preferredUnit,
     readingType: 'Before Breakfast',
     notes: '',
     timestamp: toLocalInput(),
@@ -124,12 +127,14 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
   useEffect(() => {
     setForm({
       glucoseLevel: initialRaw?.glucoseLevel ?? '',
-      unit: initialRaw?.unit || 'mg/dL',
+      // New entries default to the user's saved glucose unit preference (Account page)
+      unit: initialRaw?.unit || preferredUnit,
       readingType: initialRaw?.readingType || 'Before Breakfast',
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
-  }, [initialRaw]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialRaw, preferredUnit]);
 
   const glucoseHelp =
     form.unit === 'mmol/L'
@@ -949,8 +954,8 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
   }, [initialRaw]);
 
   const selectSource = (next) => {
-    if (next === 'fitbit') {
-      navigate('/fitbit');
+    if (next === 'google-health') {
+      navigate('/google-health');
       return;
     }
     setSource('manual');
@@ -983,7 +988,7 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
         <div className="db-log-source-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {[
             { id: 'manual', title: 'Manual entry' },
-            { id: 'fitbit', title: 'Open Fitbit' },
+            { id: 'google-health', title: 'Google Health sync' },
           ].map((opt) => {
             const active = source === opt.id;
             return (

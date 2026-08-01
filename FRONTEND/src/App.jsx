@@ -29,7 +29,7 @@ const AdminReports = lazy(() => import('./pages/Admin/AdminReports'));
 const Toolbox = lazy(() => import('./pages/Toolbox/Toolbox'));
 const Logs = lazy(() => import('./pages/Logs/Logs'));
 const LogTypePage = lazy(() => import('./pages/Logs/LogTypePage'));
-const Fitbit = lazy(() => import('./pages/Fitbit/Fitbit'));
+const GoogleHealth = lazy(() => import('./pages/GoogleHealth/GoogleHealth'));
 const Reminders = lazy(() => import('./pages/Reminders/Reminders'));
 const Reports = lazy(() => import('./pages/Reports/Reports'));
 
@@ -70,7 +70,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
   const patientModule =
     location.pathname === '/dashboard' ||
     location.pathname.startsWith('/logs') ||
-    location.pathname === '/fitbit' ||
+    location.pathname === '/google-health' ||
     location.pathname === '/reminders' ||
     location.pathname === '/toolbox' ||
     location.pathname === '/reports';
@@ -110,7 +110,8 @@ function App() {
           <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
           <Route path="/logs/:typeId" element={<ProtectedRoute><LogTypePage /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-          <Route path="/fitbit" element={<ProtectedRoute><Fitbit /></ProtectedRoute>} />
+          <Route path="/google-health" element={<ProtectedRoute><GoogleHealth /></ProtectedRoute>} />
+          <Route path="/fitbit" element={<Navigate to="/google-health" replace />} />
           <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
 

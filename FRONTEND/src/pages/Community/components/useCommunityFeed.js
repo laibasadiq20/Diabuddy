@@ -24,6 +24,9 @@ export default function useCommunityFeed({ user, authHeaders }) {
   const [searchInputValue, setSearchInputValue] = useState(searchQuery);
   const [totalPages, setTotalPages] = useState(1);
   const [drafts, setDrafts] = useState([]);
+  // Bumped by retryFeed() so "Try again" can force a refetch even when filters
+  // (which the fetch effect already depends on) haven't changed.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -96,7 +99,7 @@ export default function useCommunityFeed({ user, authHeaders }) {
       }
     };
     fetchFeed();
-  }, [selectedTopic, searchQuery, currentPage, sortMode]);
+  }, [selectedTopic, searchQuery, currentPage, sortMode, refreshKey]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -147,6 +150,10 @@ export default function useCommunityFeed({ user, authHeaders }) {
     setSearchParams({});
   };
 
+  // Refetches the feed as-is (same filters/page) — used by the error state's
+  // "Try again", which should retry the failed request rather than reset filters.
+  const retryFeed = () => setRefreshKey((k) => k + 1);
+
   const startDm = async (author, e) => {
     e?.stopPropagation?.();
     if (!author?._id) return;
@@ -191,6 +198,7 @@ export default function useCommunityFeed({ user, authHeaders }) {
     handleSortSelect,
     handlePageChange,
     clearFilters,
+    retryFeed,
     startDm,
     navigate,
   };
