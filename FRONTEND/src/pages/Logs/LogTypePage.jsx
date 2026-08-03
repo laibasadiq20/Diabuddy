@@ -7,7 +7,7 @@ import { Annoyed, ArrowLeft, Frown, Laugh, Loader2, Meh, Smile, Trash2 } from 'l
 import api from '../../config/axios';
 import { getLogType } from './logsConfig';
 import { LogEntryForm } from './components/LogEntryForm';
-import { mlToUsFlOz, round1 } from '../../utils/waterUnits';
+import { mlToUsFlOz, round0, round1 } from '../../utils/waterUnits';
 import { formatGlucoseReading, resolveGlucoseUnit } from '../../utils/glucoseUnits';
 import { useAuth } from '../../context/AuthContext';
 
@@ -142,11 +142,13 @@ export default function LogTypePage() {
   const typeLabel = tr(`logs.types.${config.id}.label`, config.label);
 
   const Icon = config.icon;
-  const waterGoal = 2000;
+  const waterGoalMl = Number(user?.dailyGoals?.waterMl) > 0 ? Number(user.dailyGoals.waterMl) : 2000;
   const todayWaterMl = config.id === 'water'
     ? entries.reduce((sum, item) => sum + (Number(item.raw?.amount) || 0), 0)
     : 0;
-  const waterPct = Math.min(100, Math.round((todayWaterMl / waterGoal) * 100));
+  const todayWaterOz = round0(mlToUsFlOz(todayWaterMl));
+  const waterGoalOz = round0(mlToUsFlOz(waterGoalMl));
+  const waterPct = Math.min(100, Math.round((todayWaterMl / waterGoalMl) * 100));
   const PREVIEW_COUNT = 5;
   const visibleEntries = showAllEntries ? entries : entries.slice(0, PREVIEW_COUNT);
   const hasMoreEntries = entries.length > PREVIEW_COUNT;
@@ -491,7 +493,7 @@ export default function LogTypePage() {
                   color: t.ink,
                 }}
               >
-                {todayWaterMl} / {waterGoal} ml
+                {todayWaterOz} / {waterGoalOz} oz
               </p>
               <div
                 style={{

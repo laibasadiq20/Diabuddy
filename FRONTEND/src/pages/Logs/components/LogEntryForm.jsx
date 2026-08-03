@@ -1122,7 +1122,7 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
   );
 }
 
-const WATER_QUICK_OZ = [OZ_PER_GLASS, OZ_PER_GLASS * 2, OZ_PER_GLASS * 3, OZ_PER_GLASS * 4];
+const WATER_QUICK_OZ = [OZ_PER_GLASS, OZ_PER_GLASS * 2, OZ_PER_GLASS * 3];
 
 function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
   const { t: tr } = useI18n();
@@ -1174,7 +1174,13 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
         <p style={hint}>{tr('logEntryForm.water.glassHint')}</p>
       </Field>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: 8,
+        }}
+      >
         {WATER_QUICK_OZ.map((oz) => {
           const active = Number(form.amountOz) === oz;
           const glasses = oz / OZ_PER_GLASS;
@@ -1184,19 +1190,25 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
               type="button"
               onClick={() => setForm({ ...form, amountOz: String(oz) })}
               style={{
-                padding: '8px 12px',
-                borderRadius: 8,
+                padding: '10px 8px',
+                borderRadius: 10,
                 border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
                 background: active ? t.surfaceSunken : t.surface,
                 color: t.ink,
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: 650,
                 cursor: 'pointer',
                 fontFamily: t.fontBody,
+                textAlign: 'center',
+                lineHeight: 1.35,
+                whiteSpace: 'normal',
               }}
             >
-              +{oz} oz ({glasses}{' '}
-              {glasses === 1 ? tr('logEntryForm.water.glass') : tr('logEntryForm.water.glasses')})
+              +{oz} oz
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: t.inkFaint, marginTop: 2 }}>
+                {glasses}{' '}
+                {glasses === 1 ? tr('logEntryForm.water.glass') : tr('logEntryForm.water.glasses')}
+              </span>
             </button>
           );
         })}
