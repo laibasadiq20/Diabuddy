@@ -1,5 +1,5 @@
 /**
- * Call Gemini vision to identify a meal photo, then map to Pakistani nutrition data.
+ * Call Gemini vision to identify a meal photo, then map to nutrition lookup data.
  */
 const { matchPakistaniFood } = require('./pakistaniFoodLookup');
 
@@ -45,6 +45,38 @@ function extractJsonObject(text) {
   return null;
 }
 
+function collectPartText(parts) {
+  if (!Array.isArray(parts)) return '';
+  return parts
+    .map((p) => {
+      if (!p) return '';
+      if (typeof p.text === 'string') return p.text;
+      // Some Gemini builds nest output text differently
+      if (typeof p.outputText === 'string') return p.outputText;
+      return '';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function normalizeIdentification(parsed) {
+  if (!parsed || typeof parsed !== 'object') return null;
+  const dishName = String(
+    parsed.dishName || parsed.dish_name || parsed.name || parsed.food || ''
+  ).trim();
+  if (!dishName) return null;
+  return {
+    dishName,
+    confidence: Number(parsed.confidence ?? parsed.score) || 0,
+    candidates: Array.isArray(parsed.candidates)
+      ? parsed.candidates.map((c) => String(c).trim()).filter(Boolean)
+      : Array.isArray(parsed.alternatives)
+        ? parsed.alternatives.map((c) => String(c).trim()).filter(Boolean)
+        : [],
+    notes: parsed.notes ? String(parsed.notes).trim() : '',
+  };
+}
+
 async function identifyMealFromImage({ buffer, mimeType }) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -56,34 +88,33 @@ async function identifyMealFromImage({ buffer, mimeType }) {
   const model = getModel();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-  const prompt = `You are a nutrition assistant for Pakistani and South Asian meals.
-Look at this food photo and respond with ONLY valid JSON (no markdown) in this shape:
-{
-  "dishName": "most likely dish name",
-  "confidence": 0.0,
-  "candidates": ["alt name 1", "alt name 2"],
-  "notes": "one short sentence"
-}
-Prefer common Pakistani / South Asian dish names when possible (biryani, nihari, white chana / safed channa, daal, karahi, chapli kabab, haleem, pulao, paratha, chole, etc).
-If the image is not food, set dishName to "" and confidence to 0.`;
+  const prompt = `Identify the South Asian / Pakistani dish in this photo.
+Return ONLY a JSON object (no markdown) with this exact shape:
+{"dishName":"string","confidence":0.0,"candidates":["alt1","alt2"],"notes":"short"}
+Examples of good dishName values: White Chana, Chole, Chickpeas curry, Biryani, Nihari, Dal Makhani, Karahi, Haleem, Aloo Gosht.
+If you see chickpeas in gravy, use "White Chana" or "Chole".
+If the image is not food, use {"dishName":"","confidence":0,"candidates":[],"notes":"not food"}.`;
+
+  const imagePart = {
+    inline_data: {
+      mime_type: mimeType || 'image/jpeg',
+      data: buffer.toString('base64'),
+    },
+  };
 
   const body = {
     contents: [
       {
-        parts: [
-          { text: prompt },
-          {
-            inline_data: {
-              mime_type: mimeType || 'image/jpeg',
-              data: buffer.toString('base64'),
-            },
-          },
-        ],
+        // Image first often works better for vision models
+        parts: [imagePart, { text: prompt }],
       },
     ],
     generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 512,
+      temperature: 0.1,
+      maxOutputTokens: 2048,
+      responseMimeType: 'application/json',
+      // Avoid burning the output budget on thinking (Gemini 2.5/3.x)
+      thinkingConfig: { thinkingBudget: 0 },
     },
   };
 
@@ -95,32 +126,92 @@ If the image is not food, set dishName to "" and confidence to 0.`;
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const message =
-      data?.error?.message ||
-      `Gemini request failed (${res.status})`;
-    const err = new Error(message);
+    // If thinkingConfig / responseMimeType unsupported, retry simpler once
+    const msg = data?.error?.message || '';
+    if (
+      res.status === 400 &&
+      /thinkingConfig|responseMimeType|Unknown name/i.test(msg)
+    ) {
+      return identifyMealFromImageSimple({ buffer, mimeType, apiKey, model, prompt, imagePart });
+    }
+    const err = new Error(msg || `Gemini request failed (${res.status})`);
     err.status = res.status >= 400 && res.status < 600 ? res.status : 502;
     throw err;
   }
 
-  const text =
-    data?.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join('\n') ||
+  return parseGeminiMealResponse(data);
+}
+
+async function identifyMealFromImageSimple({
+  buffer,
+  mimeType,
+  apiKey,
+  model,
+  prompt,
+  imagePart,
+}) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const body = {
+    contents: [{ parts: [imagePart, { text: prompt }] }],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 2048,
+    },
+  };
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const err = new Error(data?.error?.message || `Gemini request failed (${res.status})`);
+    err.status = res.status >= 400 && res.status < 600 ? res.status : 502;
+    throw err;
+  }
+  return parseGeminiMealResponse(data);
+}
+
+function parseGeminiMealResponse(data) {
+  const candidate = data?.candidates?.[0];
+  const finishReason = candidate?.finishReason || candidate?.finish_reason || '';
+  const blockReason =
+    data?.promptFeedback?.blockReason ||
+    data?.promptFeedback?.block_reason ||
     '';
-  const parsed = extractJsonObject(text);
-  if (!parsed || !parsed.dishName) {
-    const err = new Error('Could not identify a meal in this photo. Try a clearer food photo.');
+
+  const text = collectPartText(candidate?.content?.parts);
+
+  if (blockReason) {
+    const err = new Error(
+      `Gemini blocked this image (${blockReason}). Try another photo or enter nutrition manually.`
+    );
     err.status = 422;
     throw err;
   }
 
-  return {
-    dishName: String(parsed.dishName).trim(),
-    confidence: Number(parsed.confidence) || 0,
-    candidates: Array.isArray(parsed.candidates)
-      ? parsed.candidates.map((c) => String(c).trim()).filter(Boolean)
-      : [],
-    notes: parsed.notes ? String(parsed.notes).trim() : '',
-  };
+  const parsed = normalizeIdentification(extractJsonObject(text));
+  if (!parsed) {
+    console.error('[meals/analyze] Gemini raw response parse failed', {
+      finishReason,
+      textPreview: String(text).slice(0, 400),
+      candidate: candidate ? JSON.stringify(candidate).slice(0, 600) : null,
+    });
+    let message =
+      'AI could not name this dish from the photo. Try again, or enter nutrition manually.';
+    if (/MAX_TOKENS/i.test(finishReason)) {
+      message =
+        'AI response was cut off before naming the dish. Please try Analyze again.';
+    } else if (/SAFETY/i.test(finishReason)) {
+      message =
+        'Gemini safety filters blocked this photo. Try another photo or enter nutrition manually.';
+    }
+    const err = new Error(message);
+    err.status = 422;
+    throw err;
+  }
+
+  return parsed;
 }
 
 function pickNutrition(identification) {
