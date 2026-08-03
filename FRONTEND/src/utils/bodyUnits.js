@@ -68,3 +68,22 @@ export function formatHeight(cm, unit = 'cm') {
   }
   return `${round0(n)} cm`;
 }
+
+export function resolveWeightUnit(userOrUnit) {
+  if (typeof userOrUnit === 'string') {
+    const s = userOrUnit.toLowerCase();
+    return s === 'lbs' || s === 'lb' || s === 'pounds' ? 'lbs' : 'kg';
+  }
+  return resolveWeightUnit(userOrUnit?.weightUnit || 'kg');
+}
+
+export function resolveHeightUnit(userOrUnit) {
+  if (typeof userOrUnit === 'string') {
+    const s = userOrUnit.toLowerCase().replace(/[\s-]+/g, '_');
+    if (s === 'ft_in' || s === 'ft/in' || s === 'feet' || s === 'ft' || s === 'feet_inches' || s === 'imperial') {
+      return 'ft_in';
+    }
+    return 'cm';
+  }
+  return resolveHeightUnit(userOrUnit?.heightUnit || 'cm');
+}

@@ -2,14 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
 import { fieldStyle, labelStyle, eyebrow, disclaimerStyle } from '../toolboxStyles';
 import { useI18n } from '../../../i18n/I18nContext';
-import { useAuth } from '../../../context/AuthContext';
+import { useUnits } from '../../../hooks/useUnits';
 import { cmToFtIn, ftInToCm, kgToLbs, lbsToKg, round1 } from '../../../utils/bodyUnits';
 
 export default function CalorieTool() {
   const { t: tr } = useI18n();
-  const { user } = useAuth();
-  const weightUnit = user?.weightUnit === 'lbs' ? 'lbs' : 'kg';
-  const heightUnit = user?.heightUnit === 'ft_in' ? 'ft_in' : 'cm';
+  const { weightUnit, heightUnit } = useUnits();
 
   const [heightCm, setHeightCm] = useState('170');
   const [feet, setFeet] = useState('5');
@@ -24,13 +22,20 @@ export default function CalorieTool() {
       const { feet: f, inches: i } = cmToFtIn(Number(heightCm) || 170);
       setFeet(String(f));
       setInches(String(i));
+    } else {
+      const cm = ftInToCm(feet, inches);
+      if (Number.isFinite(cm) && cm > 0) setHeightCm(String(round1(cm)));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heightUnit]);
+
+  useEffect(() => {
     const kg = weightUnit === 'lbs' ? lbsToKg(weightDisplay) : Number(weightDisplay);
     if (Number.isFinite(kg) && kg > 0) {
       setWeightDisplay(weightUnit === 'lbs' ? String(round1(kgToLbs(kg))) : String(round1(kg)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weightUnit, heightUnit]);
+  }, [weightUnit]);
 
   const resolvedCm = heightUnit === 'ft_in' ? ftInToCm(feet, inches) : parseFloat(heightCm);
   const resolvedKg = weightUnit === 'lbs' ? lbsToKg(weightDisplay) : parseFloat(weightDisplay);
@@ -68,7 +73,7 @@ export default function CalorieTool() {
             <input type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} style={fieldStyle} />
           </div>
         )}
-        <div>
+        <div style={heightUnit === 'cm' ? undefined : { gridColumn: '1 / -1' }}>
           <label style={labelStyle}>
             {weightUnit === 'lbs' ? tr('toolboxTools.calorie.weightLbs') : tr('toolboxTools.calorie.weightKg')}
           </label>

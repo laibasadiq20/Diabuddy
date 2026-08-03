@@ -1,5 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { glucoseUnitLabel, resolveGlucoseUnit } from '../utils/glucoseUnits';
+import { resolveHeightUnit, resolveWeightUnit } from '../utils/bodyUnits';
 
 /**
  * Unit preferences from Settings (persisted on the user profile).
@@ -8,8 +9,8 @@ import { glucoseUnitLabel, resolveGlucoseUnit } from '../utils/glucoseUnits';
 export function useUnits() {
   const { user } = useAuth() || {};
   const glucoseUnit = resolveGlucoseUnit(user);
-  const weightUnit = user?.weightUnit === 'lbs' ? 'lbs' : 'kg';
-  const heightUnit = user?.heightUnit === 'ft_in' ? 'ft_in' : 'cm';
+  const weightUnit = resolveWeightUnit(user);
+  const heightUnit = resolveHeightUnit(user);
 
   return {
     glucoseUnit,

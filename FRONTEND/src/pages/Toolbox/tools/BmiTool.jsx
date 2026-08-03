@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
 import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge, disclaimerStyle, resultRowStyle } from '../toolboxStyles';
 import { useI18n } from '../../../i18n/I18nContext';
-import { useAuth } from '../../../context/AuthContext';
+import { useUnits } from '../../../hooks/useUnits';
 import {
   cmToFtIn,
   ftInToCm,
@@ -21,9 +21,7 @@ function bmiCategory(bmi, tr) {
 
 export default function BmiTool() {
   const { t: tr } = useI18n();
-  const { user } = useAuth();
-  const weightUnit = user?.weightUnit === 'lbs' ? 'lbs' : 'kg';
-  const heightUnit = user?.heightUnit === 'ft_in' ? 'ft_in' : 'cm';
+  const { weightUnit, heightUnit } = useUnits();
 
   const [heightCm, setHeightCm] = useState('170');
   const [feet, setFeet] = useState('5');
@@ -31,18 +29,24 @@ export default function BmiTool() {
   const [weightDisplay, setWeightDisplay] = useState(weightUnit === 'lbs' ? '154' : '70');
 
   useEffect(() => {
-    // When unit preference changes, keep the same physical size/mass.
     if (heightUnit === 'ft_in') {
       const { feet: f, inches: i } = cmToFtIn(Number(heightCm) || 170);
       setFeet(String(f));
       setInches(String(i));
+    } else {
+      const cm = ftInToCm(feet, inches);
+      if (Number.isFinite(cm) && cm > 0) setHeightCm(String(round1(cm)));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heightUnit]);
+
+  useEffect(() => {
     const kg = weightUnit === 'lbs' ? lbsToKg(weightDisplay) : Number(weightDisplay);
     if (Number.isFinite(kg) && kg > 0) {
       setWeightDisplay(weightUnit === 'lbs' ? String(round1(kgToLbs(kg))) : String(round1(kg)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weightUnit, heightUnit]);
+  }, [weightUnit]);
 
   const resolvedCm = heightUnit === 'ft_in' ? ftInToCm(feet, inches) : parseFloat(heightCm);
   const resolvedKg = weightUnit === 'lbs' ? lbsToKg(weightDisplay) : parseFloat(weightDisplay);

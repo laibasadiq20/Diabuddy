@@ -14,6 +14,7 @@ import {
   round1,
   usFlOzToMl,
 } from '../../utils/waterUnits';
+import { resolveHeightUnit, resolveWeightUnit } from '../../utils/bodyUnits';
 import AppSidebar from '../../components/AppSidebar';
 import {
   CheckCircle2,
@@ -78,8 +79,8 @@ export default function Settings() {
     if (!user) return;
     const unit = user.glucoseUnit || 'mg/dL';
     setGlucoseUnit(unit);
-    setWeightUnit(user.weightUnit === 'lbs' ? 'lbs' : 'kg');
-    setHeightUnit(user.heightUnit === 'ft_in' ? 'ft_in' : 'cm');
+    setWeightUnit(resolveWeightUnit(user));
+    setHeightUnit(resolveHeightUnit(user));
     setRanges(rangesToDisplay(user.targetRanges, unit));
     const ml = user.dailyGoals?.waterMl ?? 2000;
     setWaterLiters(String(round1(mlToLiters(ml))));
@@ -91,6 +92,8 @@ export default function Settings() {
     setMessage('');
     setError('');
     setSavingKey(key);
+    // Apply immediately so toolbox / other pages switch units without waiting.
+    if (user) setUser({ ...user, ...payload });
     try {
       const res = await fetch(`${API_URL}/auth/me`, {
         method: 'PUT',
@@ -106,7 +109,8 @@ export default function Settings() {
         setError(data.message || tr('settings.saveError'));
         return false;
       }
-      setUser(data.data);
+      // Merge server user with the fields we just saved (never lose unit prefs).
+      setUser({ ...user, ...data.data, ...payload });
       setMessage(tr('settings.saved'));
       return true;
     } catch (_) {
@@ -121,23 +125,36 @@ export default function Settings() {
     const next = e.target.value;
     const prev = glucoseUnit;
     setGlucoseUnit(next);
-    // Re-express current fields in the new unit from stored mg/dL after save,
-    // but optimistically convert what's on screen first.
     const asMgdl = rangesToMgdl(ranges, prev);
     setRanges(rangesToDisplay(asMgdl, next));
-    await saveProfile({ glucoseUnit: next }, 'unit');
+    const ok = await saveProfile({ glucoseUnit: next }, 'unit');
+    if (!ok) {
+      setGlucoseUnit(prev);
+      setRanges(rangesToDisplay(rangesToMgdl(ranges, next), prev));
+      if (user) setUser({ ...user, glucoseUnit: prev });
+    }
   };
 
   const handleWeightUnitChange = async (e) => {
     const next = e.target.value;
+    const prev = weightUnit;
     setWeightUnit(next);
-    await saveProfile({ weightUnit: next }, 'weightUnit');
+    const ok = await saveProfile({ weightUnit: next }, 'weightUnit');
+    if (!ok) {
+      setWeightUnit(prev);
+      if (user) setUser({ ...user, weightUnit: prev });
+    }
   };
 
   const handleHeightUnitChange = async (e) => {
     const next = e.target.value;
+    const prev = heightUnit;
     setHeightUnit(next);
-    await saveProfile({ heightUnit: next }, 'heightUnit');
+    const ok = await saveProfile({ heightUnit: next }, 'heightUnit');
+    if (!ok) {
+      setHeightUnit(prev);
+      if (user) setUser({ ...user, heightUnit: prev });
+    }
   };
 
   const handleSaveRanges = async (e) => {
