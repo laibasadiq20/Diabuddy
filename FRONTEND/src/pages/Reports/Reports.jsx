@@ -32,6 +32,7 @@ import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { downloadReportPdf } from './reportExport';
 import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
+import { mlToUsFlOz, round0, round1, mlToLiters } from '../../utils/waterUnits';
 
 const t = theme;
 
@@ -243,6 +244,19 @@ export default function Reports() {
         .map((d) => ({ ...d, avgGlucose: fromMgdl(d.avgGlucose, glucoseUnit) })),
     [charts, glucoseUnit]
   );
+
+  const dailyWaterActivity = useMemo(
+    () =>
+      (charts?.daily || []).map((d) => ({
+        ...d,
+        waterOz: round0(mlToUsFlOz(d.water || 0)),
+      })),
+    [charts]
+  );
+
+  const totalWaterOz = round0(mlToUsFlOz(metrics?.totalWaterMl || 0));
+  const avgWaterOz = metrics?.avgWaterPerDay != null ? round0(mlToUsFlOz(metrics.avgWaterPerDay)) : null;
+  const totalWaterL = round1(mlToLiters(metrics?.totalWaterMl || 0));
 
   const readingTypeChart = useMemo(
     () => (charts?.glucoseByReadingType || []).map((r) => ({ ...r, avgGlucose: fromMgdl(r.avgGlucose, glucoseUnit) })),
@@ -643,19 +657,19 @@ export default function Reports() {
                 <ChartCard
                   title={tr('reports.charts.waterActivityTitle')}
                   subtitle={tr('reports.charts.dailyTotals')}
-                  empty={!charts?.daily?.some((d) => d.water > 0 || d.exercise > 0)}
+                  empty={!dailyWaterActivity.some((d) => d.water > 0 || d.exercise > 0)}
                   emptyLabel={tr('reports.charts.noData')}
                 >
                   <div className="db-rep-chart-body">
                     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                      <LineChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                      <LineChart data={dailyWaterActivity} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
                         <YAxis yAxisId="left" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
                         <YAxis yAxisId="right" orientation="right" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
                         <Tooltip contentStyle={tooltipStyle} />
                         <Legend />
-                        <Line yAxisId="left" type="monotone" dataKey="water" name={tr('reports.chartNames.waterMl')} stroke={t.skyDeep} strokeWidth={2} dot={false} />
+                        <Line yAxisId="left" type="monotone" dataKey="waterOz" name={tr('reports.chartNames.waterMl')} stroke={t.skyDeep} strokeWidth={2} dot={false} />
                         <Line yAxisId="right" type="monotone" dataKey="exercise" name={tr('reports.chartNames.activityMin')} stroke={t.gold} strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
@@ -740,8 +754,9 @@ export default function Reports() {
                   </div>
                   <div>
                     <p>
-                      <strong>{metrics.totalWaterMl}</strong> {tr('reports.periodTotals.mlWater')} · {tr('reports.periodTotals.avg')}{' '}
-                      <strong>{metrics.avgWaterPerDay ?? '—'}</strong>/{tr('reports.periodTotals.day')}
+                      <strong>{totalWaterOz}</strong> {tr('reports.periodTotals.ozWater')}
+                      {totalWaterL > 0 ? ` (${totalWaterL} L)` : ''} · {tr('reports.periodTotals.avg')}{' '}
+                      <strong>{avgWaterOz ?? '—'}</strong> oz/{tr('reports.periodTotals.day')}
                     </p>
                   </div>
                   <div>

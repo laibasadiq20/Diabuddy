@@ -64,6 +64,8 @@ export default function Settings() {
   const { mode, setMode } = useThemeMode();
   const { lang, setLang, t: tr } = useI18n();
   const [glucoseUnit, setGlucoseUnit] = useState('mg/dL');
+  const [weightUnit, setWeightUnit] = useState('kg');
+  const [heightUnit, setHeightUnit] = useState('cm');
   const [ranges, setRanges] = useState(rangesToDisplay(DEFAULT_RANGES_MGDL, 'mg/dL'));
   const [waterLiters, setWaterLiters] = useState('2');
   const [waterOz, setWaterOz] = useState('68');
@@ -76,6 +78,8 @@ export default function Settings() {
     if (!user) return;
     const unit = user.glucoseUnit || 'mg/dL';
     setGlucoseUnit(unit);
+    setWeightUnit(user.weightUnit === 'lbs' ? 'lbs' : 'kg');
+    setHeightUnit(user.heightUnit === 'ft_in' ? 'ft_in' : 'cm');
     setRanges(rangesToDisplay(user.targetRanges, unit));
     const ml = user.dailyGoals?.waterMl ?? 2000;
     setWaterLiters(String(round1(mlToLiters(ml))));
@@ -122,6 +126,18 @@ export default function Settings() {
     const asMgdl = rangesToMgdl(ranges, prev);
     setRanges(rangesToDisplay(asMgdl, next));
     await saveProfile({ glucoseUnit: next }, 'unit');
+  };
+
+  const handleWeightUnitChange = async (e) => {
+    const next = e.target.value;
+    setWeightUnit(next);
+    await saveProfile({ weightUnit: next }, 'weightUnit');
+  };
+
+  const handleHeightUnitChange = async (e) => {
+    const next = e.target.value;
+    setHeightUnit(next);
+    await saveProfile({ heightUnit: next }, 'heightUnit');
   };
 
   const handleSaveRanges = async (e) => {
@@ -325,19 +341,44 @@ export default function Settings() {
 
           <div className="db-account-card" style={cardStyle}>
             <p style={cardTitleStyle}>{tr('settings.units')}</p>
+
             <label style={labelStyle}>
               <Droplet size={12} style={{ marginRight: 5 }} />
               {tr('settings.glucoseUnit')}
             </label>
             <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.glucoseUnitHint')}</p>
             <select
-              style={{ ...fieldStyle, maxWidth: 240 }}
+              style={{ ...fieldStyle, maxWidth: 240, marginBottom: 18 }}
               value={glucoseUnit}
               onChange={handleGlucoseUnitChange}
               disabled={savingKey === 'unit'}
             >
               <option value="mg/dL">mg/dL</option>
               <option value="mmol/L">mmol/L</option>
+            </select>
+
+            <label style={labelStyle}>{tr('settings.weightUnit')}</label>
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.weightUnitHint')}</p>
+            <select
+              style={{ ...fieldStyle, maxWidth: 240, marginBottom: 18 }}
+              value={weightUnit}
+              onChange={handleWeightUnitChange}
+              disabled={savingKey === 'weightUnit'}
+            >
+              <option value="kg">{tr('settings.unitKg')}</option>
+              <option value="lbs">{tr('settings.unitLbs')}</option>
+            </select>
+
+            <label style={labelStyle}>{tr('settings.heightUnit')}</label>
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.heightUnitHint')}</p>
+            <select
+              style={{ ...fieldStyle, maxWidth: 240 }}
+              value={heightUnit}
+              onChange={handleHeightUnitChange}
+              disabled={savingKey === 'heightUnit'}
+            >
+              <option value="cm">{tr('settings.unitCm')}</option>
+              <option value="ft_in">{tr('settings.unitFtIn')}</option>
             </select>
           </div>
 

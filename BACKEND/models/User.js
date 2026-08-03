@@ -54,6 +54,16 @@ const userSchema = new mongoose.Schema(
       enum: ['mg/dL', 'mmol/L'],
       default: 'mg/dL',
     },
+    weightUnit: {
+      type: String,
+      enum: ['kg', 'lbs'],
+      default: 'kg',
+    },
+    heightUnit: {
+      type: String,
+      enum: ['cm', 'ft_in'],
+      default: 'cm',
+    },
     theme: {
       type: String,
       enum: ['light', 'dark'],

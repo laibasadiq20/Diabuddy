@@ -411,6 +411,8 @@ const login = async (req, res) => {
           role: user.role,
           username: user.username,
           glucoseUnit: user.glucoseUnit,
+          weightUnit: user.weightUnit,
+          heightUnit: user.heightUnit,
           targetRanges: user.targetRanges,
           bio: user.bio,
           location: user.location,
@@ -693,6 +695,8 @@ const updateProfile = async (req, res) => {
       'gender',
       'age',
       'glucoseUnit',
+      'weightUnit',
+      'heightUnit',
       'theme',
       'language',
       'reminderAlertsEnabled',
@@ -700,6 +704,13 @@ const updateProfile = async (req, res) => {
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    if (updates.weightUnit && !['kg', 'lbs'].includes(updates.weightUnit)) {
+      return res.status(400).json({ status: 'error', message: 'weightUnit must be kg or lbs' });
+    }
+    if (updates.heightUnit && !['cm', 'ft_in'].includes(updates.heightUnit)) {
+      return res.status(400).json({ status: 'error', message: 'heightUnit must be cm or ft_in' });
     }
 
     if (updates.name && String(updates.name).trim().length < 2) {
