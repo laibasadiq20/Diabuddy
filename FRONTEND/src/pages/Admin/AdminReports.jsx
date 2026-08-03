@@ -5,6 +5,7 @@ import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
+import ThemedSelect from '../../components/ThemedSelect';
 import {
   Shield,
   Trash2,
@@ -710,15 +711,16 @@ export default function AdminReports() {
                   placeholder={tr('admin.searchUsersPlaceholder')}
                   style={{ ...inputStyle, flex: 1, minWidth: 200, width: 'auto' }}
                 />
-                <select
+                <ThemedSelect
                   value={userStatus}
-                  onChange={(e) => setUserStatus(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 10, border: `1.5px solid ${t.line}`, background: t.surface, fontFamily: t.fontBody }}
-                >
-                  <option value="">{tr('admin.allStatuses')}</option>
-                  <option value="active">{tr('admin.stats.active')}</option>
-                  <option value="banned">{tr('admin.stats.banned')}</option>
-                </select>
+                  onChange={setUserStatus}
+                  style={{ width: 180, flexShrink: 0 }}
+                  options={[
+                    { value: '', label: tr('admin.allStatuses') },
+                    { value: 'active', label: tr('admin.stats.active') },
+                    { value: 'banned', label: tr('admin.stats.banned') },
+                  ]}
+                />
                 <button type="button" onClick={fetchUsers} style={{ padding: '10px 16px', borderRadius: 10, border: 'none', background: t.forest, color: '#FFF', fontWeight: 600, cursor: 'pointer', fontFamily: t.fontBody }}>
                   {tr('common.search')}
                 </button>
@@ -980,33 +982,35 @@ export default function AdminReports() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
                     <div>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tr('admin.from')}</label>
-                      <select
+                      <ThemedSelect
                         value={moveFromId}
-                        onChange={(e) => setMoveFromId(e.target.value)}
-                        style={{ ...inputStyle, width: '100%' }}
-                      >
-                        <option value="">{tr('admin.selectTopic')}</option>
-                        {topics.map((topic) => (
-                          <option key={topic._id} value={topic._id}>
-                            {topic.name} ({topic.postsCount || 0})
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setMoveFromId}
+                        placeholder={tr('admin.selectTopic')}
+                        options={[
+                          { value: '', label: tr('admin.selectTopic') },
+                          ...topics.map((topic) => ({
+                            value: topic._id,
+                            label: `${topic.name} (${topic.postsCount || 0})`,
+                          })),
+                        ]}
+                      />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tr('admin.to')}</label>
-                      <select
+                      <ThemedSelect
                         value={moveToId}
-                        onChange={(e) => setMoveToId(e.target.value)}
-                        style={{ ...inputStyle, width: '100%' }}
-                      >
-                        <option value="">{tr('admin.selectTopic')}</option>
-                        {topics.filter((topic) => topic._id !== moveFromId).map((topic) => (
-                          <option key={topic._id} value={topic._id}>
-                            {topic.name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setMoveToId}
+                        placeholder={tr('admin.selectTopic')}
+                        options={[
+                          { value: '', label: tr('admin.selectTopic') },
+                          ...topics
+                            .filter((topic) => topic._id !== moveFromId)
+                            .map((topic) => ({
+                              value: topic._id,
+                              label: topic.name,
+                            })),
+                        ]}
+                      />
                     </div>
                   </div>
                   <button

@@ -7,6 +7,8 @@ import { API_URL } from '../../../config/api';
 import { Annoyed, Frown, Laugh, Loader2, Meh, Smile } from 'lucide-react';
 import { mlToUsFlOz, usFlOzToMl, OZ_PER_GLASS, round1 } from '../../../utils/waterUnits';
 import { convertGlucose, glucoseInputBounds, glucoseUnitLabel } from '../../../utils/glucoseUnits';
+import ThemedSelect from '../../../components/ThemedSelect';
+import SearchSelect from '../../../components/SearchSelect';
 
 const t = theme;
 
@@ -211,8 +213,10 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
         </div>
       </Field>
       <Field title={tr('logEntryForm.glucose.readingContext')}>
-        <select value={form.readingType} onChange={(e) => setForm({ ...form, readingType: e.target.value })} style={field}>
-          {[
+        <ThemedSelect
+          value={form.readingType}
+          onChange={(v) => setForm({ ...form, readingType: v })}
+          options={[
             'Fasting',
             'Before Breakfast',
             'After Breakfast',
@@ -225,12 +229,11 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
             'Before Exercise',
             'After Exercise',
             'Night',
-          ].map((o) => (
-            <option key={o} value={o}>
-              {tr(`logEntryForm.glucose.context.${GLUCOSE_CONTEXT_KEYS[o]}`, o)}
-            </option>
-          ))}
-        </select>
+          ].map((o) => ({
+            value: o,
+            label: tr(`logEntryForm.glucose.context.${GLUCOSE_CONTEXT_KEYS[o]}`, o),
+          }))}
+        />
       </Field>
       <Field title={tr('logEntryForm.common.dateTime')}>
         <input required type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
@@ -557,13 +560,14 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
       }}
     >
       <Field title={tr('logEntryForm.meal.mealType')}>
-        <select value={form.mealType} onChange={(e) => setForm({ ...form, mealType: e.target.value })} style={field}>
-          {['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((o) => (
-            <option key={o} value={o}>
-              {tr(`logEntryForm.meal.types.${MEAL_TYPE_KEYS[o]}`, o)}
-            </option>
-          ))}
-        </select>
+        <ThemedSelect
+          value={form.mealType}
+          onChange={(v) => setForm({ ...form, mealType: v })}
+          options={['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((o) => ({
+            value: o,
+            label: tr(`logEntryForm.meal.types.${MEAL_TYPE_KEYS[o]}`, o),
+          }))}
+        />
       </Field>
 
       <Field title={tr('logEntryForm.common.dateTime')}>
@@ -1057,21 +1061,20 @@ function InsulinFields({ initialRaw, submitting, isEdit, onSubmit }) {
       }}
     >
       <Field title={tr('logEntryForm.insulin.insulinType')}>
-        <select
+        <ThemedSelect
           required
           value={form.insulinType}
-          onChange={(e) => setForm({ ...form, insulinType: e.target.value })}
-          style={field}
-        >
-          {INSULIN_TYPES.map((o) => (
-            <option key={o} value={o}>
-              {tr(`logEntryForm.insulin.types.${INSULIN_TYPE_KEYS[o]}`, o)}
-            </option>
-          ))}
-          {form.insulinType && !INSULIN_TYPES.includes(form.insulinType) && (
-            <option value={form.insulinType}>{form.insulinType}</option>
-          )}
-        </select>
+          onChange={(v) => setForm({ ...form, insulinType: v })}
+          options={[
+            ...INSULIN_TYPES.map((o) => ({
+              value: o,
+              label: tr(`logEntryForm.insulin.types.${INSULIN_TYPE_KEYS[o]}`, o),
+            })),
+            ...(form.insulinType && !INSULIN_TYPES.includes(form.insulinType)
+              ? [{ value: form.insulinType, label: form.insulinType }]
+              : []),
+          ]}
+        />
       </Field>
 
       <Field title={tr('logEntryForm.insulin.dose')}>
@@ -1092,18 +1095,15 @@ function InsulinFields({ initialRaw, submitting, isEdit, onSubmit }) {
       </Field>
 
       <Field title={tr('logEntryForm.insulin.reason')}>
-        <select
+        <ThemedSelect
           required
           value={form.reason}
-          onChange={(e) => setForm({ ...form, reason: e.target.value })}
-          style={field}
-        >
-          {INSULIN_REASONS.map((o) => (
-            <option key={o} value={o}>
-              {tr(`logEntryForm.insulin.reasons.${INSULIN_REASON_KEYS[o]}`, o)}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setForm({ ...form, reason: v })}
+          options={INSULIN_REASONS.map((o) => ({
+            value: o,
+            label: tr(`logEntryForm.insulin.reasons.${INSULIN_REASON_KEYS[o]}`, o),
+          }))}
+        />
       </Field>
 
       <Field title={tr('logEntryForm.insulin.injectionTime')}>
@@ -1117,18 +1117,18 @@ function InsulinFields({ initialRaw, submitting, isEdit, onSubmit }) {
       </Field>
 
       <Field title={tr('logEntryForm.insulin.injectionSite')}>
-        <select
+        <ThemedSelect
           value={form.injectionSite}
-          onChange={(e) => setForm({ ...form, injectionSite: e.target.value })}
-          style={field}
-        >
-          <option value="">{tr('logEntryForm.insulin.selectSite')}</option>
-          {INSULIN_SITES.map((o) => (
-            <option key={o} value={o}>
-              {tr(`logEntryForm.insulin.sites.${INSULIN_SITE_KEYS[o]}`, o)}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setForm({ ...form, injectionSite: v })}
+          placeholder={tr('logEntryForm.insulin.selectSite')}
+          options={[
+            { value: '', label: tr('logEntryForm.insulin.selectSite') },
+            ...INSULIN_SITES.map((o) => ({
+              value: o,
+              label: tr(`logEntryForm.insulin.sites.${INSULIN_SITE_KEYS[o]}`, o),
+            })),
+          ]}
+        />
       </Field>
 
       <Field title={tr('logEntryForm.common.notesOptional')}>
@@ -1219,20 +1219,22 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
       }}
     >
       <Field title={tr('logEntryForm.medication.name')}>
-        <input
+        <SearchSelect
           required
-          list="db-med-names"
-          type="text"
           value={form.medicineName}
-          onChange={(e) => setForm({ ...form, medicineName: e.target.value })}
-          style={field}
+          onChange={(v) => setForm({ ...form, medicineName: v })}
+          options={MEDICATION_NAMES}
+          topCount={5}
+          allowCustom
           placeholder={tr('logEntryForm.medication.namePlaceholder')}
+          searchPlaceholder={tr('logEntryForm.medication.searchPlaceholder')}
+          popularLabel={tr('logEntryForm.medication.popular')}
+          searchMoreLabel={tr('logEntryForm.medication.searchMore').replace(
+            '{n}',
+            String(Math.max(0, MEDICATION_NAMES.length - 5))
+          )}
+          emptyLabel={tr('logEntryForm.medication.noMatches')}
         />
-        <datalist id="db-med-names">
-          {MEDICATION_NAMES.map((name) => (
-            <option key={name} value={name} />
-          ))}
-        </datalist>
       </Field>
 
       <Field title={tr('logEntryForm.medication.dosage')}>
@@ -1248,21 +1250,21 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
             style={{ ...field, flex: 1, minWidth: 0 }}
             placeholder="500"
           />
-          <select
+          <ThemedSelect
             required
             value={form.doseUnit}
-            onChange={(e) => setForm({ ...form, doseUnit: e.target.value })}
-            style={{ ...field, width: 110, maxWidth: '42%', flexShrink: 0 }}
-          >
-            {DOSE_UNITS.map((u) => (
-              <option key={u} value={u}>
-                {tr(`logEntryForm.medication.doseUnits.${DOSE_UNIT_KEYS[u]}`, u)}
-              </option>
-            ))}
-            {form.doseUnit && !DOSE_UNITS.includes(form.doseUnit) && (
-              <option value={form.doseUnit}>{form.doseUnit}</option>
-            )}
-          </select>
+            onChange={(v) => setForm({ ...form, doseUnit: v })}
+            style={{ width: 120, maxWidth: '46%', flexShrink: 0 }}
+            options={[
+              ...DOSE_UNITS.map((u) => ({
+                value: u,
+                label: tr(`logEntryForm.medication.doseUnits.${DOSE_UNIT_KEYS[u]}`, u),
+              })),
+              ...(form.doseUnit && !DOSE_UNITS.includes(form.doseUnit)
+                ? [{ value: form.doseUnit, label: form.doseUnit }]
+                : []),
+            ]}
+          />
         </div>
       </Field>
 
@@ -1306,14 +1308,18 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
       </Field>
 
       <Field title={tr('logEntryForm.medication.route')}>
-        <select value={form.route} onChange={(e) => setForm({ ...form, route: e.target.value })} style={field}>
-          <option value="">{tr('logEntryForm.medication.selectRoute')}</option>
-          {MED_ROUTES.map((r) => (
-            <option key={r} value={r}>
-              {tr(`logEntryForm.medication.routes.${MED_ROUTE_KEYS[r]}`, r)}
-            </option>
-          ))}
-        </select>
+        <ThemedSelect
+          value={form.route}
+          onChange={(v) => setForm({ ...form, route: v })}
+          placeholder={tr('logEntryForm.medication.selectRoute')}
+          options={[
+            { value: '', label: tr('logEntryForm.medication.selectRoute') },
+            ...MED_ROUTES.map((r) => ({
+              value: r,
+              label: tr(`logEntryForm.medication.routes.${MED_ROUTE_KEYS[r]}`, r),
+            })),
+          ]}
+        />
       </Field>
 
       <Field title={tr('logEntryForm.common.notesOptional')}>

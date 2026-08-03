@@ -1908,6 +1908,10 @@ export default {
     medication: {
       name: 'دوا کا نام',
       namePlaceholder: 'دوا کا نام تلاش کریں یا لکھیں',
+      searchPlaceholder: 'تمام ادویات تلاش کریں…',
+      popular: 'مقبول',
+      searchMore: 'اوپر تلاش کریں — مزید {n}',
+      noMatches: 'کوئی مماثلت نہیں',
       dosage: 'خوراک',
       status: 'حیثیت',
       route: 'طریقہ (اختیاری)',

@@ -2,6 +2,7 @@ import React from 'react';
 import { theme } from '../../../theme';
 import { REPORT_REASONS } from './reportReasons';
 import { useI18n } from '../../../i18n/I18nContext';
+import ThemedSelect from '../../../components/ThemedSelect';
 
 const t = theme;
 
@@ -55,23 +56,14 @@ export default function ReportModal({
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', marginBottom: '6px' }}>
                 {tr('reportModal.reason')}
               </label>
-              <select
+              <ThemedSelect
                 value={reason}
-                onChange={(e) => onReasonChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  border: `1.5px solid ${t.line}`,
-                  background: t.surfaceSunken,
-                  color: t.ink,
-                  fontSize: '13px'
-                }}
-              >
-                {REPORT_REASONS.map((r) => (
-                  <option key={r.value} value={r.value}>{tr(`reportReasons.${r.value}`)}</option>
-                ))}
-              </select>
+                onChange={onReasonChange}
+                options={REPORT_REASONS.map((r) => ({
+                  value: r.value,
+                  label: tr(`reportReasons.${r.value}`),
+                }))}
+              />
             </div>
 
             <div style={{ marginBottom: '24px' }}>

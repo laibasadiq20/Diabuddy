@@ -122,34 +122,7 @@ export default function CommunityFeedStyles() {
           position: relative;
           min-width: 0;
           flex: 0 1 auto;
-          max-width: 220px;
-        }
-        .db-community-sort-select {
-          width: 100%;
-          appearance: none;
-          -webkit-appearance: none;
-          box-sizing: border-box;
-          padding: 8px 32px 8px 12px;
-          border: 1px solid ${t.lineStrong};
-          border-radius: 10px;
-          background: ${t.surfaceSunken};
-          color: ${t.ink};
-          font-size: 13px;
-          font-weight: 600;
-          font-family: ${t.fontBody};
-          cursor: pointer;
-          outline: none;
-        }
-        .db-community-sort-select:focus {
-          border-color: ${t.forest};
-        }
-        .db-community-sort-chevron {
-          position: absolute;
-          right: 10px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: ${t.inkSoft};
-          pointer-events: none;
+          max-width: 240px;
         }
         .db-drafts-banner {
           background: ${t.surface};
@@ -535,10 +508,6 @@ export default function CommunityFeedStyles() {
           .db-community-sort-wrap {
             max-width: none;
             flex: 1;
-          }
-          .db-community-sort-select {
-            font-size: 16px;
-            padding: 10px 34px 10px 12px;
           }
           .db-community-topics {
             margin: 0 -2px;

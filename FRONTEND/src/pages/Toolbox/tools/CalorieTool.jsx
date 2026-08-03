@@ -4,6 +4,7 @@ import { fieldStyle, labelStyle, eyebrow, disclaimerStyle } from '../toolboxStyl
 import { useI18n } from '../../../i18n/I18nContext';
 import { useUnits } from '../../../hooks/useUnits';
 import { cmToFtIn, ftInToCm, kgToLbs, lbsToKg, round1 } from '../../../utils/bodyUnits';
+import ThemedSelect from '../../../components/ThemedSelect';
 
 export default function CalorieTool() {
   const { t: tr } = useI18n();
@@ -85,19 +86,27 @@ export default function CalorieTool() {
         </div>
         <div>
           <label style={labelStyle}>{tr('toolboxTools.calorie.gender')}</label>
-          <select value={sex} onChange={(e) => setSex(e.target.value)} style={fieldStyle}>
-            <option value="female">{tr('toolboxTools.calorie.genderFemale')}</option>
-            <option value="male">{tr('toolboxTools.calorie.genderMale')}</option>
-          </select>
+          <ThemedSelect
+            value={sex}
+            onChange={setSex}
+            options={[
+              { value: 'female', label: tr('toolboxTools.calorie.genderFemale') },
+              { value: 'male', label: tr('toolboxTools.calorie.genderMale') },
+            ]}
+          />
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
           <label style={labelStyle}>{tr('toolboxTools.calorie.activityLevel')}</label>
-          <select value={activity} onChange={(e) => setActivity(e.target.value)} style={fieldStyle}>
-            <option value="1.2">{tr('toolboxTools.calorie.activitySedentary')}</option>
-            <option value="1.375">{tr('toolboxTools.calorie.activityLight')}</option>
-            <option value="1.55">{tr('toolboxTools.calorie.activityModerate')}</option>
-            <option value="1.725">{tr('toolboxTools.calorie.activityVery')}</option>
-          </select>
+          <ThemedSelect
+            value={activity}
+            onChange={setActivity}
+            options={[
+              { value: '1.2', label: tr('toolboxTools.calorie.activitySedentary') },
+              { value: '1.375', label: tr('toolboxTools.calorie.activityLight') },
+              { value: '1.55', label: tr('toolboxTools.calorie.activityModerate') },
+              { value: '1.725', label: tr('toolboxTools.calorie.activityVery') },
+            ]}
+          />
         </div>
       </div>
       {result && (

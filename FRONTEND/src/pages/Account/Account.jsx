@@ -5,6 +5,7 @@ import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
+import ThemedSelect from '../../components/ThemedSelect';
 import { Save, CheckCircle2, LogOut, Droplet, MapPin, Mail } from 'lucide-react';
 
 const t = theme;
@@ -45,7 +46,8 @@ export default function Account() {
   }, [user]);
 
   const onChange = (key) => (e) => {
-    setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    const value = typeof e === 'string' ? e : e?.target?.value;
+    setForm((prev) => ({ ...prev, [key]: value }));
     setMessage('');
     setError('');
   };
@@ -305,24 +307,35 @@ export default function Account() {
               <p style={sectionLabelStyle}><Droplet size={12} /> {tr('account.healthDetails')}</p>
               <div>
                 <label style={labelStyle}>{tr('account.diabetesType')}</label>
-                <select style={{ ...fieldStyle, maxWidth: 320 }} value={form.diabetesType} onChange={onChange('diabetesType')}>
-                  <option value="">{tr('common.preferNotToSay')}</option>
-                  <option value="Type 1">{tr('account.type1')}</option>
-                  <option value="Type 2">{tr('account.type2')}</option>
-                  <option value="Gestational">{tr('account.typeGestational')}</option>
-                </select>
+                <ThemedSelect
+                  style={{ maxWidth: 320 }}
+                  value={form.diabetesType}
+                  onChange={onChange('diabetesType')}
+                  placeholder={tr('common.preferNotToSay')}
+                  options={[
+                    { value: '', label: tr('common.preferNotToSay') },
+                    { value: 'Type 1', label: tr('account.type1') },
+                    { value: 'Type 2', label: tr('account.type2') },
+                    { value: 'Gestational', label: tr('account.typeGestational') },
+                  ]}
+                />
               </div>
 
               <p style={sectionLabelStyle}>{tr('account.aboutYou')}</p>
               <div className="db-form-grid">
                 <div>
                   <label style={labelStyle}>{tr('account.gender')}</label>
-                  <select style={fieldStyle} value={form.gender} onChange={onChange('gender')}>
-                    <option value="">{tr('common.preferNotToSay')}</option>
-                    <option value="Female">{tr('account.genderFemale')}</option>
-                    <option value="Male">{tr('account.genderMale')}</option>
-                    <option value="Other">{tr('account.genderOther')}</option>
-                  </select>
+                  <ThemedSelect
+                    value={form.gender}
+                    onChange={onChange('gender')}
+                    placeholder={tr('common.preferNotToSay')}
+                    options={[
+                      { value: '', label: tr('common.preferNotToSay') },
+                      { value: 'Female', label: tr('account.genderFemale') },
+                      { value: 'Male', label: tr('account.genderMale') },
+                      { value: 'Other', label: tr('account.genderOther') },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label style={labelStyle}>{tr('account.age')}</label>

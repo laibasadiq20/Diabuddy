@@ -1908,6 +1908,10 @@ export default {
     medication: {
       name: 'Medication name',
       namePlaceholder: 'Search or type medicine name',
+      searchPlaceholder: 'Search all medicines…',
+      popular: 'Popular',
+      searchMore: 'Search above for {n} more',
+      noMatches: 'No matches',
       dosage: 'Dosage',
       status: 'Status',
       route: 'Route (optional)',

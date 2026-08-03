@@ -5,6 +5,7 @@ import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
+import ThemedSelect from '../../components/ThemedSelect';
 import { 
   FileText, 
   Image as ImageIcon, 
@@ -447,26 +448,19 @@ export default function NewPost() {
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
                   {tr('newPost.categoryLabel')}
                 </label>
-                <select
+                <ThemedSelect
+                  required
                   value={topicId}
-                  onChange={e => setTopicId(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '10px',
-                    border: `1.5px solid ${t.line}`,
-                    background: t.bg,
-                    color: t.ink,
-                    fontSize: '14px',
-                    outline: 'none',
-                    fontFamily: t.fontBody
-                  }}
-                >
-                  <option value="" disabled>{tr('newPost.categoryPlaceholder')}</option>
-                  {topics.map(t => (
-                    <option key={t._id} value={t._id}>{t.name}</option>
-                  ))}
-                </select>
+                  onChange={setTopicId}
+                  placeholder={tr('newPost.categoryPlaceholder')}
+                  options={[
+                    { value: '', label: tr('newPost.categoryPlaceholder'), disabled: true },
+                    ...topics.map((topic) => ({
+                      value: topic._id,
+                      label: topic.name,
+                    })),
+                  ]}
+                />
               </div>
 
               {/* Title */}

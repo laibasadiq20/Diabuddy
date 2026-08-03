@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
 import { useI18n } from '../../../i18n/I18nContext';
+import ThemedSelect from '../../../components/ThemedSelect';
 
 const SORT_OPTIONS = [
   { id: 'latest', labelKey: 'community.sortLatest' },
@@ -23,20 +23,16 @@ export default function FeedFilters({
           {tr('community.sort')}
         </label>
         <div className="db-community-sort-wrap">
-          <select
+          <ThemedSelect
             id="db-community-sort"
-            className="db-community-sort-select"
             value={sortMode}
-            onChange={(e) => onSortSelect(e.target.value)}
+            onChange={onSortSelect}
             aria-label={tr('community.sort')}
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.id} value={opt.id}>
-                {tr(opt.labelKey)}
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={14} className="db-community-sort-chevron" aria-hidden />
+            options={SORT_OPTIONS.map((opt) => ({
+              value: opt.id,
+              label: tr(opt.labelKey),
+            }))}
+          />
         </div>
       </div>
 
