@@ -36,6 +36,19 @@ import { mlToUsFlOz, round0, round1, mlToLiters } from '../../utils/waterUnits';
 
 const t = theme;
 
+function useIsNarrow(maxWidth = 640) {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidth}px)`).matches : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${maxWidth}px)`);
+    const onChange = () => setNarrow(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [maxWidth]);
+  return narrow;
+}
+
 const PRESETS = [
   { id: '1d', labelKey: 'reports.presets.daily' },
   { id: '7d', labelKey: 'reports.presets.weekly' },
@@ -148,6 +161,7 @@ export default function Reports() {
   const { user } = useAuth();
   const { t: tr } = useI18n();
   const navigate = useNavigate();
+  const isNarrow = useIsNarrow(640);
   const [preset, setPreset] = useState('7d');
   const [custom, setCustom] = useState(defaultCustomRange);
   const [compare, setCompare] = useState(false);
@@ -539,8 +553,11 @@ export default function Reports() {
                   wide
                 >
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                      <AreaChart data={dailyGlucose} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={isNarrow ? 180 : 200}>
+                      <AreaChart
+                        data={dailyGlucose}
+                        margin={{ top: 8, right: isNarrow ? 2 : 4, left: isNarrow ? -8 : 0, bottom: isNarrow ? 4 : 0 }}
+                      >
                         <defs>
                           <linearGradient id="gluFill" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor={t.sky} stopOpacity={0.35} />
@@ -548,8 +565,21 @@ export default function Reports() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={40} domain={['auto', 'auto']} />
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          interval={isNarrow ? 'preserveStartEnd' : 0}
+                          minTickGap={isNarrow ? 16 : 8}
+                        />
+                        <YAxis
+                          tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={isNarrow ? 28 : 40}
+                          domain={['auto', 'auto']}
+                        />
                         <Tooltip contentStyle={tooltipStyle} />
                         <Area
                           type="monotone"
@@ -567,14 +597,14 @@ export default function Reports() {
 
                 <ChartCard title={tr('reports.charts.timeInRangeTitle')} subtitle={tr('reports.charts.shareOfReadings')} empty={!tirPie.length} emptyLabel={tr('reports.charts.noData')}>
                   <div className="db-rep-chart-body db-rep-chart-body--pie">
-                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={isNarrow ? 180 : 200}>
                       <PieChart>
                         <Pie
                           data={tirPie}
                           dataKey="value"
                           nameKey="name"
-                          innerRadius={58}
-                          outerRadius={88}
+                          innerRadius={isNarrow ? 42 : 58}
+                          outerRadius={isNarrow ? 68 : 88}
                           paddingAngle={2}
                         >
                           {tirPie.map((entry) => (
@@ -582,7 +612,7 @@ export default function Reports() {
                           ))}
                         </Pie>
                         <Tooltip contentStyle={tooltipStyle} />
-                        <Legend />
+                        <Legend wrapperStyle={{ fontSize: isNarrow ? 11 : 12 }} />
                       </PieChart>
                     </ResponsiveContainer>
                     {metrics.timeInRangePercent != null && (
@@ -598,15 +628,19 @@ export default function Reports() {
                   emptyLabel={tr('reports.charts.noData')}
                 >
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                      <BarChart data={readingTypeChart} layout="vertical" margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={isNarrow ? 180 : 200}>
+                      <BarChart
+                        data={readingTypeChart}
+                        layout="vertical"
+                        margin={{ top: 8, right: isNarrow ? 8 : 12, left: 4, bottom: 0 }}
+                      >
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" horizontal={false} />
-                        <XAxis type="number" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <XAxis type="number" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} />
                         <YAxis
                           type="category"
                           dataKey="name"
-                          width={88}
-                          tick={{ fill: t.inkSoft, fontSize: 11 }}
+                          width={isNarrow ? 64 : 88}
+                          tick={{ fill: t.inkSoft, fontSize: isNarrow ? 10 : 11 }}
                           axisLine={false}
                           tickLine={false}
                         />
@@ -628,11 +662,11 @@ export default function Reports() {
 
                 <ChartCard title={tr('reports.charts.carbsByDayTitle')} subtitle={tr('reports.charts.fromMealLogs')} empty={!charts?.daily?.some((d) => d.carbs > 0)} emptyLabel={tr('reports.charts.noData')}>
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                      <BarChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={isNarrow ? 180 : 200}>
+                      <BarChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: isNarrow ? -8 : 0, bottom: 0 }}>
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
+                        <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} interval={isNarrow ? 'preserveStartEnd' : 0} minTickGap={isNarrow ? 16 : 8} />
+                        <YAxis tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 28 : 36} />
                         <Tooltip contentStyle={tooltipStyle} />
                         <Bar dataKey="carbs" name={tr('reports.chartNames.carbsG')} fill={t.sage} radius={[6, 6, 0, 0]} />
                       </BarChart>
@@ -642,11 +676,11 @@ export default function Reports() {
 
                 <ChartCard title={tr('reports.charts.insulinByDayTitle')} subtitle={tr('reports.charts.unitsLogged')} empty={!charts?.daily?.some((d) => d.insulin > 0)} emptyLabel={tr('reports.charts.noData')}>
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                      <BarChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={isNarrow ? 180 : 200}>
+                      <BarChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: isNarrow ? -8 : 0, bottom: 0 }}>
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
+                        <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} interval={isNarrow ? 'preserveStartEnd' : 0} minTickGap={isNarrow ? 16 : 8} />
+                        <YAxis tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 28 : 36} />
                         <Tooltip contentStyle={tooltipStyle} />
                         <Bar dataKey="insulin" name={tr('reports.chartNames.units')} fill={t.clay} radius={[6, 6, 0, 0]} />
                       </BarChart>
@@ -661,14 +695,14 @@ export default function Reports() {
                   emptyLabel={tr('reports.charts.noData')}
                 >
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                      <LineChart data={dailyWaterActivity} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={isNarrow ? 180 : 200}>
+                      <LineChart data={dailyWaterActivity} margin={{ top: 8, right: isNarrow ? 2 : 4, left: isNarrow ? -8 : 0, bottom: 0 }}>
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis yAxisId="left" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
-                        <YAxis yAxisId="right" orientation="right" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
+                        <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} interval={isNarrow ? 'preserveStartEnd' : 0} minTickGap={isNarrow ? 16 : 8} />
+                        <YAxis yAxisId="left" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 28 : 40} />
+                        <YAxis yAxisId="right" orientation="right" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 28 : 36} />
                         <Tooltip contentStyle={tooltipStyle} />
-                        <Legend />
+                        <Legend wrapperStyle={{ fontSize: isNarrow ? 11 : 12 }} />
                         <Line yAxisId="left" type="monotone" dataKey="waterOz" name={tr('reports.chartNames.waterMl')} stroke={t.skyDeep} strokeWidth={2} dot={false} />
                         <Line yAxisId="right" type="monotone" dataKey="exercise" name={tr('reports.chartNames.activityMin')} stroke={t.gold} strokeWidth={2} dot={false} />
                       </LineChart>
@@ -678,11 +712,11 @@ export default function Reports() {
 
                 <ChartCard title={tr('reports.charts.sleepTitle')} subtitle={tr('reports.charts.hoursPerNight')} empty={!charts?.daily?.some((d) => d.sleepHours != null)} emptyLabel={tr('reports.charts.noData')}>
                   <div className="db-rep-chart-body">
-                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                      <AreaChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={isNarrow ? 180 : 200}>
+                      <AreaChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: isNarrow ? -8 : 0, bottom: 0 }}>
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={32} domain={[0, 'auto']} />
+                        <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} interval={isNarrow ? 'preserveStartEnd' : 0} minTickGap={isNarrow ? 16 : 8} />
+                        <YAxis tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 24 : 32} domain={[0, 'auto']} />
                         <Tooltip contentStyle={tooltipStyle} />
                         <Area
                           type="monotone"
@@ -701,11 +735,11 @@ export default function Reports() {
                 {charts?.insulinByType?.length > 0 && (
                   <ChartCard title={tr('reports.charts.insulinByTypeTitle')} subtitle={tr('reports.charts.totalUnitsInPeriod')}>
                     <div className="db-rep-chart-body">
-                      <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                        <BarChart data={charts.insulinByType} layout="vertical" margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+                      <ResponsiveContainer width="100%" height="100%" minHeight={isNarrow ? 180 : 200}>
+                        <BarChart data={charts.insulinByType} layout="vertical" margin={{ top: 8, right: isNarrow ? 8 : 12, left: 4, bottom: 0 }}>
                           <CartesianGrid stroke={t.line} strokeDasharray="3 3" horizontal={false} />
-                          <XAxis type="number" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
-                          <YAxis type="category" dataKey="name" width={90} tick={{ fill: t.inkSoft, fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <XAxis type="number" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} />
+                          <YAxis type="category" dataKey="name" width={isNarrow ? 72 : 90} tick={{ fill: t.inkSoft, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} />
                           <Tooltip contentStyle={tooltipStyle} />
                           <Bar dataKey="units" name={tr('reports.chartNames.units')} fill={t.clay} radius={[0, 6, 6, 0]} />
                         </BarChart>
@@ -717,11 +751,11 @@ export default function Reports() {
                 {charts?.mood?.length > 0 && (
                   <ChartCard title={tr('reports.charts.moodEntriesTitle')} subtitle={tr('reports.charts.countsInPeriod')}>
                     <div className="db-rep-chart-body">
-                      <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                        <BarChart data={charts.mood} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                      <ResponsiveContainer width="100%" height="100%" minHeight={isNarrow ? 180 : 200}>
+                        <BarChart data={charts.mood} margin={{ top: 8, right: 4, left: isNarrow ? -8 : 0, bottom: isNarrow ? 8 : 0 }}>
                           <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="name" tick={{ fill: t.inkFaint, fontSize: 10 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={50} />
-                          <YAxis allowDecimals={false} tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
+                          <XAxis dataKey="name" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 9 : 10 }} axisLine={false} tickLine={false} interval={0} angle={isNarrow ? -35 : -20} textAnchor="end" height={isNarrow ? 58 : 50} />
+                          <YAxis allowDecimals={false} tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 22 : 28} />
                           <Tooltip contentStyle={tooltipStyle} />
                           <Bar dataKey="count" name={tr('reports.chartNames.entries')} fill={t.peach} radius={[6, 6, 0, 0]} />
                         </BarChart>
@@ -782,15 +816,20 @@ export default function Reports() {
             radial-gradient(ellipse at 0% 0%, rgba(94,135,160,0.08), transparent 42%),
             linear-gradient(180deg, ${t.pageFadeTop} 0%, ${t.bg} 38%);
           font-family: ${t.fontBody};
+          overflow-x: hidden;
         }
         .db-rep-main {
           flex: 1;
           min-width: 0;
+          width: 100%;
           padding: 28px 20px 110px;
+          overflow-x: hidden;
         }
         .db-rep-inner {
           max-width: 1120px;
           margin: 0 auto;
+          width: 100%;
+          min-width: 0;
         }
         .db-rep-hero {
           display: flex;
@@ -1170,6 +1209,11 @@ export default function Reports() {
           width: 100%;
           height: 260px;
           min-height: 260px;
+          min-width: 0;
+          overflow: hidden;
+        }
+        .db-rep-chart-body .recharts-responsive-container {
+          width: 100% !important;
         }
         .db-rep-chart-body--pie { position: relative; }
         .db-rep-tir-center {
@@ -1228,49 +1272,163 @@ export default function Reports() {
         }
         .db-spin { animation: db-spin 0.9s linear infinite; }
         @keyframes db-spin { to { transform: rotate(360deg); } }
+
         @media (max-width: 960px) {
           .db-rep-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .db-rep-hero h1 { font-size: clamp(24px, 5vw, 34px); }
         }
+
         @media (max-width: 860px) {
+          .db-rep-main {
+            padding: 18px 14px calc(112px + env(safe-area-inset-bottom, 0px));
+          }
+          .db-rep-hero {
+            flex-direction: column;
+            gap: 14px;
+            padding: 18px 16px;
+            border-radius: 16px;
+          }
+          .db-rep-lead { max-width: none; }
+          .db-rep-header-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+          .db-rep-ghost,
+          .db-rep-export {
+            width: 100%;
+            justify-content: center;
+            min-height: 44px;
+            box-sizing: border-box;
+          }
+          .db-rep-controls-top {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .db-rep-compare-toggle {
+            padding-top: 4px;
+          }
           .db-rep-grid { grid-template-columns: 1fr; }
           .db-rep-chart.is-wide { grid-column: auto; }
-          .db-rep-chart-body { height: 240px; min-height: 240px; }
+          .db-rep-chart { padding: 14px; border-radius: 14px; }
+          .db-rep-chart-body { height: 230px; min-height: 230px; }
           .db-rep-totals-grid { grid-template-columns: 1fr; }
+          .db-rep-letter { padding: 16px; }
+          .db-rep-letter-head h2 { font-size: 20px; }
         }
+
         @media (max-width: 640px) {
           .db-rep-main {
             padding: 12px 12px calc(112px + env(safe-area-inset-bottom, 0px));
           }
           .db-rep-hero {
-            flex-direction: column;
-            padding: 18px 16px;
+            padding: 16px 14px;
             border-radius: 14px;
+            margin-bottom: 14px;
           }
-          .db-rep-header-actions { width: 100%; }
-          .db-rep-ghost,
-          .db-rep-export {
-            flex: 1 1 auto;
-            justify-content: center;
-            min-height: 44px;
+          .db-rep-eyebrow { margin-bottom: 6px; font-size: 10px; }
+          .db-rep-hero h1 { font-size: clamp(22px, 7vw, 28px); }
+          .db-rep-lead { font-size: 13px; margin-top: 8px; }
+          .db-rep-header-actions {
+            grid-template-columns: 1fr;
+          }
+          .db-rep-controls {
+            padding: 12px;
+            border-radius: 14px;
+            margin-bottom: 14px;
+            gap: 12px;
           }
           .db-rep-presets {
             flex-wrap: nowrap;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
+            margin: 0 -4px;
+            padding: 0 4px 2px;
+            gap: 6px;
           }
           .db-rep-presets::-webkit-scrollbar { display: none; }
-          .db-rep-preset { flex: 0 0 auto; }
-          .db-rep-dates { flex-direction: column; align-items: stretch; }
-          .db-rep-dates input { width: 100%; box-sizing: border-box; font-size: 16px; min-height: 44px; }
-          .db-rep-metrics { grid-template-columns: 1fr 1fr; gap: 8px; }
-          .db-rep-metric-value { font-size: 20px; }
-          .db-rep-period-line { flex-direction: column; gap: 4px; }
+          .db-rep-preset {
+            flex: 0 0 auto;
+            padding: 8px 12px;
+            min-height: 40px;
+            font-size: 12px;
+          }
+          .db-rep-dates {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+          }
+          .db-rep-dates label { width: 100%; }
+          .db-rep-dates input {
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 16px;
+            min-height: 44px;
+          }
+          .db-rep-metrics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 14px;
+          }
+          .db-rep-metric {
+            padding: 12px;
+            border-radius: 12px;
+            min-width: 0;
+          }
+          .db-rep-metric-label {
+            font-size: 10px;
+            letter-spacing: 0.04em;
+            line-height: 1.3;
+            word-break: break-word;
+          }
+          .db-rep-metric-value {
+            font-size: 18px;
+            margin-top: 6px;
+            word-break: break-word;
+          }
+          .db-rep-metric-value span { font-size: 11px; }
+          .db-rep-delta { font-size: 10px; }
+          .db-rep-period-line {
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 12px;
+          }
+          .db-rep-period-line strong { font-size: 14px; }
           .db-rep-generated { margin-left: 0; }
-          .db-rep-chart-body { height: 200px; min-height: 200px; }
+          .db-rep-section-label { margin-bottom: 8px; }
+          .db-rep-grid { gap: 10px; }
+          .db-rep-chart { padding: 12px; }
+          .db-rep-chart-head h3 { font-size: 14px; line-height: 1.35; }
+          .db-rep-chart-head p { font-size: 11px; line-height: 1.4; }
+          .db-rep-chart-body {
+            height: 200px;
+            min-height: 200px;
+            margin-top: 6px;
+          }
+          .db-rep-tir-center { font-size: 18px; top: 42%; }
+          .db-rep-totals {
+            margin-top: 12px;
+            padding: 14px;
+            border-radius: 14px;
+          }
+          .db-rep-totals h2 { font-size: 18px; margin-bottom: 10px; }
+          .db-rep-totals-grid > div {
+            padding: 10px;
+            gap: 8px;
+          }
+          .db-rep-state { padding: 28px 16px; }
+          .db-rep-letter-body { font-size: 13px; line-height: 1.65; }
+          .db-rep-export-error { margin: 0 0 10px; }
         }
+
         @media (max-width: 380px) {
+          .db-rep-main { padding-left: 10px; padding-right: 10px; }
           .db-rep-metrics { grid-template-columns: 1fr; }
+          .db-rep-metric-value { font-size: 20px; }
+          .db-rep-chart-body { height: 190px; min-height: 190px; }
         }
       `}</style>
     </div>
