@@ -49,7 +49,7 @@ exports.analyzeMeal = async (req, res) => {
     if (!foods.length) {
       return res.status(503).json({
         status: 'error',
-        message: 'Pakistani food nutrition dataset is missing on the server',
+        message: 'Meal nutrition dataset is missing on the server',
       });
     }
 
@@ -61,7 +61,7 @@ exports.analyzeMeal = async (req, res) => {
     if (!result.matched || !result.nutrition) {
       return res.status(422).json({
         status: 'error',
-        message: `Recognized "${result.identification?.dishName || 'unknown'}", but no close Pakistani food match was found. Try another angle or enter nutrition manually.`,
+        message: `Recognized "${result.identification?.dishName || 'unknown'}", but no close food match was found. Try another angle or enter nutrition manually.`,
         data: result,
       });
     }

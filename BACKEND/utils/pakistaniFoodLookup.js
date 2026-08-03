@@ -3,9 +3,9 @@ const path = require('path');
 
 let cachedFoods = null;
 
-function loadPakistaniFoods() {
+function loadMealFoods() {
   if (cachedFoods) return cachedFoods;
-  const filePath = path.join(__dirname, '..', 'data', 'food', 'pakistani_foods.json');
+  const filePath = path.join(__dirname, '..', 'data', 'food', 'meal_foods.json');
   if (!fs.existsSync(filePath)) {
     cachedFoods = [];
     return cachedFoods;
@@ -13,6 +13,11 @@ function loadPakistaniFoods() {
   const raw = fs.readFileSync(filePath, 'utf8');
   cachedFoods = JSON.parse(raw);
   return cachedFoods;
+}
+
+/** @deprecated use loadMealFoods */
+function loadPakistaniFoods() {
+  return loadMealFoods();
 }
 
 function normalizeName(name) {
@@ -45,20 +50,27 @@ function similarity(a, b) {
   const union = new Set([...ta, ...tb]).size;
   const jaccard = overlap / union;
 
-  // Soft bonus for shared distinctive tokens
   return Math.min(1, jaccard + (overlap >= 2 ? 0.08 : 0));
 }
 
+function foodMatchNames(food) {
+  const names = [food.name, ...(food.aliases || [])];
+  return names.filter(Boolean);
+}
+
 /**
- * Find best Pakistani food matches for a predicted dish name.
+ * Find best food matches for a predicted dish name (INDB + Pakistani extras).
  */
 function matchPakistaniFood(dishName, { limit = 5 } = {}) {
-  const foods = loadPakistaniFoods();
+  const foods = loadMealFoods();
   const scored = foods
-    .map((food) => ({
-      food,
-      score: similarity(dishName, food.name),
-    }))
+    .map((food) => {
+      const score = Math.max(
+        ...foodMatchNames(food).map((n) => similarity(dishName, n)),
+        0
+      );
+      return { food, score };
+    })
     .filter((x) => x.score >= 0.35)
     .sort((a, b) => b.score - a.score);
 
@@ -66,6 +78,7 @@ function matchPakistaniFood(dishName, { limit = 5 } = {}) {
 }
 
 module.exports = {
+  loadMealFoods,
   loadPakistaniFoods,
   matchPakistaniFood,
   normalizeName,

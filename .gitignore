@@ -154,3 +154,6 @@ vite.config.ts.timestamp-*
 /recipe_nutrition.csv
 /recipe_ingredients.csv
 /recipe_steps.csv
+
+# Raw food dataset downloads (rebuild with: node BACKEND/scripts/buildMealFoods.js)
+BACKEND/data/food/raw/

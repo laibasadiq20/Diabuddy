@@ -64,7 +64,7 @@ Look at this food photo and respond with ONLY valid JSON (no markdown) in this s
   "candidates": ["alt name 1", "alt name 2"],
   "notes": "one short sentence"
 }
-Prefer common Pakistani dish names when possible (biryani, nihari, daal, karahi, chapli kabab, haleem, pulao, paratha, etc).
+Prefer common Pakistani / South Asian dish names when possible (biryani, nihari, white chana / safed channa, daal, karahi, chapli kabab, haleem, pulao, paratha, chole, etc).
 If the image is not food, set dishName to "" and confidence to 0.`;
 
   const body = {
