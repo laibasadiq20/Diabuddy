@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
 import { theme } from '../theme';
 import { API_URL } from '../config/api';
 import AlarmPopupModal from './AlarmPopupModal';
@@ -12,57 +13,20 @@ import {
   Bell,
   UserRound,
   Shield,
-  LogOut,
   Menu,
   X,
   Heart,
   MessageSquare,
   BellRing,
   BarChart3,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 
 const t = theme;
 
-const navItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Logs', path: '/logs', icon: ClipboardList },
-  { label: 'Reports', path: '/reports', icon: BarChart3 },
-  { label: 'Reminders', path: '/reminders', icon: BellRing },
-  { label: 'Community', path: '/community', icon: Users },
-  { label: 'Messages', path: '/messages', icon: MessageSquare },
-  { label: 'Toolbox', path: '/toolbox', icon: Wrench },
-  // Reminders stay out of nav until that feature ships (friend’s work)
-  { label: 'My Account', path: '/account', icon: UserRound },
-];
-
-const adminNavItems = [
-  { label: 'Overview', path: '/admin', icon: Shield, tab: 'overview' },
-  { label: 'Users', path: '/admin?tab=users', icon: Users, tab: 'users' },
-  { label: 'Reports', path: '/admin?tab=reports', icon: BellRing, tab: 'reports' },
-  { label: 'Topics', path: '/admin?tab=topics', icon: ClipboardList, tab: 'topics' },
-  { label: 'Notifications', path: '/admin?tab=notifications', icon: Bell, tab: 'notifications' },
-  { label: 'View community', path: '/community', icon: MessageSquare, soft: true },
-  { label: 'Account', path: '/account', icon: UserRound },
-];
-
-const bottomTabs = [
-  { label: 'Home', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Logs', path: '/logs', icon: ClipboardList },
-  { label: 'Reports', path: '/reports', icon: BarChart3 },
-  { label: 'Messages', path: '/messages', icon: MessageSquare },
-  { label: 'Account', path: '/account', icon: UserRound },
-];
-
-const adminBottomTabs = [
-  { label: 'Home', path: '/admin', icon: Shield },
-  { label: 'Users', path: '/admin?tab=users', icon: Users },
-  { label: 'Reports', path: '/admin?tab=reports', icon: BellRing },
-  { label: 'Alerts', path: '/admin?tab=notifications', icon: Bell },
-  { label: 'Account', path: '/account', icon: UserRound },
-];
-
 export default function AppSidebar() {
-  const { user, logout, authHeaders } = useAuth();
+  const { user, authHeaders } = useAuth();
+  const { t: tr } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -74,6 +38,47 @@ export default function AppSidebar() {
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
 
   const isAdmin = user?.role === 'admin';
+
+  const navItems = [
+    { label: tr('nav.dashboard'), path: '/dashboard', icon: LayoutDashboard },
+    { label: tr('nav.logs'), path: '/logs', icon: ClipboardList },
+    { label: tr('nav.reports'), path: '/reports', icon: BarChart3 },
+    { label: tr('nav.reminders'), path: '/reminders', icon: Bell },
+    { label: tr('nav.community'), path: '/community', icon: Users },
+    { label: tr('nav.messages'), path: '/messages', icon: MessageSquare },
+    { label: tr('nav.toolbox'), path: '/toolbox', icon: Wrench },
+    { label: tr('nav.notifications'), path: '/notifications', icon: BellRing },
+    { label: tr('nav.account'), path: '/account', icon: UserRound },
+    { label: tr('nav.settings'), path: '/settings', icon: SettingsIcon },
+  ];
+
+  const adminNavItems = [
+    { label: tr('nav.overview'), path: '/admin', icon: Shield, tab: 'overview' },
+    { label: tr('nav.users'), path: '/admin?tab=users', icon: Users, tab: 'users' },
+    { label: tr('nav.reports'), path: '/admin?tab=reports', icon: BellRing, tab: 'reports' },
+    { label: tr('nav.topics'), path: '/admin?tab=topics', icon: ClipboardList, tab: 'topics' },
+    { label: tr('nav.notifications'), path: '/admin?tab=notifications', icon: Bell, tab: 'notifications' },
+    { label: tr('nav.viewCommunity'), path: '/community', icon: MessageSquare, soft: true },
+    { label: tr('nav.account'), path: '/account', icon: UserRound },
+    { label: tr('nav.settings'), path: '/settings', icon: SettingsIcon },
+  ];
+
+  const bottomTabs = [
+    { label: tr('nav.home'), path: '/dashboard', icon: LayoutDashboard },
+    { label: tr('nav.logs'), path: '/logs', icon: ClipboardList },
+    { label: tr('nav.reports'), path: '/reports', icon: BarChart3 },
+    { label: tr('nav.messages'), path: '/messages', icon: MessageSquare },
+    { label: tr('nav.account'), path: '/account', icon: UserRound },
+  ];
+
+  const adminBottomTabs = [
+    { label: tr('nav.home'), path: '/admin', icon: Shield },
+    { label: tr('nav.users'), path: '/admin?tab=users', icon: Users },
+    { label: tr('nav.reports'), path: '/admin?tab=reports', icon: BellRing },
+    { label: tr('nav.alerts'), path: '/admin?tab=notifications', icon: Bell },
+    { label: tr('nav.account'), path: '/account', icon: UserRound },
+  ];
+
   const items = isAdmin ? adminNavItems : navItems;
   const tabs = isAdmin ? adminBottomTabs : bottomTabs;
 
@@ -129,7 +134,8 @@ export default function AppSidebar() {
       });
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
+        // Read notifications are dismissed on read, so the list is effectively an unread inbox.
+        setNotifications((data.notifications || []).filter((n) => !n.isRead));
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (err) {
@@ -218,9 +224,7 @@ export default function AppSidebar() {
           headers: { ...authHeaders() },
         });
         setUnreadCount((c) => Math.max(0, c - 1));
-        setNotifications((prev) =>
-          prev.map((x) => (x._id === n._id ? { ...x, isRead: true } : x))
-        );
+        setNotifications((prev) => prev.filter((x) => x._id !== n._id));
       }
     } catch (err) {
       console.error(err);
@@ -249,7 +253,7 @@ export default function AppSidebar() {
         headers: { ...authHeaders() },
       });
       setUnreadCount(0);
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setNotifications([]);
     } catch (err) {
       console.error(err);
     }
@@ -260,13 +264,13 @@ export default function AppSidebar() {
       <button
         type="button"
         className="db-notif-backdrop"
-        aria-label="Close notifications"
+        aria-label={tr('common.close')}
         onClick={closeNotifs}
       />
       <div
         className={`db-notif-panel${placement === 'sidebar' ? ' db-notif-panel--sidebar' : ' db-notif-panel--topbar'}`}
         role="dialog"
-        aria-label="Notifications"
+        aria-label={tr('notifications.title')}
         style={{
           position: 'absolute',
           left: placement === 'sidebar' ? 0 : 'auto',
@@ -279,7 +283,7 @@ export default function AppSidebar() {
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          background: '#fff',
+          background: t.surface,
           border: `1.5px solid ${t.lineStrong}`,
           borderRadius: 16,
           boxShadow: '0 18px 40px rgba(0,0,0,0.16)',
@@ -288,7 +292,7 @@ export default function AppSidebar() {
       >
         <span className="db-notif-handle" aria-hidden />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderBottom: `1px solid ${t.line}`, flexShrink: 0 }}>
-          <strong style={{ fontSize: 14, color: t.ink }}>Notifications</strong>
+          <strong style={{ fontSize: 14, color: t.ink }}>{tr('notifications.title')}</strong>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {unreadCount > 0 && (
               <button
@@ -296,14 +300,14 @@ export default function AppSidebar() {
                 onClick={markAllRead}
                 style={{ background: 'none', border: 'none', color: t.forest, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
               >
-                Mark all read
+                {tr('common.markAllRead')}
               </button>
             )}
             <button
               type="button"
               className="db-notif-close-m"
               onClick={closeNotifs}
-              aria-label="Close"
+              aria-label={tr('common.close')}
               style={{ background: 'none', border: 'none', color: t.inkSoft, fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 0 }}
             >
               ×
@@ -313,7 +317,7 @@ export default function AppSidebar() {
         <div style={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
           {notifications.length === 0 ? (
             <p style={{ margin: 0, padding: 20, fontSize: 13, color: t.inkFaint, textAlign: 'center' }}>
-              No notifications yet.
+              {tr('notifications.empty')}
             </p>
           ) : (
             notifications.map((n) => (
@@ -326,7 +330,7 @@ export default function AppSidebar() {
                   textAlign: 'left',
                   border: 'none',
                   borderBottom: `1px solid ${t.line}`,
-                  background: n.isRead ? '#fff' : 'rgba(39,57,46,0.06)',
+                  background: n.isRead ? t.surface : 'rgba(39,57,46,0.06)',
                   padding: '12px 14px',
                   cursor: 'pointer',
                 }}
@@ -391,7 +395,7 @@ export default function AppSidebar() {
               DiaBuddy
             </p>
             <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(244,240,232,0.55)' }}>
-              {isAdmin ? 'Admin console' : 'Your care companion'}
+              {isAdmin ? tr('nav.adminConsole') : tr('nav.careCompanion')}
             </p>
           </div>
         </button>
@@ -408,11 +412,11 @@ export default function AppSidebar() {
             color: 'rgba(244,240,232,0.4)',
           }}
         >
-          {isAdmin ? 'Admin' : 'Navigate'}
+          {isAdmin ? tr('nav.admin') : tr('nav.navigate')}
         </p>
         {items.map(({ label, path, icon: Icon, tab, soft }) => {
           const active = isActive(path, tab);
-          const showNotifBadge = tab === 'notifications' && unreadCount > 0;
+          const showNotifBadge = (tab === 'notifications' || path === '/notifications') && unreadCount > 0;
           const showMsgBadge = path === '/messages' && unreadMsgCount > 0;
           return (
             <button
@@ -464,78 +468,29 @@ export default function AppSidebar() {
         })}
       </nav>
 
-      <div style={{ padding: '16px 14px 22px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        {!isAdmin && (
-          <div style={{ position: 'relative', marginBottom: 10 }}>
-            <button
-              type="button"
-              onClick={() => openNotifsOrPage('topbar')}
-              aria-expanded={notifOpen && notifAnchor === 'topbar'}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '11px 12px',
-                borderRadius: 12,
-                border: '1px solid rgba(255,255,255,0.12)',
-                background: (notifOpen && notifAnchor === 'topbar') || isActive('/notifications')
-                  ? 'rgba(232,184,154,0.18)'
-                  : 'rgba(255,255,255,0.06)',
-                color: '#F4F0E8',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
-              <BellRing size={16} />
-              Notifications
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    marginLeft: 'auto',
-                    minWidth: 20,
-                    height: 20,
-                    borderRadius: 999,
-                    background: t.peach,
-                    color: t.forestDeep,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '0 6px',
-                  }}
-                >
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
-
+      <div style={{ padding: '14px 14px 20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <button
           type="button"
           onClick={() => go('/account')}
+          aria-label={tr('nav.account')}
           style={{
             width: '100%',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            padding: '12px',
+            gap: 10,
+            padding: 6,
             borderRadius: 14,
             border: '1px solid rgba(255,255,255,0.1)',
             background: 'rgba(255,255,255,0.06)',
             cursor: 'pointer',
             textAlign: 'left',
-            marginBottom: 10,
             color: '#F4F0E8',
           }}
         >
           <span
             style={{
-              width: 38,
-              height: 38,
+              width: 36,
+              height: 36,
               borderRadius: '50%',
               background: t.peach,
               color: t.forestDeep,
@@ -543,7 +498,7 @@ export default function AppSidebar() {
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 700,
-              fontSize: 15,
+              fontSize: 14,
               flexShrink: 0,
             }}
           >
@@ -551,37 +506,12 @@ export default function AppSidebar() {
           </span>
           <span style={{ minWidth: 0, flex: 1 }}>
             <span style={{ display: 'block', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.name || 'Account'}
+              {user?.name || tr('nav.account')}
             </span>
             <span style={{ display: 'block', fontSize: 11, color: 'rgba(244,240,232,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.email || 'Personalize profile'}
+              {user?.email || tr('nav.viewProfile')}
             </span>
           </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            logout();
-            navigate('/login');
-          }}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            padding: '11px',
-            borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: 'transparent',
-            color: 'rgba(244,240,232,0.75)',
-            cursor: 'pointer',
-            fontSize: 13,
-            fontWeight: 600,
-          }}
-        >
-          <LogOut size={15} />
-          Log out
         </button>
       </div>
     </div>
@@ -589,7 +519,7 @@ export default function AppSidebar() {
 
   return (
     <>
-      <aside className="db-app-sidebar" aria-label="Main navigation">
+      <aside className="db-app-sidebar" aria-label={tr('nav.mainNavigation')}>
         <SidebarInner />
       </aside>
 
@@ -598,7 +528,7 @@ export default function AppSidebar() {
           type="button"
           onClick={() => setMobileOpen(true)}
           className="db-app-icon-btn"
-          aria-label="Open menu"
+          aria-label={tr('nav.openMenu')}
         >
           <Menu size={22} />
         </button>
@@ -625,7 +555,7 @@ export default function AppSidebar() {
                 ? ' is-active'
                 : ''
             }`}
-            aria-label="Notifications"
+            aria-label={tr('notifications.title')}
             aria-expanded={!isAdmin && notifOpen && notifAnchor === 'topbar'}
             style={{ position: 'relative' }}
           >
@@ -649,7 +579,7 @@ export default function AppSidebar() {
               type="button"
               onClick={() => go('/messages')}
               className={`db-app-icon-btn${isActive('/messages') ? ' is-active' : ''}`}
-              aria-label="Messages"
+              aria-label={tr('nav.messages')}
               style={{ position: 'relative' }}
             >
               <MessageSquare size={20} />
@@ -684,7 +614,7 @@ export default function AppSidebar() {
         </div>
       </header>
 
-      <nav className="db-app-tabs" aria-label="Primary">
+      <nav className="db-app-tabs" aria-label={tr('nav.primary')}>
         {tabs.map(({ label, path, icon: Icon }) => {
           const tabKey = path.includes('tab=') ? path.split('tab=')[1] : path.startsWith('/admin') ? 'overview' : undefined;
           const active = isActive(path, tabKey);
@@ -731,11 +661,11 @@ export default function AppSidebar() {
       </nav>
 
       {mobileOpen && (
-        <div className="db-app-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
+        <div className="db-app-drawer" role="dialog" aria-modal="true" aria-label={tr('nav.navigationMenu')}>
           <button
             type="button"
             className="db-app-drawer-backdrop"
-            aria-label="Close menu"
+            aria-label={tr('nav.closeMenu')}
             onClick={() => setMobileOpen(false)}
           />
           <div className="db-app-drawer-panel">
@@ -743,7 +673,7 @@ export default function AppSidebar() {
               type="button"
               onClick={() => setMobileOpen(false)}
               className="db-app-drawer-close"
-              aria-label="Close menu"
+              aria-label={tr('nav.closeMenu')}
             >
               <X size={18} />
             </button>

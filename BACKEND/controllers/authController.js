@@ -418,6 +418,8 @@ const login = async (req, res) => {
           profileImageUrl: user.profileImageUrl,
           postsCount: user.postsCount,
           reputationScore: user.reputationScore,
+          theme: user.theme,
+          language: user.language,
         }
       }
     });
@@ -683,7 +685,7 @@ const resetPassword = async (req, res) => {
  */
 const updateProfile = async (req, res) => {
   try {
-    const allowed = ['name', 'bio', 'location', 'diabetesType', 'gender', 'age', 'glucoseUnit'];
+    const allowed = ['name', 'bio', 'location', 'diabetesType', 'gender', 'age', 'glucoseUnit', 'theme', 'language'];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];

@@ -1,181 +1,125 @@
 import React, { useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
 import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge, disclaimerStyle, resultRowStyle } from '../toolboxStyles';
+import { useI18n } from '../../../i18n/I18nContext';
 
 /**
  * Context-aware educational zones (mg/dL). Not a diagnosis.
  */
-function glucoseZone(mgdl, context) {
+function glucoseZone(mgdl, context, tr) {
+  const zk = (key) => tr(`toolboxTools.glucoseZone.zones.${key}.label`);
+  const steps = (key) => [
+    tr(`toolboxTools.glucoseZone.zones.${key}.step1`),
+    tr(`toolboxTools.glucoseZone.zones.${key}.step2`),
+  ];
+
   if (mgdl < 70) {
     return {
-      label: 'Low',
+      label: zk('low'),
       tone: 'low',
       color: t.skyDeep,
       bg: t.skyTint,
-      steps: [
-        'Follow your personal hypoglycemia plan from your clinician.',
-        'If you have severe symptoms, cannot swallow, or live alone and feel unsafe — seek emergency help.',
-        'This app does not tell you what to eat or inject.',
-      ],
+      steps: steps('low'),
     };
   }
 
   if (context === 'fasting') {
     if (mgdl <= 100) {
-      return {
-        label: 'In common fasting band',
-        tone: 'ok',
-        color: t.sageDeep,
-        bg: t.sageTint,
-        steps: [
-          'Many care plans use roughly 70–100 mg/dL fasting — yours may differ.',
-          'Keep logging patterns for clinic visits.',
-          'Do not change meds based on a single reading here.',
-        ],
-      };
+      return { label: zk('fastingOk'), tone: 'ok', color: t.sageDeep, bg: t.sageTint, steps: steps('fastingOk') };
     }
     if (mgdl <= 130) {
-      return {
-        label: 'Upper fasting range',
-        tone: 'warn',
-        color: t.gold,
-        bg: t.goldTint,
-        steps: [
-          'Some plans allow up to ~130 mg/dL fasting; ask what your target is.',
-          'Note sleep, illness, and med timing for your clinician.',
-          'Avoid self-adjusting insulin from this tool.',
-        ],
-      };
+      return { label: zk('fastingWarn'), tone: 'warn', color: t.gold, bg: t.goldTint, steps: steps('fastingWarn') };
     }
     if (mgdl <= 180) {
-      return {
-        label: 'Above usual fasting targets',
-        tone: 'high',
-        color: t.clay,
-        bg: t.clayTint,
-        steps: [
-          'Discuss repeated high fasting readings with your care team.',
-          'Hydrate if that is part of your plan and you can safely drink.',
-          'Seek care sooner if you feel unwell.',
-        ],
-      };
+      return { label: zk('fastingHigh'), tone: 'high', color: t.clay, bg: t.clayTint, steps: steps('fastingHigh') };
     }
   }
 
   if (context === 'after') {
     if (mgdl <= 140) {
-      return {
-        label: 'In common post-meal band',
-        tone: 'ok',
-        color: t.sageDeep,
-        bg: t.sageTint,
-        steps: [
-          'Many plans aim under ~140–180 mg/dL 1–2 h after meals — confirm yours.',
-          'Log food timing if you track patterns.',
-          'Do not change treatment from this screen alone.',
-        ],
-      };
+      return { label: zk('afterOk'), tone: 'ok', color: t.sageDeep, bg: t.sageTint, steps: steps('afterOk') };
     }
     if (mgdl <= 180) {
-      return {
-        label: 'Upper post-meal range',
-        tone: 'warn',
-        color: t.gold,
-        bg: t.goldTint,
-        steps: [
-          'Often discussed as an upper common target after meals — your plan may differ.',
-          'Note carbs and activity for your clinician.',
-          'Use only corrections your clinician prescribed.',
-        ],
-      };
+      return { label: zk('afterWarn'), tone: 'warn', color: t.gold, bg: t.goldTint, steps: steps('afterWarn') };
     }
   }
 
-  // random / shared high bands
+  // random / shared bands
   if (mgdl <= 140) {
-    return {
-      label: 'Common general band',
-      tone: 'ok',
-      color: t.sageDeep,
-      bg: t.sageTint,
-      steps: [
-        'Context matters (fasting vs after meals). Pick the matching option above.',
-        'Your clinician’s targets override this educational chart.',
-        'Log the reading if you track patterns.',
-      ],
-    };
+    return { label: zk('generalOk'), tone: 'ok', color: t.sageDeep, bg: t.sageTint, steps: steps('generalOk') };
   }
   if (mgdl <= 180) {
-    return {
-      label: 'Slightly elevated (general)',
-      tone: 'warn',
-      color: t.gold,
-      bg: t.goldTint,
-      steps: [
-        'May be expected after meals depending on your plan.',
-        'Share trends with your care team — not a one-off panic.',
-        'Do not invent a correction dose here.',
-      ],
-    };
+    return { label: zk('generalWarn'), tone: 'warn', color: t.gold, bg: t.goldTint, steps: steps('generalWarn') };
   }
   if (mgdl <= 250) {
-    return {
-      label: 'High',
-      tone: 'high',
-      color: t.clay,
-      bg: t.clayTint,
-      steps: [
-        'Follow the high-glucose / ketone plan your clinician gave you.',
-        'Contact your care team if readings stay high or you feel unwell.',
-        'This tool will not tell you to take insulin or check ketones on its own.',
-      ],
-    };
+    return { label: zk('high'), tone: 'high', color: t.clay, bg: t.clayTint, steps: steps('high') };
   }
-  return {
-    label: 'Very high',
-    tone: 'urgent',
-    color: '#B91C1C',
-    bg: '#FEF2F2',
-    steps: [
-      'Use your sick-day / hyperglycemia plan from your clinician immediately.',
-      'If you have severe symptoms (confusion, vomiting you cannot stop, breathing changes), seek urgent medical care.',
-      'DiaBuddy does not provide emergency triage.',
-    ],
-  };
+  return { label: zk('veryHigh'), tone: 'urgent', color: '#B91C1C', bg: t.clayTint, steps: steps('veryHigh') };
 }
 
 export default function GlucoseZoneTool() {
+  const { t: tr } = useI18n();
   const [reading, setReading] = useState('110');
   const [context, setContext] = useState('random');
+
+  const CONTEXTS = [
+    { id: 'fasting', label: tr('toolboxTools.glucoseZone.contexts.fasting') },
+    { id: 'after', label: tr('toolboxTools.glucoseZone.contexts.after') },
+    { id: 'random', label: tr('toolboxTools.glucoseZone.contexts.random') },
+  ];
+
+  const value = parseFloat(reading);
+  const outOfRange = reading !== '' && (!value || value < 20 || value > 600);
 
   const zone = useMemo(() => {
     const v = parseFloat(reading);
     if (!v || v < 20 || v > 600) return null;
-    return { value: v, ...glucoseZone(v, context) };
-  }, [reading, context]);
+    return { value: v, ...glucoseZone(v, context, tr) };
+  }, [reading, context, tr]);
+
+  const tabStyle = (active) => ({
+    flex: '1 1 0',
+    padding: '9px 8px',
+    borderRadius: 9,
+    border: 'none',
+    background: active ? t.forest : 'transparent',
+    color: active ? '#FFF' : t.inkSoft,
+    fontSize: 12.5,
+    fontWeight: 700,
+    cursor: 'pointer',
+    fontFamily: t.fontBody,
+    whiteSpace: 'nowrap',
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={disclaimerStyle}>
-        Educational zones only — not a diagnosis or treatment plan. Your clinician’s targets and action plans always come first.
+        {tr('toolboxTools.glucoseZone.disclaimer')}
       </div>
 
-      <p style={{ margin: 0, fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-        Enter a reading and context. Suggested “next steps” are general safety reminders, not personalized medical orders.
-      </p>
+      <div>
+        <label style={labelStyle}>{tr('toolboxTools.glucoseZone.readingLabel')}</label>
+        <input
+          type="number"
+          min="20"
+          max="600"
+          value={reading}
+          onChange={(e) => setReading(e.target.value)}
+          style={{ ...fieldStyle, fontSize: 18, fontWeight: 600 }}
+        />
+        {outOfRange && (
+          <p style={{ margin: '6px 0 0', fontSize: 12, color: t.clayDeep }}>{tr('toolboxTools.glucoseZone.outOfRangeError')}</p>
+        )}
+      </div>
 
-      <div className="db-tool-grid-2">
-        <div>
-          <label style={labelStyle}>Glucose (mg/dL)</label>
-          <input type="number" min="20" max="600" value={reading} onChange={(e) => setReading(e.target.value)} style={fieldStyle} />
-        </div>
-        <div>
-          <label style={labelStyle}>Context</label>
-          <select value={context} onChange={(e) => setContext(e.target.value)} style={fieldStyle}>
-            <option value="fasting">Fasting / before meal</option>
-            <option value="after">1–2 h after meal</option>
-            <option value="random">Random / other</option>
-          </select>
+      <div>
+        <label style={labelStyle}>{tr('toolboxTools.glucoseZone.whenTaken')}</label>
+        <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 12, background: t.surfaceSunken, border: `1px solid ${t.line}` }}>
+          {CONTEXTS.map((c) => (
+            <button key={c.id} type="button" style={tabStyle(context === c.id)} onClick={() => setContext(c.id)}>
+              {c.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -183,7 +127,7 @@ export default function GlucoseZoneTool() {
         <div style={{ ...resultPanel, background: zone.bg, border: `1px solid ${zone.color}40` }}>
           <div style={resultRowStyle}>
             <div style={{ minWidth: 0, flex: '1 1 140px' }}>
-              <p style={eyebrow}>Reading</p>
+              <p style={eyebrow}>{tr('toolboxTools.glucoseZone.reading')}</p>
               <p style={{ margin: '4px 0 0', fontFamily: t.fontDisplay, fontSize: 36, color: t.ink, fontWeight: 600 }}>
                 {zone.value}
                 <span style={{ fontSize: 14, fontFamily: t.fontBody, fontWeight: 500, color: t.inkFaint, marginLeft: 8 }}>mg/dL</span>
@@ -192,10 +136,7 @@ export default function GlucoseZoneTool() {
             <ResultBadge label={zone.label} color={zone.color} />
           </div>
 
-          <p style={{ margin: '12px 0 6px', fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            General reminders
-          </p>
-          <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <ul style={{ margin: '12px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {zone.steps.map((step) => (
               <li key={step} style={{ fontSize: 13, color: t.inkSoft, lineHeight: 1.45 }}>{step}</li>
             ))}
@@ -203,19 +144,9 @@ export default function GlucoseZoneTool() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, fontSize: 11 }}>
-        {[
-          { l: 'Fasting (common)', r: '~70–100 / up to ~130' },
-          { l: 'After meal (common)', r: 'often under 140–180' },
-          { l: 'Low alert', r: 'under 70 — use your hypo plan' },
-          { l: 'Very high', r: 'over 250 — use your sick-day plan' },
-        ].map((z) => (
-          <div key={z.l} style={{ padding: '8px 10px', borderRadius: 10, background: t.surfaceSunken, border: `1px solid ${t.line}`, minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ fontWeight: 700, color: t.inkSoft, wordBreak: 'break-word' }}>{z.l}</div>
-            <div style={{ color: t.inkFaint, marginTop: 2, wordBreak: 'break-word' }}>{z.r}</div>
-          </div>
-        ))}
-      </div>
+      <p style={{ margin: 0, fontSize: 11.5, color: t.inkFaint, lineHeight: 1.5 }}>
+        {tr('toolboxTools.glucoseZone.footerNote')}
+      </p>
     </div>
   );
 }

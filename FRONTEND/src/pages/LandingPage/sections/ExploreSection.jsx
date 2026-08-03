@@ -1,49 +1,52 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-
-const exploreItems = [
-  {
-    to: '/learn/warning-signs',
-    title: 'Warning signs',
-    description: 'Symptoms to watch for, and when to take action.',
-  },
-  {
-    to: '/learn/diabetes-types',
-    title: 'Types of diabetes',
-    description: 'Type 1, Type 2, gestational, and prediabetes — calmly explained.',
-  },
-  {
-    to: '/learn/risk-assessment',
-    title: 'Risk assessment',
-    description: 'A short ADA-style quiz (about 6–7 questions). Practical next steps. No sign-up.',
-  },
-  {
-    to: '/learn/blog',
-    title: 'Resource blog',
-    description: 'Curated articles and trusted links from ADA, clinics, and diabetes educators.',
-  },
-];
+import { useI18n } from '../../../i18n/I18nContext';
 
 const ExploreSection = () => {
+  const { t: tr } = useI18n();
+
+  const exploreItems = [
+    {
+      to: '/learn/warning-signs',
+      title: tr('landing.explore.items.warningSigns.title'),
+      description: tr('landing.explore.items.warningSigns.description'),
+    },
+    {
+      to: '/learn/diabetes-types',
+      title: tr('landing.explore.items.diabetesTypes.title'),
+      description: tr('landing.explore.items.diabetesTypes.description'),
+    },
+    {
+      to: '/learn/risk-assessment',
+      title: tr('landing.explore.items.riskAssessment.title'),
+      description: tr('landing.explore.items.riskAssessment.description'),
+    },
+    {
+      to: '/learn/blog',
+      title: tr('landing.explore.items.blog.title'),
+      description: tr('landing.explore.items.blog.description'),
+    },
+  ];
+
   return (
     <section id="learn" className="bg-[var(--cream-soft)] px-6 py-24">
       <div className="mx-auto max-w-6xl">
 
         <div className="mb-12 max-w-2xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
-            — 03 / Go deeper
+            {tr('landing.explore.kicker')}
           </p>
 
           <h2 className="mt-3 font-serif text-4xl md:text-5xl leading-[1.1] text-[var(--brown)]">
-            Learn at your own pace,{' '}
+            {tr('landing.explore.headingStart')}{' '}
             <span className="italic text-[var(--sage-deep)]">
-              one topic at a time.
+              {tr('landing.explore.headingEmphasis')}
             </span>
           </h2>
 
           <p className="mt-4 text-sm leading-relaxed text-[var(--brown-soft)]">
-            Structured guides — calm, clear, and focused.
+            {tr('landing.explore.subtitle')}
           </p>
         </div>
 
@@ -64,7 +67,7 @@ const ExploreSection = () => {
                 </div>
 
                 <span className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-[var(--sage-deep)] transition-all duration-200 group-hover:gap-3">
-                  Read
+                  {tr('landing.explore.read')}
                   <ArrowRight size={16} />
                 </span>
               </Link>

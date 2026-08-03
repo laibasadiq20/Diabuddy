@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { theme } from '../../theme';
+import { useI18n } from '../../i18n/I18nContext';
 import AppSidebar from '../../components/AppSidebar';
 import {
   Calculator,
@@ -25,56 +26,42 @@ const t = theme;
 const TOOLS = [
   {
     id: 'glucose',
-    title: 'Blood sugar zone',
-    desc: 'Check a reading and get next steps',
     icon: Droplet,
     tint: t.skyTint,
     accent: t.skyDeep,
   },
   {
     id: 'carb',
-    title: 'Carb calculator',
-    desc: 'Track carbs vs your daily allowance',
     icon: Wheat,
     tint: t.sageTint,
     accent: t.sageDeep,
   },
   {
     id: 'hba1c',
-    title: 'HbA1c converter',
-    desc: 'HbA1c ↔ estimated average glucose',
     icon: ArrowLeftRight,
     tint: t.skyTint,
     accent: t.sky,
   },
   {
     id: 'gi',
-    title: 'Glycemic index',
-    desc: 'Look up Pakistani foods by GI',
     icon: Search,
     tint: t.goldTint,
     accent: t.gold,
   },
   {
     id: 'insulin',
-    title: 'Insulin dose helper',
-    desc: 'Educational correction estimate',
     icon: Syringe,
     tint: t.clayTint,
     accent: t.clay,
   },
   {
     id: 'bmi',
-    title: 'BMI calculator',
-    desc: 'Body mass index & healthy range',
     icon: Calculator,
     tint: t.skyTint,
     accent: t.skyDeep,
   },
   {
     id: 'calorie',
-    title: 'Calorie estimate',
-    desc: 'Daily needs from age, size & activity',
     icon: Activity,
     tint: t.goldTint,
     accent: t.gold,
@@ -95,6 +82,7 @@ const isMobileToolbox = () =>
   typeof window !== 'undefined' && window.matchMedia('(max-width: 860px)').matches;
 
 export default function Toolbox() {
+  const { t: tr } = useI18n();
   const [active, setActive] = useState(null);
   const activeRef = useRef(null);
   const ActiveView = active ? TOOL_VIEWS[active] : null;
@@ -149,15 +137,15 @@ export default function Toolbox() {
                     color: t.ink,
                   }}
                 >
-                  Toolbox
+                  {tr('toolbox.title')}
                 </h1>
                 <p style={{ margin: '6px 0 0', fontSize: 13, color: t.inkSoft, lineHeight: 1.45 }}>
-                  Quick calculators. Estimates only — not medical advice.
+                  {tr('toolbox.subtitle')}
                 </p>
               </header>
 
               <div style={{ display: 'grid', gap: 8 }}>
-                {TOOLS.map(({ id, title, desc, icon: Icon, tint, accent }) => (
+                {TOOLS.map(({ id, icon: Icon, tint, accent }) => (
                   <button
                     key={id}
                     type="button"
@@ -170,7 +158,7 @@ export default function Toolbox() {
                       padding: '12px',
                       borderRadius: 12,
                       border: `1px solid ${t.lineStrong}`,
-                      background: '#FFF',
+                      background: t.surface,
                       cursor: 'pointer',
                       textAlign: 'left',
                       fontFamily: t.fontBody,
@@ -193,7 +181,7 @@ export default function Toolbox() {
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'block', fontWeight: 600, fontSize: 15, color: t.ink }}>
-                        {title}
+                        {tr(`toolbox.tools.${id}.title`)}
                       </span>
                       <span
                         style={{
@@ -204,7 +192,7 @@ export default function Toolbox() {
                           lineHeight: 1.35,
                         }}
                       >
-                        {desc}
+                        {tr(`toolbox.tools.${id}.desc`)}
                       </span>
                     </span>
                     <ChevronRight size={16} color={t.inkFaint} />
@@ -225,7 +213,7 @@ export default function Toolbox() {
                   padding: '7px 10px',
                   borderRadius: 10,
                   border: `1px solid ${t.lineStrong}`,
-                  background: '#FFF',
+                  background: t.surface,
                   color: t.inkSoft,
                   fontSize: 13,
                   fontWeight: 600,
@@ -233,13 +221,13 @@ export default function Toolbox() {
                   fontFamily: t.fontBody,
                 }}
               >
-                <ArrowLeft size={14} /> All tools
+                <ArrowLeft size={14} /> {tr('toolbox.allTools')}
               </button>
 
               <section
                 className="db-tool-panel"
                 style={{
-                  background: '#FFF',
+                  background: t.surface,
                   borderRadius: 14,
                   border: `1px solid ${t.lineStrong}`,
                   padding: 18,
@@ -269,7 +257,7 @@ export default function Toolbox() {
                       fontWeight: 500,
                     }}
                   >
-                    {meta.title}
+                    {tr(`toolbox.tools.${meta.id}.title`)}
                   </h2>
                 </div>
                 <ActiveView />

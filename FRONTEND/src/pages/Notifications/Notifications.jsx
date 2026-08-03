@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BellRing, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
@@ -10,6 +11,7 @@ const t = theme;
 
 export default function Notifications() {
   const { user, authHeaders } = useAuth();
+  const { t: tr } = useI18n();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -24,7 +26,8 @@ export default function Notifications() {
       });
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
+        // Read notifications are dismissed on read, so the list is effectively an unread inbox.
+        setNotifications((data.notifications || []).filter((n) => !n.isRead));
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (err) {
@@ -46,7 +49,7 @@ export default function Notifications() {
         headers: { ...authHeaders() },
       });
       setUnreadCount(0);
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setNotifications([]);
     } catch (err) {
       console.error(err);
     }
@@ -61,9 +64,7 @@ export default function Notifications() {
           headers: { ...authHeaders() },
         });
         setUnreadCount((c) => Math.max(0, c - 1));
-        setNotifications((prev) =>
-          prev.map((x) => (x._id === n._id ? { ...x, isRead: true } : x))
-        );
+        setNotifications((prev) => prev.filter((x) => x._id !== n._id));
       }
     } catch (err) {
       console.error(err);
@@ -83,20 +84,20 @@ export default function Notifications() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', background: '#E8E0D4', fontFamily: t.fontBody }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', background: t.bg, fontFamily: t.fontBody }}>
       <AppSidebar />
       <main style={{ flex: 1, minWidth: 0, padding: '28px 24px 72px' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 22, flexWrap: 'wrap' }}>
             <div>
               <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.forest }}>
-                Inbox
+                {tr('notifications.inbox')}
               </p>
               <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 500, color: t.ink }}>
-                Notifications
+                {tr('notifications.title')}
               </h1>
               <p style={{ margin: '8px 0 0', fontSize: 15, color: t.inkSoft, lineHeight: 1.5 }}>
-                Updates from community, messages, and account activity.
+                {tr('notifications.subtitle')}
               </p>
             </div>
             {unreadCount > 0 && (
@@ -105,7 +106,7 @@ export default function Notifications() {
                 onClick={markAllRead}
                 style={{
                   border: `1.5px solid ${t.lineStrong}`,
-                  background: '#FFF',
+                  background: t.surface,
                   borderRadius: 999,
                   padding: '10px 16px',
                   fontSize: 13,
@@ -115,14 +116,14 @@ export default function Notifications() {
                   fontFamily: t.fontBody,
                 }}
               >
-                Mark all read
+                {tr('common.markAllRead')}
               </button>
             )}
           </div>
 
           <div
             style={{
-              background: '#FFF',
+              background: t.surface,
               border: `1.5px solid ${t.lineStrong}`,
               borderRadius: 18,
               overflow: 'hidden',
@@ -136,7 +137,7 @@ export default function Notifications() {
             ) : notifications.length === 0 ? (
               <div style={{ padding: '48px 24px', textAlign: 'center', color: t.inkFaint }}>
                 <BellRing size={28} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
-                <p style={{ margin: 0, fontSize: 14 }}>No notifications yet.</p>
+                <p style={{ margin: 0, fontSize: 14 }}>{tr('notifications.empty')}</p>
               </div>
             ) : (
               notifications.map((n) => (
@@ -149,7 +150,7 @@ export default function Notifications() {
                     textAlign: 'left',
                     border: 'none',
                     borderBottom: `1px solid ${t.line}`,
-                    background: n.isRead ? '#fff' : 'rgba(39,57,46,0.06)',
+                    background: n.isRead ? t.surface : 'rgba(39,57,46,0.06)',
                     padding: '16px 18px',
                     cursor: 'pointer',
                     fontFamily: t.fontBody,

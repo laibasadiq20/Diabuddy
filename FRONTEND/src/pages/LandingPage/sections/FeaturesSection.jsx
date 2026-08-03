@@ -1,25 +1,27 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const FeaturesSection = () => {
+  const { t: tr } = useI18n();
   return (
     <section id="features" className="bg-[var(--cream-soft)] px-6 py-24">
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
-          — 02 / What's inside
+          {tr('landing.features.kicker')}
         </p>
 
         <div className="mb-14 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <h2 className="max-w-2xl font-serif text-4xl leading-[1.05] tracking-tight text-[var(--brown)] md:text-6xl">
-            Everything you need,
+            {tr('landing.features.headingLine1')}
             <br />
-            done <span className="italic text-[var(--sage-deep)]">beautifully.</span>
+            {tr('landing.features.headingStart')} <span className="italic text-[var(--sage-deep)]">{tr('landing.features.headingEmphasis')}</span>
           </h2>
 
           <p className="max-w-xs text-sm leading-relaxed text-[var(--brown-soft)]">
-            Logging, reports, a toolbox, and a community that gets it — each one made with care.
+            {tr('landing.features.subtitle')}
           </p>
         </div>
 
@@ -30,24 +32,24 @@ const FeaturesSection = () => {
           <article className="md:col-span-7 group rounded-[1.5rem] border border-[var(--line)] bg-[var(--cream)] p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(58,46,36,0.25)]">
 
             <p className="mb-6 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
-              01 · Daily
+              {tr('landing.features.card1.kicker')}
             </p>
 
             <h3 className="font-serif text-3xl leading-tight text-[var(--brown)]">
-              Logging that feels like{' '}
-              <span className="italic text-[var(--sage-deep)]">journaling.</span>
+              {tr('landing.features.card1.titleStart')}{' '}
+              <span className="italic text-[var(--sage-deep)]">{tr('landing.features.card1.titleEmphasis')}</span>
             </h3>
 
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--brown-soft)]">
-              Glucose, insulin, meals, movement — captured in seconds, arranged like a softly-bound notebook.
+              {tr('landing.features.card1.body')}
             </p>
 
             <div className="mt-8 grid grid-cols-2 gap-3">
               {[
-                { k: 'Glucose', v: '112', u: 'mg/dL' },
-                { k: 'Carbs', v: '42g', u: 'lunch' },
-                { k: 'Steps', v: '6,240', u: 'today' },
-                { k: 'Sleep', v: '7h 12m', u: 'rested' },
+                { k: tr('landing.features.card1.statGlucose'), v: '112', u: 'mg/dL' },
+                { k: tr('landing.features.card1.statCarbs'), v: '42g', u: tr('landing.features.card1.unitLunch') },
+                { k: tr('landing.features.card1.statSteps'), v: '6,240', u: tr('landing.features.card1.unitToday') },
+                { k: tr('landing.features.card1.statSleep'), v: '7h 12m', u: tr('landing.features.card1.unitRested') },
               ].map((s) => (
                 <div
                   key={s.k}
@@ -74,20 +76,20 @@ const FeaturesSection = () => {
 
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
-                02 · Insight
+                {tr('landing.features.card2.kicker')}
               </p>
 
               <div className="mt-6 h-40 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={[
-                      { name: 'Mon', value: 90 },
-                      { name: 'Tue', value: 120 },
-                      { name: 'Wed', value: 80 },
-                      { name: 'Thu', value: 140 },
-                      { name: 'Fri', value: 110 },
-                      { name: 'Sat', value: 160 },
-                      { name: 'Sun', value: 130 },
+                      { name: tr('landing.features.card2.days.mon'), value: 90 },
+                      { name: tr('landing.features.card2.days.tue'), value: 120 },
+                      { name: tr('landing.features.card2.days.wed'), value: 80 },
+                      { name: tr('landing.features.card2.days.thu'), value: 140 },
+                      { name: tr('landing.features.card2.days.fri'), value: 110 },
+                      { name: tr('landing.features.card2.days.sat'), value: 160 },
+                      { name: tr('landing.features.card2.days.sun'), value: 130 },
                     ]}
                   >
                     <defs>
@@ -114,12 +116,12 @@ const FeaturesSection = () => {
 
             <div className="mt-10">
               <h3 className="font-serif text-3xl leading-tight text-[var(--brown)]">
-                Clear trends, with a{' '}
-                <span className="italic text-[var(--sage-deep)]">warm note.</span>
+                {tr('landing.features.card2.titleStart')}{' '}
+                <span className="italic text-[var(--sage-deep)]">{tr('landing.features.card2.titleEmphasis')}</span>
               </h3>
 
               <p className="mt-4 text-sm text-[var(--brown-soft)]">
-                Charts on your patterns, plus a short care note in plain language — export it anytime.
+                {tr('landing.features.card2.body')}
               </p>
             </div>
           </article>
@@ -129,48 +131,50 @@ const FeaturesSection = () => {
 
             <div className="flex items-start justify-between">
               <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
-                03 · People
+                {tr('landing.features.card3.kicker')}
               </p>
             </div>
 
             <div className="mt-10 rounded-2xl border border-[var(--line)] bg-[var(--cream-soft)] p-5">
-              <p className="text-xs font-semibold text-[var(--brown)]">
-                “I stopped feeling alone in my numbers.”
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--sage-deep)]">
+                  {tr('landing.features.card3.topicBadge')}
+                </span>
+
+                <span className="whitespace-nowrap text-[10px] font-semibold text-[var(--sage-deep)]">
+                  {tr('landing.features.card3.bestAnswer')}
+                </span>
+              </div>
+
+              <p className="mt-3 text-xs font-semibold text-[var(--brown)]">
+                {tr('landing.features.card3.quote')}
               </p>
 
-              <p className="mt-2 text-[11px] text-[var(--brown-soft)]">
-                The app helped me understand patterns instead of stressing over single readings.
+              <p className="mt-2 text-[11px] leading-relaxed text-[var(--brown-soft)]">
+                {tr('landing.features.card3.reply')}
               </p>
 
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-[10px] text-[var(--brown-soft)]">
-                  — Community member
+                <span className="flex items-center gap-1.5 text-[10px] text-[var(--brown-soft)]">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--sage)]/60 text-[9px] font-semibold text-[var(--brown)]">
+                    A
+                  </span>
+                  {tr('landing.features.card3.authorName')}
                 </span>
 
-                <span className="text-[10px] text-[var(--sage-deep)]">
-                  ★★★★★
+                <span className="text-[10px] text-[var(--brown-soft)]">
+                  {tr('landing.features.card3.repliesCount')}
                 </span>
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-2">
-              {["calm", "no judgement", "real support", "diabetes friendly", "low stress"].map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-[var(--line)] bg-[var(--cream-soft)] px-3 py-1 text-[10px] text-[var(--brown-soft)]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
             <div className="mt-10">
               <h3 className="font-serif text-3xl text-[var(--brown)]">
-                A community that <span className="italic text-[var(--sage-deep)]">gets it.</span>
+                {tr('landing.features.card3.titleStart')} <span className="italic text-[var(--sage-deep)]">{tr('landing.features.card3.titleEmphasis')}</span>
               </h3>
 
               <p className="mt-4 text-sm text-[var(--brown-soft)]">
-                Quiet forums. Real conversations. Shared experiences.
+                {tr('landing.features.card3.body')}
               </p>
             </div>
           </article>
@@ -180,28 +184,28 @@ const FeaturesSection = () => {
 
             <div className="flex items-start justify-between">
               <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
-                04 · Tools
+                {tr('landing.features.card4.kicker')}
               </p>
 
             </div>
 
             <div className="mt-8 space-y-3">
               <div className="rounded-xl border border-[var(--line)] bg-[var(--cream-soft)] px-4 py-3 text-sm text-[var(--brown)]">
-                Carb ratio &amp; correction calculator
+                {tr('toolbox.tools.carb.title')}
               </div>
 
               <div className="rounded-xl border border-[var(--line)] bg-[var(--cream-soft)] px-4 py-3 text-sm text-[var(--brown)]">
-                Glucose zone &amp; GI lookup
+                {tr('toolbox.tools.glucose.title')}
               </div>
             </div>
 
             <div className="mt-10">
               <h3 className="font-serif text-3xl text-[var(--brown)]">
-                A toolbox that stays <span className="italic text-[var(--sage-deep)]">practical.</span>
+                {tr('landing.features.card4.titleStart')} <span className="italic text-[var(--sage-deep)]">{tr('landing.features.card4.titleEmphasis')}</span>
               </h3>
 
               <p className="mt-4 text-sm text-[var(--brown-soft)]">
-                Quick calculators for carbs, corrections, and glucose context — when you need a number, not a lecture.
+                {tr('landing.features.card4.body')}
               </p>
             </div>
           </article>

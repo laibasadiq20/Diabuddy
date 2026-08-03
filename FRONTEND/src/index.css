@@ -21,6 +21,8 @@
   --surface: #FFFFFF;
   --surface-sunken: #EFEAE0;
   --surface-raised: #FCFAF5;
+  --shadow-card: 0 1px 2px rgba(43,42,40,0.04), 0 8px 24px rgba(43,42,40,0.06);
+  --shadow-lifted: 0 4px 12px rgba(43,42,40,0.06), 0 16px 40px rgba(43,42,40,0.08);
 
   --ink: #1F1E1C;
   --ink-soft: #4F4A44;
@@ -57,12 +59,18 @@
 
   --gold: #B8902E;
   --gold-soft: #F3EBCB;
+  --gold-tint: #FAF5E3;
   --butter: #F3EBCB;
 
   --cream: #F7F3EC;
   --cream-soft: #FCFAF5;
   --sand: #D6CFC0;
   --pink: #E8B89A;
+
+  /* Soft "top of page" fade used behind hero headers (Dashboard/Logs/Reports/
+     Community). Kept as its own token (rather than a hardcoded hex per file)
+     so dark mode can swap it for a dark tone instead of a cream flash. */
+  --page-fade-top: #EDE6DA;
 
   --radius: 16px;
   --font-display: 'Playfair Display', Georgia, serif;
@@ -312,10 +320,10 @@ a:focus-visible {
   z-index: 50;
   height: calc(64px + env(safe-area-inset-bottom, 0px));
   padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
-  background: rgba(252, 250, 245, 0.94);
+  background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-top: 1px solid #D6CFC0;
+  border-top: 1px solid var(--line);
   box-shadow: 0 -8px 28px rgba(43, 42, 40, 0.08);
 }
 
@@ -330,7 +338,7 @@ a:focus-visible {
   background: none;
   border: none;
   cursor: pointer;
-  color: #7A746A;
+  color: var(--ink-faint);
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 10px;
   font-weight: 600;
@@ -348,11 +356,11 @@ a:focus-visible {
 }
 
 .db-app-tab.is-active {
-  color: #27392E;
+  color: var(--forest);
 }
 
 .db-app-tab.is-active svg {
-  color: #62795A;
+  color: var(--sage-deep);
 }
 
 .db-app-drawer {
@@ -538,7 +546,7 @@ a:focus-visible {
   width: 36px;
   height: 4px;
   border-radius: 999px;
-  background: #D6CFC0;
+  background: var(--line);
   margin: 10px auto 4px;
   flex-shrink: 0;
 }
@@ -677,7 +685,7 @@ a:focus-visible {
   margin: 8px 0 0;
   font-family: 'Playfair Display', Georgia, serif;
   font-size: clamp(22px, 3.2vw, 28px);
-  color: #1F1E1C;
+  color: var(--ink);
   font-weight: 600;
   line-height: 1.1;
 }
@@ -689,7 +697,7 @@ a:focus-visible {
   gap: 12px;
   font-size: 13px;
   padding: 10px 0;
-  border-bottom: 1px solid #D6CFC0;
+  border-bottom: 1px solid var(--line);
 }
 
 .db-admin-signup-row:last-child {
@@ -705,7 +713,7 @@ a:focus-visible {
 }
 
 .db-admin-signup-name {
-  color: #1F1E1C;
+  color: var(--ink);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -713,7 +721,7 @@ a:focus-visible {
 }
 
 .db-admin-signup-handle {
-  color: #7A746A;
+  color: var(--ink-faint);
   font-weight: 400;
   font-size: 12px;
   overflow: hidden;
@@ -722,7 +730,7 @@ a:focus-visible {
 }
 
 .db-admin-signup-date {
-  color: #4F4A44;
+  color: var(--ink-soft);
   flex-shrink: 0;
   font-size: 12px;
   white-space: nowrap;
@@ -732,7 +740,7 @@ a:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  border-top: 1px solid #D6CFC0;
+  border-top: 1px solid var(--line);
   padding-top: 12px;
 }
 
@@ -801,4 +809,122 @@ a:focus-visible {
     max-height: min(92dvh, 720px) !important;
     padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
   }
+}
+
+/* =========================
+   DARK MODE — "Paper & Sky" after dark
+   Re-maps the same design-token variable names used across the app
+   (theme.js reads these via var(--token)), so switching the
+   `data-theme` attribute on <html> re-skins the whole logged-in
+   app shell without per-component changes.
+========================= */
+html[data-theme='dark'] {
+  /* Deep matte forest green — not a generic gray/black "AI dark mode".
+     bg sits just under theme.forest/forestDeep; surfaces step up in
+     lightness from there so cards read as gently elevated forest panels
+     with soft borders, never pitch-black boxes. */
+  --bg: #0D1A15;
+  --surface: #16261F;
+  --surface-sunken: #0A140F;
+  --surface-raised: #1C2E26;
+
+  --ink: #EDE9DF;
+  --ink-soft: #B9C2B4;
+  --ink-faint: #82897E;
+  --brown: #EDE9DF;
+  --brown-soft: #B9C2B4;
+
+  --line: #263A30;
+  --line-strong: #34503F;
+
+  --sky-soft: #1E323C;
+  --sky-tint: #16262E;
+
+  --sage-soft: #203121;
+  --sage-tint: #182619;
+  --sage-light: #2C4130;
+
+  /* Muted olive/sage for italic emphasis + chart lines/accents on dark
+     surfaces — the light-mode sage-deep (#62795A) reads too muddy against
+     a near-black forest background, so it's lifted here for contrast. */
+  --sage-deep: #9DB18C;
+
+  --peach-soft: #45301F;
+
+  --clay-soft: #3B2620;
+  --clay-tint: #301F1B;
+
+  --gold-soft: #372F19;
+  --gold-tint: #2C2716;
+  --butter: #372F19;
+
+  --cream: #0D1A15;
+  --cream-soft: #16261F;
+  --sand: #263A30;
+
+  --page-fade-top: #14231C;
+
+  /* Softer lifts on forest surfaces (theme.shadowCard reads these if wired) */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.18), 0 10px 28px rgba(0, 0, 0, 0.22);
+  --shadow-lifted: 0 4px 14px rgba(0, 0, 0, 0.22), 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme='dark'] body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Brand-forest accents (sidebar, hero CTAs) stay forest-colored in both
+   themes, but the mobile bottom tab bar is a plain elevated surface, so its
+   "active" state needs a light-on-dark treatment here instead of the
+   light-mode forest-on-cream one. */
+html[data-theme='dark'] .db-app-tab.is-active {
+  color: var(--ink);
+}
+
+html[data-theme='dark'] .db-app-tab.is-active svg {
+  color: var(--sage-light);
+}
+
+html[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: #2C3D34;
+}
+
+html[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: #3C5245;
+}
+
+/* =========================
+   URDU FONT (text only — layout stays LTR)
+   Uses data-lang so we never set html[lang=ur], which mangles Latin
+   punctuation/order even when dir=ltr.
+========================= */
+html[data-lang='ur'] body,
+html[data-lang='ur'] input,
+html[data-lang='ur'] textarea,
+html[data-lang='ur'] select,
+html[data-lang='ur'] button {
+  font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', 'DM Sans', system-ui, sans-serif;
+}
+
+html[data-lang='ur'] h1,
+html[data-lang='ur'] h2,
+html[data-lang='ur'] h3,
+html[data-lang='ur'] .font-display,
+html[data-lang='ur'] .font-serif {
+  font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', 'Playfair Display', Georgia, serif;
+}
+
+/* Dashboard: kill the light cream/sage washes that flash in dark mode */
+html[data-theme='dark'] .db-home {
+  background:
+    radial-gradient(ellipse 55% 36% at 0% -8%, rgba(157, 177, 140, 0.08), transparent 55%),
+    radial-gradient(ellipse 40% 26% at 100% 0%, rgba(94, 135, 160, 0.06), transparent 50%),
+    linear-gradient(180deg, var(--page-fade-top) 0%, var(--bg) 40%) !important;
+}
+
+html[data-theme='dark'] .db-home-glance-card,
+html[data-theme='dark'] .db-home-panel,
+html[data-theme='dark'] .db-home-today-cell {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 10px 28px rgba(0, 0, 0, 0.22);
 }

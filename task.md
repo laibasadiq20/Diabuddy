@@ -20,5 +20,5 @@
 ## Still open (optional follow-ups)
 
 - [ ] Rate-limit auth endpoints
-- [ ] Wire Logs / Fitbit / Reminders to backend models
+- [ ] Wire Logs / Fitbit to backend models
 - [ ] Automated tests

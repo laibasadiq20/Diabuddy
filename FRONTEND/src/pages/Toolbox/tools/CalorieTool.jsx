@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
 import { fieldStyle, labelStyle, eyebrow, disclaimerStyle } from '../toolboxStyles';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function CalorieTool() {
+  const { t: tr } = useI18n();
   const [heightCm, setHeightCm] = useState('170');
   const [weightKg, setWeightKg] = useState('70');
   const [age, setAge] = useState('35');
@@ -23,58 +25,58 @@ export default function CalorieTool() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={disclaimerStyle}>
-        Educational estimate only (Mifflin–St Jeor). Not a diet prescription. Confirm calorie and weight goals with your clinician — especially if you use insulin or other glucose-lowering meds.
+        {tr('toolboxTools.calorie.disclaimer')}
       </div>
       <p style={{ margin: 0, fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-        Rough daily energy needs for learning and conversation with your care team.
+        {tr('toolboxTools.calorie.intro')}
       </p>
       <div className="db-tool-grid-2">
         <div>
-          <label style={labelStyle}>Height (cm)</label>
+          <label style={labelStyle}>{tr('toolboxTools.calorie.height')}</label>
           <input type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Weight (kg)</label>
+          <label style={labelStyle}>{tr('toolboxTools.calorie.weight')}</label>
           <input type="number" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Age</label>
+          <label style={labelStyle}>{tr('toolboxTools.calorie.age')}</label>
           <input type="number" value={age} onChange={(e) => setAge(e.target.value)} style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Gender</label>
+          <label style={labelStyle}>{tr('toolboxTools.calorie.gender')}</label>
           <select value={sex} onChange={(e) => setSex(e.target.value)} style={fieldStyle}>
-            <option value="female">Female</option>
-            <option value="male">Male</option>
+            <option value="female">{tr('toolboxTools.calorie.genderFemale')}</option>
+            <option value="male">{tr('toolboxTools.calorie.genderMale')}</option>
           </select>
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
-          <label style={labelStyle}>Activity level</label>
+          <label style={labelStyle}>{tr('toolboxTools.calorie.activityLevel')}</label>
           <select value={activity} onChange={(e) => setActivity(e.target.value)} style={fieldStyle}>
-            <option value="1.2">Sedentary (little or no exercise)</option>
-            <option value="1.375">Lightly active (1–3 days/week)</option>
-            <option value="1.55">Moderately active (3–5 days/week)</option>
-            <option value="1.725">Very active (6–7 days/week)</option>
+            <option value="1.2">{tr('toolboxTools.calorie.activitySedentary')}</option>
+            <option value="1.375">{tr('toolboxTools.calorie.activityLight')}</option>
+            <option value="1.55">{tr('toolboxTools.calorie.activityModerate')}</option>
+            <option value="1.725">{tr('toolboxTools.calorie.activityVery')}</option>
           </select>
         </div>
       </div>
       {result && (
         <div className="db-tool-grid-2">
           <div style={{ padding: 16, borderRadius: 16, background: t.surfaceSunken, border: `1px solid ${t.line}` }}>
-            <p style={eyebrow}>BMR</p>
+            <p style={eyebrow}>{tr('toolboxTools.calorie.bmr')}</p>
             <p style={{ margin: '4px 0 0', fontFamily: t.fontDisplay, fontSize: 26, color: t.ink, fontWeight: 600 }}>
               {result.bmr.toLocaleString()}
               <span style={{ fontSize: 13, fontFamily: t.fontBody, fontWeight: 500, color: t.inkFaint, marginLeft: 6 }}>kcal</span>
             </p>
-            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>At rest</p>
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>{tr('toolboxTools.calorie.atRest')}</p>
           </div>
           <div style={{ padding: 16, borderRadius: 16, background: t.goldTint, border: `1px solid ${t.gold}40` }}>
-            <p style={eyebrow}>Daily needs</p>
+            <p style={eyebrow}>{tr('toolboxTools.calorie.dailyNeeds')}</p>
             <p style={{ margin: '4px 0 0', fontFamily: t.fontDisplay, fontSize: 26, color: t.ink, fontWeight: 600 }}>
               {result.tdee.toLocaleString()}
               <span style={{ fontSize: 13, fontFamily: t.fontBody, fontWeight: 500, color: t.inkFaint, marginLeft: 6 }}>kcal</span>
             </p>
-            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>With activity</p>
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>{tr('toolboxTools.calorie.withActivity')}</p>
           </div>
         </div>
       )}

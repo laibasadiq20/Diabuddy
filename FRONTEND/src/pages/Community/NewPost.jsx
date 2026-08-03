@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
@@ -18,16 +19,9 @@ import {
 
 const t = theme;
 
-const GUIDELINES = [
-  'Be kind — diabetes is personal; no shaming or gatekeeping.',
-  'Peer experience only — never present dosing, medication changes, or diagnoses as medical advice. Suggest talking to a clinician.',
-  'No spam, ads, or personal attacks.',
-  'Respect privacy — don’t post others’ private health info.',
-  'Emergencies: call local emergency services. DiaBuddy is not urgent care.',
-];
-
 export default function NewPost() {
   const { user, authHeaders } = useAuth();
+  const { t: tr } = useI18n();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const draftId = searchParams.get('draft');
@@ -59,6 +53,14 @@ export default function NewPost() {
   const [error, setError] = useState('');
 
   const jsonHeaders = () => ({ 'Content-Type': 'application/json', ...authHeaders() });
+
+  const GUIDELINES = [
+    tr('newPost.guidelinesList.item1'),
+    tr('newPost.guidelinesList.item2'),
+    tr('newPost.guidelinesList.item3'),
+    tr('newPost.guidelinesList.item4'),
+    tr('newPost.guidelinesList.item5'),
+  ];
 
   // Fetch topics for selector
   useEffect(() => {
@@ -116,7 +118,7 @@ export default function NewPost() {
     const files = Array.from(e.target.files);
     if (!files.length) return;
     if (uploadedImageUrls.length + files.length > 4) {
-      setError('You can upload up to 4 images only.');
+      setError(tr('newPost.errorImageLimit'));
       return;
     }
 
@@ -139,10 +141,10 @@ export default function NewPost() {
       if (res.ok) {
         setUploadedImageUrls(prev => [...prev, ...(data.urls || [])]);
       } else {
-        setError(data.message || 'Image upload failed. Text and poll posts still work without Cloudinary.');
+        setError(data.message || tr('newPost.errorImageUploadFailed'));
       }
     } catch (err) {
-      setError('Connection error during upload. Text and poll posts don’t need image upload.');
+      setError(tr('newPost.errorConnectionUpload'));
       console.error(err);
     } finally {
       setUploadingImages(false);
@@ -177,19 +179,19 @@ export default function NewPost() {
     setError('');
 
     if (!saveAsDraft && !acceptedGuidelines) {
-      setError('Please confirm you have read the community guidelines.');
+      setError(tr('newPost.errorGuidelines'));
       setLoading(false);
       return;
     }
 
     if (!topicId) {
-      setError('Please select a topic category.');
+      setError(tr('newPost.errorTopic'));
       setLoading(false);
       return;
     }
 
     if (postType === 'image' && !saveAsDraft && uploadedImageUrls.length === 0) {
-      setError('Add at least one image, or switch to a Text post. Image uploads need Cloudinary configured on the server.');
+      setError(tr('newPost.errorNeedImageOrText'));
       setLoading(false);
       return;
     }
@@ -233,7 +235,7 @@ export default function NewPost() {
       }
 
       if (!postRes.ok) {
-        setError(postData.message || 'Failed to create discussion post.');
+        setError(postData.message || tr('newPost.errorCreateFailed'));
         setLoading(false);
         return;
       }
@@ -242,7 +244,7 @@ export default function NewPost() {
       if (postType === 'poll' && !saveAsDraft) {
         const filteredOptions = pollOptions.map(opt => opt.trim()).filter(opt => opt.length > 0);
         if (filteredOptions.length < 2) {
-          setError('A poll requires at least 2 valid non-empty options.');
+          setError(tr('newPost.errorPollMinOptions'));
           setLoading(false);
           return;
         }
@@ -265,7 +267,7 @@ export default function NewPost() {
           const pollData = await pollRes.json();
           // Poll may already exist when publishing a draft that somehow had one
           if (pollRes.status !== 409) {
-            setError(`Post created, but poll attachment failed: ${pollData.message}`);
+            setError(tr('newPost.errorPollAttachFailedTemplate').replace('{message}', pollData.message));
             setLoading(false);
             return;
           }
@@ -275,7 +277,7 @@ export default function NewPost() {
       navigate(saveAsDraft ? '/community' : `/community/posts/${postData._id}`);
 
     } catch (err) {
-      setError('Connection failure. Try again.');
+      setError(tr('newPost.errorConnectionFailure'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -283,7 +285,7 @@ export default function NewPost() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', background: '#E8E0D4' }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', background: t.bg }}>
       <AppSidebar />
       
       <main style={{ flexGrow: 1, minWidth: 0, padding: '28px 20px 72px', fontFamily: t.fontBody }}>
@@ -294,7 +296,7 @@ export default function NewPost() {
             type="button"
             onClick={() => navigate('/community')}
             style={{
-              background: '#FFF',
+              background: t.surface,
               border: `1.5px solid ${t.lineStrong}`,
               color: t.inkSoft,
               fontSize: '13px',
@@ -309,7 +311,7 @@ export default function NewPost() {
               fontFamily: t.fontBody,
             }}
           >
-            <ArrowLeft size={15} /> Back to forum
+            <ArrowLeft size={15} /> {tr('newPost.back')}
           </button>
 
           {/* Heading */}
@@ -320,7 +322,7 @@ export default function NewPost() {
             fontWeight: '500',
             margin: '0 0 20px 0' 
           }}>
-            {editingDraftId ? 'Edit draft' : 'Compose Discussion'}
+            {editingDraftId ? tr('newPost.headingEdit') : tr('newPost.headingNew')}
           </h1>
 
           <style>{`
@@ -398,9 +400,9 @@ export default function NewPost() {
               marginBottom: '28px' 
             }}>
               {[
-                { type: 'text', label: 'Text', long: 'Discussion Thread', icon: FileText },
-                { type: 'image', label: 'Photo', long: 'Photo Upload', icon: ImageIcon },
-                { type: 'poll', label: 'Poll', long: 'Poll / Question', icon: BarChart2 }
+                { type: 'text', label: tr('newPost.tabTextShort'), long: tr('newPost.tabTextLong'), icon: FileText },
+                { type: 'image', label: tr('newPost.tabPhotoShort'), long: tr('newPost.tabPhotoLong'), icon: ImageIcon },
+                { type: 'poll', label: tr('newPost.tabPollShort'), long: tr('newPost.tabPollLong'), icon: BarChart2 }
               ].map(tab => {
                 const Icon = tab.icon;
                 const active = postType === tab.type;
@@ -443,7 +445,7 @@ export default function NewPost() {
               {/* Category Selector */}
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  Select Topic Category
+                  {tr('newPost.categoryLabel')}
                 </label>
                 <select
                   value={topicId}
@@ -460,7 +462,7 @@ export default function NewPost() {
                     fontFamily: t.fontBody
                   }}
                 >
-                  <option value="" disabled>Choose a Category...</option>
+                  <option value="" disabled>{tr('newPost.categoryPlaceholder')}</option>
                   {topics.map(t => (
                     <option key={t._id} value={t._id}>{t.name}</option>
                   ))}
@@ -470,13 +472,13 @@ export default function NewPost() {
               {/* Title */}
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  Discussion Title
+                  {tr('newPost.titleLabel')}
                 </label>
                 <input 
                   type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  placeholder="Summarize your question or insight..."
+                  placeholder={tr('newPost.titlePlaceholder')}
                   required
                   maxLength={150}
                   style={{
@@ -497,12 +499,12 @@ export default function NewPost() {
               {/* Content body */}
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  Post Content
+                  {tr('newPost.contentLabel')}
                 </label>
                 <textarea 
                   value={content}
                   onChange={e => setContent(e.target.value)}
-                  placeholder="Share what's on your mind — your logging, your routine, or a recipe you love..."
+                  placeholder={tr('newPost.contentPlaceholder')}
                   required
                   rows={8}
                   style={{
@@ -525,10 +527,10 @@ export default function NewPost() {
               {postType === 'image' && (
                 <div style={{ marginBottom: '24px', background: t.bg, borderRadius: '16px', padding: '20px', border: `1px solid ${t.line}` }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                    Attach Pictures (Max 4)
+                    {tr('newPost.attachPictures')}
                   </label>
                   <p style={{ margin: '0 0 12px', fontSize: 12, color: t.inkFaint, lineHeight: 1.45 }}>
-                    Needs Cloudinary on the server. Text and poll posts work without it.
+                    {tr('newPost.cloudinaryNote')}
                   </p>
                   
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
@@ -571,14 +573,14 @@ export default function NewPost() {
                         justifyContent: 'center',
                         cursor: uploadingImages ? 'not-allowed' : 'pointer',
                         color: t.inkSoft,
-                        background: '#FFFFFF'
+                        background: t.surface
                       }}>
                         {uploadingImages ? (
                           <Loader className="animate-spin" size={18} />
                         ) : (
                           <>
                             <Upload size={18} />
-                            <span style={{ fontSize: '10px', marginTop: '4px' }}>Add</span>
+                            <span style={{ fontSize: '10px', marginTop: '4px' }}>{tr('newPost.addLabel')}</span>
                           </>
                         )}
                         <input 
@@ -599,26 +601,26 @@ export default function NewPost() {
               {postType === 'poll' && (
                 <div style={{ marginBottom: '24px', background: t.bg, borderRadius: '16px', padding: '20px', border: `1px solid ${t.line}` }}>
                   <h4 style={{ fontSize: '14px', fontWeight: '700', color: t.ink, margin: '0 0 16px 0' }}>
-                    Configure Poll Questions
+                    {tr('newPost.configurePoll')}
                   </h4>
 
                   {/* Poll Question */}
                   <div style={{ marginBottom: '16px' }}>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: t.inkSoft, marginBottom: '6px' }}>
-                      Poll Question / Topic
+                      {tr('newPost.pollQuestionLabel')}
                     </label>
                     <input 
                       type="text"
                       value={pollQuestion}
                       onChange={e => setPollQuestion(e.target.value)}
-                      placeholder="e.g. Which glucose meter is best for exercise?"
+                      placeholder={tr('newPost.pollQuestionPlaceholder')}
                       style={{
                         width: '100%',
                         boxSizing: 'border-box',
                         padding: '10px 14px',
                         borderRadius: '8px',
                         border: `1.5px solid ${t.line}`,
-                        background: '#FFFFFF',
+                        background: t.bg,
                         color: t.ink,
                         fontSize: '13px',
                         outline: 'none',
@@ -630,7 +632,7 @@ export default function NewPost() {
                   {/* Options */}
                   <div style={{ marginBottom: '16px' }}>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: t.inkSoft, marginBottom: '8px' }}>
-                      Choices / Options (2 to 6)
+                      {tr('newPost.choicesLabel')}
                     </label>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -640,7 +642,7 @@ export default function NewPost() {
                             type="text"
                             value={opt}
                             onChange={e => handlePollOptionChange(e.target.value, idx)}
-                            placeholder={`Option ${idx + 1}`}
+                            placeholder={tr('newPost.optionTemplate').replace('{n}', idx + 1)}
                             required
                             style={{
                               flexGrow: 1,
@@ -648,7 +650,7 @@ export default function NewPost() {
                               padding: '10px 14px',
                               borderRadius: '8px',
                               border: `1.5px solid ${t.line}`,
-                              background: '#FFFFFF',
+                              background: t.bg,
                               color: t.ink,
                               fontSize: '13px',
                               outline: 'none',
@@ -692,7 +694,7 @@ export default function NewPost() {
                           padding: 0
                         }}
                       >
-                        <Plus size={14} /> Add option
+                        <Plus size={14} /> {tr('newPost.addOption')}
                       </button>
                     )}
                   </div>
@@ -700,7 +702,7 @@ export default function NewPost() {
                   {/* Expires At */}
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: t.inkSoft, marginBottom: '6px' }}>
-                      Expiration Date (Optional)
+                      {tr('newPost.expirationLabel')}
                     </label>
                     <input 
                       type="datetime-local"
@@ -712,7 +714,7 @@ export default function NewPost() {
                         padding: '10px 14px',
                         borderRadius: '8px',
                         border: `1.5px solid ${t.line}`,
-                        background: '#FFFFFF',
+                        background: t.bg,
                         color: t.ink,
                         fontSize: '13px',
                         outline: 'none',
@@ -727,13 +729,13 @@ export default function NewPost() {
               {/* Tags */}
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  Tags (comma separated)
+                  {tr('newPost.tagsLabel')}
                 </label>
                 <input 
                   type="text"
                   value={tagsInput}
                   onChange={e => setTagsInput(e.target.value)}
-                  placeholder="e.g. recipes, Type1, CGM, logs"
+                  placeholder={tr('newPost.tagsPlaceholder')}
                   style={{
                     width: '100%',
                     boxSizing: 'border-box',
@@ -763,7 +765,7 @@ export default function NewPost() {
                     }}
                   />
                   <span style={{ fontSize: '14px', color: t.inkSoft, fontWeight: '500' }}>
-                    Post anonymously to the forum
+                    {tr('newPost.postAnonymously')}
                   </span>
                 </label>
               </div>
@@ -774,10 +776,10 @@ export default function NewPost() {
                 padding: 16,
                 borderRadius: 14,
                 border: `1.5px solid ${t.lineStrong}`,
-                background: '#FAF8F5',
+                background: t.surfaceRaised,
               }}>
                 <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: t.ink }}>
-                  Community guidelines
+                  {tr('newPost.guidelinesTitle')}
                 </p>
                 <ul style={{ margin: '0 0 12px', paddingLeft: 18, color: t.inkSoft, fontSize: 13, lineHeight: 1.55 }}>
                   {GUIDELINES.map((g) => (
@@ -792,7 +794,7 @@ export default function NewPost() {
                     style={{ accentColor: t.sageDeep, marginTop: 2 }}
                   />
                   <span style={{ fontSize: 13, color: t.ink, fontWeight: 500 }}>
-                    I’ve read and agree to follow these guidelines
+                    {tr('newPost.guidelinesAgree')}
                   </span>
                 </label>
               </div>
@@ -817,7 +819,7 @@ export default function NewPost() {
                   onMouseEnter={(e) => { if (!loading) e.currentTarget.style.borderColor = t.inkSoft; }}
                   onMouseLeave={(e) => { if (!loading) e.currentTarget.style.borderColor = t.line; }}
                 >
-                  Save Draft
+                  {tr('newPost.saveDraft')}
                 </button>
 
                 <button
@@ -840,7 +842,7 @@ export default function NewPost() {
                   onMouseEnter={(e) => { if (!loading && acceptedGuidelines) e.currentTarget.style.background = t.olive; }}
                   onMouseLeave={(e) => { if (!loading && acceptedGuidelines) e.currentTarget.style.background = t.sageDeep; }}
                 >
-                  {loading ? 'Publishing...' : (editingDraftId ? 'Publish draft' : 'Publish Post')}
+                  {loading ? tr('newPost.publishing') : (editingDraftId ? tr('newPost.publishDraft') : tr('newPost.publish'))}
                 </button>
               </div>
 

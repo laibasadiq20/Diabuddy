@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
+import { useI18n } from '../../i18n/I18nContext';
 import { Annoyed, ArrowLeft, Frown, Laugh, Loader2, Meh, Smile, Trash2 } from 'lucide-react';
 import api from '../../config/axios';
 import { getLogType } from './logsConfig';
@@ -26,11 +27,11 @@ function isSameLocalDay(dateLike, ref = new Date()) {
   );
 }
 
-function formatTodayTime(dateLike) {
+function formatTodayTime(dateLike, tr) {
   const d = new Date(dateLike);
   if (Number.isNaN(d.getTime())) return '';
   const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  return `Today • ${time}`;
+  return tr('logTypePage.todayAtTemplate').replace('{time}', time);
 }
 
 function intensityFromApiLabel(intensity) {
@@ -40,22 +41,26 @@ function intensityFromApiLabel(intensity) {
   return intensity || '';
 }
 
+const INTENSITY_LABEL_KEYS = { Light: 'light', Moderate: 'moderate', Vigorous: 'vigorous' };
+const STRESS_LABEL_KEYS = { Low: 'low', Moderate: 'moderate', High: 'high' };
+
 const MOOD_CARD = {
-  'Very Happy': { Icon: Laugh, label: 'Very Happy' },
-  Happy: { Icon: Smile, label: 'Happy' },
-  Neutral: { Icon: Meh, label: 'Neutral' },
-  Sad: { Icon: Frown, label: 'Sad' },
-  Anxious: { Icon: Annoyed, label: 'Anxious' },
-  Great: { Icon: Laugh, label: 'Very Happy' },
-  Good: { Icon: Smile, label: 'Happy' },
-  Okay: { Icon: Meh, label: 'Neutral' },
-  Low: { Icon: Frown, label: 'Sad' },
-  Stressed: { Icon: Annoyed, label: 'Anxious' },
+  'Very Happy': { Icon: Laugh, key: 'veryHappy' },
+  Happy: { Icon: Smile, key: 'happy' },
+  Neutral: { Icon: Meh, key: 'neutral' },
+  Sad: { Icon: Frown, key: 'sad' },
+  Anxious: { Icon: Annoyed, key: 'anxious' },
+  Great: { Icon: Laugh, key: 'veryHappy' },
+  Good: { Icon: Smile, key: 'happy' },
+  Okay: { Icon: Meh, key: 'neutral' },
+  Low: { Icon: Frown, key: 'sad' },
+  Stressed: { Icon: Annoyed, key: 'anxious' },
 };
 
 export default function LogTypePage() {
   const { typeId } = useParams();
   const navigate = useNavigate();
+  const { t: tr } = useI18n();
   const config = getLogType(typeId);
 
   const [entries, setEntries] = useState([]);
@@ -100,11 +105,11 @@ export default function LogTypePage() {
         setEntries(todayOnly);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not load entries.');
+      setError(err.response?.data?.message || tr('logTypePage.toasts.couldNotLoad'));
     } finally {
       setLoading(false);
     }
-  }, [config]);
+  }, [config, tr]);
 
   useEffect(() => {
     loadEntries();
@@ -120,14 +125,16 @@ export default function LogTypePage() {
       <div style={{ minHeight: '100vh', display: 'flex', background: t.bg, fontFamily: t.fontBody }}>
         <AppSidebar />
         <main style={{ flex: 1, padding: 40 }}>
-          <p style={{ color: t.inkSoft }}>Unknown log type.</p>
+          <p style={{ color: t.inkSoft }}>{tr('logTypePage.unknownType')}</p>
           <button type="button" onClick={() => navigate('/logs')} style={linkBtn}>
-            Back to logs
+            {tr('logTypePage.backToLogs')}
           </button>
         </main>
       </div>
     );
   }
+
+  const typeLabel = tr(`logs.types.${config.id}.label`, config.label);
 
   const Icon = config.icon;
   const waterGoal = 2000;
@@ -144,35 +151,35 @@ export default function LogTypePage() {
     try {
       if (editRaw?._id) {
         if (config.apiPath === 'water') {
-          showToast('Water entries cannot be edited. Delete and add again.', 'error');
+          showToast(tr('logTypePage.toasts.waterCannotEdit'), 'error');
           setSaving(false);
           return;
         }
         await api.put(`/health-logs/${config.apiPath}/${editRaw._id}`, body);
-        showToast('Entry updated');
+        showToast(tr('logTypePage.toasts.entryUpdated'));
       } else {
         await api.post(`/health-logs/${config.apiPath}`, body);
-        showToast('Entry saved');
+        showToast(tr('logTypePage.toasts.entrySaved'));
       }
       setEditRaw(null);
       setFormKey((k) => k + 1);
       await loadEntries();
     } catch (err) {
-      showToast(err.response?.data?.message || err.response?.data?.error || 'Could not save entry.', 'error');
+      showToast(err.response?.data?.message || err.response?.data?.error || tr('logTypePage.toasts.couldNotSave'), 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm('Delete this entry?')) return;
+    if (!window.confirm(tr('logTypePage.deleteConfirm'))) return;
     try {
       await api.delete(`/health-logs/${config.apiPath}/${item._id}`);
-      showToast('Entry deleted');
+      showToast(tr('logTypePage.toasts.entryDeleted'));
       if (editRaw?._id === item._id) setEditRaw(null);
       await loadEntries();
     } catch (err) {
-      showToast(err.response?.data?.message || 'Could not delete entry.', 'error');
+      showToast(err.response?.data?.message || tr('logTypePage.toasts.couldNotDelete'), 'error');
     }
   };
 
@@ -185,8 +192,9 @@ export default function LogTypePage() {
     const isSleep = config.id === 'sleep';
     const isMood = config.id === 'mood';
     const raw = item.raw || {};
-    const moodMeta = MOOD_CARD[raw.mood] || { Icon: Smile, label: raw.mood || 'Mood' };
-    const MoodIcon = moodMeta.Icon || Smile;
+    const moodMeta = MOOD_CARD[raw.mood];
+    const moodLabel = moodMeta ? tr(`logEntryForm.mood.moods.${moodMeta.key}`) : raw.mood || tr('logTypePage.entry.moodFallback');
+    const MoodIcon = (moodMeta && moodMeta.Icon) || Smile;
     const mealEmoji = MEAL_EMOJI[raw.mealType || item.title] || '🍽';
     const impact = raw.bloodSugarImpact;
     const insulinReason =
@@ -207,22 +215,23 @@ export default function LogTypePage() {
               ) : null}
               <p style={{ margin: '4px 0 0', fontSize: 14, color: t.inkSoft }}>
                 {[
-                  `${raw.carbohydrates ?? 0} g carbs`,
-                  raw.protein ? `${raw.protein} g protein` : null,
-                  raw.fat ? `${raw.fat} g fat` : null,
-                  raw.calories ? `${raw.calories} kcal` : null,
+                  tr('logTypePage.entry.gCarbsTemplate').replace('{n}', raw.carbohydrates ?? 0),
+                  raw.protein ? tr('logTypePage.entry.gProteinTemplate').replace('{n}', raw.protein) : null,
+                  raw.fat ? tr('logTypePage.entry.gFatTemplate').replace('{n}', raw.fat) : null,
+                  raw.calories ? tr('logTypePage.entry.kcalTemplate').replace('{n}', raw.calories) : null,
                 ]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
               {impact ? (
                 <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
-                  After meal: {impact === 'High' ? '⬆' : impact === 'Low' ? '⬇' : '➖'} {impact}
+                  {tr('logTypePage.entry.afterMeal')} {impact === 'High' ? '⬆' : impact === 'Low' ? '⬇' : '➖'}{' '}
+                  {tr(`logTypePage.entry.impact${impact === 'High' ? 'High' : impact === 'Low' ? 'Low' : 'Normal'}`, impact)}
                 </p>
               ) : null}
               {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp)}
+                {formatTodayTime(item.timestamp, tr)}
               </p>
             </>
           ) : isInsulin ? (
@@ -231,14 +240,14 @@ export default function LogTypePage() {
                 💉 {raw.insulinType || item.title}
               </p>
               <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                {raw.units ?? 0} Units
+                {tr('logTypePage.entry.unitsTemplate').replace('{n}', raw.units ?? 0)}
               </p>
               {insulinReason ? (
                 <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>{insulinReason}</p>
               ) : null}
               {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp)}
+                {formatTodayTime(item.timestamp, tr)}
               </p>
             </>
           ) : isMedication ? (
@@ -257,7 +266,7 @@ export default function LogTypePage() {
               ) : null}
               {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp)}
+                {formatTodayTime(item.timestamp, tr)}
               </p>
             </>
           ) : isWater ? (
@@ -267,7 +276,7 @@ export default function LogTypePage() {
               </p>
               {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp)}
+                {formatTodayTime(item.timestamp, tr)}
               </p>
             </>
           ) : isExercise ? (
@@ -277,10 +286,10 @@ export default function LogTypePage() {
               </p>
               <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
                 {[
-                  raw.duration > 0 ? `${raw.duration} min` : null,
-                  raw.steps ? `${Number(raw.steps).toLocaleString()} steps` : null,
-                  raw.caloriesBurned ? `${raw.caloriesBurned} kcal` : null,
-                  raw.distance ? `${raw.distance} km` : null,
+                  raw.duration > 0 ? tr('logTypePage.entry.minTemplate').replace('{n}', raw.duration) : null,
+                  raw.steps ? tr('logTypePage.entry.stepsTemplate').replace('{n}', Number(raw.steps).toLocaleString()) : null,
+                  raw.caloriesBurned ? tr('logTypePage.entry.kcalTemplate').replace('{n}', raw.caloriesBurned) : null,
+                  raw.distance ? tr('logTypePage.entry.kmTemplate').replace('{n}', raw.distance) : null,
                 ]
                   .filter(Boolean)
                   .join(' · ')}
@@ -288,7 +297,7 @@ export default function LogTypePage() {
               {(raw.intensity || (raw.source && raw.source !== 'Manual')) ? (
                 <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
                   {[
-                    raw.intensity ? intensityFromApiLabel(raw.intensity) : null,
+                    raw.intensity ? tr(`logEntryForm.exercise.intensities.${INTENSITY_LABEL_KEYS[intensityFromApiLabel(raw.intensity)]}`, intensityFromApiLabel(raw.intensity)) : null,
                     raw.source && raw.source !== 'Manual' ? raw.source : null,
                   ]
                     .filter(Boolean)
@@ -297,23 +306,25 @@ export default function LogTypePage() {
               ) : null}
               {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp)}
+                {formatTodayTime(item.timestamp, tr)}
               </p>
             </>
           ) : isSleep ? (
             <>
               <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                🌙 {raw.totalHours != null ? `${Number(raw.totalHours).toFixed(1)} hours` : item.title}
+                🌙 {raw.totalHours != null ? tr('logTypePage.entry.hoursTemplate').replace('{n}', Number(raw.totalHours).toFixed(1)) : item.title}
               </p>
               <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                {(raw.quality === 'Average' ? 'Fair' : raw.quality) || '—'}
+                {raw.quality
+                  ? tr(`logEntryForm.sleep.qualities.${raw.quality === 'Average' ? 'fair' : (raw.quality || '').toLowerCase()}`, raw.quality === 'Average' ? 'Fair' : raw.quality)
+                  : '—'}
               </p>
               <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
                 {item.valueStr || ''}
               </p>
               {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(raw.wakeTime || item.timestamp)}
+                {formatTodayTime(raw.wakeTime || item.timestamp, tr)}
               </p>
             </>
           ) : isMood ? (
@@ -330,14 +341,17 @@ export default function LogTypePage() {
                 }}
               >
                 <MoodIcon size={18} strokeWidth={1.75} color={t.forest} aria-hidden />
-                {moodMeta.label}
+                {moodLabel}
               </p>
               <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                Stress: {raw.stressLevel || 'Low'}
+                {tr('logTypePage.entry.stressTemplate').replace(
+                  '{level}',
+                  tr(`logEntryForm.mood.stress.${STRESS_LABEL_KEYS[raw.stressLevel] || 'low'}`, raw.stressLevel || 'Low')
+                )}
               </p>
               {raw.journalEntry ? <p style={{ ...noteLine }}>{raw.journalEntry}</p> : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp)}
+                {formatTodayTime(item.timestamp, tr)}
               </p>
             </>
           ) : (
@@ -355,7 +369,7 @@ export default function LogTypePage() {
                 <p style={{ ...noteLine }}>{raw.notes || item.notes}</p>
               ) : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp)}
+                {formatTodayTime(item.timestamp, tr)}
               </p>
             </>
           )}
@@ -370,12 +384,12 @@ export default function LogTypePage() {
               }}
               style={smallBtn}
             >
-              Edit
+              {tr('logTypePage.edit')}
             </button>
           )}
           <button
             type="button"
-            aria-label="Delete"
+            aria-label={tr('logTypePage.deleteAria')}
             onClick={() => handleDelete(item)}
             style={{ ...smallBtn, color: t.clayDeep }}
           >
@@ -391,7 +405,7 @@ export default function LogTypePage() {
       style={{
         minHeight: '100vh',
         display: 'flex',
-        background: `linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 40%)`,
+        background: `linear-gradient(180deg, ${t.pageFadeTop} 0%, ${t.bg} 40%)`,
         fontFamily: t.fontBody,
       }}
     >
@@ -399,7 +413,7 @@ export default function LogTypePage() {
       <main className="db-logs-main" style={{ flex: 1, minWidth: 0, padding: '24px 20px 110px' }}>
         <div className="db-logs-wrap" style={{ maxWidth: 1040, margin: '0 auto', width: '100%' }}>
           <button type="button" onClick={() => navigate('/logs')} style={backBtn}>
-            <ArrowLeft size={16} /> All logs
+            <ArrowLeft size={16} /> {tr('logTypePage.allLogs')}
           </button>
 
           <div className="db-logs-title-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 14, margin: '18px 0 8px' }}>
@@ -429,14 +443,14 @@ export default function LogTypePage() {
                   lineHeight: 1.2,
                 }}
               >
-                {config.label}
+                {typeLabel}
               </h1>
             </div>
           </div>
 
           {config.id === 'water' && (
             <section className="db-log-water-box" style={waterProgressBox}>
-              <p style={{ ...guideTitle, margin: 0 }}>Today&apos;s water intake</p>
+              <p style={{ ...guideTitle, margin: 0 }}>{tr('logTypePage.todaysWaterIntake')}</p>
               <p
                 style={{
                   margin: '10px 0 0',
@@ -456,7 +470,7 @@ export default function LogTypePage() {
                   background: t.surfaceSunken,
                   overflow: 'hidden',
                 }}
-                aria-label={`${waterPct}% of daily water goal`}
+                aria-label={tr('logTypePage.waterGoalAriaTemplate').replace('{pct}', waterPct)}
               >
                 <div
                   style={{
@@ -473,17 +487,17 @@ export default function LogTypePage() {
           )}
 
           <section className="db-log-guide-box" style={guideBox}>
-            <h2 style={guideTitle}>Why this log matters</h2>
-            <p style={guideText}>{config.why}</p>
-            <h2 style={{ ...guideTitle, marginTop: 16 }}>How to use it</h2>
-            <p style={guideText}>{config.how}</p>
+            <h2 style={guideTitle}>{tr('logTypePage.whyMatters')}</h2>
+            <p style={guideText}>{tr(`logs.types.${config.id}.why`, config.why)}</p>
+            <h2 style={{ ...guideTitle, marginTop: 16 }}>{tr('logTypePage.howToUse')}</h2>
+            <p style={guideText}>{tr(`logs.types.${config.id}.how`, config.how)}</p>
           </section>
 
           <div className="db-log-split">
             <section id="db-log-form-anchor" className="db-log-split-form">
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
                 <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
-                  {editRaw ? 'Edit entry' : 'New entry'}
+                  {editRaw ? tr('logTypePage.editEntry') : tr('logTypePage.newEntry')}
                 </h2>
                 {editRaw && (
                   <button
@@ -491,7 +505,7 @@ export default function LogTypePage() {
                     onClick={() => setEditRaw(null)}
                     style={{ ...linkBtn, padding: 0, border: 'none', background: 'none', marginTop: 0 }}
                   >
-                    Cancel edit
+                    {tr('logTypePage.cancelEdit')}
                   </button>
                 )}
               </div>
@@ -518,18 +532,18 @@ export default function LogTypePage() {
                 }}
               >
                 <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
-                  Today&apos;s entries
+                  {tr('logTypePage.todaysEntries')}
                 </h2>
                 {!loading && entries.length > 0 ? (
                   <span style={{ fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
-                    {entries.length} today
+                    {tr('logTypePage.todayCountTemplate').replace('{n}', entries.length)}
                   </span>
                 ) : null}
               </div>
               <div className="db-log-entries-panel">
                 {loading ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: t.inkSoft, padding: '12px 0' }}>
-                    <Loader2 size={18} className="db-spin" /> Loading…
+                    <Loader2 size={18} className="db-spin" /> {tr('common.loading')}
                   </div>
                 ) : error ? (
                   <p style={{ color: t.clayDeep, fontSize: 14, margin: 0 }}>{error}</p>
@@ -539,10 +553,10 @@ export default function LogTypePage() {
                       <Icon size={20} strokeWidth={1.75} />
                     </span>
                     <p style={emptyStateText}>
-                      No {config.label.toLowerCase()} logged today yet — your first entry only takes a moment.
+                      {tr('logTypePage.noEntriesTemplate').replace('{type}', typeLabel.toLowerCase())}
                     </p>
                     <button type="button" onClick={scrollToForm} style={emptyStateCta}>
-                      Log {config.label.toLowerCase()} now
+                      {tr('logTypePage.logNowTemplate').replace('{type}', typeLabel.toLowerCase())}
                     </button>
                   </div>
                 ) : (
@@ -554,7 +568,7 @@ export default function LogTypePage() {
                         onClick={() => setShowAllEntries((v) => !v)}
                         style={viewAllBtn}
                       >
-                        {showAllEntries ? 'Show less' : `View all (${entries.length})`}
+                        {showAllEntries ? tr('logTypePage.showLess') : tr('logTypePage.viewAllTemplate').replace('{n}', entries.length)}
                       </button>
                     ) : null}
                   </div>
@@ -617,7 +631,7 @@ export default function LogTypePage() {
           top: 16px;
         }
         .db-log-entries-panel {
-          background: #fff;
+          background: ${t.surface};
           border: 1px solid ${t.lineStrong};
           border-radius: 14px;
           padding: 14px;
@@ -743,7 +757,7 @@ const waterProgressBox = {
   padding: '18px 18px',
   borderRadius: 12,
   border: `1px solid ${t.lineStrong}`,
-  background: '#FFF',
+  background: t.surface,
   boxShadow: '0 1px 2px rgba(43,42,40,0.04)',
 };
 
@@ -764,7 +778,7 @@ const guideText = {
 };
 
 const formCard = {
-  background: '#FFF',
+  background: t.surface,
   border: `1px solid ${t.lineStrong}`,
   borderRadius: 14,
   padding: '20px 18px',
@@ -778,7 +792,7 @@ const entryRow = {
   padding: '14px 14px',
   borderRadius: 12,
   border: `1px solid ${t.line}`,
-  background: '#FFF',
+  background: t.surface,
 };
 
 const noteLine = {

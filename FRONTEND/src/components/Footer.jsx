@@ -1,18 +1,20 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-
-const learnLinks = [
-  { label: 'Warning signs', to: '/learn/warning-signs' },
-  { label: 'Types of diabetes', to: '/learn/diabetes-types' },
-  { label: 'Risk check', to: '/learn/risk-assessment' },
-  { label: 'Blog', to: '/learn/blog' },
-];
+import { useI18n } from '../i18n/I18nContext';
 
 // Public contact for the marketing site
 const CONTACT_EMAIL = 'hello@diabuddy.com';
 
 const Footer = () => {
   const navigate = useNavigate();
+  const { t: tr } = useI18n();
+
+  const learnLinks = [
+    { label: tr('footer.learnWarningSigns'), to: '/learn/warning-signs' },
+    { label: tr('footer.learnDiabetesTypes'), to: '/learn/diabetes-types' },
+    { label: tr('footer.learnRiskCheck'), to: '/learn/risk-assessment' },
+    { label: tr('footer.learnBlog'), to: '/learn/blog' },
+  ];
 
   const scrollToCommunity = () => {
     if (window.location.pathname !== '/') {
@@ -55,14 +57,14 @@ const Footer = () => {
             </div>
 
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/60">
-              A field guide to gentler care — written like a friend, for everyday living with diabetes.
+              {tr('footer.tagline')}
             </p>
           </div>
 
           {/* Learn column */}
           <div>
             <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80">
-              Learn
+              {tr('footer.learnHeading')}
             </p>
 
             <ul className="space-y-2.5">
@@ -82,7 +84,7 @@ const Footer = () => {
           {/* Connect column */}
           <div>
             <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80">
-              Connect
+              {tr('footer.connectHeading')}
             </p>
 
             <ul className="space-y-2.5">
@@ -91,7 +93,7 @@ const Footer = () => {
                   onClick={scrollToCommunity}
                   className="text-sm text-white/60 transition-all duration-300 hover:text-[var(--sage)] hover:translate-x-1 inline-block text-left"
                 >
-                  Community
+                  {tr('footer.community')}
                 </button>
               </li>
               <li>
@@ -109,10 +111,11 @@ const Footer = () => {
 
         {/* Bottom Bar */}
         <div className="mt-14 flex flex-col justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row sm:items-start">
-          <p className="leading-relaxed">© {new Date().getFullYear()} DiaBuddy. Made quietly, in good company.</p>
+          <p className="leading-relaxed">
+            {tr('footer.copyright').replace('{year}', String(new Date().getFullYear()))}
+          </p>
           <p className="max-w-[420px] text-left leading-relaxed sm:text-right">
-            Educational companion only — not medical advice, diagnosis, or emergency care.
-            Always follow your clinician. Community posts are peer experiences, not prescriptions.
+            {tr('footer.disclaimer')}
           </p>
         </div>
 

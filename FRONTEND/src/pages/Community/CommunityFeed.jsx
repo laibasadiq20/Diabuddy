@@ -21,7 +21,7 @@ export default function CommunityFeed() {
   const showFeed = !f.postsLoading && !f.error && f.posts.length > 0;
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', background: '#E8E0D4', fontFamily: t.fontBody }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', background: t.pageFadeTop, fontFamily: t.fontBody }}>
       <AppSidebar />
 
       <main style={{ flexGrow: 1, minWidth: 0, padding: '28px 24px 72px' }} className="db-community-main">

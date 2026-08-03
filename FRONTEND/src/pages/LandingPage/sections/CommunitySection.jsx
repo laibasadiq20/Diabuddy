@@ -1,17 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { useI18n } from '../../../i18n/I18nContext';
 import { ArrowRight } from 'lucide-react';
-
-const snippets = [
-  { initial: 'M', name: 'Maya', text: 'Morning highs finally making sense…' },
-  { initial: 'J', name: 'Jordan', text: 'Anyone have a go-to low-carb lunch?' },
-  { initial: 'S', name: 'Sam', text: 'CGM placement tip that saved my week.' },
-];
 
 const CommunitySection = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t: tr } = useI18n();
+
+  const snippets = [
+    { initial: 'M', name: 'Maya', text: tr('landing.community.snippet1') },
+    { initial: 'J', name: 'Jordan', text: tr('landing.community.snippet2') },
+    { initial: 'S', name: 'Sam', text: tr('landing.community.snippet3') },
+  ];
 
   return (
     <section
@@ -32,24 +34,23 @@ const CommunitySection = () => {
           <div className="grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:gap-10">
             <div>
               <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.25em] text-[var(--sage)] sm:mb-4">
-                Community
+                {tr('landing.community.kicker')}
               </p>
 
               <h2 className="max-w-xl font-serif text-[2rem] leading-[1.1] text-white sm:text-4xl md:text-5xl md:leading-[1.05]">
-                Join people who{' '}
-                <span className="italic text-[var(--sand)]">truly get it.</span>
+                {tr('landing.community.headingStart')}{' '}
+                <span className="italic text-[var(--sand)]">{tr('landing.community.headingEmphasis')}</span>
               </h2>
 
               <p className="mt-4 max-w-md text-[0.95rem] leading-relaxed text-white/75 sm:mt-5 sm:text-base">
-                A calm space to ask questions, share experiences, and connect
-                with others living with diabetes — no judgment, just genuine support.
+                {tr('landing.community.subtitle')}
               </p>
 
               <button
                 onClick={() => navigate(user ? '/community' : '/register')}
                 className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-[0.95rem] font-semibold text-[#1F3A2E] transition-all duration-300 hover:bg-[var(--sage)] hover:-translate-y-0.5 sm:mt-8 sm:w-auto"
               >
-                {user ? 'Open the forum' : 'Sign up to join'}
+                {user ? tr('landing.community.openForum') : tr('landing.community.signUpToJoin')}
                 <ArrowRight size={17} />
               </button>
             </div>

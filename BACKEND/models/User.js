@@ -54,6 +54,16 @@ const userSchema = new mongoose.Schema(
       enum: ['mg/dL', 'mmol/L'],
       default: 'mg/dL',
     },
+    theme: {
+      type: String,
+      enum: ['light', 'dark'],
+      default: 'light',
+    },
+    language: {
+      type: String,
+      enum: ['en', 'ur'],
+      default: 'en',
+    },
     targetRanges: {
       fastingMin: { type: Number, default: 70 },
       fastingMax: { type: Number, default: 100 },

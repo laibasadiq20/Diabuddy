@@ -59,7 +59,7 @@ export default function CommunityFeedStyles() {
           flex-shrink: 0;
         }
         .db-community-cta--ghost {
-          background: #fff;
+          background: ${t.surface};
           color: ${t.forest};
           border: 1.5px solid ${t.forest};
           box-shadow: none;
@@ -80,7 +80,7 @@ export default function CommunityFeedStyles() {
           width: 100%;
           box-sizing: border-box;
           padding: 10px 12px 10px 38px;
-          background: #fff;
+          background: ${t.surfaceSunken};
           border: 1.5px solid ${t.lineStrong};
           border-radius: 10px;
           font-size: 14px;
@@ -98,7 +98,7 @@ export default function CommunityFeedStyles() {
           gap: 10px;
           margin-bottom: 12px;
           padding: 10px 12px;
-          background: #fff;
+          background: ${t.surface};
           border: 1.5px solid ${t.lineStrong};
           border-radius: 12px;
         }
@@ -152,7 +152,7 @@ export default function CommunityFeedStyles() {
           pointer-events: none;
         }
         .db-drafts-banner {
-          background: #fff;
+          background: ${t.surface};
           border: 1.5px dashed ${t.lineStrong};
           border-radius: 14px;
           padding: 12px 14px;
@@ -192,7 +192,7 @@ export default function CommunityFeedStyles() {
         .db-topic-chip {
           flex: 0 0 auto;
           border: 1.5px solid ${t.lineStrong};
-          background: #fff;
+          background: ${t.surface};
           color: ${t.inkSoft};
           border-radius: 999px;
           padding: 8px 14px;
@@ -210,7 +210,7 @@ export default function CommunityFeedStyles() {
         .db-community-feed {
           display: flex;
           flex-direction: column;
-          background: #fff;
+          background: ${t.surface};
           border: 1.5px solid ${t.lineStrong};
           border-radius: 14px;
           overflow: hidden;
@@ -220,7 +220,7 @@ export default function CommunityFeedStyles() {
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 12px 16px;
           align-items: start;
-          background: #fff;
+          background: ${t.surface};
           border: none;
           border-bottom: 1px solid ${t.line};
           border-radius: 0;
@@ -239,7 +239,7 @@ export default function CommunityFeedStyles() {
         }
         @media (hover: hover) and (pointer: fine) {
           .db-post-card:hover {
-            background: #f7f3ec;
+            background: ${t.surfaceSunken};
           }
         }
         .db-post-card-main {
@@ -403,7 +403,7 @@ export default function CommunityFeedStyles() {
           cursor: wait;
         }
         .db-community-state {
-          background: #fff;
+          background: ${t.surface};
           border: 1.5px solid ${t.lineStrong};
           border-radius: 20px;
           padding: 48px 24px;
@@ -472,10 +472,10 @@ export default function CommunityFeedStyles() {
           margin: 0;
           padding: 10px 14px;
           border-top: 1px solid ${t.line};
-          background: #faf8f4;
+          background: ${t.surfaceRaised};
         }
         .db-community-pager button {
-          background: #fff;
+          background: ${t.surface};
           border: 1.5px solid ${t.lineStrong};
           border-radius: 10px;
           padding: 8px 14px;

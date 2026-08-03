@@ -1,10 +1,12 @@
 import React from 'react';
 import { Sparkles, Clock } from 'lucide-react';
 import { theme } from '../../../theme';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const t = theme;
 
 export default function PollDisplay({ pollData, onVote }) {
+  const { t: tr } = useI18n();
   if (!pollData?.poll) return null;
 
   const { poll, myOptionIndex } = pollData;
@@ -78,11 +80,11 @@ export default function PollDisplay({ pollData, onVote }) {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '14px', fontSize: '11px', color: t.inkFaint }}>
-        <span>Total Votes: {poll.totalVotes || 0}</span>
+        <span>{tr('pollDisplay.totalVotesTemplate').replace('{n}', poll.totalVotes || 0)}</span>
         {poll.expiresAt && (
           <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
             <Clock size={11} />
-            {new Date(poll.expiresAt) < new Date() ? 'Poll Closed' : `Closes: ${new Date(poll.expiresAt).toLocaleDateString()}`}
+            {new Date(poll.expiresAt) < new Date() ? tr('pollDisplay.pollClosed') : tr('pollDisplay.closesTemplate').replace('{date}', new Date(poll.expiresAt).toLocaleDateString())}
           </span>
         )}
       </div>

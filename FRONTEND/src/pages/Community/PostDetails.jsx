@@ -9,6 +9,7 @@ import PostThreadCard from './components/PostThreadCard';
 import CommentsSection from './components/CommentsSection';
 import ReportModal from './components/ReportModal';
 import PostDetailsStyles from './components/PostDetailsStyles';
+import { useI18n } from '../../i18n/I18nContext';
 
 const t = theme;
 
@@ -17,6 +18,7 @@ export default function PostDetails() {
   const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t: tr } = useI18n();
 
   const d = usePostDetails({ postId, user, authHeaders });
 
@@ -33,7 +35,7 @@ export default function PostDetails() {
   if (d.loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.bg }}>
-        <p style={{ fontFamily: t.fontBody, color: t.inkSoft }}>Loading discussion details...</p>
+        <p style={{ fontFamily: t.fontBody, color: t.inkSoft }}>{tr('postDetails.loading')}</p>
       </div>
     );
   }
@@ -42,10 +44,10 @@ export default function PostDetails() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.bg }}>
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontFamily: t.fontDisplay, color: t.clayDeep }}>Error</h2>
-          <p style={{ fontFamily: t.fontBody, color: t.inkSoft }}>{d.error || 'Post not found.'}</p>
+          <h2 style={{ fontFamily: t.fontDisplay, color: t.clayDeep }}>{tr('postDetails.error')}</h2>
+          <p style={{ fontFamily: t.fontBody, color: t.inkSoft }}>{d.error || tr('postDetails.notFound')}</p>
           <button onClick={() => navigate('/community')} style={{ background: t.sageDeep, color: '#FFF', border: 'none', padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', marginTop: '16px' }}>
-            Go Back
+            {tr('postDetails.goBack')}
           </button>
         </div>
       </div>
@@ -90,7 +92,7 @@ export default function PostDetails() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', background: '#E8E0D4' }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', background: t.bg }}>
       <AppSidebar />
 
       <main className="db-post-main" style={{ flexGrow: 1, minWidth: 0, padding: '28px 24px 72px', fontFamily: t.fontBody }}>
@@ -100,7 +102,7 @@ export default function PostDetails() {
             onClick={() => navigate('/community')}
             className="db-post-back"
             style={{
-              background: '#FFF',
+              background: t.surface,
               border: `1.5px solid ${t.lineStrong}`,
               color: t.inkSoft,
               fontSize: '13px',
@@ -115,7 +117,7 @@ export default function PostDetails() {
               fontFamily: t.fontBody,
             }}
           >
-            <ArrowLeft size={15} /> Back to forum
+            <ArrowLeft size={15} /> {tr('postDetails.backToForum')}
           </button>
 
           <PostThreadCard

@@ -11,72 +11,67 @@ import {
   Heart,
   Sparkles,
 } from "lucide-react";
+import { useI18n } from "../../../i18n/I18nContext";
 
 const blogsData = [
   {
     id: 1,
-    category: "Clinical Education",
-    title: "Understanding HbA1c: The Standard of Glucose Control",
-    desc: "Learn what the HbA1c test actually measures, how it differs from daily finger-pricks, and why it is essential for checking long-term glycemic progress.",
-    readTime: "6 min read",
-    date: "June 24, 2026",
+    postKey: "hba1c",
+    categoryKey: "clinicalEducation",
+    readTimeMinutes: 6,
+    date: "2026-06-24",
     icon: Leaf,
     url: "https://diabetes.org/about-diabetes/a1c",
   },
   {
     id: 2,
-    category: "Diet & Nutrition",
-    title: "10 Diabetic-Friendly Recipes to Avoid Sugar Spikes",
-    desc: "Discover quick, high-fiber, and low-glycemic index breakfast and dinner options designed to keep your blood glucose curve perfectly flat and stable.",
-    readTime: "4 min read",
-    date: "June 20, 2026",
+    postKey: "recipes",
+    categoryKey: "dietNutrition",
+    readTimeMinutes: 4,
+    date: "2026-06-20",
     icon: Utensils,
     url: "https://diabetesfoodhub.org/recipes",
   },
   {
     id: 3,
-    category: "Exercise & Fitness",
-    title: "The Magic of Post-Meal Walking on Insulin Sensitivity",
-    desc: "Understand the biological science of how a simple 15-minute walk after lunch directly helps muscles absorb sugar from the blood without extra insulin.",
-    readTime: "5 min read",
-    date: "June 15, 2026",
+    postKey: "walking",
+    categoryKey: "exerciseFitness",
+    readTimeMinutes: 5,
+    date: "2026-06-15",
     icon: Bike,
     url: "https://health.clevelandclinic.org/walking-after-eating",
   },
   {
     id: 4,
-    category: "Diabetes Technology",
-    title: "Continuous Glucose Monitors: How CGMs Actually Work",
-    desc: "A plain-language walkthrough of the sensor, transmitter, and app that make up a CGM system, and how real-time data helps you catch highs and lows earlier.",
-    readTime: "5 min read",
-    date: "June 10, 2026",
+    postKey: "cgm",
+    categoryKey: "diabetesTechnology",
+    readTimeMinutes: 5,
+    date: "2026-06-10",
     icon: Cpu,
     url: "https://www.niddk.nih.gov/health-information/diabetes/overview/managing-diabetes/continuous-glucose-monitoring",
   },
   {
     id: 5,
-    category: "Clinical Education",
-    title: "Type 1 vs. Type 2 Diabetes: What Actually Sets Them Apart",
-    desc: "From autoimmune origins to insulin resistance, a clear breakdown of how these two conditions differ in cause, onset, and day-to-day management.",
-    readTime: "7 min read",
-    date: "June 5, 2026",
+    postKey: "type1vs2",
+    categoryKey: "clinicalEducation",
+    readTimeMinutes: 7,
+    date: "2026-06-05",
     icon: BookOpen,
     url: "https://health.clevelandclinic.org/type-1-vs-type-2-diabetes",
   },
   {
     id: 6,
-    category: "Mental Health & Lifestyle",
-    title: "Why Stress Quietly Raises Your Blood Sugar",
-    desc: "Cortisol and adrenaline don't just affect your mood — they push glucose straight into your bloodstream. Learn practical stress-management techniques to keep your levels stable.",
-    readTime: "4 min read",
-    date: "May 30, 2026",
+    postKey: "stress",
+    categoryKey: "mentalHealthLifestyle",
+    readTimeMinutes: 4,
+    date: "2026-05-30",
     icon: Heart,
     url: "https://diatribe.org/lifestyle/stress-and-diabetes-how-manage",
   },
 ];
 
-const BlogArtwork = ({ category }) => {
-  if (category === "Clinical Education") {
+const BlogArtwork = ({ categoryKey }) => {
+  if (categoryKey === "clinicalEducation") {
     return (
       <div className="w-full h-full bg-[var(--sage-tint)] flex items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
@@ -100,7 +95,7 @@ const BlogArtwork = ({ category }) => {
     );
   }
 
-  if (category === "Diet & Nutrition") {
+  if (categoryKey === "dietNutrition") {
     return (
       <div className="w-full h-full bg-[var(--cream-soft)] flex items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
@@ -117,7 +112,7 @@ const BlogArtwork = ({ category }) => {
     );
   }
 
-  if (category === "Exercise & Fitness") {
+  if (categoryKey === "exerciseFitness") {
     return (
       <div className="w-full h-full bg-[var(--sage-soft)] flex items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
@@ -145,7 +140,7 @@ const BlogArtwork = ({ category }) => {
     );
   }
 
-  if (category === "Diabetes Technology") {
+  if (categoryKey === "diabetesTechnology") {
     return (
       <div className="w-full h-full bg-[var(--cream)] flex items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
@@ -167,7 +162,7 @@ const BlogArtwork = ({ category }) => {
     );
   }
 
-  if (category === "Mental Health & Lifestyle") {
+  if (categoryKey === "mentalHealthLifestyle") {
     return (
       <div className="w-full h-full bg-[var(--sage-tint)] flex items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
@@ -204,7 +199,19 @@ const BlogArtwork = ({ category }) => {
   );
 };
 
+function formatBlogDate(isoDate, lang) {
+  const d = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return isoDate;
+  return d.toLocaleDateString(lang === 'ur' ? 'ur-PK-u-nu-latn' : 'en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 const DiabetesBlog = ({ showHeader = true }) => {
+  const { t: tr, lang } = useI18n();
+
   return (
     <section
       id="blog"
@@ -217,20 +224,24 @@ const DiabetesBlog = ({ showHeader = true }) => {
         {showHeader && (
           <header className="mb-14 max-w-2xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
-              Education
+              {tr('landing.learn.blog.kicker')}
             </p>
             <h2 className="mt-3 font-display text-4xl font-light leading-[1.1] text-[var(--brown)] sm:text-5xl">
-              Diabetes resource{' '}
-              <span className="italic text-[var(--sage-deep)]">blog.</span>
+              {tr('landing.learn.blog.headingStart')}{' '}
+              <span className="italic text-[var(--sage-deep)]">{tr('landing.learn.blog.headingEmphasis')}</span>
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[var(--brown-soft)]">
-              Research-backed guides, recipes, and lifestyle tips — calm and clear.
+              {tr('landing.learn.blog.lead')}
             </p>
           </header>
         )}
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {blogsData.map((blog) => {
+            const category = tr(`landing.learn.blog.categories.${blog.categoryKey}`);
+            const title = tr(`landing.learn.blog.posts.${blog.postKey}.title`);
+            const desc = tr(`landing.learn.blog.posts.${blog.postKey}.desc`);
+            const readTime = tr('landing.learn.blog.readTimeTemplate').replace('{n}', blog.readTimeMinutes);
             return (
               <article
                 key={blog.id}
@@ -238,10 +249,10 @@ const DiabetesBlog = ({ showHeader = true }) => {
               >
                 <div className="relative h-44 overflow-hidden">
                   <span className="absolute left-4 top-4 z-10 rounded-full border border-[var(--line)] bg-white/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--brown)]">
-                    {blog.category}
+                    {category}
                   </span>
                   <div className="h-full w-full">
-                    <BlogArtwork category={blog.category} />
+                    <BlogArtwork categoryKey={blog.categoryKey} />
                   </div>
                 </div>
 
@@ -249,20 +260,20 @@ const DiabetesBlog = ({ showHeader = true }) => {
                   <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-soft)]">
                     <span className="inline-flex items-center gap-1.5">
                       <Calendar size={13} />
-                      {blog.date}
+                      {formatBlogDate(blog.date, lang)}
                     </span>
                     <span className="inline-flex items-center gap-1.5">
                       <Clock size={13} />
-                      {blog.readTime}
+                      {readTime}
                     </span>
                   </div>
 
                   <h3 className="mb-2 font-display text-lg font-semibold leading-snug text-[var(--brown)] transition-colors group-hover:text-[var(--sage-deep)]">
-                    {blog.title}
+                    {title}
                   </h3>
 
                   <p className="mb-5 flex-1 text-sm leading-relaxed text-[var(--ink-soft)]">
-                    {blog.desc}
+                    {desc}
                   </p>
 
                   <a
@@ -271,7 +282,7 @@ const DiabetesBlog = ({ showHeader = true }) => {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--sage-deep)] transition-all group-hover:gap-3"
                   >
-                    Read article
+                    {tr('landing.learn.blog.readArticle')}
                     <ArrowRight size={15} />
                   </a>
                 </div>

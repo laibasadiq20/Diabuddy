@@ -1,9 +1,11 @@
 import React from 'react';
 import { theme } from '../../../theme';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const t = theme;
 
 export default function CommunityGuidelinesBanner() {
+  const { t: tr } = useI18n();
   return (
     <div
       className="db-community-guidelines"
@@ -19,8 +21,7 @@ export default function CommunityGuidelinesBanner() {
         fontWeight: 500,
       }}
     >
-      Peer support only; never treat peer posts as medical advice; for emergencies contact
-      local emergency services / your clinician.
+      {tr('community.guidelines')}
     </div>
   );
 }

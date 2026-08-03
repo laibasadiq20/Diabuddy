@@ -589,14 +589,13 @@ exports.deleteMeal = async (req, res) => {
 // ==========================================
 exports.createMedication = async (req, res) => {
   try {
-    const { medicineName, dose, status, route, reminderTime, notes, timestamp } = req.body;
+    const { medicineName, dose, status, route, notes, timestamp } = req.body;
     const log = new MedicationLog({
       userId: req.user.id,
       medicineName,
       dose,
       status,
       route: route || '',
-      reminderTime,
       notes,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
     });
@@ -609,7 +608,7 @@ exports.createMedication = async (req, res) => {
 
 exports.updateMedication = async (req, res) => {
   try {
-    const { medicineName, dose, status, route, reminderTime, notes, timestamp } = req.body;
+    const { medicineName, dose, status, route, notes, timestamp } = req.body;
     const log = await MedicationLog.findOne({ _id: req.params.id, userId: req.user.id });
     if (!log) return res.status(404).json({ status: 'error', message: 'Log not found' });
 
@@ -617,7 +616,6 @@ exports.updateMedication = async (req, res) => {
     if (dose !== undefined) log.dose = dose;
     if (status !== undefined) log.status = status;
     if (route !== undefined) log.route = route || '';
-    if (reminderTime !== undefined) log.reminderTime = reminderTime;
     if (notes !== undefined) log.notes = notes;
     if (timestamp !== undefined) log.timestamp = new Date(timestamp);
 

@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../../../config/api';
 import { idOf } from './messageHelpers';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function useMessages({ user, authHeaders }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t: tr } = useI18n();
 
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
@@ -269,7 +271,7 @@ export default function useMessages({ user, authHeaders }) {
           return c;
         }));
       } else {
-        setSendError(newMsg.message || 'Could not send message. Try again.');
+        setSendError(newMsg.message || tr('messages.errors.sendFailed'));
       }
     } catch (err) {
       console.error('Send message failed:', err);
@@ -296,11 +298,11 @@ export default function useMessages({ user, authHeaders }) {
         if (res.ok) {
           setSearchResults(data.data || []);
         } else {
-          setModalError(data.message || 'Error searching users');
+          setModalError(data.message || tr('messages.errors.searchUsers'));
         }
       } catch (err) {
         console.error(err);
-        setModalError('Connection error');
+        setModalError(tr('messages.errors.connection'));
       } finally {
         setSearchLoading(false);
       }
@@ -368,11 +370,11 @@ export default function useMessages({ user, authHeaders }) {
         openChat(data._id);
         fetchConversations();
       } else {
-        setModalError(data.message || 'Could not start chat.');
+        setModalError(data.message || tr('messages.errors.startChat'));
       }
     } catch (err) {
       console.error(err);
-      setModalError('Network error starting chat.');
+      setModalError(tr('messages.errors.networkStartChat'));
     } finally {
       setCreating(false);
     }
@@ -380,11 +382,11 @@ export default function useMessages({ user, authHeaders }) {
 
   const handleCreateGroup = async () => {
     if (selectedUserIds.length === 0) {
-      setModalError('Select at least one person for the group.');
+      setModalError(tr('messages.errors.selectOnePerson'));
       return;
     }
     if (!groupName.trim()) {
-      setModalError('Enter a group name.');
+      setModalError(tr('messages.errors.enterGroupName'));
       return;
     }
 
@@ -407,11 +409,11 @@ export default function useMessages({ user, authHeaders }) {
         openChat(data._id);
         fetchConversations();
       } else {
-        setModalError(data.message || 'Failed to create group.');
+        setModalError(data.message || tr('messages.errors.createGroupFailed'));
       }
     } catch (err) {
       console.error(err);
-      setModalError('Network error creating group.');
+      setModalError(tr('messages.errors.networkCreateGroup'));
     } finally {
       setCreating(false);
     }
@@ -443,10 +445,10 @@ export default function useMessages({ user, authHeaders }) {
       if (res.ok) {
         setConversations((prev) => prev.map((c) => (c._id === data._id ? data : c)));
       } else {
-        setGroupError(data.message || 'Could not rename group');
+        setGroupError(data.message || tr('messages.errors.renameFailed'));
       }
     } catch (err) {
-      setGroupError('Network error renaming group');
+      setGroupError(tr('messages.errors.networkRename'));
     } finally {
       setGroupBusy(false);
     }
@@ -469,10 +471,10 @@ export default function useMessages({ user, authHeaders }) {
         setAddMemberQuery('');
         setAddMemberResults([]);
       } else {
-        setGroupError(data.message || 'Could not add member');
+        setGroupError(data.message || tr('messages.errors.addMemberFailed'));
       }
     } catch (err) {
-      setGroupError('Network error adding member');
+      setGroupError(tr('messages.errors.networkAddMember'));
     } finally {
       setGroupBusy(false);
     }
@@ -480,7 +482,7 @@ export default function useMessages({ user, authHeaders }) {
 
   const handleRemoveMember = async (userId) => {
     if (!activeConvId) return;
-    if (!window.confirm('Remove this member from the group?')) return;
+    if (!window.confirm(tr('messages.errors.confirmRemoveMember'))) return;
     setGroupBusy(true);
     setGroupError('');
     try {
@@ -498,10 +500,10 @@ export default function useMessages({ user, authHeaders }) {
           setConversations((prev) => prev.map((c) => (c._id === data._id ? data : c)));
         }
       } else {
-        setGroupError(data.message || 'Could not remove member');
+        setGroupError(data.message || tr('messages.errors.removeMemberFailed'));
       }
     } catch (err) {
-      setGroupError('Network error removing member');
+      setGroupError(tr('messages.errors.networkRemoveMember'));
     } finally {
       setGroupBusy(false);
     }
@@ -509,7 +511,7 @@ export default function useMessages({ user, authHeaders }) {
 
   const handleLeaveGroup = async () => {
     if (!activeConvId) return;
-    if (!window.confirm('Leave this group?')) return;
+    if (!window.confirm(tr('messages.errors.confirmLeaveGroup'))) return;
     setGroupBusy(true);
     setGroupError('');
     try {
@@ -523,10 +525,10 @@ export default function useMessages({ user, authHeaders }) {
         setConversations((prev) => prev.filter((c) => c._id !== activeConvId));
         closeChat();
       } else {
-        setGroupError(data.message || 'Could not leave group');
+        setGroupError(data.message || tr('messages.errors.leaveGroupFailed'));
       }
     } catch (err) {
-      setGroupError('Network error leaving group');
+      setGroupError(tr('messages.errors.networkLeaveGroup'));
     } finally {
       setGroupBusy(false);
     }

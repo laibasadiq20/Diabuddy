@@ -4,6 +4,7 @@ import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff, HeartPulse } from 'luci
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { homePathFor } from '../../utils/homePath';
 
 const t = theme;
@@ -30,6 +31,7 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
+  const { t: tr } = useI18n();
   const [email, setEmail] = useState(location.state?.email || '');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -50,15 +52,15 @@ export default function ResetPassword() {
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !code.trim() || !password) {
-      setError('Email, reset code, and new password are required.');
+      setError(tr('auth.resetPassword.fieldsRequired'));
       return;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError(tr('auth.register.passwordMinLength'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(tr('auth.register.passwordsNoMatch'));
       return;
     }
 
@@ -77,13 +79,13 @@ export default function ResetPassword() {
 
       const data = await response.json().catch(() => ({}));
       if (response.ok) {
-        setSuccess(data.message || 'Password reset successful.');
+        setSuccess(data.message || tr('auth.resetPassword.successMessage'));
         setTimeout(() => navigate('/login'), 1400);
       } else {
-        setError(data.message || 'Failed to reset password.');
+        setError(data.message || tr('auth.resetPassword.failedToReset'));
       }
     } catch {
-      setError('Connection error. Please try again.');
+      setError(tr('auth.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -130,7 +132,7 @@ export default function ResetPassword() {
           <button
             type="button"
             onClick={() => navigate('/forgot-password')}
-            aria-label="Back"
+            aria-label={tr('common.back')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -147,14 +149,14 @@ export default function ResetPassword() {
             }}
           >
             <ArrowLeft size={16} />
-            Back
+            {tr('common.back')}
           </button>
 
           <h1 style={{ color: '#1A1A1A', fontSize: '20px', fontWeight: '700', marginBottom: '4px', fontFamily: t.fontDisplay }}>
-            Set new password
+            {tr('auth.resetPassword.title')}
           </h1>
           <p style={{ color: '#333333', fontSize: '12px', marginBottom: '18px', fontWeight: '500' }}>
-            Enter the code from your email and choose a new password
+            {tr('auth.resetPassword.subtitle')}
           </p>
 
           {error && (
@@ -170,7 +172,7 @@ export default function ResetPassword() {
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>EMAIL</label>
+              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>{tr('auth.emailUpper')}</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} onFocus={focus} onBlur={blur} />
@@ -178,13 +180,13 @@ export default function ResetPassword() {
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>RESET CODE</label>
+              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>{tr('auth.resetPassword.resetCodeUpper')}</label>
               <input
                 type="text"
                 inputMode="numeric"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="6-digit code"
+                placeholder={tr('auth.resetPassword.sixDigitCode')}
                 required
                 style={{ ...inputStyle, paddingLeft: '14px' }}
                 onFocus={focus}
@@ -193,7 +195,7 @@ export default function ResetPassword() {
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>NEW PASSWORD</label>
+              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>{tr('auth.resetPassword.newPasswordUpper')}</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
                 <input
@@ -212,7 +214,7 @@ export default function ResetPassword() {
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>CONFIRM PASSWORD</label>
+              <label style={{ display: 'block', color: '#333', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>{tr('auth.resetPassword.confirmPasswordUpper')}</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
                 <input
@@ -247,7 +249,7 @@ export default function ResetPassword() {
                 fontFamily: 'inherit',
               }}
             >
-              {loading ? 'Saving…' : <>Reset password <ArrowRight size={12} /></>}
+              {loading ? tr('auth.resetPassword.saving') : <>{tr('auth.resetPassword.resetPasswordButton')} <ArrowRight size={12} /></>}
             </button>
           </form>
         </div>

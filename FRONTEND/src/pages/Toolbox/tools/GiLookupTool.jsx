@@ -3,32 +3,37 @@ import { Search } from 'lucide-react';
 import { theme as t } from '../../../theme';
 import { fieldStyle } from '../toolboxStyles';
 import { GI_FOODS } from '../data/pakistaniGiFoods';
+import { useI18n } from '../../../i18n/I18nContext';
 
-const ZONE = {
-  low: {
-    label: 'Low',
-    range: '≤ 55',
-    color: t.sageDeep,
-    bg: t.sageTint,
-    meaning: 'Raises blood sugar more slowly. Prefer these when you can.',
-  },
-  medium: {
-    label: 'Medium',
-    range: '56–69',
-    color: t.gold,
-    bg: t.goldTint,
-    meaning: 'Moderate effect. Smaller portions help.',
-  },
-  high: {
-    label: 'High',
-    range: '≥ 70',
-    color: t.clay,
-    bg: t.clayTint,
-    meaning: 'Raises blood sugar faster. Consider a lower-GI option.',
-  },
-};
+function useZoneMeta(tr) {
+  return {
+    low: {
+      label: tr('toolboxTools.gi.zoneLow'),
+      range: '≤ 55',
+      color: t.sageDeep,
+      bg: t.sageTint,
+      meaning: tr('toolboxTools.gi.meaningLow'),
+    },
+    medium: {
+      label: tr('toolboxTools.gi.zoneMedium'),
+      range: '56–69',
+      color: t.gold,
+      bg: t.goldTint,
+      meaning: tr('toolboxTools.gi.meaningMedium'),
+    },
+    high: {
+      label: tr('toolboxTools.gi.zoneHigh'),
+      range: '≥ 70',
+      color: t.clay,
+      bg: t.clayTint,
+      meaning: tr('toolboxTools.gi.meaningHigh'),
+    },
+  };
+}
 
 export default function GiLookupTool() {
+  const { t: tr } = useI18n();
+  const ZONE = useZoneMeta(tr);
   const [query, setQuery] = useState('');
   const [selectedName, setSelectedName] = useState(null);
 
@@ -58,7 +63,7 @@ export default function GiLookupTool() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <p style={{ margin: 0, fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-        Search a food to see its glycemic index (GI). Lower GI = slower rise in blood sugar.
+        {tr('toolboxTools.gi.intro')}
       </p>
 
       <div
@@ -70,7 +75,7 @@ export default function GiLookupTool() {
         }}
       >
         <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.inkFaint }}>
-          Knowledge
+          {tr('toolboxTools.gi.knowledge')}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {Object.values(ZONE).map((z) => (
@@ -87,7 +92,7 @@ export default function GiLookupTool() {
         <Search size={16} color={t.inkFaint} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
         <input
           type="search"
-          placeholder="Search a food…"
+          placeholder={tr('toolboxTools.gi.searchPlaceholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           style={{ ...fieldStyle, paddingLeft: 40 }}
@@ -95,7 +100,7 @@ export default function GiLookupTool() {
       </div>
 
       {!results.length ? (
-        <p style={{ margin: 0, fontSize: 13, color: t.inkFaint }}>No foods found.</p>
+        <p style={{ margin: 0, fontSize: 13, color: t.inkFaint }}>{tr('toolboxTools.gi.noFoodsFound')}</p>
       ) : (
         <>
           <div
@@ -105,7 +110,7 @@ export default function GiLookupTool() {
               overflow: 'hidden',
               maxHeight: 280,
               overflowY: 'auto',
-              background: '#FFF',
+              background: t.surface,
             }}
           >
             {results.map((food, i) => {
@@ -124,7 +129,7 @@ export default function GiLookupTool() {
                     padding: '12px 14px',
                     border: 'none',
                     borderBottom: i < results.length - 1 ? `1px solid ${t.line}` : 'none',
-                    background: active ? z.bg : '#FFF',
+                    background: active ? z.bg : t.surface,
                     cursor: 'pointer',
                     textAlign: 'left',
                     fontFamily: t.fontBody,
@@ -135,13 +140,13 @@ export default function GiLookupTool() {
                     {food.name}
                   </span>
                   <span style={{ fontSize: 15, fontWeight: 700, color: t.ink, fontVariantNumeric: 'tabular-nums' }}>
-                    GI {food.gi}
+                    {tr('toolboxTools.gi.giLabel')} {food.gi}
                   </span>
                   <span
                     style={{
                       padding: '3px 8px',
                       borderRadius: 8,
-                      background: active ? '#FFF' : z.bg,
+                      background: active ? t.surface : z.bg,
                       color: z.color,
                       fontSize: 11,
                       fontWeight: 700,
@@ -167,7 +172,7 @@ export default function GiLookupTool() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 0, flex: '1 1 140px' }}>
                   <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.inkFaint }}>
-                    Selected
+                    {tr('toolboxTools.gi.selected')}
                   </p>
                   <p style={{ margin: '4px 0 0', fontSize: 16, fontWeight: 700, color: t.ink }}>
                     {selected.name}
@@ -189,14 +194,14 @@ export default function GiLookupTool() {
 
               {selected.category === 'low' && (
                 <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 600, color: t.sageDeep }}>
-                  No swap needed — this is already a lower-GI choice.
+                  {tr('toolboxTools.gi.noSwapNeeded')}
                 </p>
               )}
 
               {selected.swap?.length > 0 && (
                 <div style={{ marginTop: 12 }}>
                   <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: t.inkFaint }}>
-                    Try instead
+                    {tr('toolboxTools.gi.tryInstead')}
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {selected.swap.map((label) => {
@@ -219,7 +224,7 @@ export default function GiLookupTool() {
                             padding: '10px 12px',
                             borderRadius: 10,
                             border: `1px solid ${t.lineStrong}`,
-                            background: '#FFF',
+                            background: t.surface,
                             cursor: match ? 'pointer' : 'default',
                             fontFamily: t.fontBody,
                             textAlign: 'left',
@@ -230,10 +235,10 @@ export default function GiLookupTool() {
                           <span style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>{label}</span>
                           {match ? (
                             <span style={{ fontSize: 12, fontWeight: 700, color: ZONE[match.category].color }}>
-                              GI {match.gi} · {ZONE[match.category].label}
+                              {tr('toolboxTools.gi.giLabel')} {match.gi} · {ZONE[match.category].label}
                             </span>
                           ) : (
-                            <span style={{ fontSize: 12, color: t.inkFaint }}>suggestion</span>
+                            <span style={{ fontSize: 12, color: t.inkFaint }}>{tr('toolboxTools.gi.suggestion')}</span>
                           )}
                         </button>
                       );
@@ -246,7 +251,7 @@ export default function GiLookupTool() {
         </>
       )}
       <p style={{ margin: '12px 0 0', fontSize: 12, color: t.inkFaint, lineHeight: 1.5 }}>
-        GI values are approximate and vary with cooking and portion size. Educational only — not medical advice.
+        {tr('toolboxTools.gi.disclaimer')}
       </p>
     </div>
   );

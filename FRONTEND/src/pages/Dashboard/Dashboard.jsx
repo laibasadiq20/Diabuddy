@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
@@ -18,11 +19,13 @@ import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
 import {
   AlertTriangle,
   ArrowRight,
+  Bell,
   Calendar,
   CheckCircle2,
   Circle,
   ClipboardList,
   Clock,
+  Droplets,
   Dumbbell,
   Flame,
   Footprints,
@@ -50,7 +53,7 @@ function formatSteps(n) {
 }
 
 const tooltipStyle = {
-  background: '#fff',
+  background: t.surface,
   border: `1px solid ${t.lineStrong}`,
   borderRadius: 10,
   fontSize: 12,
@@ -60,6 +63,7 @@ const tooltipStyle = {
 
 export default function Dashboard() {
   const { user, authHeaders } = useAuth();
+  const { t: tr, lang } = useI18n();
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [weekReport, setWeekReport] = useState(null);
@@ -87,9 +91,9 @@ export default function Dashboard() {
     }
   };
 
-  const firstName = user?.name?.split(' ')[0] || 'Buddy';
+  const firstName = user?.name?.split(' ')[0] || tr('dashboard.buddyFallback');
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greeting = hour < 12 ? tr('dashboard.goodMorning') : hour < 17 ? tr('dashboard.goodAfternoon') : tr('dashboard.goodEvening');
   const today = new Date().toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'short',
@@ -206,21 +210,21 @@ export default function Dashboard() {
   const nextAction = useMemo(() => {
     if (loading) return null;
     if (!glucoseCount) {
-      return { label: 'Log a glucose reading', path: '/logs/glucose' };
+      return { label: tr('dashboard.nextActions.glucose'), path: '/logs/glucose' };
     }
     if (!mealsToday && hour >= 11) {
-      return { label: 'Add a meal when you eat', path: '/logs/meal' };
+      return { label: tr('dashboard.nextActions.meal'), path: '/logs/meal' };
     }
     if (mealsToday > 0 && !insulinToday && hour >= 12) {
-      return { label: 'Log insulin if you took a dose', path: '/logs/insulin' };
+      return { label: tr('dashboard.nextActions.insulin'), path: '/logs/insulin' };
     }
     if (waterToday < waterGoal * 0.4) {
-      return { label: 'Log water toward your daily goal', path: '/logs/water' };
+      return { label: tr('dashboard.nextActions.water'), path: '/logs/water' };
     }
     if (!exerciseToday && stepsToday === 0 && hour >= 16) {
-      return { label: 'Log activity or connect a watch for steps', path: '/logs/exercise' };
+      return { label: tr('dashboard.nextActions.exercise'), path: '/logs/exercise' };
     }
-    return { label: 'Review your weekly report', path: '/reports' };
+    return { label: tr('dashboard.nextActions.report'), path: '/reports' };
   }, [
     loading,
     glucoseCount,
@@ -231,6 +235,7 @@ export default function Dashboard() {
     exerciseToday,
     stepsToday,
     hour,
+    lang,
   ]);
 
   return (
@@ -247,12 +252,12 @@ export default function Dashboard() {
               </h1>
               <p className="db-home-lead">
                 {loading
-                  ? 'Loading today’s picture…'
-                  : 'A clear view of your logs, trends, and community.'}
+                  ? tr('dashboard.loadingLead')
+                  : tr('dashboard.lead')}
               </p>
             </div>
             <button type="button" className="db-home-hero-cta" onClick={() => navigate('/logs')}>
-              Open logs
+              {tr('dashboard.openLogs')}
               <ArrowRight size={16} />
             </button>
           </header>
@@ -265,8 +270,8 @@ export default function Dashboard() {
             >
               <AlertTriangle size={16} />
               <span>
-                <strong>{streak.currentStreak}-day streak at risk.</strong>
-                {' '}Log anything today to keep it.
+                <strong>{tr('dashboard.streakAtRiskTemplate').replace('{n}', streak.currentStreak)}</strong>
+                {' '}{tr('dashboard.logAnythingToday')}
               </span>
               <ArrowRight size={14} />
             </button>
@@ -278,26 +283,28 @@ export default function Dashboard() {
               className="db-home-next"
               onClick={() => navigate(nextAction.path)}
             >
-              <span>Next</span>
+              <span>{tr('dashboard.nextLabel')}</span>
               <strong>{nextAction.label}</strong>
               <ArrowRight size={14} />
             </button>
           )}
 
-          <section className="db-home-glance" aria-label="Today at a glance">
-            <p className="db-home-kicker">Today at a glance</p>
+          <section className="db-home-glance" aria-label={tr('dashboard.glance.title')}>
+            <p className="db-home-kicker">{tr('dashboard.glance.title')}</p>
             <div className="db-home-glance-grid">
               <button type="button" className="db-home-glance-card" onClick={() => navigate('/logs/glucose')}>
                 <span className="db-home-glance-icon" style={{ background: t.skySoft, color: t.skyDeep }}>
                   <Droplets size={16} />
                 </span>
-                <span className="db-home-glance-label">Glucose</span>
+                <span className="db-home-glance-label">{tr('dashboard.glance.glucose')}</span>
                 <strong>
                   {latestGlucose != null ? latestGlucose : '—'}
                   {latestGlucose != null ? <small>{unitLabel}</small> : null}
                 </strong>
                 <span className="db-home-glance-sub">
-                  {glucoseCount > 0 ? `${glucoseCount} reading${glucoseCount === 1 ? '' : 's'}` : 'No reading yet'}
+                  {glucoseCount > 0
+                    ? tr(glucoseCount === 1 ? 'dashboard.glance.readingOne' : 'dashboard.glance.readingMany').replace('{n}', glucoseCount)
+                    : tr('dashboard.glance.noReading')}
                 </span>
               </button>
 
@@ -305,21 +312,21 @@ export default function Dashboard() {
                 <span className="db-home-glance-icon" style={{ background: t.sageSoft, color: t.sageDeep }}>
                   <Target size={16} />
                 </span>
-                <span className="db-home-glance-label">Time in range</span>
+                <span className="db-home-glance-label">{tr('dashboard.glance.timeInRange')}</span>
                 <strong>{tir != null ? `${tir}%` : '—'}</strong>
-                <span className="db-home-glance-sub">{tirLow}–{tirHigh} {unitLabel} · 7 days</span>
+                <span className="db-home-glance-sub">{tirLow}–{tirHigh} {unitLabel} · {tr('dashboard.glance.days7')}</span>
               </button>
 
               <button type="button" className="db-home-glance-card" onClick={() => navigate('/logs/exercise')}>
                 <span className="db-home-glance-icon" style={{ background: t.goldSoft, color: t.gold }}>
                   <Footprints size={16} />
                 </span>
-                <span className="db-home-glance-label">Steps</span>
+                <span className="db-home-glance-label">{tr('dashboard.glance.steps')}</span>
                 <strong>{formatSteps(stepsToday)}</strong>
                 <span className="db-home-glance-sub">
                   {stepsToday > 0
-                    ? `of ${stepsGoal.toLocaleString()} goal`
-                    : 'Manual activity or watch'}
+                    ? tr('dashboard.glance.ofGoal').replace('{n}', stepsGoal.toLocaleString())
+                    : tr('dashboard.glance.manualOrWatch')}
                 </span>
                 <span className="db-home-glance-bar" aria-hidden>
                   <span style={{ width: `${stepsPct}%` }} />
@@ -330,12 +337,12 @@ export default function Dashboard() {
                 <span className="db-home-glance-icon" style={{ background: t.skyTint, color: t.sky }}>
                   <GlassWater size={16} />
                 </span>
-                <span className="db-home-glance-label">Water</span>
+                <span className="db-home-glance-label">{tr('dashboard.glance.water')}</span>
                 <strong>
                   {waterToday > 0 ? (waterToday >= 1000 ? `${(waterToday / 1000).toFixed(1)}` : waterToday) : '—'}
                   {waterToday > 0 ? <small>{waterToday >= 1000 ? 'L' : 'ml'}</small> : null}
                 </strong>
-                <span className="db-home-glance-sub">of {(waterGoal / 1000).toFixed(1)} L goal</span>
+                <span className="db-home-glance-sub">{tr('dashboard.glance.ofLGoal').replace('{n}', (waterGoal / 1000).toFixed(1))}</span>
                 <span className="db-home-glance-bar" aria-hidden>
                   <span style={{ width: `${waterPct}%` }} />
                 </span>
@@ -345,13 +352,13 @@ export default function Dashboard() {
                 <span className="db-home-glance-icon" style={{ background: t.claySoft, color: t.clayDeep }}>
                   <Flame size={16} />
                 </span>
-                <span className="db-home-glance-label">Streak</span>
+                <span className="db-home-glance-label">{tr('dashboard.glance.streak')}</span>
                 <strong>
                   {streak?.currentStreak ?? 0}
-                  <small>days</small>
+                  <small>{tr('dashboard.glance.daysWord')}</small>
                 </strong>
                 <span className="db-home-glance-sub">
-                  {streak?.atRisk ? 'At risk — log today' : streak?.currentStreak ? 'Keep it going' : 'Start today'}
+                  {streak?.atRisk ? tr('dashboard.glance.atRiskLogToday') : streak?.currentStreak ? tr('dashboard.glance.keepItGoing') : tr('dashboard.glance.startToday')}
                 </span>
               </button>
             </div>
@@ -366,24 +373,24 @@ export default function Dashboard() {
               <Watch size={18} strokeWidth={1.75} />
             </span>
             <span className="db-home-watch-copy">
-              <strong>Connect smartwatch</strong>
-              <em>Sync steps, calories, and distance with Google Health.</em>
+              <strong>{tr('dashboard.watch.title')}</strong>
+              <em>{tr('dashboard.watch.subtitle')}</em>
             </span>
             <span className="db-home-watch-cta">
-              Open
+              {tr('dashboard.watch.open')}
               <ArrowRight size={14} />
             </span>
           </button>
 
           <div className="db-home-mid">
-            <section className="db-home-chart-card" aria-label="Glucose trend">
+            <section className="db-home-chart-card" aria-label={tr('dashboard.chart.kicker')}>
               <header className="db-home-card-head">
                 <div>
-                  <p className="db-home-kicker">Glucose</p>
-                  <h2>7-day trend</h2>
+                  <p className="db-home-kicker">{tr('dashboard.chart.kicker')}</p>
+                  <h2>{tr('dashboard.chart.title')}</h2>
                 </div>
                 <button type="button" className="db-home-text-link" onClick={() => navigate('/reports')}>
-                  Full report
+                  {tr('dashboard.chart.fullReport')}
                   <ArrowRight size={14} />
                 </button>
               </header>
@@ -414,7 +421,7 @@ export default function Dashboard() {
                       />
                       <Tooltip
                         contentStyle={tooltipStyle}
-                        formatter={(value) => [`${value} ${unitLabel}`, 'Avg']}
+                        formatter={(value) => [`${value} ${unitLabel}`, tr('dashboard.avgTooltip')]}
                       />
                       <ReferenceLine y={tirHigh} stroke={t.clay} strokeDasharray="4 4" strokeOpacity={0.5} />
                       <ReferenceLine y={tirLow} stroke={t.sky} strokeDasharray="4 4" strokeOpacity={0.5} />
@@ -432,48 +439,48 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="db-home-chart-empty">
-                  <p>No glucose readings in the last 7 days.</p>
+                  <p>{tr('dashboard.chart.empty')}</p>
                   <button type="button" onClick={() => navigate('/logs/glucose')}>
-                    Log a reading
+                    {tr('dashboard.chart.logReading')}
                   </button>
                 </div>
               )}
 
               {latestGlucose != null && (
                 <p className="db-home-chart-footnote">
-                  Latest today <strong>{latestGlucose} {unitLabel}</strong>
-                  {glucoseCount > 0 ? ` · ${glucoseCount} reading${glucoseCount === 1 ? '' : 's'}` : ''}
+                  {tr('dashboard.chart.latestToday')} <strong>{latestGlucose} {unitLabel}</strong>
+                  {glucoseCount > 0 ? ` · ${tr(glucoseCount === 1 ? 'dashboard.glance.readingOne' : 'dashboard.glance.readingMany').replace('{n}', glucoseCount)}` : ''}
                 </p>
               )}
             </section>
 
-            <section className="db-home-today-panel" aria-label="Today’s logs">
+            <section className="db-home-today-panel" aria-label={tr('dashboard.todayPanel.title')}>
               <header className="db-home-card-head">
                 <div>
-                  <p className="db-home-kicker">Today</p>
-                  <h2>Log summary</h2>
+                  <p className="db-home-kicker">{tr('dashboard.todayPanel.kicker')}</p>
+                  <h2>{tr('dashboard.todayPanel.title')}</h2>
                 </div>
               </header>
               <div className="db-home-today-grid">
                 <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/meal')}>
                   <Utensils size={16} />
                   <strong>{mealsToday}</strong>
-                  <span>Meals</span>
+                  <span>{tr('dashboard.todayPanel.meals')}</span>
                 </button>
                 <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/insulin')}>
                   <Syringe size={16} />
                   <strong>{insulinToday > 0 ? insulinToday : '—'}</strong>
-                  <span>Insulin{insulinToday > 0 ? ' u' : ''}</span>
+                  <span>{tr('dashboard.todayPanel.insulin')}{insulinToday > 0 ? ' u' : ''}</span>
                 </button>
                 <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/medication')}>
                   <Pill size={16} />
                   <strong>{medsToday > 0 ? medsToday : '—'}</strong>
-                  <span>Meds</span>
+                  <span>{tr('dashboard.todayPanel.meds')}</span>
                 </button>
                 <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/water')}>
                   <GlassWater size={16} />
                   <strong>{waterLabel}</strong>
-                  <span>Water</span>
+                  <span>{tr('dashboard.todayPanel.water')}</span>
                 </button>
                 <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/exercise')}>
                   <Dumbbell size={16} />
@@ -482,12 +489,12 @@ export default function Dashboard() {
                       ? `${exerciseToday > 0 ? `${exerciseToday}m` : '—'}${stepsToday > 0 ? ` · ${formatSteps(stepsToday)}` : ''}`
                       : '—'}
                   </strong>
-                  <span>Exercise</span>
+                  <span>{tr('dashboard.todayPanel.exercise')}</span>
                 </button>
                 <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs')}>
                   <ClipboardList size={16} />
-                  <strong>All</strong>
-                  <span>Open logs</span>
+                  <strong>{tr('dashboard.todayPanel.all')}</strong>
+                  <span>{tr('dashboard.todayPanel.openLogs')}</span>
                 </button>
               </div>
 
@@ -583,11 +590,11 @@ export default function Dashboard() {
             <section className="db-home-panel db-home-panel--insights">
               <header className="db-home-card-head">
                 <div>
-                  <p className="db-home-kicker">Insights</p>
-                  <h2>For you</h2>
+                  <p className="db-home-kicker">{tr('dashboard.insights.kicker')}</p>
+                  <h2>{tr('dashboard.insights.title')}</h2>
                 </div>
                 <button type="button" className="db-home-text-link" onClick={() => navigate('/reports')}>
-                  More
+                  {tr('dashboard.insights.more')}
                   <ArrowRight size={14} />
                 </button>
               </header>
@@ -602,7 +609,7 @@ export default function Dashboard() {
                 </ul>
               ) : (
                 <p className="db-home-empty-note">
-                  Log glucose or meals this week to unlock short insights.
+                  {tr('dashboard.insights.empty')}
                 </p>
               )}
             </section>
@@ -615,20 +622,20 @@ export default function Dashboard() {
               }
             >
               <div className="db-home-community-fill-top">
-                <p className="db-home-kicker">Community</p>
+                <p className="db-home-kicker">{tr('dashboard.community.kicker')}</p>
                 <span className="db-home-community-badge">
                   <Users size={14} />
-                  Forum
+                  {tr('dashboard.community.badge')}
                 </span>
               </div>
-              <h2>{latestPost?.title || 'Join the DiaBuddy community'}</h2>
+              <h2>{latestPost?.title || tr('dashboard.community.joinTitle')}</h2>
               <p>
                 {latestPost?.title
-                  ? 'Latest from the forum — open to read and reply.'
-                  : 'Ask questions, share what works, and learn with people who get it.'}
+                  ? tr('dashboard.community.latestNote')
+                  : tr('dashboard.community.askNote')}
               </p>
               <span className="db-home-community-cta">
-                {latestPost?._id ? 'Read post' : 'Open community'}
+                {latestPost?._id ? tr('dashboard.community.readPost') : tr('dashboard.community.openCommunity')}
                 <ArrowRight size={16} />
               </span>
             </button>
@@ -643,7 +650,7 @@ export default function Dashboard() {
           background:
             radial-gradient(ellipse 60% 38% at 0% -6%, rgba(125, 143, 111, 0.16), transparent 55%),
             radial-gradient(ellipse 42% 28% at 100% 0%, rgba(94, 135, 160, 0.1), transparent 50%),
-            linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 36%);
+            linear-gradient(180deg, ${t.pageFadeTop} 0%, ${t.bg} 36%);
           font-family: ${t.fontBody};
           color: ${t.ink};
         }
@@ -741,7 +748,7 @@ export default function Dashboard() {
           padding: 10px 14px;
           border-radius: 12px;
           border: 1px solid ${t.line};
-          background: rgba(255, 255, 255, 0.72);
+          background: color-mix(in srgb, ${t.surfaceRaised} 72%, transparent);
           cursor: pointer;
           font-family: ${t.fontBody};
         }
@@ -781,7 +788,7 @@ export default function Dashboard() {
           padding: 14px 14px 16px;
           border-radius: 16px;
           border: 1px solid ${t.lineStrong};
-          background: rgba(255, 255, 255, 0.92);
+          background: color-mix(in srgb, ${t.surfaceRaised} 92%, transparent);
           cursor: pointer;
           font-family: ${t.fontBody};
           min-width: 0;
@@ -849,7 +856,7 @@ export default function Dashboard() {
           padding: 11px 14px;
           border-radius: 14px;
           border: 1px solid ${t.gold}40;
-          background: linear-gradient(100deg, ${t.goldTint} 0%, #fff 58%);
+          background: linear-gradient(100deg, ${t.goldTint} 0%, ${t.surface} 58%);
           cursor: pointer;
           font-family: ${t.fontBody};
         }
@@ -902,7 +909,7 @@ export default function Dashboard() {
         .db-home-chart-card,
         .db-home-today-panel,
         .db-home-panel {
-          background: #fff;
+          background: ${t.surface};
           border: 1px solid ${t.lineStrong};
           border-radius: 18px;
           padding: 16px 18px;
@@ -1079,8 +1086,8 @@ export default function Dashboard() {
           border-radius: 18px;
           border: 1px solid ${t.sage}66;
           background:
-            radial-gradient(ellipse 80% 70% at 100% 0%, rgba(232, 184, 154, 0.28), transparent 55%),
-            linear-gradient(155deg, ${t.forest} 0%, #314a39 42%, ${t.sageDeep} 100%);
+            radial-gradient(ellipse 80% 70% at 100% 0%, rgba(232, 184, 154, 0.22), transparent 55%),
+            linear-gradient(155deg, ${t.forest} 0%, #314a39 48%, ${t.forestDeep} 100%);
           color: #F4F0E8;
           cursor: pointer;
           font-family: ${t.fontBody};
@@ -1130,7 +1137,7 @@ export default function Dashboard() {
           margin-top: auto;
           padding: 10px 14px;
           border-radius: 999px;
-          background: #FFF;
+          background: ${t.surfaceRaised};
           color: ${t.forest};
           font-size: 13px;
           font-weight: 700;

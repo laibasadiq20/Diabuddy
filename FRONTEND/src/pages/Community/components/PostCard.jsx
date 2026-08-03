@@ -8,6 +8,7 @@ import {
   Pin,
 } from 'lucide-react';
 import { theme } from '../../../theme';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const t = theme;
 
@@ -19,6 +20,7 @@ export default function PostCard({
   onOpenAuthor,
   onStartDm,
 }) {
+  const { t: tr } = useI18n();
   const postTopicColor = post.topicId?.color || t.sage;
   const hasBestAnswer = !!post.bestAnswerCommentId;
   const myId = String(user?.id || user?._id || '');
@@ -26,8 +28,8 @@ export default function PostCard({
   const canMessage =
     !post.isAnonymous && authorId && String(authorId) !== myId;
   const authorName = post.isAnonymous
-    ? 'Anonymous Buddy'
-    : post.authorId?.name || 'Member';
+    ? tr('postCard.anonymousBuddy')
+    : post.authorId?.name || tr('postCard.member');
   const dateLabel = new Date(post.createdAt).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -51,17 +53,17 @@ export default function PostCard({
           {(post.isPinned || post.isLocked || hasBestAnswer) && (
             <span className="db-post-badges">
               {post.isPinned && (
-                <span className="db-badge db-badge--pin" title="Pinned">
+                <span className="db-badge db-badge--pin" title={tr('postCard.pinned')}>
                   <Pin size={10} />
                 </span>
               )}
               {post.isLocked && (
-                <span className="db-badge db-badge--lock" title="Locked">
+                <span className="db-badge db-badge--lock" title={tr('postCard.locked')}>
                   <Lock size={10} />
                 </span>
               )}
               {hasBestAnswer && (
-                <span className="db-badge db-badge--solved" title="Solved">
+                <span className="db-badge db-badge--solved" title={tr('postCard.solved')}>
                   <Award size={10} />
                 </span>
               )}
@@ -72,7 +74,7 @@ export default function PostCard({
             className="db-post-topic db-post-topic--desktop"
             style={{ color: postTopicColor, background: `${postTopicColor}18` }}
           >
-            {post.topicId?.name || 'General'}
+            {post.topicId?.name || tr('postCard.general')}
           </span>
         </div>
 
@@ -121,20 +123,20 @@ export default function PostCard({
             className="db-post-topic db-post-topic--mobile"
             style={{ color: postTopicColor, background: `${postTopicColor}18` }}
           >
-            {post.topicId?.name || 'General'}
+            {post.topicId?.name || tr('postCard.general')}
           </span>
         </div>
       </div>
 
       <div className="db-post-aside">
         <div className="db-post-stats">
-          <span title="Likes">
+          <span title={tr('postCard.likes')}>
             <ThumbsUp size={13} /> {post.likesCount || 0}
           </span>
-          <span title="Comments">
+          <span title={tr('postCard.comments')}>
             <MessageSquare size={13} /> {post.commentsCount || 0}
           </span>
-          <span title="Views">
+          <span title={tr('postCard.views')}>
             <Eye size={13} /> {post.viewsCount || 0}
           </span>
         </div>
@@ -144,10 +146,10 @@ export default function PostCard({
             className="db-post-dm"
             onClick={(e) => onStartDm(post.authorId, e)}
             disabled={dmLoadingId === authorId}
-            aria-label={`Message ${post.authorId?.name || 'user'}`}
+            aria-label={tr('postCard.messageUserTemplate').replace('{name}', post.authorId?.name || tr('postCard.fallbackUser'))}
           >
             <MessageSquare size={13} />
-            <span>{dmLoadingId === authorId ? '…' : 'DM'}</span>
+            <span>{dmLoadingId === authorId ? '…' : tr('postCard.dm')}</span>
           </button>
         )}
       </div>

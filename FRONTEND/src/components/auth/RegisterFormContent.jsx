@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import { theme } from '../../theme';
+import { useI18n } from '../../i18n/I18nContext';
 import { API_URL } from '../../config/api';
 
 const t = theme;
@@ -30,6 +31,7 @@ function Field({ label, icon: Icon, children }) {
 }
 
 export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
+  const { t: tr } = useI18n();
   const [formData, setFormData] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -49,14 +51,14 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
     return s;
   })();
 
-  const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'][pwStrength];
+  const strengthLabel = ['', tr('auth.register.strengthWeak'), tr('auth.register.strengthFair'), tr('auth.register.strengthGood'), tr('auth.register.strengthStrong')][pwStrength];
   const strengthColor = ['', t.clay, t.gold, t.sage, t.sageDeep][pwStrength];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (formData.password !== formData.confirmPassword) { setError('Passwords do not match'); return; }
-    if (formData.password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (formData.password !== formData.confirmPassword) { setError(tr('auth.register.passwordsNoMatch')); return; }
+    if (formData.password.length < 8) { setError(tr('auth.register.passwordMinLength')); return; }
     setLoading(true);
     try {
       const controller = new AbortController();
@@ -73,11 +75,11 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
       if (response.ok) {
         navigate('/verify-otp', { state: { email: formData.email } });
       } else {
-        setError(data.message || 'Registration failed');
+        setError(data.message || tr('auth.register.registrationFailed'));
       }
     } catch (err) {
       console.error('Register connection error:', err);
-      setError(err.name === 'AbortError' ? 'Request timed out. Please try again.' : 'Connection error. Please try again.');
+      setError(err.name === 'AbortError' ? tr('auth.register.requestTimedOut') : tr('auth.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -88,7 +90,7 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
       <button
         type="button"
         onClick={onSwitchToLogin}
-        aria-label="Back to sign in"
+        aria-label={tr('auth.register.backToSignIn')}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -105,14 +107,14 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
         }}
       >
         <ArrowLeft size={14} />
-        Sign in
+        {tr('auth.login.signIn')}
       </button>
 
       <h1 style={{ color: t.ink, fontSize: '18px', fontWeight: '500', margin: '0 0 2px', letterSpacing: '-0.2px', fontFamily: t.fontDisplay }}>
-        Create account
+        {tr('auth.register.title')}
       </h1>
       <p style={{ color: t.inkSoft, fontSize: '11px', margin: '0 0 10px' }}>
-        Start managing your diabetes
+        {tr('auth.register.subtitle')}
       </p>
 
       {error ? (
@@ -122,16 +124,16 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
       ) : null}
 
       <form onSubmit={handleSubmit}>
-        <Field label="Full name" icon={User}>
+        <Field label={tr('auth.register.fullNameLabel')} icon={User}>
           <input name="fullName" type="text" value={formData.fullName} onChange={handleChange} placeholder="Jane Doe" required style={inputStyle} onFocus={focus} onBlur={blur} />
         </Field>
 
-        <Field label="Email" icon={Mail}>
+        <Field label={tr('auth.login.emailLabel')} icon={Mail}>
           <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="you@example.com" required style={inputStyle} onFocus={focus} onBlur={blur} />
         </Field>
 
-        <Field label="Password" icon={Lock}>
-          <input name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleChange} placeholder="Min. 8 chars" required style={{ ...inputStyle, paddingRight: '36px' }} onFocus={focus} onBlur={blur} />
+        <Field label={tr('auth.login.passwordLabel')} icon={Lock}>
+          <input name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleChange} placeholder={tr('auth.register.minCharsPlaceholder')} required style={{ ...inputStyle, paddingRight: '36px' }} onFocus={focus} onBlur={blur} />
           <button type="button" tabIndex={-1} onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: t.inkFaint, padding: 0 }}>
             {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
           </button>
@@ -148,7 +150,7 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
           </div>
         ) : null}
 
-        <Field label="Confirm password" icon={Lock}>
+        <Field label={tr('auth.register.confirmPasswordLabel')} icon={Lock}>
           <input name="confirmPassword" type={showConfirm ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" required style={{ ...inputStyle, paddingRight: '36px' }} onFocus={focus} onBlur={blur} />
           <button type="button" tabIndex={-1} onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: t.inkFaint, padding: 0 }}>
             {showConfirm ? <EyeOff size={12} /> : <Eye size={12} />}
@@ -161,7 +163,7 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', cursor: 'pointer', marginBottom: '10px' }}>
           <input type="checkbox" required style={{ accentColor: t.sageDeep, marginTop: '1px', width: '11px', height: '11px' }} />
           <span style={{ color: t.inkSoft, fontSize: '10px', lineHeight: '1.35' }}>
-            I agree to <a href="#" style={{ color: t.sageDeep, textDecoration: 'none' }}>Terms</a> & <a href="#" style={{ color: t.sageDeep, textDecoration: 'none' }}>Privacy</a>
+            {tr('auth.register.agreeTo')} <a href="#" style={{ color: t.sageDeep, textDecoration: 'none' }}>{tr('auth.terms')}</a> {tr('auth.and')} <a href="#" style={{ color: t.sageDeep, textDecoration: 'none' }}>{tr('auth.register.privacy')}</a>
           </span>
         </label>
 
@@ -180,7 +182,7 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
           onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = t.olive; }}
           onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = t.sageDeep; }}
         >
-          {loading ? 'Creating…' : <>Create account <ArrowRight size={12} /></>}
+          {loading ? tr('auth.register.creating') : <>{tr('auth.register.createAccount')} <ArrowRight size={12} /></>}
         </button>
       </form>
     </div>

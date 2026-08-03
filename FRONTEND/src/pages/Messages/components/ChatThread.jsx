@@ -10,6 +10,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { theme } from '../../../theme';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   idOf,
   getChatPartnerName,
@@ -34,14 +35,15 @@ export default function ChatThread({
   onSendMessage,
   onOpenNew,
 }) {
+  const { t: tr } = useI18n();
   if (!activeConv) {
     return (
       <div className="db-msg-chat" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', background: t.surface, minWidth: 0 }}>
         <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', color: t.inkSoft, textAlign: 'center' }}>
           <Inbox size={48} color={t.inkFaint} style={{ marginBottom: '16px' }} />
-          <h3 style={{ fontFamily: t.fontDisplay, fontSize: '20px', margin: '0 0 8px 0', color: t.ink }}>Your chats</h3>
+          <h3 style={{ fontFamily: t.fontDisplay, fontSize: '20px', margin: '0 0 8px 0', color: t.ink }}>{tr('messages.yourChats')}</h3>
           <p style={{ fontSize: '14px', maxWidth: '320px', margin: '0 0 18px' }}>
-            Pick a conversation on the left, or start a new 1:1 chat or group.
+            {tr('messages.pickConversation')}
           </p>
           <button
             type="button"
@@ -60,7 +62,7 @@ export default function ChatThread({
               gap: 6,
             }}
           >
-            <UserPlus size={14} /> New chat
+            <UserPlus size={14} /> {tr('messages.newChat')}
           </button>
         </div>
       </div>
@@ -75,7 +77,7 @@ export default function ChatThread({
             type="button"
             className="db-msg-back"
             onClick={onBack}
-            aria-label="Back to conversations"
+            aria-label={tr('messages.backToConversations')}
             style={{
               display: 'none',
               background: t.surfaceSunken,
@@ -112,12 +114,12 @@ export default function ChatThread({
 
           <div style={{ minWidth: 0 }}>
             <h3 style={{ fontSize: '15px', fontWeight: '700', color: t.ink, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {getChatPartnerName(activeConv, myId)}
+              {getChatPartnerName(activeConv, myId, { group: tr('messages.group'), unknown: tr('messages.unknownBuddy') })}
             </h3>
 
             {activeConv.isGroup && (
               <p style={{ fontSize: '10px', color: t.inkFaint, margin: 0, fontWeight: 600 }}>
-                {activeConv.members?.length || 0} members
+                {tr('messages.membersTemplate').replace('{n}', activeConv.members?.length || 0)}
               </p>
             )}
           </div>
@@ -127,7 +129,7 @@ export default function ChatThread({
           <button
             type="button"
             onClick={onOpenGroupPanel}
-            aria-label="Group info"
+            aria-label={tr('messages.groupInfo')}
             style={{
               background: t.surfaceSunken,
               border: `1px solid ${t.line}`,
@@ -190,8 +192,8 @@ export default function ChatThread({
                       <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       {isMe && (
                         readByOthers
-                          ? <CheckCheck size={12} color={t.sageDeep} title="Read" />
-                          : <Check size={12} color={t.inkFaint} title="Sent" />
+                          ? <CheckCheck size={12} color={t.sageDeep} title={tr('messages.read')} />
+                          : <Check size={12} color={t.inkFaint} title={tr('messages.sent')} />
                       )}
                     </div>
                   </div>
@@ -224,7 +226,7 @@ export default function ChatThread({
           type="text"
           value={messageText}
           onChange={(e) => onMessageTextChange(e.target.value)}
-          placeholder="Type a message…"
+          placeholder={tr('messages.typeMessage')}
           required
           style={{
             flexGrow: 1,

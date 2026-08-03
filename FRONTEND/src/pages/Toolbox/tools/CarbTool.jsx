@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
 import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge } from '../toolboxStyles';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function CarbTool() {
+  const { t: tr } = useI18n();
   const [foodName, setFoodName] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [carbsPerServing, setCarbsPerServing] = useState('15');
@@ -29,7 +31,7 @@ export default function CarbTool() {
       ...prev,
       {
         id: Date.now(),
-        name: foodName.trim() || 'Food item',
+        name: foodName.trim() || tr('toolboxTools.carb.defaultFoodName'),
         qty,
         carbs,
       },
@@ -49,25 +51,25 @@ export default function CarbTool() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <p style={{ margin: 0, fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-        Track carbs for a meal or day. Set your allowance based on what your clinician or dietitian recommended.
+        {tr('toolboxTools.carb.intro')}
       </p>
 
       <div>
-        <label style={labelStyle}>Daily carb allowance (g)</label>
+        <label style={labelStyle}>{tr('toolboxTools.carb.dailyAllowance')}</label>
         <input type="number" min="0" value={dailyAllowance} onChange={(e) => setDailyAllowance(e.target.value)} style={fieldStyle} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.7fr 0.9fr', gap: 10 }}>
         <div>
-          <label style={labelStyle}>Food</label>
-          <input type="text" placeholder="e.g. Roti" value={foodName} onChange={(e) => setFoodName(e.target.value)} style={fieldStyle} />
+          <label style={labelStyle}>{tr('toolboxTools.carb.food')}</label>
+          <input type="text" placeholder={tr('toolboxTools.carb.foodPlaceholder')} value={foodName} onChange={(e) => setFoodName(e.target.value)} style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Qty</label>
+          <label style={labelStyle}>{tr('toolboxTools.carb.qty')}</label>
           <input type="number" min="0.1" step="0.1" value={quantity} onChange={(e) => setQuantity(e.target.value)} style={fieldStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Carbs (g)</label>
+          <label style={labelStyle}>{tr('toolboxTools.carb.carbsG')}</label>
           <input type="number" min="0" step="0.1" value={carbsPerServing} onChange={(e) => setCarbsPerServing(e.target.value)} style={fieldStyle} />
         </div>
       </div>
@@ -88,7 +90,7 @@ export default function CarbTool() {
           fontFamily: t.fontBody,
         }}
       >
-        Add to list
+        {tr('toolboxTools.carb.addToList')}
       </button>
 
       {entries.length > 0 && (
@@ -103,7 +105,7 @@ export default function CarbTool() {
                 gap: 10,
                 padding: '10px 12px',
                 borderRadius: 12,
-                background: '#FFF',
+                background: t.surface,
                 border: `1px solid ${t.line}`,
               }}
             >
@@ -126,7 +128,7 @@ export default function CarbTool() {
                     fontFamily: t.fontBody,
                   }}
                 >
-                  Remove
+                  {tr('toolboxTools.carb.remove')}
                 </button>
               </div>
             </div>
@@ -137,21 +139,21 @@ export default function CarbTool() {
       <div style={resultPanel}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <p style={eyebrow}>Total carbs</p>
+            <p style={eyebrow}>{tr('toolboxTools.carb.totalCarbs')}</p>
             <p style={{ margin: '4px 0 0', fontFamily: t.fontDisplay, fontSize: 32, color: t.ink, fontWeight: 600 }}>
               {totalCarbs}
               <span style={{ fontSize: 14, fontFamily: t.fontBody, fontWeight: 500, color: t.inkFaint, marginLeft: 6 }}>g</span>
             </p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <p style={eyebrow}>Remaining</p>
+            <p style={eyebrow}>{tr('toolboxTools.carb.remaining')}</p>
             <p style={{ margin: '4px 0 0', fontFamily: t.fontDisplay, fontSize: 32, color: remainingTone, fontWeight: 600 }}>
               {remaining == null ? '—' : remaining}
               <span style={{ fontSize: 14, fontFamily: t.fontBody, fontWeight: 500, color: t.inkFaint, marginLeft: 6 }}>g</span>
             </p>
             {remaining != null && remaining < 0 && (
               <div style={{ marginTop: 8 }}>
-                <ResultBadge label="Over allowance" color={t.clay} />
+                <ResultBadge label={tr('toolboxTools.carb.overAllowance')} color={t.clay} />
               </div>
             )}
           </div>

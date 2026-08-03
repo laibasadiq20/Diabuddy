@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 
 import ScrollToTop from './components/ScrollToTop';
 import { useAuth } from './context/AuthContext';
+import { useI18n } from './i18n/I18nContext';
 
 // Eager: first paint / auth (small, always needed)
 import LandingPage from './pages/LandingPage/LandingPage';
@@ -25,6 +26,7 @@ const UserProfile = lazy(() => import('./pages/Community/UserProfile'));
 const Messages = lazy(() => import('./pages/Messages/Messages'));
 const Notifications = lazy(() => import('./pages/Notifications/Notifications'));
 const Account = lazy(() => import('./pages/Account/Account'));
+const Settings = lazy(() => import('./pages/Settings/Settings'));
 const AdminReports = lazy(() => import('./pages/Admin/AdminReports'));
 const Toolbox = lazy(() => import('./pages/Toolbox/Toolbox'));
 const Logs = lazy(() => import('./pages/Logs/Logs'));
@@ -34,6 +36,7 @@ const Reminders = lazy(() => import('./pages/Reminders/Reminders'));
 const Reports = lazy(() => import('./pages/Reports/Reports'));
 
 function RouteFallback() {
+  const { t: tr } = useI18n();
   return (
     <div
       style={{
@@ -41,11 +44,11 @@ function RouteFallback() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#F7F3EC',
+        background: 'var(--bg, #F7F3EC)',
       }}
     >
-      <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", color: '#6B6660', margin: 0 }}>
-        Loading…
+      <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", color: 'var(--ink-faint, #6B6660)', margin: 0 }}>
+        {tr('common.loading')}
       </p>
     </div>
   );
@@ -114,6 +117,7 @@ function App() {
           <Route path="/fitbit" element={<Navigate to="/google-health" replace />} />
           <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminReports /></ProtectedRoute>} />
           <Route path="/admin/reports" element={<ProtectedRoute adminOnly><AdminReports /></ProtectedRoute>} />

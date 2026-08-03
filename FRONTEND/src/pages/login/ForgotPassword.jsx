@@ -4,6 +4,7 @@ import { Mail, ArrowRight, ArrowLeft, HeartPulse } from 'lucide-react';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { homePathFor } from '../../utils/homePath';
 
 const t = theme;
@@ -24,6 +25,7 @@ export default function ForgotPassword() {
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { t: tr } = useI18n();
 
   useEffect(() => {
     if (!authLoading && user) navigate(homePathFor(user), { replace: true });
@@ -38,7 +40,7 @@ export default function ForgotPassword() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(normalizedEmail)) {
-      setError('Please enter a valid email address.');
+      setError(tr('auth.errorInvalidEmail'));
       return;
     }
 
@@ -52,17 +54,17 @@ export default function ForgotPassword() {
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok) {
-        setSuccess('A reset code has been sent to your email.');
+        setSuccess(tr('auth.forgotPassword.codeSent'));
         setTimeout(() => {
           navigate('/reset-password', { state: { email: normalizedEmail } });
         }, 1400);
       } else if (response.status === 404) {
-        setError('Reset password is not available on the server yet. Please redeploy the backend.');
+        setError(tr('auth.forgotPassword.notAvailable'));
       } else {
-        setError(data.message || 'Failed to send reset code.');
+        setError(data.message || tr('auth.forgotPassword.failedToSend'));
       }
     } catch {
-      setError('Connection error. Please try again.');
+      setError(tr('auth.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -116,7 +118,7 @@ export default function ForgotPassword() {
           <button
             type="button"
             onClick={() => navigate('/login')}
-            aria-label="Back to sign in"
+            aria-label={tr('auth.register.backToSignIn')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -135,11 +137,11 @@ export default function ForgotPassword() {
             onMouseLeave={(e) => { e.currentTarget.style.color = '#555555'; }}
           >
             <ArrowLeft size={16} />
-            Sign in
+            {tr('auth.login.signIn')}
           </button>
 
-          <h1 style={{ color: '#1A1A1A', fontSize: '20px', fontWeight: '700', marginBottom: '4px', fontFamily: t.fontDisplay }}>Reset password</h1>
-          <p style={{ color: '#333333', fontSize: '12px', marginBottom: '18px', fontWeight: '500' }}>Enter your email to receive a reset code</p>
+          <h1 style={{ color: '#1A1A1A', fontSize: '20px', fontWeight: '700', marginBottom: '4px', fontFamily: t.fontDisplay }}>{tr('auth.forgotPassword.title')}</h1>
+          <p style={{ color: '#333333', fontSize: '12px', marginBottom: '18px', fontWeight: '500' }}>{tr('auth.forgotPassword.subtitle')}</p>
 
           {error && (
             <div style={{ background: t.clayTint, border: `1px solid ${t.clay}35`, borderRadius: '8px', padding: '8px 12px', marginBottom: '14px', color: '#8B0000', fontSize: '11px', fontWeight: '600' }}>
@@ -155,7 +157,7 @@ export default function ForgotPassword() {
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#333333', fontSize: '11px', fontWeight: '700', marginBottom: '4px', letterSpacing: '0.3px' }}>EMAIL</label>
+              <label style={{ display: 'block', color: '#333333', fontSize: '11px', fontWeight: '700', marginBottom: '4px', letterSpacing: '0.3px' }}>{tr('auth.emailUpper')}</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666666' }} />
                 <input
@@ -188,7 +190,7 @@ export default function ForgotPassword() {
               onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = t.olive; } }}
               onMouseLeave={(e) => { if (!loading) { e.currentTarget.style.background = t.sageDeep; } }}
             >
-              {loading ? 'Sending…' : <>Send code <ArrowRight size={12} /></>}
+              {loading ? tr('auth.forgotPassword.sending') : <>{tr('auth.forgotPassword.sendCode')} <ArrowRight size={12} /></>}
             </button>
           </form>
         </div>

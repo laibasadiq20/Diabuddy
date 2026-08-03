@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
@@ -11,56 +12,66 @@ const t = theme;
 
 const PRIORITY_IDS = ['glucose', 'meal', 'insulin', 'medication', 'exercise'];
 
-function typeStatus(summary, typeId) {
+const MOOD_VALUE_KEYS = {
+  'Very Happy': 'veryHappy',
+  Happy: 'happy',
+  Neutral: 'neutral',
+  Sad: 'sad',
+  Anxious: 'anxious',
+};
+
+function typeStatus(summary, typeId, tr) {
   if (!summary) return { done: false, detail: '' };
   switch (typeId) {
     case 'glucose':
       return {
         done: (summary.glucose?.count || 0) > 0,
         detail: summary.glucose?.value
-          ? `${summary.glucose.value} · ${summary.glucose.count} today`
+          ? tr('logs.typeStatus.glucoseTemplate').replace('{value}', summary.glucose.value).replace('{count}', summary.glucose.count)
           : '',
       };
     case 'meal':
       return {
         done: (summary.meals?.value || 0) > 0,
         detail: summary.meals?.value
-          ? `${summary.meals.value} meal${summary.meals.value === 1 ? '' : 's'}`
+          ? tr(summary.meals.value === 1 ? 'logs.typeStatus.mealTemplate' : 'logs.typeStatus.mealsTemplate').replace('{n}', summary.meals.value)
           : '',
       };
     case 'insulin':
       return {
         done: (summary.insulin?.value || 0) > 0,
-        detail: summary.insulin?.value ? `${summary.insulin.value} u` : '',
+        detail: summary.insulin?.value ? tr('logs.typeStatus.unitsTemplate').replace('{n}', summary.insulin.value) : '',
       };
     case 'medication':
       return {
         done: (summary.medications?.value || 0) > 0,
         detail: summary.medications?.value
-          ? `${summary.medications.value} taken`
+          ? tr('logs.typeStatus.takenTemplate').replace('{n}', summary.medications.value)
           : '',
       };
     case 'water':
       return {
         done: (summary.water?.value || 0) > 0,
         detail: summary.water?.value
-          ? `${summary.water.value} / ${summary.water.goal || 2000} ml`
+          ? tr('logs.typeStatus.mlOfGoalTemplate').replace('{n}', summary.water.value).replace('{goal}', summary.water.goal || 2000)
           : '',
       };
     case 'exercise':
       return {
         done: (summary.exercise?.value || 0) > 0,
-        detail: summary.exercise?.value ? `${summary.exercise.value} min` : '',
+        detail: summary.exercise?.value ? tr('logs.typeStatus.minTemplate').replace('{n}', summary.exercise.value) : '',
       };
     case 'sleep':
       return {
         done: (summary.sleep?.value || 0) > 0,
-        detail: summary.sleep?.value ? `${summary.sleep.value} h` : '',
+        detail: summary.sleep?.value ? tr('logs.typeStatus.hTemplate').replace('{n}', summary.sleep.value) : '',
       };
     case 'mood':
       return {
         done: !!summary.mood?.value,
-        detail: summary.mood?.value || '',
+        detail: summary.mood?.value
+          ? tr(`logEntryForm.mood.moods.${MOOD_VALUE_KEYS[summary.mood.value]}`, summary.mood.value)
+          : '',
       };
     default:
       return { done: false, detail: '' };
@@ -70,6 +81,7 @@ function typeStatus(summary, typeId) {
 export default function Logs() {
   const navigate = useNavigate();
   const { user, authHeaders } = useAuth();
+  const { t: tr } = useI18n();
   const [summary, setSummary] = useState(null);
   const [streak, setStreak] = useState(null);
 
@@ -114,7 +126,9 @@ export default function Logs() {
 
   const renderCard = (item, featured = false) => {
     const Icon = item.icon;
-    const status = typeStatus(summary, item.id);
+    const status = typeStatus(summary, item.id, tr);
+    const label = tr(`logs.types.${item.id}.label`, item.label);
+    const hubLine = tr(`logs.types.${item.id}.hubLine`, item.hubLine);
     return (
       <button
         key={item.id}
@@ -127,16 +141,16 @@ export default function Logs() {
         </span>
         <span className="db-logs-hub-copy">
           <span className="db-logs-hub-label-row">
-            <span className="db-logs-hub-label">{item.label}</span>
+            <span className="db-logs-hub-label">{label}</span>
             {status.done && (
-              <span className="db-logs-hub-done" title="Logged today">
+              <span className="db-logs-hub-done" title={tr('logs.loggedToday')}>
                 <Check size={12} strokeWidth={2.5} />
-                Today
+                {tr('logs.today')}
               </span>
             )}
           </span>
           <span className="db-logs-hub-line">
-            {status.detail || item.hubLine}
+            {status.detail || hubLine}
           </span>
         </span>
         <ChevronRight size={18} color={t.inkFaint} style={{ flexShrink: 0 }} />
@@ -150,13 +164,13 @@ export default function Logs() {
       <main className="db-logs-hub-main">
         <div className="db-logs-hub-inner">
           <header className="db-logs-hub-header">
-            <p className="db-logs-hub-eyebrow">Record what happened</p>
+            <p className="db-logs-hub-eyebrow">{tr('logs.eyebrow')}</p>
             <h1 className="db-logs-hub-title">
               <ClipboardList size={26} color={t.forest} strokeWidth={1.75} />
-              Health logs
+              {tr('logs.title')}
             </h1>
             <p className="db-logs-hub-lead">
-              Tap a category below to add an entry. Items marked Today are already logged.
+              {tr('logs.lead')}
             </p>
           </header>
 
@@ -167,21 +181,21 @@ export default function Logs() {
                 <div>
                   <strong>
                     {streak.currentStreak > 0
-                      ? `${streak.currentStreak}-day streak`
-                      : 'No streak yet'}
+                      ? tr('logs.streak.dayStreakTemplate').replace('{n}', streak.currentStreak)
+                      : tr('logs.streak.noStreak')}
                   </strong>
                   <p>{streak.message}</p>
                 </div>
               </div>
               {streak.last7?.length > 0 && (
-                <div className="db-logs-week" aria-label="Logging activity this week">
-                  <span className="db-logs-week-label">This week</span>
+                  <div className="db-logs-week" aria-label={tr('logs.thisWeek')}>
+                    <span className="db-logs-week-label">{tr('logs.thisWeek')}</span>
                   <div className="db-logs-week-days">
                     {streak.last7.map((d) => {
                       const weekday = new Date(`${d.date}T12:00:00`).toLocaleDateString(undefined, {
                         weekday: 'narrow',
                       });
-                      const status = d.logged ? 'Logged' : d.isToday ? 'Today — not yet' : 'Missed';
+                      const status = d.logged ? tr('logs.dayStatus.logged') : d.isToday ? tr('logs.dayStatus.todayNotYet') : tr('logs.dayStatus.missed');
                       return (
                         <div
                           key={d.date}
@@ -202,31 +216,31 @@ export default function Logs() {
           )}
 
           {summary && (
-            <div className="db-logs-hub-strip" aria-label="Today at a glance">
+            <div className="db-logs-hub-strip" aria-label={tr('dashboard.glance.title')}>
               <span>
-                <strong>{summary.glucose?.count || 0}</strong> glucose
+                <strong>{summary.glucose?.count || 0}</strong> {tr('logs.strip.glucose')}
               </span>
               <span>
-                <strong>{summary.meals?.value || 0}</strong> meals
+                <strong>{summary.meals?.value || 0}</strong> {tr('logs.strip.meals')}
               </span>
               <span>
-                <strong>{summary.water?.value || 0}</strong> ml water
+                <strong>{summary.water?.value || 0}</strong> {tr('logs.strip.water')}
               </span>
               <span>
-                <strong>{summary.medications?.value || 0}</strong> meds
+                <strong>{summary.medications?.value || 0}</strong> {tr('logs.strip.meds')}
               </span>
             </div>
           )}
 
           <section className="db-logs-hub-section">
-            <h2 className="db-logs-hub-section-title">Daily diabetes essentials</h2>
-            <p className="db-logs-hub-section-note">Glucose, meals, insulin, medications, and activity</p>
+            <h2 className="db-logs-hub-section-title">{tr('logs.essentialsTitle')}</h2>
+            <p className="db-logs-hub-section-note">{tr('logs.essentialsNote')}</p>
             <div className="db-logs-hub-list">{priority.map((item) => renderCard(item, true))}</div>
           </section>
 
           <section className="db-logs-hub-section">
-            <h2 className="db-logs-hub-section-title">Lifestyle</h2>
-            <p className="db-logs-hub-section-note">Water, sleep, and mood</p>
+            <h2 className="db-logs-hub-section-title">{tr('logs.lifestyleTitle')}</h2>
+            <p className="db-logs-hub-section-note">{tr('logs.lifestyleNote')}</p>
             <div className="db-logs-hub-list">{more.map((item) => renderCard(item))}</div>
           </section>
         </div>
@@ -236,7 +250,7 @@ export default function Logs() {
         .db-logs-hub {
           min-height: 100vh;
           display: flex;
-          background: linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 40%);
+          background: linear-gradient(180deg, ${t.pageFadeTop} 0%, ${t.bg} 40%);
           font-family: ${t.fontBody};
         }
         .db-logs-hub-main {
@@ -279,7 +293,7 @@ export default function Logs() {
           padding: 14px;
           border-radius: 14px;
           border: 1px solid ${t.lineStrong};
-          background: #fff;
+          background: ${t.surface};
           display: flex;
           flex-direction: column;
           gap: 14px;
@@ -355,7 +369,7 @@ export default function Logs() {
           color: ${t.clayDeep};
         }
         .db-logs-day.is-today:not(.is-on) .db-logs-day-mark {
-          background: #fff;
+          background: ${t.surface};
           border-color: ${t.forest};
           color: ${t.forest};
           box-shadow: inset 0 0 0 1px ${t.forest}22;
@@ -384,7 +398,7 @@ export default function Logs() {
           margin: 18px 0 22px;
           padding: 12px 14px;
           border-radius: 12px;
-          background: #fff;
+          background: ${t.surface};
           border: 1px solid ${t.lineStrong};
           font-size: 12px;
           color: ${t.inkSoft};
@@ -426,7 +440,7 @@ export default function Logs() {
           padding: 12px 12px;
           border-radius: 14px;
           border: 1px solid ${t.lineStrong};
-          background: #fff;
+          background: ${t.surface};
           box-shadow: none;
           cursor: pointer;
           font-family: ${t.fontBody};

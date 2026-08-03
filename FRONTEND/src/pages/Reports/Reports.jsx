@@ -26,6 +26,7 @@ import {
   Droplets,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import api from '../../config/axios';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
@@ -35,11 +36,11 @@ import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
 const t = theme;
 
 const PRESETS = [
-  { id: '1d', label: 'Daily' },
-  { id: '7d', label: 'Weekly' },
-  { id: '30d', label: 'Monthly' },
-  { id: '90d', label: '3 months' },
-  { id: 'custom', label: 'Custom' },
+  { id: '1d', labelKey: 'reports.presets.daily' },
+  { id: '7d', labelKey: 'reports.presets.weekly' },
+  { id: '30d', labelKey: 'reports.presets.monthly' },
+  { id: '90d', labelKey: 'reports.presets.threeMonths' },
+  { id: 'custom', labelKey: 'reports.presets.custom' },
 ];
 
 const TIR_COLORS = {
@@ -65,7 +66,7 @@ function defaultCustomRange() {
   return { start: toInputDate(start.toISOString()), end: toInputDate(end.toISOString()) };
 }
 
-function DeltaBadge({ value, invert = false, against, unit = '' }) {
+function DeltaBadge({ value, invert = false, against, unit = '', tr }) {
   if (value == null || Number.isNaN(Number(value))) {
     return null;
   }
@@ -73,10 +74,11 @@ function DeltaBadge({ value, invert = false, against, unit = '' }) {
   const better = invert ? n < 0 : n > 0;
   const worse = invert ? n > 0 : n < 0;
   const abs = Math.abs(n);
+  const fromSuffix = against ? ` ${tr('reports.fromTemplate').replace('{against}', against)}` : '';
   const text =
     n === 0
-      ? `No change${against ? ` from ${against}` : ''}`
-      : `${n > 0 ? '↑' : '↓'} ${abs}${unit}${against ? ` from ${against}` : ''}`;
+      ? `${tr('reports.noChange')}${fromSuffix}`
+      : `${n > 0 ? '↑' : '↓'} ${abs}${unit}${fromSuffix}`;
   return (
     <span className={`db-rep-delta${better ? ' is-up' : ''}${worse ? ' is-down' : ''}${n === 0 ? ' is-flat' : ''}`}>
       {text}
@@ -84,7 +86,7 @@ function DeltaBadge({ value, invert = false, against, unit = '' }) {
   );
 }
 
-function MetricCard({ label, value, unit, delta, invertDelta, hint, against }) {
+function MetricCard({ label, value, unit, delta, invertDelta, hint, against, tr }) {
   return (
     <div className="db-rep-metric">
       <p className="db-rep-metric-label">{label}</p>
@@ -94,47 +96,47 @@ function MetricCard({ label, value, unit, delta, invertDelta, hint, against }) {
       </p>
       {hint ? <p className="db-rep-metric-hint">{hint}</p> : null}
       {delta !== undefined && delta !== null ? (
-        <DeltaBadge value={delta} invert={invertDelta} against={against} unit={unit || ''} />
+        <DeltaBadge value={delta} invert={invertDelta} against={against} unit={unit || ''} tr={tr} />
       ) : null}
     </div>
   );
 }
 
-function ChartCard({ title, subtitle, children, empty, wide }) {
+function ChartCard({ title, subtitle, children, empty, wide, emptyLabel }) {
   return (
     <section className={`db-rep-chart${wide ? ' is-wide' : ''}`}>
       <header className="db-rep-chart-head">
         <h3>{title}</h3>
         {subtitle ? <p>{subtitle}</p> : null}
       </header>
-      {empty ? <p className="db-rep-empty-inline">No data in this period.</p> : children}
+      {empty ? <p className="db-rep-empty-inline">{emptyLabel}</p> : children}
     </section>
   );
 }
 
 // Surfaces the same warm "care letter" narrative that reportExport.js renders in the
 // PDF, so it's readable in-app too — above the charts, not buried in a download.
-function CareLetter({ story }) {
+function CareLetter({ story, tr }) {
   if (!story?.careLetter && !story?.narrative && !story?.summary) return null;
   const letter = story.careLetter || story.narrative || story.summary;
   const rating = story.rating || 'fair';
   return (
     <section className="db-rep-letter">
-      <p className="db-rep-letter-eyebrow">From DiaBuddy</p>
+      <p className="db-rep-letter-eyebrow">{tr('reports.letter.from')}</p>
       <div className="db-rep-letter-head">
-        <h2>{story.careLetterTitle || story.headline || 'Your care letter'}</h2>
+        <h2>{story.careLetterTitle || story.headline || tr('reports.letter.defaultTitle')}</h2>
         {story.ratingLabel ? (
           <span className={`db-rep-letter-rating is-${rating}`}>{story.ratingLabel}</span>
         ) : null}
       </div>
       <p className="db-rep-letter-body">{letter}</p>
-      <p className="db-rep-letter-signoff">— Your DiaBuddy companion</p>
+      <p className="db-rep-letter-signoff">{tr('reports.letter.signoff')}</p>
     </section>
   );
 }
 
 const tooltipStyle = {
-  background: '#fff',
+  background: t.surface,
   border: `1px solid ${t.lineStrong}`,
   borderRadius: 10,
   fontSize: 12,
@@ -143,6 +145,7 @@ const tooltipStyle = {
 
 export default function Reports() {
   const { user } = useAuth();
+  const { t: tr } = useI18n();
   const navigate = useNavigate();
   const [preset, setPreset] = useState('7d');
   const [custom, setCustom] = useState(defaultCustomRange);
@@ -171,7 +174,7 @@ export default function Reports() {
       });
       if (preset === 'custom') {
         if (!custom.start || !custom.end) {
-          setError('Choose a start and end date for the custom range.');
+          setError(tr('reports.errors.chooseDates'));
           setLoading(false);
           return;
         }
@@ -185,20 +188,20 @@ export default function Reports() {
 
       const { data } = await api.get(`/health-logs/report?${params}`);
       if (data?.status !== 'success' || !data?.data) {
-        throw new Error(data?.message || 'Could not load report');
+        throw new Error(data?.message || tr('reports.errors.couldNotLoad'));
       }
       setReport(data.data);
     } catch (err) {
       const raw = err.response?.data;
-      let message = raw?.message || err.message || 'Could not load report';
+      let message = raw?.message || err.message || tr('reports.errors.couldNotLoad');
       if (typeof raw === 'string' && /<!DOCTYPE|<\/html>/i.test(raw)) {
-        message = 'Reports API did not respond with data. Make sure the backend is running and up to date.';
+        message = tr('reports.errors.apiNoData');
       } else if (/Unexpected token|is not valid JSON/i.test(String(message))) {
-        message = 'Reports API did not respond with data. Make sure the backend is running and up to date.';
+        message = tr('reports.errors.apiNoData');
       } else if (err.response?.status === 401) {
-        message = 'Please sign in again to view reports.';
+        message = tr('reports.errors.signInAgain');
       } else if (err.response?.status === 404) {
-        message = raw?.message || 'Report endpoint not found. Redeploy or restart the backend.';
+        message = raw?.message || tr('reports.errors.endpointNotFound');
       }
       setError(message);
       setReport(null);
@@ -220,18 +223,18 @@ export default function Reports() {
   const story = report?.story;
 
   // Backend always reports glucose in mg/dL — convert for display based on the
-  // signed-in user's glucoseUnit preference (Account page).
+  // signed-in user's glucoseUnit preference (Settings page).
   const glucoseUnit = user?.glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
   const unitLabel = glucoseUnitLabel(glucoseUnit);
 
   const tirPie = useMemo(() => {
     if (!charts?.tir) return [];
     return [
-      { name: 'In range', value: charts.tir.inRange, color: TIR_COLORS.inRange },
-      { name: 'High', value: charts.tir.high, color: TIR_COLORS.high },
-      { name: 'Low', value: charts.tir.low, color: TIR_COLORS.low },
+      { name: tr('reports.pie.inRange'), value: charts.tir.inRange, color: TIR_COLORS.inRange },
+      { name: tr('reports.pie.high'), value: charts.tir.high, color: TIR_COLORS.high },
+      { name: tr('reports.pie.low'), value: charts.tir.low, color: TIR_COLORS.low },
     ].filter((x) => x.value > 0);
-  }, [charts]);
+  }, [charts, tr]);
 
   const dailyGlucose = useMemo(
     () =>
@@ -253,7 +256,9 @@ export default function Reports() {
     deltas?.glucoseStdDev != null ? fromMgdl(deltas.glucoseStdDev, glucoseUnit) : deltas?.glucoseStdDev;
   const glucoseRangeHint =
     metrics?.lowestGlucose != null
-      ? `Range ${fromMgdl(metrics.lowestGlucose, glucoseUnit)}–${fromMgdl(metrics.highestGlucose, glucoseUnit)}`
+      ? tr('reports.rangeHintTemplate')
+          .replace('{low}', fromMgdl(metrics.lowestGlucose, glucoseUnit))
+          .replace('{high}', fromMgdl(metrics.highestGlucose, glucoseUnit))
       : undefined;
   const tirTargetLow = fromMgdl(report?.tirTarget?.low ?? 70, glucoseUnit);
   const tirTargetHigh = fromMgdl(report?.tirTarget?.high ?? 180, glucoseUnit);
@@ -275,9 +280,9 @@ export default function Reports() {
     if (!report) return;
     setExportError('');
     try {
-      downloadReportPdf(report, { userName: exportUserName });
+      downloadReportPdf(report, { userName: exportUserName, tr });
     } catch (err) {
-      setExportError(err.message || 'Could not export PDF');
+      setExportError(err.message || tr('reports.errors.exportFailed'));
     }
   };
 
@@ -298,11 +303,10 @@ export default function Reports() {
         <div className="db-rep-inner">
           <header className="db-rep-hero">
             <div className="db-rep-hero-copy">
-              <p className="db-rep-eyebrow">Progress reporting</p>
-              <h1>Health reports</h1>
+              <p className="db-rep-eyebrow">{tr('reports.eyebrow')}</p>
+              <h1>{tr('reports.title')}</h1>
               <p className="db-rep-lead">
-                Daily, weekly, and monthly summaries built from your logged glucose, meals,
-                insulin, medications, and lifestyle data.
+                {tr('reports.lead')}
               </p>
             </div>
             <div className="db-rep-header-actions">
@@ -313,10 +317,10 @@ export default function Reports() {
                 disabled={!hasAnyData || loading}
               >
                 <FileText size={15} strokeWidth={2} />
-                Export PDF
+                {tr('reports.exportPdf')}
               </button>
               <button type="button" className="db-rep-ghost" onClick={() => navigate('/logs')}>
-                Open logs
+                {tr('reports.openLogs')}
               </button>
             </div>
           </header>
@@ -325,8 +329,8 @@ export default function Reports() {
           <div className="db-rep-controls">
             <div className="db-rep-controls-top">
               <div>
-                <p className="db-rep-controls-label">Report period</p>
-                <div className="db-rep-presets" role="tablist" aria-label="Report range">
+                <p className="db-rep-controls-label">{tr('reports.reportPeriod')}</p>
+                <div className="db-rep-presets" role="tablist" aria-label={tr('reports.reportPeriod')}>
                   {PRESETS.map((p) => (
                     <button
                       key={p.id}
@@ -336,7 +340,7 @@ export default function Reports() {
                       className={`db-rep-preset${preset === p.id ? ' is-active' : ''}`}
                       onClick={() => setPreset(p.id)}
                     >
-                      {p.label}
+                      {tr(p.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -347,14 +351,14 @@ export default function Reports() {
                   checked={compare}
                   onChange={(e) => setCompare(e.target.checked)}
                 />
-                Compare periods
+                {tr('reports.comparePeriods')}
               </label>
             </div>
 
             {preset === 'custom' && (
               <div className="db-rep-dates">
                 <label>
-                  From
+                  {tr('reports.from')}
                   <input
                     type="date"
                     value={custom.start}
@@ -363,7 +367,7 @@ export default function Reports() {
                   />
                 </label>
                 <label>
-                  To
+                  {tr('reports.to')}
                   <input
                     type="date"
                     value={custom.end}
@@ -377,10 +381,10 @@ export default function Reports() {
             {compare && (
               <div className="db-rep-dates db-rep-dates--compare">
                 <p>
-                  <CalendarRange size={14} /> Compare against
+                  <CalendarRange size={14} /> {tr('reports.compareAgainst')}
                 </p>
                 <label>
-                  From
+                  {tr('reports.from')}
                   <input
                     type="date"
                     value={compareCustom.start}
@@ -389,7 +393,7 @@ export default function Reports() {
                   />
                 </label>
                 <label>
-                  To
+                  {tr('reports.to')}
                   <input
                     type="date"
                     value={compareCustom.end}
@@ -404,22 +408,22 @@ export default function Reports() {
           {loading ? (
             <div className="db-rep-state">
               <Loader2 className="db-spin" size={22} />
-              Building report from your logs…
+              {tr('reports.buildingReport')}
             </div>
           ) : error ? (
             <div className="db-rep-state db-rep-state--error">
               <p>{error}</p>
               <button type="button" onClick={load}>
-                Try again
+                {tr('common.retry')}
               </button>
             </div>
           ) : !hasAnyData ? (
             <div className="db-rep-state">
               <BarChart3 size={28} color={t.inkFaint} />
-              <h2>No log data in this range</h2>
-              <p>Add glucose, meals, or meds for these dates, then reopen the report.</p>
+              <h2>{tr('reports.noDataTitle')}</h2>
+              <p>{tr('reports.noDataBody')}</p>
               <button type="button" className="db-rep-primary" onClick={() => navigate('/logs')}>
-                Go to logs
+                {tr('reports.goToLogs')}
               </button>
             </div>
           ) : (
@@ -429,86 +433,95 @@ export default function Reports() {
                 <span>{period.shortLabel}</span>
                 {comparePeriod ? (
                   <span className="db-rep-vs">
-                    vs {comparePeriod.label} ({comparePeriod.shortLabel})
+                    {tr('reports.vs')} {comparePeriod.label} ({comparePeriod.shortLabel})
                   </span>
                 ) : null}
-                {generatedLabel ? <span className="db-rep-generated">Generated {generatedLabel}</span> : null}
+                {generatedLabel ? <span className="db-rep-generated">{tr('reports.generated')} {generatedLabel}</span> : null}
               </div>
 
-              <CareLetter story={story} />
+              <CareLetter story={story} tr={tr} />
 
               <div className="db-rep-metrics">
                 <MetricCard
-                  label="Avg glucose"
+                  label={tr('reports.metrics.avgGlucose')}
                   value={avgGlucoseDisplay}
                   unit={` ${unitLabel}`}
                   delta={avgGlucoseDeltaDisplay}
                   invertDelta
                   against={compareAgainst}
                   hint={glucoseRangeHint}
+                  tr={tr}
                 />
                 <MetricCard
-                  label="Time in range"
+                  label={tr('reports.metrics.timeInRange')}
                   value={metrics.timeInRangePercent}
                   unit="%"
                   delta={deltas?.timeInRangePercent}
                   against={compareAgainst}
+                  tr={tr}
                 />
                 <MetricCard
-                  label="Est. A1c"
+                  label={tr('reports.metrics.estA1c')}
                   value={metrics.estimatedA1c}
                   unit="%"
                   delta={deltas?.estimatedA1c}
                   invertDelta
                   against={compareAgainst}
-                  hint="From logged average"
+                  hint={tr('reports.hints.fromLoggedAverage')}
+                  tr={tr}
                 />
                 <MetricCard
-                  label="Variability"
+                  label={tr('reports.metrics.variability')}
                   value={glucoseStdDevDisplay}
                   unit={` ${unitLabel}`}
                   delta={glucoseStdDevDeltaDisplay}
                   invertDelta
                   against={compareAgainst}
-                  hint="Std. deviation"
+                  hint={tr('reports.hints.stdDeviation')}
+                  tr={tr}
                 />
                 <MetricCard
-                  label="Insulin total"
+                  label={tr('reports.metrics.insulinTotal')}
                   value={metrics.totalInsulinUnits}
                   unit=" u"
                   delta={deltas?.totalInsulinUnits}
                   invertDelta
                   against={compareAgainst}
+                  tr={tr}
                 />
                 <MetricCard
-                  label="Med adherence"
+                  label={tr('reports.metrics.medAdherence')}
                   value={metrics.adherencePercent}
                   unit="%"
                   delta={deltas?.adherencePercent}
                   against={compareAgainst}
+                  tr={tr}
                 />
                 <MetricCard
-                  label="Avg sleep"
+                  label={tr('reports.metrics.avgSleep')}
                   value={metrics.avgSleepHours}
                   unit=" h"
                   delta={deltas?.avgSleepHours}
                   against={compareAgainst}
+                  tr={tr}
                 />
                 <MetricCard
-                  label="Activity"
+                  label={tr('reports.metrics.activity')}
                   value={metrics.totalExerciseMinutes}
                   unit=" min"
                   delta={deltas?.totalExerciseMinutes}
                   against={compareAgainst}
+                  tr={tr}
                 />
               </div>
 
-              <p className="db-rep-section-label">Trends & charts</p>
+              <p className="db-rep-section-label">{tr('reports.sectionLabel')}</p>
               <div className="db-rep-grid">
                 <ChartCard
-                  title="Daily average glucose"
-                  subtitle={`Target ${tirTargetLow}–${tirTargetHigh} ${unitLabel}`}
+                  title={tr('reports.charts.dailyAvgGlucoseTitle')}
+                  subtitle={tr('reports.charts.targetTemplate').replace('{low}', tirTargetLow).replace('{high}', tirTargetHigh).replace('{unit}', unitLabel)}
                   empty={!dailyGlucose.length}
+                  emptyLabel={tr('reports.charts.noData')}
                   wide
                 >
                   <div className="db-rep-chart-body">
@@ -527,7 +540,7 @@ export default function Reports() {
                         <Area
                           type="monotone"
                           dataKey="avgGlucose"
-                          name={`Avg ${unitLabel}`}
+                          name={tr('reports.chartNames.avgTemplate').replace('{unit}', unitLabel)}
                           stroke={t.skyDeep}
                           fill="url(#gluFill)"
                           strokeWidth={2}
@@ -538,7 +551,7 @@ export default function Reports() {
                   </div>
                 </ChartCard>
 
-                <ChartCard title="Time in range" subtitle="Share of readings" empty={!tirPie.length}>
+                <ChartCard title={tr('reports.charts.timeInRangeTitle')} subtitle={tr('reports.charts.shareOfReadings')} empty={!tirPie.length} emptyLabel={tr('reports.charts.noData')}>
                   <div className="db-rep-chart-body db-rep-chart-body--pie">
                     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                       <PieChart>
@@ -565,9 +578,10 @@ export default function Reports() {
                 </ChartCard>
 
                 <ChartCard
-                  title="Glucose by reading type"
-                  subtitle={`Average ${unitLabel} · fasting vs meals`}
+                  title={tr('reports.charts.byReadingTypeTitle')}
+                  subtitle={tr('reports.charts.avgFastingVsMealsTemplate').replace('{unit}', unitLabel)}
                   empty={!readingTypeChart.length}
+                  emptyLabel={tr('reports.charts.noData')}
                 >
                   <div className="db-rep-chart-body">
                     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
@@ -585,17 +599,20 @@ export default function Reports() {
                         <Tooltip
                           contentStyle={tooltipStyle}
                           formatter={(value, _n, item) => [
-                            `${value} ${unitLabel} · ${item?.payload?.count ?? 0} readings`,
-                            'Average',
+                            tr('reports.chartNames.readingsTemplate')
+                              .replace('{value}', value)
+                              .replace('{unit}', unitLabel)
+                              .replace('{count}', item?.payload?.count ?? 0),
+                            tr('reports.chartNames.average'),
                           ]}
                         />
-                        <Bar dataKey="avgGlucose" name={`Avg ${unitLabel}`} fill={t.skyDeep} radius={[0, 6, 6, 0]} />
+                        <Bar dataKey="avgGlucose" name={tr('reports.chartNames.avgTemplate').replace('{unit}', unitLabel)} fill={t.skyDeep} radius={[0, 6, 6, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
 
-                <ChartCard title="Carbs by day" subtitle="From meal logs" empty={!charts?.daily?.some((d) => d.carbs > 0)}>
+                <ChartCard title={tr('reports.charts.carbsByDayTitle')} subtitle={tr('reports.charts.fromMealLogs')} empty={!charts?.daily?.some((d) => d.carbs > 0)} emptyLabel={tr('reports.charts.noData')}>
                   <div className="db-rep-chart-body">
                     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                       <BarChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
@@ -603,13 +620,13 @@ export default function Reports() {
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
                         <Tooltip contentStyle={tooltipStyle} />
-                        <Bar dataKey="carbs" name="Carbs (g)" fill={t.sage} radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="carbs" name={tr('reports.chartNames.carbsG')} fill={t.sage} radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
 
-                <ChartCard title="Insulin by day" subtitle="Units logged" empty={!charts?.daily?.some((d) => d.insulin > 0)}>
+                <ChartCard title={tr('reports.charts.insulinByDayTitle')} subtitle={tr('reports.charts.unitsLogged')} empty={!charts?.daily?.some((d) => d.insulin > 0)} emptyLabel={tr('reports.charts.noData')}>
                   <div className="db-rep-chart-body">
                     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                       <BarChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
@@ -617,16 +634,17 @@ export default function Reports() {
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
                         <Tooltip contentStyle={tooltipStyle} />
-                        <Bar dataKey="insulin" name="Units" fill={t.clay} radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="insulin" name={tr('reports.chartNames.units')} fill={t.clay} radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
 
                 <ChartCard
-                  title="Water & activity"
-                  subtitle="Daily totals"
+                  title={tr('reports.charts.waterActivityTitle')}
+                  subtitle={tr('reports.charts.dailyTotals')}
                   empty={!charts?.daily?.some((d) => d.water > 0 || d.exercise > 0)}
+                  emptyLabel={tr('reports.charts.noData')}
                 >
                   <div className="db-rep-chart-body">
                     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
@@ -637,14 +655,14 @@ export default function Reports() {
                         <YAxis yAxisId="right" orientation="right" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
                         <Tooltip contentStyle={tooltipStyle} />
                         <Legend />
-                        <Line yAxisId="left" type="monotone" dataKey="water" name="Water (ml)" stroke={t.skyDeep} strokeWidth={2} dot={false} />
-                        <Line yAxisId="right" type="monotone" dataKey="exercise" name="Activity (min)" stroke={t.gold} strokeWidth={2} dot={false} />
+                        <Line yAxisId="left" type="monotone" dataKey="water" name={tr('reports.chartNames.waterMl')} stroke={t.skyDeep} strokeWidth={2} dot={false} />
+                        <Line yAxisId="right" type="monotone" dataKey="exercise" name={tr('reports.chartNames.activityMin')} stroke={t.gold} strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
 
-                <ChartCard title="Sleep" subtitle="Hours per night" empty={!charts?.daily?.some((d) => d.sleepHours != null)}>
+                <ChartCard title={tr('reports.charts.sleepTitle')} subtitle={tr('reports.charts.hoursPerNight')} empty={!charts?.daily?.some((d) => d.sleepHours != null)} emptyLabel={tr('reports.charts.noData')}>
                   <div className="db-rep-chart-body">
                     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                       <AreaChart data={charts?.daily || []} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
@@ -655,7 +673,7 @@ export default function Reports() {
                         <Area
                           type="monotone"
                           dataKey="sleepHours"
-                          name="Hours"
+                          name={tr('reports.chartNames.hours')}
                           stroke={t.forest}
                           fill={t.sageTint}
                           strokeWidth={2}
@@ -667,7 +685,7 @@ export default function Reports() {
                 </ChartCard>
 
                 {charts?.insulinByType?.length > 0 && (
-                  <ChartCard title="Insulin by type" subtitle="Total units in period">
+                  <ChartCard title={tr('reports.charts.insulinByTypeTitle')} subtitle={tr('reports.charts.totalUnitsInPeriod')}>
                     <div className="db-rep-chart-body">
                       <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                         <BarChart data={charts.insulinByType} layout="vertical" margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
@@ -675,7 +693,7 @@ export default function Reports() {
                           <XAxis type="number" tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
                           <YAxis type="category" dataKey="name" width={90} tick={{ fill: t.inkSoft, fontSize: 11 }} axisLine={false} tickLine={false} />
                           <Tooltip contentStyle={tooltipStyle} />
-                          <Bar dataKey="units" name="Units" fill={t.clay} radius={[0, 6, 6, 0]} />
+                          <Bar dataKey="units" name={tr('reports.chartNames.units')} fill={t.clay} radius={[0, 6, 6, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -683,7 +701,7 @@ export default function Reports() {
                 )}
 
                 {charts?.mood?.length > 0 && (
-                  <ChartCard title="Mood entries" subtitle="Counts in period">
+                  <ChartCard title={tr('reports.charts.moodEntriesTitle')} subtitle={tr('reports.charts.countsInPeriod')}>
                     <div className="db-rep-chart-body">
                       <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                         <BarChart data={charts.mood} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
@@ -691,7 +709,7 @@ export default function Reports() {
                           <XAxis dataKey="name" tick={{ fill: t.inkFaint, fontSize: 10 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={50} />
                           <YAxis allowDecimals={false} tick={{ fill: t.inkFaint, fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
                           <Tooltip contentStyle={tooltipStyle} />
-                          <Bar dataKey="count" name="Entries" fill={t.peach} radius={[6, 6, 0, 0]} />
+                          <Bar dataKey="count" name={tr('reports.chartNames.entries')} fill={t.peach} radius={[6, 6, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -700,40 +718,40 @@ export default function Reports() {
               </div>
 
               <section className="db-rep-totals">
-                <h2>Period totals</h2>
+                <h2>{tr('reports.periodTotals.heading')}</h2>
                 <div className="db-rep-totals-grid">
                   <div>
                     <Droplets size={16} />
                     <p>
-                      <strong>{metrics.glucoseReadings}</strong> glucose readings
+                      <strong>{metrics.glucoseReadings}</strong> {tr('reports.periodTotals.glucoseReadings')}
                     </p>
                   </div>
                   <div>
                     <Activity size={16} />
                     <p>
-                      <strong>{metrics.mealsLogged}</strong> meals · <strong>{metrics.totalCarbs}</strong> g carbs
+                      <strong>{metrics.mealsLogged}</strong> {tr('reports.periodTotals.meals')} · <strong>{metrics.totalCarbs}</strong> {tr('reports.periodTotals.gCarbs')}
                     </p>
                   </div>
                   <div>
                     <p>
-                      <strong>{metrics.medsTaken}</strong> meds taken ·{' '}
-                      <strong>{(metrics.medsMissed || 0) + (metrics.medsSkipped || 0)}</strong> missed/skipped
+                      <strong>{metrics.medsTaken}</strong> {tr('reports.periodTotals.medsTaken')} ·{' '}
+                      <strong>{(metrics.medsMissed || 0) + (metrics.medsSkipped || 0)}</strong> {tr('reports.periodTotals.missedSkipped')}
                     </p>
                   </div>
                   <div>
                     <p>
-                      <strong>{metrics.totalWaterMl}</strong> ml water · avg{' '}
-                      <strong>{metrics.avgWaterPerDay ?? '—'}</strong>/day
+                      <strong>{metrics.totalWaterMl}</strong> {tr('reports.periodTotals.mlWater')} · {tr('reports.periodTotals.avg')}{' '}
+                      <strong>{metrics.avgWaterPerDay ?? '—'}</strong>/{tr('reports.periodTotals.day')}
                     </p>
                   </div>
                   <div>
                     <p>
-                      Logged on <strong>{metrics.loggingDays}</strong> of <strong>{metrics.dayCount}</strong> days
+                      {tr('reports.periodTotals.loggedOn')} <strong>{metrics.loggingDays}</strong> {tr('reports.periodTotals.of')} <strong>{metrics.dayCount}</strong> {tr('reports.periodTotals.days')}
                     </p>
                   </div>
                 </div>
                 <p className="db-rep-disclaimer">
-                  Informational self-management summary only — not a substitute for clinical advice or lab results.
+                  {tr('reports.disclaimer')}
                 </p>
               </section>
             </>
@@ -747,7 +765,7 @@ export default function Reports() {
           display: flex;
           background:
             radial-gradient(ellipse at 0% 0%, rgba(94,135,160,0.08), transparent 42%),
-            linear-gradient(180deg, #E8E1D4 0%, ${t.bg} 38%);
+            linear-gradient(180deg, ${t.pageFadeTop} 0%, ${t.bg} 38%);
           font-family: ${t.fontBody};
         }
         .db-rep-main {
@@ -818,7 +836,7 @@ export default function Reports() {
           align-items: center;
           gap: 6px;
           border: 1px solid transparent;
-          background: #fff;
+          background: ${t.surface};
           color: ${t.forest};
           border-radius: 10px;
           padding: 10px 14px;
@@ -849,7 +867,7 @@ export default function Reports() {
           font-family: ${t.fontBody};
         }
         .db-rep-controls {
-          background: #fff;
+          background: ${t.surface};
           border: 1px solid ${t.lineStrong};
           border-radius: 16px;
           padding: 16px;
@@ -946,7 +964,7 @@ export default function Reports() {
           cursor: pointer;
         }
         .db-rep-state {
-          background: #fff;
+          background: ${t.surface};
           border: 1px solid ${t.lineStrong};
           border-radius: 16px;
           padding: 40px 20px;
@@ -976,7 +994,7 @@ export default function Reports() {
           cursor: pointer;
         }
         .db-rep-letter {
-          background: linear-gradient(180deg, #fcfaf5 0%, ${t.surfaceRaised} 100%);
+          background: linear-gradient(180deg, ${t.surface} 0%, ${t.surfaceRaised} 100%);
           border: 1px solid ${t.lineStrong};
           border-radius: 16px;
           padding: 20px 22px;
@@ -1061,7 +1079,7 @@ export default function Reports() {
           margin-bottom: 18px;
         }
         .db-rep-metric {
-          background: #fff;
+          background: ${t.surface};
           border: 1px solid ${t.lineStrong};
           border-radius: 14px;
           padding: 14px 15px;
@@ -1111,7 +1129,7 @@ export default function Reports() {
           gap: 12px;
         }
         .db-rep-chart {
-          background: #fff;
+          background: ${t.surface};
           border: 1px solid ${t.lineStrong};
           border-radius: 16px;
           padding: 16px;
@@ -1158,7 +1176,7 @@ export default function Reports() {
         }
         .db-rep-totals {
           margin-top: 16px;
-          background: #fff;
+          background: ${t.surface};
           border: 1px solid ${t.lineStrong};
           border-radius: 16px;
           padding: 18px 20px;

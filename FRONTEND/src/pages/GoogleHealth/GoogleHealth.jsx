@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import AppSidebar from '../../components/AppSidebar';
 import { ArrowLeft, Link2Off, RefreshCw, Watch } from 'lucide-react';
 
@@ -12,6 +13,7 @@ export default function GoogleHealth() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, authHeaders } = useAuth();
+  const { t: tr } = useI18n();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -29,10 +31,10 @@ export default function GoogleHealth() {
       if (res.ok && data.status === 'success') {
         setStatus(data.data);
       } else {
-        setError(data.message || 'Could not load connection status');
+        setError(data.message || tr('googleHealth.couldNotLoadStatus'));
       }
     } catch (err) {
-      setError(err.message || 'Network error');
+      setError(err.message || tr('googleHealth.networkError'));
     } finally {
       setLoading(false);
     }
@@ -46,7 +48,7 @@ export default function GoogleHealth() {
     const connected = searchParams.get('connected');
     const err = searchParams.get('error');
     if (connected === '1') {
-      setMessage('Google Health connected. You can sync steps now.');
+      setMessage(tr('googleHealth.connectedMessage'));
       setSearchParams({}, { replace: true });
       loadStatus();
     } else if (err) {
@@ -76,23 +78,23 @@ export default function GoogleHealth() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.status !== 'success') {
-        throw new Error(data.message || 'Sync failed');
+        throw new Error(data.message || tr('googleHealth.syncFailed'));
       }
       const parts = [
-        `${Number(data.data?.steps || 0).toLocaleString()} steps`,
-        data.data?.calories != null ? `${data.data.calories} kcal` : null,
-        data.data?.distanceKm ? `${data.data.distanceKm} km` : null,
-        data.data?.durationMinutes ? `${data.data.durationMinutes} min` : null,
+        `${Number(data.data?.steps || 0).toLocaleString()} ${tr('googleHealth.stepsUnit')}`,
+        data.data?.calories != null ? `${data.data.calories} ${tr('googleHealth.kcalUnit')}` : null,
+        data.data?.distanceKm ? `${data.data.distanceKm} ${tr('googleHealth.kmUnit')}` : null,
+        data.data?.durationMinutes ? `${data.data.durationMinutes} ${tr('googleHealth.minUnit')}` : null,
       ].filter(Boolean);
       const when = data.data?.lastSyncAt
         ? new Date(data.data.lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : null;
       setMessage(
-        `Synced for today${when ? ` at ${when}` : ''}: ${parts.join(' · ')}. Saved in Activity logs.`
+        `${tr('googleHealth.syncedForToday')}${when ? ` ${tr('googleHealth.syncedAt').replace('{time}', when)}` : ''}: ${parts.join(' · ')}. ${tr('googleHealth.savedInActivityLogs')}`
       );
       await loadStatus();
     } catch (err) {
-      setError(err.message || 'Sync failed');
+      setError(err.message || tr('googleHealth.syncFailed'));
     } finally {
       setBusy(false);
     }
@@ -109,11 +111,11 @@ export default function GoogleHealth() {
         headers: { ...authHeaders() },
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || 'Disconnect failed');
-      setMessage('Disconnected from Google Health.');
+      if (!res.ok) throw new Error(data.message || tr('googleHealth.disconnectFailed'));
+      setMessage(tr('googleHealth.disconnectedMessage'));
       await loadStatus();
     } catch (err) {
-      setError(err.message || 'Disconnect failed');
+      setError(err.message || tr('googleHealth.disconnectFailed'));
     } finally {
       setBusy(false);
     }
@@ -123,7 +125,7 @@ export default function GoogleHealth() {
   const configured = status?.configured !== false;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
+    <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, ${t.surfaceRaised} 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
       <AppSidebar />
       <main style={{ flex: 1, minWidth: 0, padding: '28px 20px 64px' }}>
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
@@ -146,16 +148,16 @@ export default function GoogleHealth() {
             }}
           >
             <ArrowLeft size={16} />
-            Back to activity
+            {tr('googleHealth.backToActivity')}
           </button>
           <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
-            Activity
+            {tr('googleHealth.kicker')}
           </p>
           <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(26px, 6vw, 32px)', fontWeight: 500, color: t.ink }}>
-            Connect Google Health
+            {tr('googleHealth.title')}
           </h1>
           <p style={{ margin: '8px 0 24px', fontSize: 14, color: t.inkSoft, lineHeight: 1.5 }}>
-            Sync steps through Google Health (works with Fitbit accounts linked to Google). You can still log activity manually anytime.
+            {tr('googleHealth.lead')}
           </p>
 
           {message && (
@@ -171,7 +173,7 @@ export default function GoogleHealth() {
 
           <div
             style={{
-              background: '#FFF',
+              background: t.surface,
               borderRadius: 20,
               border: `1.5px solid ${t.lineStrong}`,
               boxShadow: t.shadowCard,
@@ -196,33 +198,33 @@ export default function GoogleHealth() {
             </span>
 
             {loading ? (
-              <p style={{ margin: 0, color: t.inkSoft, fontSize: 14 }}>Checking connection…</p>
+              <p style={{ margin: 0, color: t.inkSoft, fontSize: 14 }}>{tr('googleHealth.checkingConnection')}</p>
             ) : !configured ? (
               <>
                 <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: 17, color: t.ink }}>
-                  Not configured
+                  {tr('googleHealth.notConfiguredTitle')}
                 </p>
                 <p style={{ margin: '0 0 20px', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
-                  Add Google OAuth env vars on the server, then restart.
+                  {tr('googleHealth.notConfiguredBody')}
                 </p>
               </>
             ) : (
               <>
                 <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: 17, color: t.ink }}>
-                  {connected ? 'Google Health connected' : 'Connect with Google'}
+                  {connected ? tr('googleHealth.connectedTitle') : tr('googleHealth.connectTitle')}
                 </p>
                 <p style={{ margin: '0 0 8px', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
                   {connected
                     ? status?.lastSyncAt
-                      ? `Last sync: ${new Date(status.lastSyncAt).toLocaleString()} · ${[
-                          `${Number(status.lastSteps || 0).toLocaleString()} steps`,
-                          status.lastCalories ? `${status.lastCalories} kcal` : null,
-                          status.lastDistanceKm ? `${status.lastDistanceKm} km` : null,
+                      ? `${tr('googleHealth.lastSync').replace('{time}', new Date(status.lastSyncAt).toLocaleString())} · ${[
+                          `${Number(status.lastSteps || 0).toLocaleString()} ${tr('googleHealth.stepsUnit')}`,
+                          status.lastCalories ? `${status.lastCalories} ${tr('googleHealth.kcalUnit')}` : null,
+                          status.lastDistanceKm ? `${status.lastDistanceKm} ${tr('googleHealth.kmUnit')}` : null,
                         ]
                           .filter(Boolean)
                           .join(' · ')}`
-                      : 'Connected — sync to pull today’s steps, calories, and distance.'
-                    : 'Sign in with Google to allow DiaBuddy to read activity and steps.'}
+                      : tr('googleHealth.connectedReady')
+                    : tr('googleHealth.signInPrompt')}
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 16 }}>
                   {!connected ? (
@@ -242,7 +244,7 @@ export default function GoogleHealth() {
                         fontFamily: t.fontBody,
                       }}
                     >
-                      Connect Google Health
+                      {tr('googleHealth.connectButton')}
                     </button>
                   ) : (
                     <>
@@ -267,7 +269,7 @@ export default function GoogleHealth() {
                         }}
                       >
                         <RefreshCw size={16} />
-                        Sync steps
+                        {tr('googleHealth.syncSteps')}
                       </button>
                       <button
                         type="button"
@@ -280,7 +282,7 @@ export default function GoogleHealth() {
                           padding: '12px 22px',
                           borderRadius: 999,
                           border: `1.5px solid ${t.lineStrong}`,
-                          background: '#FFF',
+                          background: t.surface,
                           color: t.ink,
                           fontWeight: 700,
                           fontSize: 14,
@@ -289,7 +291,7 @@ export default function GoogleHealth() {
                         }}
                       >
                         <Link2Off size={16} />
-                        Disconnect
+                        {tr('googleHealth.disconnect')}
                       </button>
                     </>
                   )}
@@ -300,7 +302,7 @@ export default function GoogleHealth() {
                       padding: '12px 22px',
                       borderRadius: 999,
                       border: `1.5px solid ${t.lineStrong}`,
-                      background: '#FFF',
+                      background: t.surface,
                       color: t.ink,
                       fontWeight: 700,
                       fontSize: 14,
@@ -308,7 +310,7 @@ export default function GoogleHealth() {
                       fontFamily: t.fontBody,
                     }}
                   >
-                    Log activity manually
+                    {tr('googleHealth.logManually')}
                   </button>
                 </div>
               </>

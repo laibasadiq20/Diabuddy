@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { theme } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { API_URL } from '../../config/api';
 import { homePathFor } from '../../utils/homePath';
 
@@ -40,6 +41,7 @@ export default function LoginFormContent({
   onSwitchToRegister,
 }) {
   const { fetchUser, saveSession } = useAuth();
+  const { t: tr } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -56,7 +58,7 @@ export default function LoginFormContent({
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(normalizedEmail)) {
-      setError('Please enter a valid email address.');
+      setError(tr('auth.errorInvalidEmail'));
       setLoading(false);
       return;
     }
@@ -90,10 +92,10 @@ export default function LoginFormContent({
           localStorage.removeItem('token');
         } catch (_) {}
       } else {
-        setError(data.message || 'Login failed. Check your credentials.');
+        setError(data.message || tr('auth.loginFailed'));
       }
     } catch (error) {
-      setError('Connection error. Please try again.');
+      setError(tr('auth.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -117,7 +119,7 @@ export default function LoginFormContent({
           fontFamily: t.fontDisplay,
         }}
       >
-        Welcome back
+        {tr('auth.login.title')}
       </h1>
 
       <p
@@ -127,7 +129,7 @@ export default function LoginFormContent({
           marginBottom: '28px',
         }}
       >
-        Sign in to continue managing your health
+        {tr('auth.login.subtitle')}
       </p>
 
       {error && (
@@ -158,7 +160,7 @@ export default function LoginFormContent({
               marginBottom: '8px',
             }}
           >
-            Email address
+            {tr('auth.login.emailLabel')}
           </label>
 
           <div style={{ position: 'relative' }}>
@@ -197,7 +199,7 @@ export default function LoginFormContent({
               marginBottom: '8px',
             }}
           >
-            Password
+            {tr('auth.login.passwordLabel')}
           </label>
 
           <div style={{ position: 'relative' }}>
@@ -279,7 +281,7 @@ export default function LoginFormContent({
                 fontSize: '13px',
               }}
             >
-              Remember me
+              {tr('auth.login.rememberMe')}
             </span>
           </label>
 
@@ -298,7 +300,7 @@ export default function LoginFormContent({
               fontFamily: 'inherit',
             }}
           >
-            Forgot password?
+            {tr('auth.login.forgotPassword')}
           </button>
         </div>
 
@@ -332,10 +334,10 @@ export default function LoginFormContent({
           }}
         >
           {loading ? (
-            'Signing in…'
+            tr('auth.login.signingIn')
           ) : (
             <>
-              Sign in <ArrowRight size={16} />
+              {tr('auth.login.signIn')} <ArrowRight size={16} />
             </>
           )}
         </button>
@@ -364,7 +366,7 @@ export default function LoginFormContent({
             fontSize: '12px',
           }}
         >
-          no account yet?
+          {tr('auth.login.noAccountYet')}
         </span>
 
         <div
@@ -405,7 +407,7 @@ export default function LoginFormContent({
           e.currentTarget.style.color = t.inkSoft;
         }}
       >
-        Create a free account
+        {tr('auth.login.createFreeAccount')}
       </button>
 
       <p
@@ -417,7 +419,7 @@ export default function LoginFormContent({
           marginBottom: 0,
         }}
       >
-        By signing in you agree to our{' '}
+        {tr('auth.login.agreeToOur')}{' '}
         <a
           href="#"
           style={{
@@ -425,9 +427,9 @@ export default function LoginFormContent({
             textDecoration: 'none',
           }}
         >
-          Terms
+          {tr('auth.terms')}
         </a>{' '}
-        and{' '}
+        {tr('auth.and')}{' '}
         <a
           href="#"
           style={{
@@ -435,7 +437,7 @@ export default function LoginFormContent({
             textDecoration: 'none',
           }}
         >
-          Privacy Policy
+          {tr('auth.privacyPolicy')}
         </a>
       </p>
     </div>

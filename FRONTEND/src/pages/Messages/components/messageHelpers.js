@@ -5,10 +5,11 @@ export const getChatPartner = (conv, myId) => {
   return conv.members.find((m) => idOf(m) !== myId) || null;
 };
 
-export const getChatPartnerName = (conv, myId) => {
-  if (conv.isGroup) return conv.name || 'Group';
+export const getChatPartnerName = (conv, myId, labels = {}) => {
+  const { group = 'Group', unknown = 'Unknown Buddy' } = labels;
+  if (conv.isGroup) return conv.name || group;
   const otherMember = getChatPartner(conv, myId);
-  return otherMember ? otherMember.name : 'Unknown Buddy';
+  return otherMember ? otherMember.name : unknown;
 };
 
 /** True when every other member has this message in readBy */

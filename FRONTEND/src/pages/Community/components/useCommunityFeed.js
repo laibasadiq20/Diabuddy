@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API_URL } from '../../../config/api';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function useCommunityFeed({ user, authHeaders }) {
   const navigate = useNavigate();
+  const { t: tr } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [posts, setPosts] = useState([]);
@@ -89,16 +91,17 @@ export default function useCommunityFeed({ user, authHeaders }) {
           setPosts(data.posts || []);
           setTotalPages(data.pages || 1);
         } else {
-          setError(data.message || 'Failed to load discussions');
+          setError(data.message || tr('community.state.errors.loadFailed'));
         }
       } catch (err) {
-        setError('Network error loading discussions');
+        setError(tr('community.state.errors.networkError'));
         console.error(err);
       } finally {
         setPostsLoading(false);
       }
     };
     fetchFeed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTopic, searchQuery, currentPage, sortMode, refreshKey]);
 
   const handleSearchSubmit = (e) => {

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../../../config/api';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function usePostDetails({ postId, user, authHeaders }) {
   const navigate = useNavigate();
+  const { t: tr } = useI18n();
 
   const [post, setPost] = useState(null);
   const [pollData, setPollData] = useState(null);
@@ -64,7 +66,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
         headers: { ...authHeaders() },
       });
       if (!postRes.ok) {
-        throw new Error('Post not found or deleted');
+        throw new Error(tr('postDetails.errors.postNotFound'));
       }
       const postData = await postRes.json();
       setPost(postData);
@@ -101,7 +103,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
         }
       }
     } catch (err) {
-      setError(err.message || 'Error loading thread details');
+      setError(err.message || tr('postDetails.errors.loadThreadFailed'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -153,7 +155,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
           myOptionIndex: data.myOptionIndex
         });
       } else {
-        alert(data.message || 'Failed to submit vote.');
+        alert(data.message || tr('postDetails.errors.voteFailed'));
       }
     } catch (err) {
       console.error(err);
@@ -193,7 +195,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
 
         setPost((prev) => ({ ...prev, commentsCount: prev.commentsCount + 1 }));
       } else {
-        alert(newComment.message || 'Failed to post comment.');
+        alert(newComment.message || tr('postDetails.errors.commentFailed'));
       }
     } catch (err) {
       console.error(err);
@@ -239,7 +241,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
         setPost((prev) => ({ ...prev, bestAnswerCommentId: commentId }));
         fetchAll();
       } else {
-        alert(data.message || 'Error setting best answer');
+        alert(data.message || tr('postDetails.errors.bestAnswerFailed'));
       }
     } catch (err) {
       console.error(err);
@@ -247,7 +249,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
   };
 
   const handleDeleteComment = async (commentId) => {
-    if (!window.confirm('Delete this comment permanently?')) return;
+    if (!window.confirm(tr('postDetails.errors.confirmDeleteComment'))) return;
     try {
       const res = await fetch(`${API_URL}/comments/${commentId}`, {
         method: 'DELETE',
@@ -266,7 +268,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
   };
 
   const handleDeletePost = async () => {
-    if (!window.confirm('Are you sure you want to delete this thread?')) return;
+    if (!window.confirm(tr('postDetails.errors.confirmDeletePost'))) return;
     try {
       const res = await fetch(`${API_URL}/posts/${postId}`, {
         method: 'DELETE',
@@ -302,7 +304,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
         setPost((prev) => ({ ...prev, title: data.title, content: data.content }));
         setEditingPost(false);
       } else {
-        alert(data.message || 'Failed to save edits');
+        alert(data.message || tr('postDetails.errors.saveEditFailed'));
       }
     } catch (err) {
       console.error(err);
@@ -331,7 +333,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
         setEditingCommentId(null);
         setEditCommentContent('');
       } else {
-        alert(data.message || 'Failed to save comment');
+        alert(data.message || tr('postDetails.errors.saveCommentFailed'));
       }
     } catch (err) {
       console.error(err);
@@ -353,7 +355,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
       if (res.ok) {
         setPost((prev) => ({ ...prev, isPinned: data.isPinned, isLocked: data.isLocked }));
       } else {
-        alert(data.message || 'Moderation update failed');
+        alert(data.message || tr('postDetails.errors.moderationFailed'));
       }
     } catch (err) {
       console.error(err);
@@ -363,7 +365,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
   const togglePostVisibility = async () => {
     if (!post) return;
     const next = post.status === 'hidden' ? 'active' : 'hidden';
-    const label = next === 'hidden' ? 'Hide this post from the community?' : 'Restore this post for everyone?';
+    const label = next === 'hidden' ? tr('postDetails.errors.confirmHidePost') : tr('postDetails.errors.confirmRestorePost');
     if (!window.confirm(label)) return;
     try {
       const res = await fetch(`${API_URL}/admin/posts/${postId}`, {
@@ -376,7 +378,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
       if (res.ok) {
         setPost((prev) => ({ ...prev, status: data.data?.status || next }));
       } else {
-        alert(data.message || 'Could not update post visibility');
+        alert(data.message || tr('postDetails.errors.visibilityUpdateFailed'));
       }
     } catch (err) {
       console.error(err);
@@ -385,7 +387,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
 
   const toggleCommentVisibility = async (commentId, currentStatus) => {
     const next = currentStatus === 'hidden' ? 'active' : 'hidden';
-    const label = next === 'hidden' ? 'Hide this comment?' : 'Restore this comment?';
+    const label = next === 'hidden' ? tr('postDetails.errors.confirmHideComment') : tr('postDetails.errors.confirmRestoreComment');
     if (!window.confirm(label)) return;
     try {
       const res = await fetch(`${API_URL}/admin/comments/${commentId}`, {
@@ -402,7 +404,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
         setComments(updated);
         buildTree(updated);
       } else {
-        alert(data.message || 'Could not update comment visibility');
+        alert(data.message || tr('postDetails.errors.commentVisibilityUpdateFailed'));
       }
     } catch (err) {
       console.error(err);
@@ -441,7 +443,7 @@ export default function usePostDetails({ postId, user, authHeaders }) {
         }, 1500);
       } else {
         const data = await res.json();
-        alert(data.message || 'Report filing failed.');
+        alert(data.message || tr('postDetails.errors.reportFailed'));
       }
     } catch (err) {
       console.error(err);

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
 import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
@@ -9,37 +10,41 @@ const Navbar = () => {
   const learnRef = useRef(null);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t: tr } = useI18n();
 
   const links = [
-    { label: 'Features', id: 'features' },
-    { label: 'How it works', id: 'about' },
-    { label: 'Community', id: 'community' },
+    { label: tr('navbar.features'), id: 'features' },
+    { label: tr('navbar.howItWorks'), id: 'about' },
+    { label: tr('navbar.community'), id: 'community' },
   ];
 
   const learnLinks = [
-    { label: 'Warning Signs', path: '/learn/warning-signs' },
-    { label: 'Risk Assessment', path: '/learn/risk-assessment' },
-    { label: 'Diabetes Types', path: '/learn/diabetes-types' },
-    { label: 'Blog', path: '/learn/blog' },
+    { label: tr('navbar.learnWarningSigns'), path: '/learn/warning-signs' },
+    { label: tr('navbar.learnRiskAssessment'), path: '/learn/risk-assessment' },
+    { label: tr('navbar.learnDiabetesTypes'), path: '/learn/diabetes-types' },
+    { label: tr('navbar.learnBlog'), path: '/learn/blog' },
   ];
 
   const profileLinks = user?.role === 'admin'
     ? [
-        { label: 'Admin console', path: '/admin' },
-        { label: 'Users', path: '/admin?tab=users' },
-        { label: 'Reports', path: '/admin?tab=reports' },
-        { label: 'Topics', path: '/admin?tab=topics' },
-        { label: 'View community', path: '/community' },
-        { label: 'Account', path: '/account' },
+        { label: tr('nav.adminConsole'), path: '/admin' },
+        { label: tr('nav.users'), path: '/admin?tab=users' },
+        { label: tr('nav.reports'), path: '/admin?tab=reports' },
+        { label: tr('nav.topics'), path: '/admin?tab=topics' },
+        { label: tr('nav.viewCommunity'), path: '/community' },
+        { label: tr('nav.account'), path: '/account' },
+        { label: tr('nav.settings'), path: '/settings' },
       ]
     : [
-        { label: 'Dashboard', path: '/dashboard' },
-        { label: 'Logs', path: '/logs' },
-        { label: 'Reports', path: '/reports' },
-        { label: 'Community', path: '/community' },
-        { label: 'Messages', path: '/messages' },
-        { label: 'Toolbox', path: '/toolbox' },
-        { label: 'Account', path: '/account' },
+        { label: tr('nav.dashboard'), path: '/dashboard' },
+        { label: tr('nav.logs'), path: '/logs' },
+        { label: tr('nav.reports'), path: '/reports' },
+        { label: tr('nav.community'), path: '/community' },
+        { label: tr('nav.messages'), path: '/messages' },
+        { label: tr('nav.toolbox'), path: '/toolbox' },
+        { label: tr('nav.notifications'), path: '/notifications' },
+        { label: tr('nav.account'), path: '/account' },
+        { label: tr('nav.settings'), path: '/settings' },
       ];
 
   const scrollToSection = (id) => {
@@ -139,7 +144,7 @@ const Navbar = () => {
                 onClick={() => setLearnOpen((v) => !v)}
                 className="flex items-center gap-1 text-sm text-[#5C524B] transition hover:text-black"
               >
-                Learn
+                {tr('navbar.learn')}
                 <span
                   className={`text-[10px] transition-transform duration-200 ${
                     learnOpen ? 'rotate-180' : ''
@@ -182,14 +187,14 @@ const Navbar = () => {
                   onClick={() => navigate('/login')}
                   className="hidden text-sm font-medium text-[#5C524B] transition hover:text-black md:inline-flex"
                 >
-                  Sign in
+                  {tr('navbar.signIn')}
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate('/register')}
                   className="rounded-full bg-[#27392E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a2820]"
                 >
-                  Sign up
+                  {tr('navbar.signUp')}
                 </button>
               </>
             ) : (
@@ -197,7 +202,7 @@ const Navbar = () => {
                 type="button"
                 onClick={() => setProfileOpen(true)}
                 className="hidden h-8 w-8 items-center justify-center rounded-full bg-[#27392E] text-xs font-semibold text-white md:flex"
-                title={user?.name || 'Profile'}
+                title={user?.name || tr('navbar.myProfile')}
               >
                 {user?.name?.charAt(0).toUpperCase()}
               </button>
@@ -207,7 +212,7 @@ const Navbar = () => {
               type="button"
               onClick={() => setOpen(true)}
               className="flex h-8 w-8 shrink-0 flex-col items-center justify-center gap-[3px] rounded-lg border border-black/10 bg-white/60 md:hidden"
-              aria-label="Open menu"
+              aria-label={tr('nav.openMenu')}
             >
               <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
               <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />
@@ -233,8 +238,8 @@ const Navbar = () => {
           }`}
         >
           <div className="flex shrink-0 items-center justify-between border-b border-black/10 px-5 py-4">
-            <span className="font-serif text-lg text-[#2F2A25]">Menu</span>
-            <button type="button" onClick={() => setOpen(false)} className="text-2xl leading-none" aria-label="Close menu">
+            <span className="font-serif text-lg text-[#2F2A25]">{tr('navbar.menu')}</span>
+            <button type="button" onClick={() => setOpen(false)} className="text-2xl leading-none" aria-label={tr('nav.closeMenu')}>
               ✕
             </button>
           </div>
@@ -265,7 +270,7 @@ const Navbar = () => {
 
             <div className="mt-3 border-t border-black/10 pt-3">
               <p className="mb-1.5 px-3 text-[10px] uppercase tracking-[0.14em] text-gray-400">
-                Learn
+                {tr('navbar.learn')}
               </p>
               {learnLinks.map((item) => (
                 <button
@@ -285,7 +290,7 @@ const Navbar = () => {
             {user && (
               <div className="mt-3 border-t border-black/10 pt-3">
                 <p className="mb-1.5 px-3 text-[10px] uppercase tracking-[0.14em] text-gray-400">
-                  Account
+                  {tr('nav.account')}
                 </p>
                 {profileLinks.map((item) => (
                   <button
@@ -314,7 +319,7 @@ const Navbar = () => {
                 }}
                 className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white"
               >
-                Log out
+                {tr('common.logout')}
               </button>
             ) : (
               <div className="flex flex-col gap-2">
@@ -326,7 +331,7 @@ const Navbar = () => {
                   }}
                   className="w-full rounded-xl bg-[#27392E] py-3 text-sm font-semibold text-white"
                 >
-                  Sign up
+                  {tr('navbar.signUp')}
                 </button>
                 <button
                   type="button"
@@ -336,7 +341,7 @@ const Navbar = () => {
                   }}
                   className="w-full rounded-xl border border-black/15 bg-white py-3 text-sm font-semibold text-[#2F2A25]"
                 >
-                  Already have an account? Sign in
+                  {tr('navbar.alreadyHaveAccount')}
                 </button>
               </div>
             )}
@@ -361,8 +366,8 @@ const Navbar = () => {
         >
           <div className="flex items-center justify-between border-b p-6">
             <div>
-              <p className="font-semibold">My Profile</p>
-              <p className="text-xs text-gray-500">Account & settings</p>
+              <p className="font-semibold">{tr('navbar.myProfile')}</p>
+              <p className="text-xs text-gray-500">{tr('navbar.accountAndSettings')}</p>
             </div>
             <button type="button" onClick={() => setProfileOpen(false)} className="text-2xl">
               ✕
@@ -403,7 +408,7 @@ const Navbar = () => {
               onClick={logout}
               className="w-full rounded-xl bg-black py-3 font-semibold text-white"
             >
-              Log out
+              {tr('common.logout')}
             </button>
           </div>
         </div>

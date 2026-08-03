@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Pencil, UserMinus, UserPlus, LogOut, X } from 'lucide-react';
 import { theme } from '../../../theme';
+import { useI18n } from '../../../i18n/I18nContext';
 import { idOf } from './messageHelpers';
 
 const t = theme;
@@ -22,6 +23,7 @@ export default function GroupInfoPanel({
   onRemoveMember,
   onLeaveGroup,
 }) {
+  const { t: tr } = useI18n();
   if (!open || !activeConv?.isGroup) return null;
 
   return (
@@ -40,9 +42,9 @@ export default function GroupInfoPanel({
       <div onClick={onClose} style={{ position: 'absolute', inset: 0 }} aria-hidden />
       <div
         style={{
-          position: 'relative',
-          background: '#fff',
-          borderRadius: '20px 20px 0 0',
+        position: 'relative',
+        background: t.surface,
+        borderRadius: '20px 20px 0 0',
           width: '100%',
           maxWidth: 480,
           maxHeight: '88dvh',
@@ -53,12 +55,12 @@ export default function GroupInfoPanel({
       >
         <div style={{ width: 36, height: 4, borderRadius: 999, background: t.lineStrong, margin: '0 auto 14px' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, color: t.ink }}>Group info</h3>
+          <h3 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, color: t.ink }}>{tr('messages.groupInfoTitle')}</h3>
           <button
             type="button"
             onClick={onClose}
             style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: t.inkSoft }}
-            aria-label="Close"
+            aria-label={tr('common.close')}
           >
             <X size={20} />
           </button>
@@ -71,7 +73,7 @@ export default function GroupInfoPanel({
         )}
 
         <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: t.inkSoft, textTransform: 'uppercase', marginBottom: 6 }}>
-          Group name
+          {tr('messages.groupName')}
         </label>
         <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
           <input
@@ -83,6 +85,8 @@ export default function GroupInfoPanel({
               borderRadius: 10,
               border: `1.5px solid ${t.line}`,
               fontSize: 14,
+              background: t.surface,
+              color: t.ink,
               fontFamily: t.fontBody,
             }}
           />
@@ -103,12 +107,12 @@ export default function GroupInfoPanel({
               gap: 6,
             }}
           >
-            <Pencil size={14} /> Save
+            <Pencil size={14} /> {tr('common.save')}
           </button>
         </div>
 
         <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: t.inkSoft, textTransform: 'uppercase' }}>
-          Members ({activeConv.members?.length || 0})
+          {tr('messages.membersCountTemplate').replace('{n}', activeConv.members?.length || 0)}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
           {(activeConv.members || []).map((m) => {
@@ -123,7 +127,7 @@ export default function GroupInfoPanel({
                   gap: 10,
                   padding: '8px 10px',
                   borderRadius: 12,
-                  background: '#FAF8F5',
+                  background: t.surfaceSunken,
                   border: `1px solid ${t.line}`,
                 }}
               >
@@ -150,7 +154,7 @@ export default function GroupInfoPanel({
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: t.ink }}>
-                    {m.name}{isSelf ? ' (you)' : ''}
+                    {m.name}{isSelf ? ` ${tr('messages.you')}` : ''}
                   </p>
                   {m.username && (
                     <p style={{ margin: 0, fontSize: 11, color: t.inkFaint }}>@{m.username}</p>
@@ -161,7 +165,7 @@ export default function GroupInfoPanel({
                     type="button"
                     onClick={() => onRemoveMember(mid)}
                     disabled={groupBusy}
-                    title="Remove"
+                    title={tr('messages.remove')}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -179,14 +183,14 @@ export default function GroupInfoPanel({
         </div>
 
         <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: t.inkSoft, textTransform: 'uppercase' }}>
-          Add people
+          {tr('messages.addPeople')}
         </p>
         <div style={{ position: 'relative', marginBottom: 10 }}>
           <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: t.inkFaint }} />
           <input
             value={addMemberQuery}
             onChange={(e) => onAddMemberQueryChange(e.target.value)}
-            placeholder="Search name or username…"
+            placeholder={tr('messages.searchNameUsername')}
             style={{
               width: '100%',
               boxSizing: 'border-box',
@@ -194,6 +198,8 @@ export default function GroupInfoPanel({
               borderRadius: 10,
               border: `1.5px solid ${t.line}`,
               fontSize: 13,
+              background: t.surface,
+              color: t.ink,
               fontFamily: t.fontBody,
             }}
           />
@@ -250,7 +256,7 @@ export default function GroupInfoPanel({
             fontFamily: t.fontBody,
           }}
         >
-          <LogOut size={15} /> Leave group
+          <LogOut size={15} /> {tr('messages.leaveGroup')}
         </button>
       </div>
     </div>

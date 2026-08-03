@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserPlus, RefreshCw, Inbox } from 'lucide-react';
 import { theme } from '../../../theme';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   idOf,
   getChatPartner,
@@ -34,6 +35,7 @@ export default function ConversationList({
   onSelect,
   onOpenNew,
 }) {
+  const { t: tr } = useI18n();
   return (
     <div
       className="db-msg-list"
@@ -43,13 +45,13 @@ export default function ConversationList({
         borderRight: `1px solid ${t.line}`,
         display: 'flex',
         flexDirection: 'column',
-        background: '#FAF8F5',
+        background: t.surfaceRaised,
         minHeight: 0,
       }}
     >
       <div style={{ padding: '16px 18px', borderBottom: `1px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <h2 style={{ fontSize: '17px', fontWeight: '700', color: t.ink, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontFamily: t.fontDisplay }}>
-          Messages
+          {tr('messages.title')}
         </h2>
 
         <button
@@ -68,7 +70,7 @@ export default function ConversationList({
             color: '#fff'
           }}
         >
-          <UserPlus size={14} /> New
+          <UserPlus size={14} /> {tr('messages.new')}
         </button>
       </div>
 
@@ -78,7 +80,7 @@ export default function ConversationList({
         ) : conversations.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 10px', color: t.inkFaint }}>
             <Inbox size={28} style={{ margin: '0 auto 10px' }} />
-            <p style={{ fontSize: '13px', margin: 0 }}>No chats yet. Tap New to start a 1:1 or group.</p>
+            <p style={{ fontSize: '13px', margin: 0 }}>{tr('messages.noChatsYet')}</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -129,7 +131,7 @@ export default function ConversationList({
                   <div style={{ flexGrow: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
                       <span style={{ fontSize: '13.5px', fontWeight: isUnread || active ? '700' : '500', color: t.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {getChatPartnerName(conv, myId)}
+                        {getChatPartnerName(conv, myId, { group: tr('messages.group'), unknown: tr('messages.unknownBuddy') })}
                       </span>
 
                       <span style={{ fontSize: '10px', color: t.inkFaint }}>
@@ -146,7 +148,7 @@ export default function ConversationList({
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap'
                     }}>
-                      {conv.lastMessage?.content || 'No messages yet'}
+                      {conv.lastMessage?.content || tr('messages.noMessagesYet')}
                     </p>
                   </div>
 

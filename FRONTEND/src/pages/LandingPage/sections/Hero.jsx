@@ -1,10 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { useI18n } from '../../../i18n/I18nContext';
 import heroImage from '../../../assets/hero-illustration.png';
 
 const Hero = () => {
   const { user } = useAuth();
+  const { t: tr } = useI18n();
   const navigate = useNavigate();
 
   const goExplore = () => {
@@ -29,7 +31,7 @@ const Hero = () => {
     >
       <img
         src={heroImage}
-        alt="DiaBuddy hero illustration"
+        alt={tr('landing.hero.imageAlt')}
         className="absolute inset-0 h-full w-full object-cover object-center"
       />
 
@@ -49,16 +51,15 @@ const Hero = () => {
           </p>
 
           <h1 className="font-display font-light leading-[1.15] text-[#1E2A24] text-[1.65rem] sm:text-[2.1rem] lg:text-[2.5rem] mb-6">
-            A{' '}
+            {tr('landing.hero.titleStart')}{' '}
             <span className="italic font-semibold text-[#3D5A45]">
-              softer
+              {tr('landing.hero.titleEmphasis')}
             </span>{' '}
-            way to live with diabetes.
+            {tr('landing.hero.titleEnd')}
           </h1>
 
           <p className="text-[0.95rem] sm:text-[1.1rem] leading-[1.85] text-[#6B5645] max-w-[480px] mb-10">
-            Log a reading, notice a pattern, breathe a little easier —
-            with a community that actually gets it.
+            {tr('landing.hero.lead')}
           </p>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
@@ -66,14 +67,14 @@ const Hero = () => {
               onClick={goStart}
               className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#1E2A24] px-7 py-3.5 text-[0.95rem] font-semibold text-white transition-all duration-300 hover:bg-[#C56A3E] hover:-translate-y-0.5"
             >
-              Start logging
+              {tr('landing.hero.startLogging')}
             </button>
 
             <button
               onClick={goExplore}
               className="inline-flex items-center justify-center w-full sm:w-auto rounded-full border-2 border-[#1E2A24]/30 bg-white/40 backdrop-blur px-7 py-3.5 text-[0.95rem] font-semibold text-[#1E2A24] transition-all duration-300 hover:border-[#C56A3E] hover:text-[#C56A3E] hover:-translate-y-0.5"
             >
-              Explore DiaBuddy
+              {tr('landing.hero.explore')}
             </button>
           </div>
         </div>

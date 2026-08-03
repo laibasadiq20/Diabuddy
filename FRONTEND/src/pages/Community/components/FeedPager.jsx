@@ -1,6 +1,8 @@
 import React from 'react';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function FeedPager({ currentPage, totalPages, onPageChange }) {
+  const { t: tr } = useI18n();
   if (totalPages <= 1) return null;
 
   return (
@@ -10,7 +12,7 @@ export default function FeedPager({ currentPage, totalPages, onPageChange }) {
         disabled={currentPage === 1}
         onClick={() => onPageChange(currentPage - 1)}
       >
-        Previous
+        {tr('community.pagerPrevious')}
       </button>
       <span>
         {currentPage} / {totalPages}
@@ -20,7 +22,7 @@ export default function FeedPager({ currentPage, totalPages, onPageChange }) {
         disabled={currentPage === totalPages}
         onClick={() => onPageChange(currentPage + 1)}
       >
-        Next
+        {tr('community.pagerNext')}
       </button>
     </div>
   );

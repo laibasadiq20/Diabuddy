@@ -2,7 +2,7 @@
 
 This file used to describe interactive Dashboard glucose/meal widgets and a Hub-only redesign. **Current product:**
 
-- **Dashboard** is a navigation hub (Community, Toolbox, Logs, Fitbit, Reminders, Messages, Account).
+- **Dashboard** is a navigation hub (Community, Toolbox, Logs, Fitbit, Messages, Account).
 - **Logs** (`/logs`) is a local-device health log (glucose / meal / insulin) — not yet synced to Mongo models.
 - **Community / Messages / Admin** are the primary server-backed modules.
 - Auth uses **httpOnly cookies**; JWT is not returned to the client body.

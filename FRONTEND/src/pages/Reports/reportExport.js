@@ -6,22 +6,27 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
-function reportKindFromLabel(rawLabel) {
+function reportKindFromLabel(rawLabel, tr) {
   const lower = String(rawLabel || '').toLowerCase();
-  if (lower.includes('daily')) return { badge: 'Daily report', title: 'Daily health report', tone: 'daily' };
-  if (lower.includes('weekly')) return { badge: 'Weekly report', title: 'Weekly health report', tone: 'weekly' };
-  if (lower.includes('monthly')) return { badge: 'Monthly report', title: 'Monthly health report', tone: 'monthly' };
+  const kind = (key) => ({
+    badge: tr(`reports.pdfExport.kinds.${key}.badge`),
+    title: tr(`reports.pdfExport.kinds.${key}.title`),
+  });
+  if (lower.includes('daily')) return { ...kind('daily'), tone: 'daily' };
+  if (lower.includes('weekly')) return { ...kind('weekly'), tone: 'weekly' };
+  if (lower.includes('monthly')) return { ...kind('monthly'), tone: 'monthly' };
   if (lower.includes('3-month') || lower.includes('3 month')) {
-    return { badge: '3-month report', title: '3-month health report', tone: 'quarter' };
+    return { ...kind('threeMonth'), tone: 'quarter' };
   }
-  return { badge: rawLabel || 'Health report', title: 'Health report', tone: 'custom' };
+  const custom = kind('custom');
+  return { badge: rawLabel || custom.badge, title: custom.title, tone: 'custom' };
 }
 
 /**
  * SVG glucose trend line — shows shape, not just the average.
  * Prefers individual readings when the set is small; otherwise daily averages.
  */
-function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }) {
+function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }, tr) {
   const series = (charts?.glucoseSeries || [])
     .filter((p) => p.valueMgDl != null && Number.isFinite(Number(p.valueMgDl)))
     .map((p) => ({
@@ -38,7 +43,7 @@ function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }) {
     }));
 
   let points = [];
-  let modeLabel = 'Daily average';
+  let modeLabel = tr('reports.pdfExport.trend.dailyAverage');
 
   if (series.length >= 2 && series.length <= 40) {
     points = series.map((p, i) => {
@@ -54,27 +59,27 @@ function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }) {
       }
       return { value: p.value, label: label || String(i + 1) };
     });
-    modeLabel = 'Each reading';
+    modeLabel = tr('reports.pdfExport.trend.eachReading');
   } else if (daily.length >= 2) {
     points = daily;
-    modeLabel = 'Daily average';
+    modeLabel = tr('reports.pdfExport.trend.dailyAverage');
   } else if (series.length >= 2) {
     // Many readings: fall back to daily if possible, else downsample
     if (daily.length >= 2) {
       points = daily;
-      modeLabel = 'Daily average';
+      modeLabel = tr('reports.pdfExport.trend.dailyAverage');
     } else {
       const step = Math.ceil(series.length / 36);
       points = series.filter((_, i) => i % step === 0).map((p, i) => ({
         value: p.value,
         label: p.label || String(i + 1),
       }));
-      modeLabel = 'Sampled readings';
+      modeLabel = tr('reports.pdfExport.trend.sampledReadings');
     }
   }
 
   if (points.length < 2) {
-    return `<div class="trend empty">Not enough glucose points yet for a trend line.</div>`;
+    return `<div class="trend empty">${escapeHtml(tr('reports.pdfExport.trend.notEnoughData'))}</div>`;
   }
 
   const W = 640;
@@ -151,9 +156,9 @@ function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }) {
     <div class="trend">
       <div class="trend-meta">
         <span>${escapeHtml(modeLabel)}</span>
-        <span>Shaded band = target ${bandLow}–${bandHigh} mg/dL</span>
+        <span>${escapeHtml(tr('reports.pdfExport.trend.shadedBandTemplate').replace('{low}', bandLow).replace('{high}', bandHigh))}</span>
       </div>
-      <svg viewBox="0 0 ${W} ${H}" width="100%" height="200" role="img" aria-label="Glucose trend">
+      <svg viewBox="0 0 ${W} ${H}" width="100%" height="200" role="img" aria-label="${escapeHtml(tr('reports.pdfExport.trend.ariaLabel'))}">
         <rect x="${padL}" y="${bandTop.toFixed(1)}" width="${innerW}" height="${bandHeight.toFixed(1)}" class="band" />
         ${yLabels}
         <path d="${path}" class="line" fill="none" />
@@ -164,13 +169,13 @@ function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }) {
 }
 
 /** CSS conic-gradient donut for Time in Range */
-function tirDonutHtml(tir) {
+function tirDonutHtml(tir, tr) {
   const inR = Number(tir?.inRange) || 0;
   const high = Number(tir?.high) || 0;
   const low = Number(tir?.low) || 0;
   const total = inR + high + low;
   if (!total) {
-    return `<div class="donut empty"><span>No readings</span></div>`;
+    return `<div class="donut empty"><span>${escapeHtml(tr('reports.pdfExport.donut.noReadings'))}</span></div>`;
   }
   const inPct = (inR / total) * 100;
   const highPct = (high / total) * 100;
@@ -184,20 +189,24 @@ function tirDonutHtml(tir) {
       <div class="donut" style="background: ${gradient}">
         <div class="donut-hole">
           <strong>${center}%</strong>
-          <span>in range</span>
+          <span>${escapeHtml(tr('reports.pdfExport.donut.inRangeCenter'))}</span>
         </div>
       </div>
       <ul class="donut-legend">
-        <li><i class="dot in"></i> In range <strong>${inR}</strong></li>
-        <li><i class="dot high"></i> High <strong>${high}</strong></li>
-        <li><i class="dot low"></i> Low <strong>${low}</strong></li>
+        <li><i class="dot in"></i> ${escapeHtml(tr('reports.pdfExport.donut.inRange'))} <strong>${inR}</strong></li>
+        <li><i class="dot high"></i> ${escapeHtml(tr('reports.pdfExport.donut.high'))} <strong>${high}</strong></li>
+        <li><i class="dot low"></i> ${escapeHtml(tr('reports.pdfExport.donut.low'))} <strong>${low}</strong></li>
       </ul>
     </div>`;
 }
 
-function formatDeltaLine(delta, { unit = '', invert = false, against = 'the previous period' } = {}) {
+function formatDeltaLine(delta, { unit = '', invert = false, against, tr }) {
+  const againstLabel = against || tr('reports.pdfExport.delta.previousPeriod');
   if (delta == null || Number.isNaN(Number(delta)) || Number(delta) === 0) {
-    if (delta === 0) return `<span class="delta flat">No change from ${escapeHtml(against)}</span>`;
+    if (delta === 0) {
+      const text = tr('reports.pdfExport.delta.noChangeFromTemplate').replace('{against}', againstLabel);
+      return `<span class="delta flat">${escapeHtml(text)}</span>`;
+    }
     return '';
   }
   const n = Number(delta);
@@ -205,21 +214,26 @@ function formatDeltaLine(delta, { unit = '', invert = false, against = 'the prev
   const arrow = n > 0 ? '↑' : '↓';
   const abs = Math.abs(n);
   const cls = better ? 'better' : 'worse';
-  return `<span class="delta ${cls}">${arrow} ${escapeHtml(abs)}${escapeHtml(unit)} from ${escapeHtml(against)}</span>`;
+  const text = tr('reports.pdfExport.delta.changeFromTemplate')
+    .replace('{arrow}', arrow)
+    .replace('{value}', abs)
+    .replace('{unit}', unit)
+    .replace('{against}', againstLabel);
+  return `<span class="delta ${cls}">${escapeHtml(text)}</span>`;
 }
 
 /**
  * Opens the system print dialog (choose "Save as PDF") via a same-page iframe.
  */
-export function downloadReportPdf(report, { userName } = {}) {
+export function downloadReportPdf(report, { userName, tr } = {}) {
   const period = report?.period;
   const metrics = period?.metrics || {};
   const charts = period?.charts || {};
   const story = report?.story || {};
   const deltas = report?.deltas || {};
-  const against = report?.compareAgainst || 'the previous period';
+  const against = report?.compareAgainst || tr('reports.pdfExport.delta.previousPeriod');
   const tirTarget = report?.tirTarget || { low: 70, high: 180 };
-  const reportKind = reportKindFromLabel(period?.label);
+  const reportKind = reportKindFromLabel(period?.label, tr);
 
   const variabilityDisplay =
     story.variabilityLabel ||
@@ -229,13 +243,13 @@ export function downloadReportPdf(report, { userName } = {}) {
   const goals = (story.recommendations || []).slice(0, 3);
   const goalsHtml = goals.length
     ? `<section class="block goals">
-        <h2>${escapeHtml(story.goalsTitle || 'Recommended Goals Ahead')}</h2>
+        <h2>${escapeHtml(story.goalsTitle || tr('reports.pdfExport.goalsTitleFallback'))}</h2>
         <ol>${goals.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ol>
       </section>`
     : '';
 
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8" />
   <title>DiaBuddy ${escapeHtml(reportKind.badge)}</title>
@@ -654,60 +668,60 @@ export function downloadReportPdf(report, { userName } = {}) {
   </div>
 
   <div class="meta">
-    <strong>Patient:</strong> ${escapeHtml(userName || 'Patient')}
-    · Target ${escapeHtml(tirTarget.low)}–${escapeHtml(tirTarget.high)} mg/dL
-    · Exported ${escapeHtml(new Date().toLocaleString())}
+    <strong>${escapeHtml(tr('reports.pdfExport.patientLabel'))}</strong> ${escapeHtml(userName || tr('reports.pdfExport.patientFallback'))}
+    · ${escapeHtml(tr('reports.pdfExport.targetLabel'))} ${escapeHtml(tirTarget.low)}–${escapeHtml(tirTarget.high)} mg/dL
+    · ${escapeHtml(tr('reports.pdfExport.exportedLabel'))} ${escapeHtml(new Date().toLocaleString())}
   </div>
 
   <section class="care-letter">
-    <p class="eyebrow">From DiaBuddy</p>
-    <h2>${escapeHtml(story.careLetterTitle || story.headline || 'Care Letter')}</h2>
-    <span class="rating is-${escapeHtml(story.rating || 'fair')}">${escapeHtml(story.ratingLabel || 'Summary')}</span>
+    <p class="eyebrow">${escapeHtml(tr('reports.pdfExport.fromDiaBuddy'))}</p>
+    <h2>${escapeHtml(story.careLetterTitle || story.headline || tr('reports.pdfExport.careLetterFallback'))}</h2>
+    <span class="rating is-${escapeHtml(story.rating || 'fair')}">${escapeHtml(story.ratingLabel || tr('reports.pdfExport.summaryFallback'))}</span>
     <p>${escapeHtml(story.careLetter || story.narrative || story.summary || '')}</p>
-    <p class="signoff">— Your DiaBuddy companion</p>
+    <p class="signoff">${escapeHtml(tr('reports.pdfExport.signoff'))}</p>
   </section>
 
   <div class="kpi-grid">
     <div class="kpi">
-      <label>Time in Range</label>
+      <label>${escapeHtml(tr('reports.pdfExport.kpis.timeInRange'))}</label>
       <strong>${escapeHtml(metrics.timeInRangePercent != null ? `${metrics.timeInRangePercent}%` : '—')}</strong>
-      ${formatDeltaLine(deltas.timeInRangePercent, { unit: '%', invert: false, against })}
+      ${formatDeltaLine(deltas.timeInRangePercent, { unit: '%', invert: false, against, tr })}
     </div>
     <div class="kpi">
-      <label>Avg Glucose</label>
+      <label>${escapeHtml(tr('reports.pdfExport.kpis.avgGlucose'))}</label>
       <strong>${
         metrics.avgGlucose != null
           ? `${escapeHtml(metrics.avgGlucose)}<span class="unit"> mg/dL</span>`
           : '—'
       }</strong>
-      ${formatDeltaLine(deltas.avgGlucose, { unit: ' mg/dL', invert: true, against })}
+      ${formatDeltaLine(deltas.avgGlucose, { unit: ' mg/dL', invert: true, against, tr })}
     </div>
     <div class="kpi">
-      <label>Estimated HbA1c</label>
+      <label>${escapeHtml(tr('reports.pdfExport.kpis.estimatedA1c'))}</label>
       <strong>${escapeHtml(metrics.estimatedA1c != null ? `${metrics.estimatedA1c}%` : '—')}</strong>
-      ${formatDeltaLine(deltas.estimatedA1c, { unit: '%', invert: true, against })}
+      ${formatDeltaLine(deltas.estimatedA1c, { unit: '%', invert: true, against, tr })}
     </div>
     <div class="kpi">
-      <label>Variability</label>
+      <label>${escapeHtml(tr('reports.pdfExport.kpis.variability'))}</label>
       <strong>${escapeHtml(variabilityDisplay)}</strong>
-      ${formatDeltaLine(deltas.glucoseStdDev, { unit: ' mg/dL', invert: true, against })}
+      ${formatDeltaLine(deltas.glucoseStdDev, { unit: ' mg/dL', invert: true, against, tr })}
     </div>
   </div>
 
   <div class="row-2 visuals">
     <section class="trend-card" style="margin:0;">
-      <h2>Glucose trend</h2>
-      ${glucoseTrendSvg(charts, tirTarget)}
+      <h2>${escapeHtml(tr('reports.pdfExport.glucoseTrendTitle'))}</h2>
+      ${glucoseTrendSvg(charts, tirTarget, tr)}
     </section>
     <div class="card tir-card" style="margin:0;">
-      <h2>Time in Range</h2>
-      ${tirDonutHtml(charts.tir)}
+      <h2>${escapeHtml(tr('reports.pdfExport.timeInRangeTitle'))}</h2>
+      ${tirDonutHtml(charts.tir, tr)}
     </div>
   </div>
 
   ${goalsHtml}
 
-  <p class="note">Informational self-management summary only — not a substitute for medical advice, diagnosis, or laboratory HbA1c results.</p>
+  <p class="note">${escapeHtml(tr('reports.pdfExport.disclaimer'))}</p>
 </body>
 </html>`;
 
@@ -716,7 +730,7 @@ export function downloadReportPdf(report, { userName } = {}) {
 
   const iframe = document.createElement('iframe');
   iframe.id = 'db-rep-pdf-frame';
-  iframe.title = 'DiaBuddy report PDF export';
+  iframe.title = tr('reports.pdfExport.iframeTitle');
   iframe.setAttribute('aria-hidden', 'true');
   Object.assign(iframe.style, {
     position: 'fixed',
@@ -741,7 +755,7 @@ export function downloadReportPdf(report, { userName } = {}) {
     const win = iframe.contentWindow;
     if (!win) {
       iframe.remove();
-      throw new Error('Could not prepare PDF export.');
+      throw new Error(tr('reports.pdfExport.exportError'));
     }
     win.focus();
     win.print();

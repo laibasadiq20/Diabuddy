@@ -4,6 +4,7 @@ import { CheckCircle, Clock, ArrowRight, HeartPulse, RefreshCw, Mail } from 'luc
 import { theme } from '../../theme';
 import { API_URL } from "../../config/api";
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { homePathFor } from '../../utils/homePath';
 const t = theme;
 
@@ -11,6 +12,7 @@ export default function VerifyOtp() {
   const location = useLocation();
   const navigate = useNavigate();
   const { fetchUser, saveSession } = useAuth();
+  const { t: tr } = useI18n();
   const email = location.state?.email || '';
   const isLoginFlow = location.state?.mode === 'login';
 
@@ -65,7 +67,7 @@ export default function VerifyOtp() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const otpCode = otp.join('');
-    if (otpCode.length !== 6) { setError('Enter all 6 digits'); return; }
+    if (otpCode.length !== 6) { setError(tr('auth.verifyOtp.enterAllDigits')); return; }
     setLoading(true);
     setError('');
     try {
@@ -95,10 +97,10 @@ const payload = {
           navigate(homePathFor(nextUser));
         }, 1200);
       } else {
-        setError(data.message || 'Incorrect code. Try again.');
+        setError(data.message || tr('auth.verifyOtp.incorrectCode'));
       }
     } catch {
-      setError('Connection error. Please try again.');
+      setError(tr('auth.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -123,10 +125,10 @@ const payload = {
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else {
-        setError(data.message || 'Failed to resend code');
+        setError(data.message || tr('auth.verifyOtp.failedToResend'));
       }
     } catch {
-      setError('Connection error');
+      setError(tr('auth.verifyOtp.connectionErrorShort'));
     } finally {
       setResending(false);
     }
@@ -168,8 +170,8 @@ const payload = {
               <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: t.sageTint, border: `1px solid ${t.sage}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                 <CheckCircle size={28} color={t.sageDeep} />
               </div>
-              <h2 style={{ color: '#1A1A1A', fontSize: '20px', fontWeight: '700', marginBottom: '6px', fontFamily: t.fontDisplay }}>{isLoginFlow ? 'Signed in!' : 'Email verified!'}</h2>
-              <p style={{ color: '#333333', fontSize: '13px', fontWeight: '500' }}>Taking you to your dashboard…</p>
+              <h2 style={{ color: '#1A1A1A', fontSize: '20px', fontWeight: '700', marginBottom: '6px', fontFamily: t.fontDisplay }}>{isLoginFlow ? tr('auth.verifyOtp.signedIn') : tr('auth.verifyOtp.emailVerified')}</h2>
+              <p style={{ color: '#333333', fontSize: '13px', fontWeight: '500' }}>{tr('auth.verifyOtp.takingToDashboard')}</p>
               <div style={{ marginTop: '20px', height: '3px', background: t.line, borderRadius: '2px', overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: '100%', background: t.sageDeep, animation: 'db-progress 2s linear forwards' }} />
               </div>
@@ -182,13 +184,13 @@ const payload = {
                   <Mail size={20} color={t.sageDeep} />
                 </div>
                 <h1 style={{ color: '#1A1A1A', fontSize: '20px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.2px', fontFamily: t.fontDisplay }}>
-                  {isLoginFlow ? 'Complete sign in' : 'Check your email'}
+                  {isLoginFlow ? tr('auth.verifyOtp.completeSignIn') : tr('auth.verifyOtp.checkYourEmail')}
                 </h1>
                 <p style={{ color: '#333333', fontSize: '12px', lineHeight: '1.5', fontWeight: '500' }}>
                   {isLoginFlow
-                    ? 'Enter the 6-digit code sent to '
-                    : 'We sent a 6-digit code to '}{' '}
-                  <span style={{ color: t.sageDeep, fontWeight: '700' }}>{email || 'your email'}</span>
+                    ? tr('auth.verifyOtp.codeSentTo')
+                    : tr('auth.verifyOtp.weSentCodeTo')}{' '}
+                  <span style={{ color: t.sageDeep, fontWeight: '700' }}>{email || tr('auth.verifyOtp.yourEmail')}</span>
                 </p>
               </div>
 
@@ -236,7 +238,7 @@ const payload = {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginBottom: '16px' }}>
                   <Clock size={12} color={expireLeft <= 60 ? '#8B0000' : '#333333'} />
                   <span style={{ fontSize: '12px', color: expireLeft <= 60 ? '#8B0000' : '#333333', fontWeight: '600' }}>
-                    Code expires in {formatTime(expireLeft)}
+                    {tr('auth.verifyOtp.codeExpiresIn')} {formatTime(expireLeft)}
                   </span>
                 </div>
 
@@ -257,13 +259,13 @@ const payload = {
                   onMouseEnter={(e) => { if (filled === 6 && !loading) { e.currentTarget.style.background = t.olive; e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.25)'; } }}
                   onMouseLeave={(e) => { if (filled === 6 && !loading) { e.currentTarget.style.background = t.sageDeep; e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.25)'; } }}
                 >
-                  {loading ? 'Verifying…' : (isLoginFlow ? <>Verify & sign in <ArrowRight size={12} /></> : <>Verify code <ArrowRight size={12} /></>)}
+                  {loading ? tr('auth.verifyOtp.verifying') : (isLoginFlow ? <>{tr('auth.verifyOtp.verifyAndSignIn')} <ArrowRight size={12} /></> : <>{tr('auth.verifyOtp.verifyCode')} <ArrowRight size={12} /></>)}
                 </button>
               </form>
 
               {/* Resend - Compact */}
               <div style={{ textAlign: 'center', marginTop: '20px', paddingTop: '16px', borderTop: `2px solid rgba(0, 0, 0, 0.2)` }}>
-                <p style={{ color: '#333333', fontSize: '11px', marginBottom: '8px', fontWeight: '500' }}>Didn't receive it?</p>
+                <p style={{ color: '#333333', fontSize: '11px', marginBottom: '8px', fontWeight: '500' }}>{tr('auth.verifyOtp.didntReceiveIt')}</p>
                 <button
                   onClick={handleResend}
                   disabled={resendLeft > 0 || resending}
@@ -276,14 +278,14 @@ const payload = {
                   }}
                 >
                   <RefreshCw size={12} className={resending ? 'animate-spin' : ''} />
-                  {resendLeft > 0 ? `Resend in ${formatTime(resendLeft)}` : resending ? 'Sending…' : 'Resend code'}
+                  {resendLeft > 0 ? `${tr('auth.verifyOtp.resendIn')} ${formatTime(resendLeft)}` : resending ? tr('auth.verifyOtp.sending') : tr('auth.verifyOtp.resendCode')}
                 </button>
               </div>
 
               {/* Tip - Compact */}
               <div style={{ marginTop: '16px', background: t.goldTint, border: `2px solid rgba(139, 105, 20, 0.3)`, borderRadius: '8px', padding: '8px 12px' }}>
                 <p style={{ color: '#5C4510', fontSize: '10px', lineHeight: '1.5', margin: 0, fontWeight: '500' }}>
-                  <strong style={{ color: '#8B6914', fontWeight: '700' }}>Tip:</strong> Check your spam folder if you don't see the email within 1 minute.
+                  <strong style={{ color: '#8B6914', fontWeight: '700' }}>{tr('auth.verifyOtp.tipLabel')}</strong> {tr('auth.verifyOtp.tipBody')}
                 </p>
               </div>
             </>

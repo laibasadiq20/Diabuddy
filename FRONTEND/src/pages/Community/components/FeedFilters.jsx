@@ -1,9 +1,10 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const SORT_OPTIONS = [
-  { id: 'latest', label: 'Latest' },
-  { id: 'most_commented', label: 'Most commented' },
+  { id: 'latest', labelKey: 'community.sortLatest' },
+  { id: 'most_commented', labelKey: 'community.sortMostCommented' },
 ];
 
 export default function FeedFilters({
@@ -14,11 +15,12 @@ export default function FeedFilters({
   onSortSelect,
   onTopicSelect,
 }) {
+  const { t: tr } = useI18n();
   return (
     <div className="db-community-filters">
       <div className="db-community-filter-bar">
         <label className="db-community-sort-label" htmlFor="db-community-sort">
-          Sort
+          {tr('community.sort')}
         </label>
         <div className="db-community-sort-wrap">
           <select
@@ -26,11 +28,11 @@ export default function FeedFilters({
             className="db-community-sort-select"
             value={sortMode}
             onChange={(e) => onSortSelect(e.target.value)}
-            aria-label="Sort posts"
+            aria-label={tr('community.sort')}
           >
             {SORT_OPTIONS.map((opt) => (
               <option key={opt.id} value={opt.id}>
-                {opt.label}
+                {tr(opt.labelKey)}
               </option>
             ))}
           </select>
@@ -38,7 +40,7 @@ export default function FeedFilters({
         </div>
       </div>
 
-      <div className="db-community-topics" role="tablist" aria-label="Topics">
+      <div className="db-community-topics" role="tablist" aria-label={tr('nav.topics')}>
         <button
           type="button"
           role="tab"
@@ -46,7 +48,7 @@ export default function FeedFilters({
           className={`db-topic-chip${selectedTopic === '' ? ' is-active' : ''}`}
           onClick={() => onTopicSelect('')}
         >
-          All
+          {tr('community.topicsAll')}
         </button>
         {!topicsLoading &&
           topics.map((topic) => (

@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
+import { useI18n } from '../../i18n/I18nContext';
 import {
   ArrowLeft,
   MessageSquare,
@@ -17,12 +18,12 @@ import {
 
 const t = theme;
 
-async function readJson(res) {
+async function readJson(res, unexpectedMsg) {
   const text = await res.text();
   try {
     return text ? JSON.parse(text) : {};
   } catch {
-    return { message: text?.slice(0, 120) || 'Unexpected server response' };
+    return { message: text?.slice(0, 120) || unexpectedMsg || 'Unexpected server response' };
   }
 }
 
@@ -31,6 +32,7 @@ export default function UserProfile() {
   const location = useLocation();
   const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
+  const { t: tr } = useI18n();
   const preview = location.state?.preview;
 
   const [profile, setProfile] = useState(null);
@@ -44,7 +46,7 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (!id || id === 'undefined' || id === 'null') {
-      setError('Invalid profile link');
+      setError(tr('userProfile.invalidLink'));
       setLoading(false);
       return;
     }
@@ -59,14 +61,14 @@ export default function UserProfile() {
 
         for (const path of [`${API_URL}/users/${id}`, `${API_URL}/auth/users/${id}`]) {
           const res = await fetch(path, { credentials: 'include', headers });
-          const data = await readJson(res);
+          const data = await readJson(res, tr('userProfile.unexpectedServerResponse'));
           if (res.ok && data.data) {
             profileData = data.data;
             break;
           }
           // Keep last meaningful error for display if all fail
           if (!res.ok) {
-            setError(data.message || `Could not load profile (${res.status})`);
+            setError(data.message || tr('userProfile.couldNotLoadTemplate').replace('{status}', res.status));
           }
         }
 
@@ -87,7 +89,7 @@ export default function UserProfile() {
 
         if (!profileData) {
           setProfile(null);
-          setError((prev) => prev || 'User not found');
+          setError((prev) => prev || tr('userProfile.userNotFound'));
           return;
         }
 
@@ -95,7 +97,7 @@ export default function UserProfile() {
         setError('');
       } catch (err) {
         console.error(err);
-        setError('Could not load profile. Please try again.');
+        setError(tr('userProfile.couldNotLoadRetry'));
         setProfile(null);
       } finally {
         setLoading(false);
@@ -117,7 +119,7 @@ export default function UserProfile() {
             headers: { ...authHeaders() },
           }
         );
-        const data = await readJson(res);
+        const data = await readJson(res, tr('userProfile.unexpectedServerResponse'));
         if (res.ok) setPosts(data.posts || []);
         else setPosts([]);
       } catch {
@@ -139,7 +141,7 @@ export default function UserProfile() {
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ memberIds: [String(profile._id || profile.id)], isGroup: false }),
       });
-      const data = await readJson(res);
+      const data = await readJson(res, tr('userProfile.unexpectedServerResponse'));
       if (res.ok) {
         navigate('/messages', { state: { conversationId: data._id } });
       }
@@ -151,7 +153,7 @@ export default function UserProfile() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', background: '#E8E0D4', fontFamily: t.fontBody }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', background: t.pageFadeTop, fontFamily: t.fontBody }}>
       <AppSidebar />
 
       <main style={{ flex: 1, minWidth: 0, padding: '28px 20px 72px' }}>
@@ -160,7 +162,7 @@ export default function UserProfile() {
             type="button"
             onClick={() => navigate(-1)}
             style={{
-              background: '#FFF',
+              background: t.surface,
               border: `1.5px solid ${t.lineStrong}`,
               color: t.inkSoft,
               fontSize: 13,
@@ -175,17 +177,17 @@ export default function UserProfile() {
               fontFamily: t.fontBody,
             }}
           >
-            <ArrowLeft size={15} /> Back
+            <ArrowLeft size={15} /> {tr('userProfile.back')}
           </button>
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: 48, color: t.inkSoft }}>
               <RefreshCw className="animate-spin" size={28} style={{ margin: '0 auto 12px' }} />
-              Loading profile…
+              {tr('userProfile.loadingProfile')}
             </div>
           ) : error || !profile ? (
-            <div style={{ background: '#FFF', borderRadius: 20, border: `1.5px solid ${t.lineStrong}`, padding: 40, textAlign: 'center' }}>
-              <p style={{ color: t.clayDeep, fontWeight: 600, margin: 0 }}>{error || 'User not found'}</p>
+            <div style={{ background: t.surface, borderRadius: 20, border: `1.5px solid ${t.lineStrong}`, padding: 40, textAlign: 'center' }}>
+              <p style={{ color: t.clayDeep, fontWeight: 600, margin: 0 }}>{error || tr('userProfile.userNotFound')}</p>
               <button
                 type="button"
                 onClick={() => navigate('/community')}
@@ -200,14 +202,14 @@ export default function UserProfile() {
                   cursor: 'pointer',
                 }}
               >
-                Back to community
+                {tr('userProfile.backToCommunity')}
               </button>
             </div>
           ) : (
             <>
               <section
                 style={{
-                  background: '#FFF',
+                  background: t.surface,
                   border: `1.5px solid ${t.lineStrong}`,
                   borderRadius: 20,
                   padding: '22px 20px',
@@ -255,7 +257,7 @@ export default function UserProfile() {
                           <MapPin size={13} /> {profile.location}
                         </span>
                       )}
-                      {profile.postsCount != null && <span>{profile.postsCount} posts</span>}
+                      {profile.postsCount != null && <span>{tr('userProfile.postsCountTemplate').replace('{n}', profile.postsCount)}</span>}
                     </div>
                     {profile.bio && (
                       <p style={{ margin: '12px 0 0', fontSize: 14, color: t.inkSoft, lineHeight: 1.55 }}>
@@ -282,7 +284,7 @@ export default function UserProfile() {
                         fontFamily: t.fontBody,
                       }}
                     >
-                      Edit my account
+                      {tr('userProfile.editMyAccount')}
                     </button>
                   ) : (
                     <button
@@ -306,17 +308,17 @@ export default function UserProfile() {
                       }}
                     >
                       <MessageSquare size={15} />
-                      {dmLoading ? 'Opening…' : 'Message'}
+                      {dmLoading ? tr('userProfile.opening') : tr('userProfile.message')}
                     </button>
                   )}
                 </div>
               </section>
 
               <h2 style={{ margin: '0 0 12px', fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
-                Public posts
+                {tr('userProfile.publicPosts')}
               </h2>
               <p style={{ margin: '0 0 14px', fontSize: 13, color: t.inkFaint }}>
-                Anonymous posts are never shown on profiles.
+                {tr('userProfile.anonymousNote')}
               </p>
 
               {postsLoading ? (
@@ -324,9 +326,9 @@ export default function UserProfile() {
                   <RefreshCw className="animate-spin" size={24} style={{ margin: '0 auto' }} />
                 </div>
               ) : posts.length === 0 ? (
-                <div style={{ background: '#FFF', borderRadius: 18, border: `1.5px solid ${t.lineStrong}`, padding: 36, textAlign: 'center', color: t.inkSoft }}>
+                <div style={{ background: t.surface, borderRadius: 18, border: `1.5px solid ${t.lineStrong}`, padding: 36, textAlign: 'center', color: t.inkSoft }}>
                   <FolderOpen size={36} color={t.inkFaint} style={{ margin: '0 auto 10px' }} />
-                  <p style={{ margin: 0, fontSize: 14 }}>No public posts yet.</p>
+                  <p style={{ margin: 0, fontSize: 14 }}>{tr('userProfile.noPublicPosts')}</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -337,7 +339,7 @@ export default function UserProfile() {
                       onClick={() => navigate(`/community/posts/${post._id}`)}
                       style={{
                         textAlign: 'left',
-                        background: '#FFF',
+                        background: t.surface,
                         border: `1.5px solid ${t.lineStrong}`,
                         borderRadius: 16,
                         padding: '16px 18px',
@@ -357,11 +359,11 @@ export default function UserProfile() {
                             borderRadius: 6,
                           }}
                         >
-                          {post.topicId?.name || 'General'}
+                          {post.topicId?.name || tr('userProfile.general')}
                         </span>
                         {post.bestAnswerCommentId && (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: t.gold }}>
-                            <Award size={10} /> Solved
+                            <Award size={10} /> {tr('userProfile.solved')}
                           </span>
                         )}
                       </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Send, Lock } from 'lucide-react';
 import { theme } from '../../../theme';
 import CommentNode from './CommentNode';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const t = theme;
 
@@ -14,9 +15,10 @@ export default function CommentsSection({
   onCreateComment,
   commentNodeProps,
 }) {
+  const { t: tr } = useI18n();
   return (
     <section className="db-post-comments" style={{
-      background: '#FFF',
+      background: t.surface,
       border: `1.5px solid ${t.lineStrong}`,
       borderRadius: 20,
       padding: '22px',
@@ -24,7 +26,7 @@ export default function CommentsSection({
       marginBottom: 8,
     }}>
       <h2 style={{ fontFamily: t.fontDisplay, fontSize: 'clamp(20px, 4vw, 24px)', color: t.ink, margin: '0 0 16px 0', fontWeight: 500 }}>
-        Discussion ({post.commentsCount || 0})
+        {tr('commentsSection.discussionTemplate').replace('{n}', post.commentsCount || 0)}
       </h2>
 
       {!post.isLocked ? (
@@ -33,7 +35,7 @@ export default function CommentsSection({
             <textarea
               value={newCommentContent}
               onChange={(e) => onNewCommentChange(e.target.value)}
-              placeholder={user ? "Add a helpful answer or question..." : "Sign in to participate in discussion"}
+              placeholder={user ? tr('commentsSection.placeholderSignedIn') : tr('commentsSection.placeholderSignedOut')}
               disabled={!user}
               rows={3}
               style={{
@@ -70,20 +72,20 @@ export default function CommentsSection({
                   gap: '6px'
                 }}
               >
-                <Send size={14} /> Send Comment
+                <Send size={14} /> {tr('commentsSection.sendComment')}
               </button>
             </div>
           )}
         </form>
       ) : (
         <div style={{ background: t.claySoft, borderRadius: '12px', padding: '12px 16px', color: t.clayDeep, fontSize: '14px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
-          <Lock size={16} /> This thread is locked and cannot receive further comments.
+          <Lock size={16} /> {tr('commentsSection.lockedNotice')}
         </div>
       )}
 
       {commentsTree.length === 0 ? (
         <p style={{ textAlign: 'center', color: t.inkFaint, padding: '24px 0', fontSize: '14px' }}>
-          No comments yet. Start the conversation!
+          {tr('commentsSection.noCommentsYet')}
         </p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

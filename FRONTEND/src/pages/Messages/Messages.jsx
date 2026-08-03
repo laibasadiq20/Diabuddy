@@ -15,7 +15,7 @@ export default function Messages() {
   const m = useMessages({ user, authHeaders });
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', background: '#E8E0D4', overflow: 'hidden' }}>
+    <div style={{ height: '100dvh', display: 'flex', background: t.bg, overflow: 'hidden' }}>
       <AppSidebar />
 
       <main style={{ flexGrow: 1, fontFamily: t.fontBody, minHeight: 0, display: 'flex', minWidth: 0 }}>

@@ -56,7 +56,7 @@ export function ResultBadge({ label, color }) {
       style={{
         padding: '6px 12px',
         borderRadius: 999,
-        background: '#FFF',
+        background: t.surface,
         border: `1.5px solid ${color}55`,
         color,
         fontSize: 13,

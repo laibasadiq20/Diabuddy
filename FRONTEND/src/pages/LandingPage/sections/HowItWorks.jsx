@@ -1,43 +1,45 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowRight, Send, Award } from 'lucide-react';
-
-const steps = [
-  {
-    number: '01',
-    title: 'Discover & Risk Assessment',
-    tag: 'LEARN',
-    description: 'Learn about diabetes types, warning signs, and estimate your risk with our calm, evidence-based assessment.',
-  },
-  {
-    number: '02',
-    title: 'Health Companion Dashboard',
-    tag: 'LOG',
-    description: 'Keep track of daily glucose values, meal macro percentages, and health goals in your personal dashboard.',
-  },
-  {
-    number: '03',
-    title: 'Interactive Discussion Board',
-    tag: 'CONNECT',
-    description: 'Participate in forums, vote in community polls, write posts, and mark the absolute best answers.',
-  },
-  {
-    number: '04',
-    title: 'Secure Peer-to-Peer Chat',
-    tag: 'SUPPORT',
-    description: 'Start one-on-one or group private messages with others who understand the journey.',
-  },
-];
+import { useI18n } from '../../../i18n/I18nContext';
 
 const HowItWorks = () => {
   const navigate = useNavigate();
+  const { t: tr } = useI18n();
   const [activeStep, setActiveStep] = useState(0);
+
+  const steps = [
+    {
+      number: '01',
+      title: tr('landing.howItWorks.steps.discover.title'),
+      tag: tr('landing.howItWorks.steps.discover.tag'),
+      description: tr('landing.howItWorks.steps.discover.description'),
+    },
+    {
+      number: '02',
+      title: tr('landing.howItWorks.steps.dashboard.title'),
+      tag: tr('landing.howItWorks.steps.dashboard.tag'),
+      description: tr('landing.howItWorks.steps.dashboard.description'),
+    },
+    {
+      number: '03',
+      title: tr('landing.howItWorks.steps.discussion.title'),
+      tag: tr('landing.howItWorks.steps.discussion.tag'),
+      description: tr('landing.howItWorks.steps.discussion.description'),
+    },
+    {
+      number: '04',
+      title: tr('landing.howItWorks.steps.chat.title'),
+      tag: tr('landing.howItWorks.steps.chat.tag'),
+      description: tr('landing.howItWorks.steps.chat.description'),
+    },
+  ];
 
   /* --- Mock Dashboard State (Step 2) --- */
   const [mockSteps, setMockSteps] = useState(5500);
   const [mockGlucose, setMockGlucose] = useState(110);
   const [mockMeals, setMockMeals] = useState([
-    { name: 'Oatmeal & Berries', carbs: 24 }
+    { name: tr('landing.howItWorks.mock.dashboard.sampleMeal'), carbs: 24 }
   ]);
   const [mockNewMeal, setMockNewMeal] = useState('');
   const [mockNewCarbs, setMockNewCarbs] = useState('');
@@ -71,8 +73,8 @@ const HowItWorks = () => {
 
   /* --- Mock Chat State (Step 4) --- */
   const [messages, setMessages] = useState([
-    { sender: 'emily', text: "Just got my CGM! Do you have any tips on placement?", time: '10:14 AM' },
-    { sender: 'me', text: "Awesome! Back of the arm is great, less chance of catching it on doors.", time: '10:15 AM' }
+    { sender: 'emily', text: tr('landing.howItWorks.mock.chat.message1'), time: '10:14 AM' },
+    { sender: 'me', text: tr('landing.howItWorks.mock.chat.message2'), time: '10:15 AM' }
   ]);
   const [chatInput, setChatInput] = useState('');
 
@@ -93,13 +95,13 @@ const HowItWorks = () => {
         {/* Title */}
         <div className="mb-16 text-center">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-[#BDCAA1]">
-            — Interactive Walkthrough
+            {tr('landing.howItWorks.kicker')}
           </p>
           <h2 className="font-display text-4xl leading-tight text-white md:text-6xl font-light">
-            How to use <span className="italic text-[#E7DCCB] font-normal">DiaBuddy.</span>
+            {tr('landing.howItWorks.headingStart')} <span className="italic text-[#E7DCCB] font-normal">{tr('landing.howItWorks.headingEmphasis')}</span>
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-[1rem] leading-relaxed text-white/60">
-            Click through each piece — learning, logging, community, and chat — to see how DiaBuddy fits into daily life.
+            {tr('landing.howItWorks.subtitle')}
           </p>
         </div>
 
@@ -146,26 +148,25 @@ const HowItWorks = () => {
                   <div>
                     <div className="mb-4 flex items-center justify-between border-b border-black/5 pb-2">
                       <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                        Learn
+                        {tr('landing.howItWorks.mock.risk.learnLabel')}
                       </span>
                       <span className="rounded bg-[#1E2A24] px-2 py-0.5 text-[10px] font-bold text-[#BDCAA1]">
-                        Full page
+                        {tr('landing.howItWorks.mock.risk.fullPageBadge')}
                       </span>
                     </div>
 
                     <h4 className="mb-2 font-serif text-xl font-semibold text-gray-900">
-                      Know your diabetes risk
+                      {tr('landing.howItWorks.mock.risk.title')}
                     </h4>
                     <p className="mb-6 text-sm leading-relaxed text-gray-500">
-                      A short quiz — about a minute. Personalized next steps. No sign-up
-                      needed — open the full assessment whenever you are ready.
+                      {tr('landing.howItWorks.mock.risk.body')}
                     </p>
 
                     <ul className="space-y-3 text-sm text-gray-700">
                       {[
-                        'Age, family history, activity, and more',
-                        'Clear risk level with practical advice',
-                        'Takes about 60 seconds',
+                        tr('landing.howItWorks.mock.risk.bullet1'),
+                        tr('landing.howItWorks.mock.risk.bullet2'),
+                        tr('landing.howItWorks.mock.risk.bullet3'),
                       ].map((item) => (
                         <li key={item} className="flex items-start gap-2">
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#BDCAA1]" />
@@ -180,7 +181,7 @@ const HowItWorks = () => {
                     onClick={() => navigate('/learn/risk-assessment')}
                     className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#1E2A24] py-3.5 text-sm font-semibold text-white transition hover:bg-[#C56A3E]"
                   >
-                    Take the risk assessment
+                    {tr('landing.howItWorks.mock.risk.cta')}
                     <ArrowRight size={16} />
                   </button>
                 </div>
@@ -191,13 +192,13 @@ const HowItWorks = () => {
                 <div className="flex flex-col h-full justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-black/5">
-                      <span className="text-xs uppercase tracking-wider text-gray-400 font-bold">My Personal Logger</span>
-                      <span className="text-[10px] font-bold text-[#BDCAA1] bg-[#1E2A24] px-2 py-0.5 rounded">Demo Session</span>
+                      <span className="text-xs uppercase tracking-wider text-gray-400 font-bold">{tr('landing.howItWorks.mock.dashboard.personalLogger')}</span>
+                      <span className="text-[10px] font-bold text-[#BDCAA1] bg-[#1E2A24] px-2 py-0.5 rounded">{tr('landing.howItWorks.mock.dashboard.demoSession')}</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div className="bg-white border border-black/5 rounded-2xl p-3">
-                        <p className="text-[10px] uppercase text-gray-400 font-bold">Glucose Avg</p>
+                        <p className="text-[10px] uppercase text-gray-400 font-bold">{tr('landing.howItWorks.mock.dashboard.glucoseAvg')}</p>
                         <div className="flex items-baseline gap-1 mt-1">
                           <span className="text-xl font-bold font-serif text-gray-900">{mockGlucose}</span>
                           <span className="text-[9px] text-gray-500">mg/dL</span>
@@ -214,7 +215,7 @@ const HowItWorks = () => {
 
                       <div className="bg-white border border-black/5 rounded-2xl p-3 flex flex-col justify-between">
                         <div>
-                          <p className="text-[10px] uppercase text-gray-400 font-bold">Steps Goal</p>
+                          <p className="text-[10px] uppercase text-gray-400 font-bold">{tr('landing.howItWorks.mock.dashboard.stepsGoal')}</p>
                           <p className="text-xs font-bold mt-1 text-gray-800">
                             {mockSteps.toLocaleString()} / 8,000
                           </p>
@@ -229,17 +230,17 @@ const HowItWorks = () => {
                           onClick={() => setMockSteps(prev => prev + 1500)}
                           className="mt-2 text-[10px] font-bold bg-[#1E2A24] text-white py-1 rounded-lg"
                         >
-                          +1.5k steps
+                          {tr('landing.howItWorks.mock.dashboard.addSteps')}
                         </button>
                       </div>
                     </div>
 
-                    <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Meals Logged today</h5>
+                    <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">{tr('landing.howItWorks.mock.dashboard.mealsLoggedToday')}</h5>
                     <div className="flex flex-col gap-2 max-h-[110px] overflow-y-auto pr-1">
                       {mockMeals.map((m, idx) => (
                         <div key={idx} className="flex justify-between items-center bg-white py-1.5 px-3 rounded-lg border border-black/5 text-xs text-gray-700">
                           <span>{m.name}</span>
-                          <span className="font-bold text-[#C56A3E]">{m.carbs}g carbs</span>
+                          <span className="font-bold text-[#C56A3E]">{tr('landing.howItWorks.mock.dashboard.carbsGram').replace('{n}', m.carbs)}</span>
                         </div>
                       ))}
                     </div>
@@ -248,7 +249,7 @@ const HowItWorks = () => {
                   <form onSubmit={addMockMeal} className="mt-4 pt-3 border-t border-black/5 flex gap-2">
                     <input 
                       type="text" 
-                      placeholder="Meal..." 
+                      placeholder={tr('landing.howItWorks.mock.dashboard.mealPlaceholder')}
                       value={mockNewMeal}
                       onChange={(e) => setMockNewMeal(e.target.value)}
                       className="flex-1 text-xs border border-gray-300 rounded-lg p-2 bg-white"
@@ -256,7 +257,7 @@ const HowItWorks = () => {
                     />
                     <input 
                       type="number" 
-                      placeholder="Carbs" 
+                      placeholder={tr('landing.howItWorks.mock.dashboard.carbsPlaceholder')}
                       value={mockNewCarbs}
                       onChange={(e) => setMockNewCarbs(e.target.value)}
                       className="w-16 text-xs border border-gray-300 rounded-lg p-2 bg-white"
@@ -274,8 +275,8 @@ const HowItWorks = () => {
                 <div className="flex flex-col h-full justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-black/5">
-                      <span className="text-xs uppercase tracking-wider text-gray-400 font-bold">Community Forum</span>
-                      <span className="text-[10px] font-bold text-orange-800 bg-orange-100 px-2 py-0.5 rounded">Active Thread</span>
+                      <span className="text-xs uppercase tracking-wider text-gray-400 font-bold">{tr('landing.howItWorks.mock.discussion.communityForum')}</span>
+                      <span className="text-[10px] font-bold text-orange-800 bg-orange-100 px-2 py-0.5 rounded">{tr('landing.howItWorks.mock.discussion.activeThread')}</span>
                     </div>
 
                     <div className="flex items-start gap-2.5 mb-3">
@@ -285,20 +286,20 @@ const HowItWorks = () => {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-bold text-gray-900">Sarah_T1D</span>
-                          <span className="text-[8px] bg-[#BDCAA1]/30 text-emerald-950 px-1 py-0.2 rounded font-bold">Patient</span>
+                          <span className="text-[8px] bg-[#BDCAA1]/30 text-emerald-950 px-1 py-0.2 rounded font-bold">{tr('landing.howItWorks.mock.discussion.patientBadge')}</span>
                         </div>
-                        <p className="text-xs font-serif font-semibold text-gray-900 mt-1">What is your go-to snack for low blood sugars?</p>
+                        <p className="text-xs font-serif font-semibold text-gray-900 mt-1">{tr('landing.howItWorks.mock.discussion.question')}</p>
                       </div>
                     </div>
 
                     {/* Interactive Poll */}
                     <div className="bg-white border border-black/10 rounded-2xl p-4 flex flex-col gap-2.5 mb-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Cast Your Vote</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{tr('landing.howItWorks.mock.discussion.castYourVote')}</p>
                       
                       {[
-                        { key: 'juice', label: 'Orange Juice', base: pollVotes.juice },
-                        { key: 'tablets', label: 'Glucose Tabs', base: pollVotes.tablets },
-                        { key: 'candy', label: 'Skittles / Candy', base: pollVotes.candy }
+                        { key: 'juice', label: tr('landing.howItWorks.mock.discussion.optionJuice'), base: pollVotes.juice },
+                        { key: 'tablets', label: tr('landing.howItWorks.mock.discussion.optionTablets'), base: pollVotes.tablets },
+                        { key: 'candy', label: tr('landing.howItWorks.mock.discussion.optionCandy'), base: pollVotes.candy }
                       ].map(opt => {
                         const pct = Math.round((opt.base / totalVotes) * 100);
                         return (
@@ -329,10 +330,10 @@ const HowItWorks = () => {
                   <div className="mt-2 pt-2 border-t border-black/5 bg-[#BDCAA1]/10 rounded-2xl p-3 border border-[#BDCAA1]/30">
                     <div className="flex items-center gap-1.5 mb-1 text-[10px] font-bold text-emerald-900">
                       <Award size={13} className="text-[#C56A3E]" />
-                      <span>BEST ANSWER MARKED BY AUTHOR</span>
+                      <span>{tr('landing.howItWorks.mock.discussion.bestAnswerBadge')}</span>
                     </div>
-                    <p className="text-xs text-gray-700 italic">"Always keep orange juice boxes nearby. Liquid glucose hits the bloodstream twice as fast as solid carbs."</p>
-                    <p className="text-[10px] text-gray-500 mt-1.5 text-right">— Dr. David (Endocrinologist)</p>
+                    <p className="text-xs text-gray-700 italic">{tr('landing.howItWorks.mock.discussion.bestAnswerQuote')}</p>
+                    <p className="text-[10px] text-gray-500 mt-1.5 text-right">{tr('landing.howItWorks.mock.discussion.bestAnswerAuthor')}</p>
                   </div>
                 </div>
               )}
@@ -345,10 +346,10 @@ const HowItWorks = () => {
                       <div className="w-7 h-7 rounded-full bg-[#1E2A24] text-white flex items-center justify-center font-bold text-xs">E</div>
                       <div>
                         <p className="text-xs font-bold text-gray-900 leading-none">Emily Watson</p>
-                        <span className="text-[8px] text-gray-400">Active now</span>
+                        <span className="text-[8px] text-gray-400">{tr('landing.howItWorks.mock.chat.activeNow')}</span>
                       </div>
                     </div>
-                    <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">Encrypted</span>
+                    <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">{tr('landing.howItWorks.mock.chat.encrypted')}</span>
                   </div>
 
                   {/* Messages Bubble Panel */}
@@ -365,7 +366,7 @@ const HowItWorks = () => {
                         }`}>
                           {m.text}
                         </div>
-                        <span className="text-[8px] text-gray-400 mt-0.5">{m.time} {m.sender === 'me' && '· Read'}</span>
+                        <span className="text-[8px] text-gray-400 mt-0.5">{m.time} {m.sender === 'me' && `· ${tr('landing.howItWorks.mock.chat.read')}`}</span>
                       </div>
                     ))}
                   </div>
@@ -374,7 +375,7 @@ const HowItWorks = () => {
                   <form onSubmit={sendMockMessage} className="pt-3 border-t border-black/5 flex gap-2">
                     <input 
                       type="text" 
-                      placeholder="Type a message..." 
+                      placeholder={tr('landing.howItWorks.mock.chat.inputPlaceholder')}
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       className="flex-1 text-xs border border-gray-300 rounded-xl p-2.5 bg-white outline-none"

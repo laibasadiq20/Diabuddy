@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
@@ -32,24 +33,24 @@ const t = theme;
 
 const VALID_TABS = ['overview', 'users', 'reports', 'topics', 'notifications'];
 
-const tabs = [
-  { id: 'overview', label: 'Overview', icon: BarChart3 },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'reports', label: 'Reports', icon: Shield },
-  { id: 'topics', label: 'Topics', icon: FolderKanban },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
+const getTabs = (tr) => [
+  { id: 'overview', label: tr('admin.tabs.overview'), icon: BarChart3 },
+  { id: 'users', label: tr('admin.tabs.users'), icon: Users },
+  { id: 'reports', label: tr('admin.tabs.reports'), icon: Shield },
+  { id: 'topics', label: tr('admin.tabs.topics'), icon: FolderKanban },
+  { id: 'notifications', label: tr('admin.tabs.notifications'), icon: Bell },
 ];
 
-const ACTION_LABELS = {
-  dismiss: 'Dismissed',
-  hide_content: 'Hidden',
-  delete_content: 'Soft deleted',
-  ban_user: 'Author banned',
-};
+const getActionLabels = (tr) => ({
+  dismiss: tr('admin.actionLabels.dismiss'),
+  hide_content: tr('admin.actionLabels.hideContent'),
+  delete_content: tr('admin.actionLabels.deleteContent'),
+  ban_user: tr('admin.actionLabels.banUser'),
+});
 
-const NOTIF_META = {
-  new_report: { label: 'Content report', Icon: AlertTriangle, color: t.clayDeep, bg: t.claySoft },
-};
+const getNotifMeta = (tr) => ({
+  new_report: { label: tr('admin.notifMeta.newReport'), Icon: AlertTriangle, color: t.clayDeep, bg: t.claySoft },
+});
 
 function slugify(text) {
   return String(text || '')
@@ -62,8 +63,12 @@ function slugify(text) {
 
 export default function AdminReports() {
   const { user, authHeaders } = useAuth();
+  const { t: tr } = useI18n();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const tabs = getTabs(tr);
+  const ACTION_LABELS = getActionLabels(tr);
+  const NOTIF_META = getNotifMeta(tr);
 
   const rawTab = searchParams.get('tab') || 'overview';
   const tab = VALID_TABS.includes(rawTab) ? rawTab : 'overview';
@@ -125,7 +130,7 @@ export default function AdminReports() {
       headers: headers(),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to load stats');
+    if (!res.ok) throw new Error(data.message || tr('admin.errors.loadStats'));
     setStats(data.data);
   }, [headers]);
 
@@ -138,7 +143,7 @@ export default function AdminReports() {
       headers: headers(),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to load users');
+    if (!res.ok) throw new Error(data.message || tr('admin.errors.loadUsers'));
     setUsers(data.data?.users || []);
   }, [headers, userSearch, userStatus]);
 
@@ -149,7 +154,7 @@ export default function AdminReports() {
       headers: headers(),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to fetch reports');
+    if (!res.ok) throw new Error(data.message || tr('admin.errors.fetchReports'));
     setReports(Array.isArray(data) ? data : data.data || []);
   }, [headers, reportView]);
 
@@ -159,7 +164,7 @@ export default function AdminReports() {
       headers: headers(),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to fetch topics');
+    if (!res.ok) throw new Error(data.message || tr('admin.errors.fetchTopics'));
     setTopics(Array.isArray(data) ? data : data.data || []);
   }, [headers]);
 
@@ -169,7 +174,7 @@ export default function AdminReports() {
       headers: headers(),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to load notifications');
+    if (!res.ok) throw new Error(data.message || tr('admin.errors.loadNotifications'));
     setNotifications(data.notifications || []);
     setNotifUnread(data.unreadCount || 0);
   }, [headers]);
@@ -184,7 +189,7 @@ export default function AdminReports() {
       else if (tab === 'topics') await fetchTopics();
       else if (tab === 'notifications') await fetchNotifications();
     } catch (err) {
-      setError(err.message || 'Load failed');
+      setError(err.message || tr('admin.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -240,10 +245,10 @@ export default function AdminReports() {
         if (stats) setStats((s) => s && { ...s, reports: { ...s.reports, pending: Math.max(0, (s.reports?.pending || 1) - 1) } });
       } else {
         const data = await res.json();
-        showToast(data.message || 'Resolution failed.', 'error');
+        showToast(data.message || tr('admin.errors.resolutionFailed'), 'error');
       }
     } catch {
-      showToast('Connection error resolving report.', 'error');
+      showToast(tr('admin.errors.connectionResolvingReport'), 'error');
     } finally {
       setActioningId(null);
     }
@@ -251,15 +256,15 @@ export default function AdminReports() {
 
   const handleResolveReport = (reportId, actionType) => {
     const labels = {
-      dismiss: 'Dismiss this report?',
-      hide_content: 'Hide this content from the community?',
-      delete_content: 'Soft-delete this content?',
-      ban_user: 'Ban the author and hide their posts & comments?',
+      dismiss: tr('admin.confirm.dismissReport'),
+      hide_content: tr('admin.confirm.hideContent'),
+      delete_content: tr('admin.confirm.softDeleteContent'),
+      ban_user: tr('admin.confirm.banAuthor'),
     };
     askConfirm({
-      title: 'Resolve report',
-      message: labels[actionType] || `Perform action: "${actionType}"?`,
-      confirmLabel: actionType === 'ban_user' ? 'Ban author' : 'Confirm',
+      title: tr('admin.confirm.resolveReportTitle'),
+      message: labels[actionType] || tr('admin.confirm.performActionTemplate').replace('{action}', actionType),
+      confirmLabel: actionType === 'ban_user' ? tr('admin.banAuthorBtn') : tr('common.confirm'),
       danger: actionType === 'ban_user' || actionType === 'delete_content',
       onConfirm: () => performResolveReport(reportId, actionType),
     });
@@ -276,13 +281,13 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.message || 'Update failed', 'error');
+        showToast(data.message || tr('admin.errors.updateFailed'), 'error');
         return;
       }
       await fetchUsers();
-      if (body.warnMessage) showToast('Warning sent.', 'success');
+      if (body.warnMessage) showToast(tr('admin.toasts.warningSent'), 'success');
     } catch {
-      showToast('Connection error updating user.', 'error');
+      showToast(tr('admin.errors.connectionUpdatingUser'), 'error');
     } finally {
       setActioningId(null);
     }
@@ -291,7 +296,7 @@ export default function AdminReports() {
   const updateUser = (id, body, confirmMsg) => {
     if (confirmMsg) {
       askConfirm({
-        title: 'Confirm action',
+        title: tr('admin.confirm.confirmActionTitle'),
         message: confirmMsg,
         danger: body.isActive === false || !!body.muteHours,
         onConfirm: () => performUpdateUser(id, body),
@@ -311,13 +316,13 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.message || 'Delete failed', 'error');
+        showToast(data.message || tr('admin.errors.deleteFailed'), 'error');
         return;
       }
       await fetchUsers();
       if (tab === 'overview') await fetchStats().catch(() => {});
     } catch {
-      showToast('Connection error deleting user.', 'error');
+      showToast(tr('admin.errors.connectionDeletingUser'), 'error');
     } finally {
       setActioningId(null);
     }
@@ -325,11 +330,11 @@ export default function AdminReports() {
 
   const deleteUser = (id, hard = false) => {
     askConfirm({
-      title: hard ? 'Delete user permanently' : 'Ban user',
+      title: hard ? tr('admin.confirm.deleteUserPermanentlyTitle') : tr('admin.confirm.banUserTitle'),
       message: hard
-        ? 'Permanently delete this user and scrub their content? This cannot be undone.'
-        : 'Ban this user and hide their active posts?',
-      confirmLabel: hard ? 'Delete forever' : 'Ban user',
+        ? tr('admin.confirm.deleteUserPermanentlyMessage')
+        : tr('admin.confirm.banUserMessage'),
+      confirmLabel: hard ? tr('admin.confirm.deleteForever') : tr('admin.confirm.banUserBtn'),
       danger: true,
       onConfirm: () => performDeleteUser(id, hard),
     });
@@ -365,7 +370,7 @@ export default function AdminReports() {
     const name = topicForm.name.trim();
     const slug = (topicForm.slug || slugify(name)).trim();
     if (!name || !slug) {
-      showToast('Name and slug are required.', 'error');
+      showToast(tr('admin.toasts.nameSlugRequired'), 'error');
       return;
     }
     setCreatingTopic(true);
@@ -383,14 +388,14 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.message || (editingTopicId ? 'Failed to update topic' : 'Failed to create topic'), 'error');
+        showToast(data.message || (editingTopicId ? tr('admin.errors.updateTopicFailed') : tr('admin.errors.createTopicFailed')), 'error');
         return;
       }
       resetTopicForm();
       await fetchTopics();
-      showToast(editingTopicId ? 'Topic updated.' : 'Topic created.', 'success');
+      showToast(editingTopicId ? tr('admin.toasts.topicUpdated') : tr('admin.toasts.topicCreated'), 'success');
     } catch {
-      showToast(editingTopicId ? 'Connection error updating topic.' : 'Connection error creating topic.', 'error');
+      showToast(editingTopicId ? tr('admin.errors.connectionUpdatingTopic') : tr('admin.errors.connectionCreatingTopic'), 'error');
     } finally {
       setCreatingTopic(false);
     }
@@ -407,15 +412,15 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.message || 'Failed to move posts', 'error');
+        showToast(data.message || tr('admin.errors.movePostsFailed'), 'error');
         return;
       }
       setMoveFromId('');
       setMoveToId('');
       await fetchTopics();
-      showToast(data.message || 'Posts moved.', 'success');
+      showToast(data.message || tr('admin.toasts.postsMoved'), 'success');
     } catch {
-      showToast('Connection error moving posts.', 'error');
+      showToast(tr('admin.errors.connectionMovingPosts'), 'error');
     } finally {
       setActioningId(null);
     }
@@ -423,19 +428,19 @@ export default function AdminReports() {
 
   const moveTopicPosts = (fromId, toId) => {
     if (!fromId || !toId) {
-      showToast('Choose a destination topic.', 'error');
+      showToast(tr('admin.toasts.chooseDestinationTopic'), 'error');
       return;
     }
     if (fromId === toId) {
-      showToast('Pick a different destination topic.', 'error');
+      showToast(tr('admin.toasts.pickDifferentTopic'), 'error');
       return;
     }
     const from = topics.find((x) => x._id === fromId);
     const to = topics.find((x) => x._id === toId);
     askConfirm({
-      title: 'Move posts',
-      message: `Move all posts from "${from?.name}" to "${to?.name}"? Threads stay intact.`,
-      confirmLabel: 'Move posts',
+      title: tr('admin.confirm.movePostsTitle'),
+      message: tr('admin.confirm.movePostsMessage').replace('{from}', from?.name).replace('{to}', to?.name),
+      confirmLabel: tr('admin.confirm.movePostsBtn'),
       onConfirm: () => performMoveTopicPosts(fromId, toId),
     });
   };
@@ -486,12 +491,12 @@ export default function AdminReports() {
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.message || 'Delete failed', 'error');
+        showToast(data.message || tr('admin.errors.deleteFailed'), 'error');
         return;
       }
       setTopics((prev) => prev.filter((topic) => topic._id !== id));
     } catch {
-      showToast('Connection error deleting topic.', 'error');
+      showToast(tr('admin.errors.connectionDeletingTopic'), 'error');
     } finally {
       setActioningId(null);
     }
@@ -499,13 +504,13 @@ export default function AdminReports() {
 
   const deleteTopic = (id, name, postsCount) => {
     if (postsCount > 0) {
-      showToast('Cannot delete a topic that still has posts. Move or remove posts first.', 'error');
+      showToast(tr('admin.toasts.cannotDeleteTopicWithPosts'), 'error');
       return;
     }
     askConfirm({
-      title: 'Delete topic',
-      message: `Delete topic "${name}"? This cannot be undone.`,
-      confirmLabel: 'Delete topic',
+      title: tr('admin.confirm.deleteTopicTitle'),
+      message: tr('admin.confirm.deleteTopicMessage').replace('{name}', name),
+      confirmLabel: tr('admin.confirm.deleteTopicBtn'),
       danger: true,
       onConfirm: () => performDeleteTopic(id),
     });
@@ -524,7 +529,7 @@ export default function AdminReports() {
     padding: '10px 14px',
     borderRadius: 10,
     border: `1.5px solid ${t.line}`,
-    background: '#FFF',
+    background: t.surface,
     fontFamily: t.fontBody,
     fontSize: 14,
     color: t.ink,
@@ -533,25 +538,25 @@ export default function AdminReports() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
+    <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, ${t.pageFadeTop} 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
       <AppSidebar />
       <main className="db-admin-main">
         <div className="db-admin-wrap">
           <div className="db-admin-header">
             <div style={{ minWidth: 0 }}>
               <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
-                DiaBuddy Admin
+                {tr('admin.kicker')}
               </p>
               <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 500, color: t.ink, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Shield size={26} color={t.clayDeep} style={{ flexShrink: 0 }} />
-                {tabs.find((x) => x.id === tab)?.label || 'Overview'}
+                {tabs.find((x) => x.id === tab)?.label || tr('admin.tabs.overview')}
               </h1>
               <p style={{ margin: '8px 0 0', color: t.inkSoft, fontSize: 14, lineHeight: 1.45, maxWidth: 420 }}>
-                {tab === 'overview' && 'Platform health at a glance.'}
-                {tab === 'users' && 'Search, ban, mute, or promote accounts.'}
-                {tab === 'reports' && 'Review flagged posts and comments.'}
-                {tab === 'topics' && 'Organize the community feed.'}
-                {tab === 'notifications' && 'New content reports waiting for review.'}
+                {tab === 'overview' && tr('admin.descriptions.overview')}
+                {tab === 'users' && tr('admin.descriptions.users')}
+                {tab === 'reports' && tr('admin.descriptions.reports')}
+                {tab === 'topics' && tr('admin.descriptions.topics')}
+                {tab === 'notifications' && tr('admin.descriptions.notifications')}
               </p>
             </div>
             <div className="db-admin-actions">
@@ -573,7 +578,7 @@ export default function AdminReports() {
                   fontFamily: t.fontBody,
                 }}
               >
-                <MessageSquare size={14} /> Community
+                <MessageSquare size={14} /> {tr('admin.communityBtn')}
               </button>
               <button
                 type="button"
@@ -593,12 +598,12 @@ export default function AdminReports() {
                   fontFamily: t.fontBody,
                 }}
               >
-                <RefreshCw size={14} /> Refresh
+                <RefreshCw size={14} /> {tr('admin.refresh')}
               </button>
             </div>
           </div>
 
-          <div className="db-admin-tabs" role="tablist" aria-label="Admin sections">
+          <div className="db-admin-tabs" role="tablist" aria-label={tr('admin.sectionsAriaLabel')}>
             {tabs.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -609,7 +614,7 @@ export default function AdminReports() {
                 className="db-admin-tab"
                 style={{
                   border: `1.5px solid ${tab === id ? t.forest : t.line}`,
-                  background: tab === id ? t.forest : '#FFF',
+                  background: tab === id ? t.forest : t.surface,
                   color: tab === id ? '#FFF' : t.inkSoft,
                 }}
               >
@@ -637,18 +642,18 @@ export default function AdminReports() {
           {loading ? (
             <div style={{ padding: '60px 0', textAlign: 'center', color: t.inkSoft }}>
               <RefreshCw className="animate-spin" size={32} style={{ margin: '0 auto 16px' }} />
-              <p style={{ margin: 0 }}>Loading…</p>
+              <p style={{ margin: 0 }}>{tr('common.loading')}</p>
             </div>
           ) : tab === 'overview' && stats ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div className="db-admin-stats">
                 {[
-                  { label: 'Users', value: stats.users.total },
-                  { label: 'Active', value: stats.users.active },
-                  { label: 'Banned', value: stats.users.banned },
-                  { label: 'Admins', value: stats.users.admins },
-                  { label: 'Posts', value: stats.content.posts },
-                  { label: 'Pending reports', value: stats.reports.pending, alert: stats.reports.pending > 0 },
+                  { label: tr('admin.stats.users'), value: stats.users.total },
+                  { label: tr('admin.stats.active'), value: stats.users.active },
+                  { label: tr('admin.stats.banned'), value: stats.users.banned },
+                  { label: tr('admin.stats.admins'), value: stats.users.admins },
+                  { label: tr('admin.stats.posts'), value: stats.content.posts },
+                  { label: tr('admin.stats.pendingReports'), value: stats.reports.pending, alert: stats.reports.pending > 0 },
                 ].map((s) => (
                   <div
                     key={s.label}
@@ -667,17 +672,17 @@ export default function AdminReports() {
 
               <div style={card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
-                  <h3 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 18, color: t.ink, fontWeight: 500 }}>Recent signups</h3>
+                  <h3 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 18, color: t.ink, fontWeight: 500 }}>{tr('admin.recentSignups')}</h3>
                   <button
                     type="button"
                     onClick={() => setTab('users')}
                     style={{ background: 'none', border: 'none', color: t.skyDeep, fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 13, fontFamily: t.fontBody }}
                   >
-                    Manage all →
+                    {tr('admin.manageAll')} →
                   </button>
                 </div>
                 {(stats.recentUsers || []).length === 0 ? (
-                  <p style={{ margin: '12px 0 0', color: t.inkFaint, fontSize: 14 }}>No users yet.</p>
+                  <p style={{ margin: '12px 0 0', color: t.inkFaint, fontSize: 14 }}>{tr('admin.noUsersYet')}</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', marginTop: 8 }}>
                     {stats.recentUsers.map((u) => (
@@ -702,25 +707,25 @@ export default function AdminReports() {
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
-                  placeholder="Search name, username, email"
+                  placeholder={tr('admin.searchUsersPlaceholder')}
                   style={{ ...inputStyle, flex: 1, minWidth: 200, width: 'auto' }}
                 />
                 <select
                   value={userStatus}
                   onChange={(e) => setUserStatus(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 10, border: `1.5px solid ${t.line}`, background: '#FFF', fontFamily: t.fontBody }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: `1.5px solid ${t.line}`, background: t.surface, fontFamily: t.fontBody }}
                 >
-                  <option value="">All statuses</option>
-                  <option value="active">Active</option>
-                  <option value="banned">Banned</option>
+                  <option value="">{tr('admin.allStatuses')}</option>
+                  <option value="active">{tr('admin.stats.active')}</option>
+                  <option value="banned">{tr('admin.stats.banned')}</option>
                 </select>
                 <button type="button" onClick={fetchUsers} style={{ padding: '10px 16px', borderRadius: 10, border: 'none', background: t.forest, color: '#FFF', fontWeight: 600, cursor: 'pointer', fontFamily: t.fontBody }}>
-                  Search
+                  {tr('common.search')}
                 </button>
               </div>
 
               {users.length === 0 ? (
-                <div style={{ ...card, textAlign: 'center', padding: 40, color: t.inkSoft }}>No users match.</div>
+                <div style={{ ...card, textAlign: 'center', padding: 40, color: t.inkSoft }}>{tr('admin.noUsersMatch')}</div>
               ) : (
                 users.map((u) => (
                   <div key={u._id} style={{ ...card, opacity: actioningId === u._id ? 0.6 : 1 }}>
@@ -730,24 +735,24 @@ export default function AdminReports() {
                           {u.name}{' '}
                           <span style={{ color: t.inkFaint, fontWeight: 500 }}>@{u.username}</span>
                           {u.role === 'admin' && (
-                            <span style={{ marginLeft: 8, fontSize: 11, background: t.clayTint, color: t.clayDeep, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>ADMIN</span>
+                            <span style={{ marginLeft: 8, fontSize: 11, background: t.clayTint, color: t.clayDeep, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>{tr('admin.badges.admin')}</span>
                           )}
                           {!u.isActive && (
-                            <span style={{ marginLeft: 6, fontSize: 11, background: '#FFECEC', color: '#D32F2F', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>BANNED</span>
+                            <span style={{ marginLeft: 6, fontSize: 11, background: '#FFECEC', color: '#D32F2F', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>{tr('admin.badges.banned')}</span>
                           )}
                           {u.isActive && u.mutedUntil && new Date(u.mutedUntil) > new Date() && (
-                            <span style={{ marginLeft: 6, fontSize: 11, background: t.goldSoft, color: t.gold, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>MUTED</span>
+                            <span style={{ marginLeft: 6, fontSize: 11, background: t.goldSoft, color: t.gold, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>{tr('admin.badges.muted')}</span>
                           )}
                           {(u.warnings?.length || 0) > 0 && (
                             <span style={{ marginLeft: 6, fontSize: 11, background: t.clayTint, color: t.clayDeep, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                              {u.warnings.length} WARN{u.warnings.length === 1 ? '' : 'S'}
+                              {u.warnings.length} {u.warnings.length === 1 ? tr('admin.badges.warnSingular') : tr('admin.badges.warnPlural')}
                             </span>
                           )}
                         </p>
                         <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>
-                          {u.email} · {u.postsCount || 0} posts · joined {new Date(u.createdAt).toLocaleDateString()}
+                          {u.email} · {tr('admin.postsCountTemplate').replace('{n}', u.postsCount || 0)} · {tr('admin.joinedTemplate').replace('{date}', new Date(u.createdAt).toLocaleDateString())}
                           {u.isActive && u.mutedUntil && new Date(u.mutedUntil) > new Date()
-                            ? ` · muted until ${new Date(u.mutedUntil).toLocaleString()}`
+                            ? ` · ${tr('admin.mutedUntilTemplate').replace('{date}', new Date(u.mutedUntil).toLocaleString())}`
                             : ''}
                         </p>
                       </div>
@@ -756,7 +761,7 @@ export default function AdminReports() {
                         onClick={() => navigate(`/users/${u._id}`)}
                         style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                       >
-                        Profile <ExternalLink size={12} />
+                        {tr('admin.profileBtn')} <ExternalLink size={12} />
                       </button>
                     </div>
                     <div className="db-admin-user-actions">
@@ -768,50 +773,50 @@ export default function AdminReports() {
                             border={`${t.clay}30`}
                             onClick={() =>
                               askPrompt({
-                                title: 'Send warning',
-                                message: `This moderation notice will be sent to ${u.name}.`,
-                                placeholder: 'Warning message',
-                                defaultValue: 'Please follow community guidelines — especially around medical advice.',
-                                confirmLabel: 'Send warning',
+                                title: tr('admin.confirm.sendWarningTitle'),
+                                message: tr('admin.confirm.sendWarningMessage').replace('{name}', u.name),
+                                placeholder: tr('admin.warningMessagePlaceholder'),
+                                defaultValue: tr('admin.defaultWarningMessage'),
+                                confirmLabel: tr('admin.confirm.sendWarningBtn'),
                                 required: true,
                                 onConfirm: (value) => updateUser(u._id, { warnMessage: value.trim() }, null),
                               })
                             }
                             disabled={!!actioningId}
                           >
-                            <Megaphone size={14} /> Warn
+                            <Megaphone size={14} /> {tr('admin.actions.warn')}
                           </ActionBtn>
                           <ActionBtn
                             color={t.gold}
                             bg={t.goldSoft}
                             border={`${t.gold}30`}
                             onClick={() =>
-                              updateUser(u._id, { muteHours: 24 }, 'Mute this user for 24 hours? They can still browse.')
+                              updateUser(u._id, { muteHours: 24 }, tr('admin.confirm.mute24h'))
                             }
                             disabled={!!actioningId}
                           >
-                            <VolumeX size={14} /> Mute 24h
+                            <VolumeX size={14} /> {tr('admin.actions.mute24h')}
                           </ActionBtn>
                           <ActionBtn
                             color={t.gold}
                             bg={t.goldSoft}
                             border={`${t.gold}30`}
                             onClick={() =>
-                              updateUser(u._id, { muteHours: 168 }, 'Mute this user for 7 days? They can still browse.')
+                              updateUser(u._id, { muteHours: 168 }, tr('admin.confirm.mute7d'))
                             }
                             disabled={!!actioningId}
                           >
-                            <VolumeX size={14} /> Mute 7d
+                            <VolumeX size={14} /> {tr('admin.actions.mute7d')}
                           </ActionBtn>
                           {u.mutedUntil && new Date(u.mutedUntil) > new Date() && (
                             <ActionBtn
                               color={t.sageDeep}
                               bg={t.sageSoft}
                               border={`${t.sage}40`}
-                              onClick={() => updateUser(u._id, { unmute: true }, 'Lift this user’s mute?')}
+                              onClick={() => updateUser(u._id, { unmute: true }, tr('admin.confirm.liftMute'))}
                               disabled={!!actioningId}
                             >
-                              <Volume2 size={14} /> Unmute
+                              <Volume2 size={14} /> {tr('admin.actions.unmute')}
                             </ActionBtn>
                           )}
                         </>
@@ -825,12 +830,12 @@ export default function AdminReports() {
                             updateUser(
                               u._id,
                               { isActive: false },
-                              'Ban this user and hide their posts & comments?'
+                              tr('admin.confirm.banUserMessage')
                             )
                           }
                           disabled={!!actioningId}
                         >
-                          <Ban size={14} /> Ban
+                          <Ban size={14} /> {tr('admin.actions.ban')}
                         </ActionBtn>
                       ) : (
                         <ActionBtn
@@ -841,25 +846,25 @@ export default function AdminReports() {
                             updateUser(
                               u._id,
                               { isActive: true },
-                              'Unban this user? Hidden content stays hidden until restored individually.'
+                              tr('admin.confirm.unbanMessage')
                             )
                           }
                           disabled={!!actioningId}
                         >
-                          <Check size={14} /> Unban
+                          <Check size={14} /> {tr('admin.actions.unban')}
                         </ActionBtn>
                       )}
                       {u.role !== 'admin' ? (
-                        <ActionBtn color={t.clayDeep} bg={t.claySoft} border={`${t.clay}30`} onClick={() => updateUser(u._id, { role: 'admin' }, 'Promote this user to admin?')} disabled={!!actioningId}>
-                          <UserCog size={14} /> Make admin
+                        <ActionBtn color={t.clayDeep} bg={t.claySoft} border={`${t.clay}30`} onClick={() => updateUser(u._id, { role: 'admin' }, tr('admin.confirm.promoteAdmin'))} disabled={!!actioningId}>
+                          <UserCog size={14} /> {tr('admin.actions.makeAdmin')}
                         </ActionBtn>
                       ) : (
-                        <ActionBtn color={t.inkSoft} bg={t.surfaceSunken} border={t.line} onClick={() => updateUser(u._id, { role: 'patient' }, 'Demote this admin to patient?')} disabled={!!actioningId}>
-                          <UserCog size={14} /> Demote
+                        <ActionBtn color={t.inkSoft} bg={t.surfaceSunken} border={t.line} onClick={() => updateUser(u._id, { role: 'patient' }, tr('admin.confirm.demoteAdmin'))} disabled={!!actioningId}>
+                          <UserCog size={14} /> {tr('admin.actions.demote')}
                         </ActionBtn>
                       )}
                       <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => deleteUser(u._id, true)} disabled={!!actioningId}>
-                        <Trash2 size={14} /> Delete forever
+                        <Trash2 size={14} /> {tr('admin.actions.deleteForever')}
                       </ActionBtn>
                     </div>
                   </div>
@@ -871,18 +876,18 @@ export default function AdminReports() {
               <form onSubmit={handleSaveTopic} style={card}>
                 <h3 style={{ margin: '0 0 16px', fontFamily: t.fontDisplay, fontSize: 18, color: t.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
                   {editingTopicId ? <Pencil size={18} color={t.forest} /> : <Plus size={18} color={t.forest} />}
-                  {editingTopicId ? 'Edit topic' : 'New topic'}
+                  {editingTopicId ? tr('admin.editTopic') : tr('admin.newTopic')}
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 12 }}>
                   <div>
                     <label htmlFor="topic-name" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Name
+                      {tr('admin.topicName')}
                     </label>
                     <input
                       id="topic-name"
                       value={topicForm.name}
                       onChange={(e) => handleTopicNameChange(e.target.value)}
-                      placeholder="e.g. Type 1 Life"
+                      placeholder={tr('admin.topicNamePlaceholder')}
                       maxLength={50}
                       style={inputStyle}
                       required
@@ -890,7 +895,7 @@ export default function AdminReports() {
                   </div>
                   <div>
                     <label htmlFor="topic-slug" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Slug
+                      {tr('admin.topicSlug')}
                     </label>
                     <input
                       id="topic-slug"
@@ -907,13 +912,13 @@ export default function AdminReports() {
                 </div>
                 <div style={{ marginBottom: 16 }}>
                   <label htmlFor="topic-desc" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Description
+                    {tr('admin.topicDescription')}
                   </label>
                   <textarea
                     id="topic-desc"
                     value={topicForm.description}
                     onChange={(e) => setTopicForm((prev) => ({ ...prev, description: e.target.value }))}
-                    placeholder="Short description shown in the community feed"
+                    placeholder={tr('admin.topicDescriptionPlaceholder')}
                     maxLength={300}
                     rows={3}
                     style={{ ...inputStyle, resize: 'vertical', minHeight: 72 }}
@@ -940,7 +945,7 @@ export default function AdminReports() {
                     }}
                   >
                     {editingTopicId ? <Pencil size={14} /> : <Plus size={14} />}
-                    {creatingTopic ? 'Saving…' : editingTopicId ? 'Save changes' : 'Create topic'}
+                    {creatingTopic ? tr('admin.saving') : editingTopicId ? tr('admin.saveChanges') : tr('admin.createTopic')}
                   </button>
                   {editingTopicId && (
                     <button
@@ -950,7 +955,7 @@ export default function AdminReports() {
                         padding: '10px 18px',
                         borderRadius: 10,
                         border: `1.5px solid ${t.line}`,
-                        background: '#FFF',
+                        background: t.surface,
                         color: t.inkSoft,
                         fontWeight: 600,
                         fontSize: 13,
@@ -958,7 +963,7 @@ export default function AdminReports() {
                         fontFamily: t.fontBody,
                       }}
                     >
-                      Cancel
+                      {tr('common.cancel')}
                     </button>
                   )}
                 </div>
@@ -967,20 +972,20 @@ export default function AdminReports() {
               {topics.length > 1 && (
                 <div style={card}>
                   <h3 style={{ margin: '0 0 12px', fontFamily: t.fontDisplay, fontSize: 18, color: t.ink, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <ArrowRightLeft size={18} color={t.forest} /> Move posts between topics
+                    <ArrowRightLeft size={18} color={t.forest} /> {tr('admin.movePostsBetweenTopics')}
                   </h3>
                   <p style={{ margin: '0 0 14px', fontSize: 13, color: t.inkSoft, lineHeight: 1.45 }}>
-                    Relocates every non-deleted thread. Post content stays the same — only the topic changes.
+                    {tr('admin.movePostsHint')}
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>From</label>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tr('admin.from')}</label>
                       <select
                         value={moveFromId}
                         onChange={(e) => setMoveFromId(e.target.value)}
                         style={{ ...inputStyle, width: '100%' }}
                       >
-                        <option value="">Select topic</option>
+                        <option value="">{tr('admin.selectTopic')}</option>
                         {topics.map((topic) => (
                           <option key={topic._id} value={topic._id}>
                             {topic.name} ({topic.postsCount || 0})
@@ -989,13 +994,13 @@ export default function AdminReports() {
                       </select>
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>To</label>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tr('admin.to')}</label>
                       <select
                         value={moveToId}
                         onChange={(e) => setMoveToId(e.target.value)}
                         style={{ ...inputStyle, width: '100%' }}
                       >
-                        <option value="">Select topic</option>
+                        <option value="">{tr('admin.selectTopic')}</option>
                         {topics.filter((topic) => topic._id !== moveFromId).map((topic) => (
                           <option key={topic._id} value={topic._id}>
                             {topic.name}
@@ -1024,7 +1029,7 @@ export default function AdminReports() {
                       gap: 6,
                     }}
                   >
-                    <ArrowRightLeft size={14} /> Move posts
+                    <ArrowRightLeft size={14} /> {tr('admin.movePostsBtn2')}
                   </button>
                 </div>
               )}
@@ -1032,7 +1037,7 @@ export default function AdminReports() {
               {topics.length === 0 ? (
                 <div style={{ ...card, textAlign: 'center', padding: 40, color: t.inkSoft }}>
                   <FolderKanban size={40} color={t.inkFaint} style={{ margin: '0 auto 12px' }} />
-                  <p style={{ margin: 0, fontSize: 14 }}>No topics yet. Create one above.</p>
+                  <p style={{ margin: 0, fontSize: 14 }}>{tr('admin.noTopicsYet')}</p>
                 </div>
               ) : (
                 topics.map((topic) => (
@@ -1048,7 +1053,7 @@ export default function AdminReports() {
                           <p style={{ margin: '8px 0 0', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>{topic.description}</p>
                         )}
                         <p style={{ margin: '8px 0 0', fontSize: 12, color: t.inkFaint }}>
-                          {topic.postsCount || 0} posts · created {new Date(topic.createdAt).toLocaleDateString()}
+                          {tr('admin.postsCountTemplate').replace('{n}', topic.postsCount || 0)} · {tr('admin.createdTemplate').replace('{date}', new Date(topic.createdAt).toLocaleDateString())}
                         </p>
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -1057,10 +1062,10 @@ export default function AdminReports() {
                           onClick={() => navigate(`/community?topic=${topic._id}`)}
                           style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: t.fontBody }}
                         >
-                          View in feed <ExternalLink size={12} />
+                          {tr('admin.viewInFeed')} <ExternalLink size={12} />
                         </button>
                         <ActionBtn color={t.skyDeep} bg={t.skySoft} border={`${t.sky}40`} onClick={() => startEditTopic(topic)} disabled={!!actioningId}>
-                          <Pencil size={14} /> Edit
+                          <Pencil size={14} /> {tr('common.edit')}
                         </ActionBtn>
                         <ActionBtn
                           color="#D32F2F"
@@ -1069,7 +1074,7 @@ export default function AdminReports() {
                           onClick={() => deleteTopic(topic._id, topic.name, topic.postsCount || 0)}
                           disabled={!!actioningId || (topic.postsCount || 0) > 0}
                         >
-                          <Trash2 size={14} /> Delete
+                          <Trash2 size={14} /> {tr('common.delete')}
                         </ActionBtn>
                       </div>
                     </div>
@@ -1083,11 +1088,11 @@ export default function AdminReports() {
                 <p style={{ margin: 0, fontSize: 13, color: t.inkSoft }}>
                   {notifUnread > 0 ? (
                     <>
-                      <strong style={{ color: t.ink }}>{notifUnread}</strong> unread
-                      {notifications.length > 0 && <> · {notifications.length} recent</>}
+                      <strong style={{ color: t.ink }}>{notifUnread}</strong> {tr('admin.unread')}
+                      {notifications.length > 0 && <> · {tr('admin.recentTemplate').replace('{n}', notifications.length)}</>}
                     </>
                   ) : (
-                    <>All caught up{notifications.length > 0 && <> · {notifications.length} recent</>}</>
+                    <>{tr('admin.allCaughtUp')}{notifications.length > 0 && <> · {tr('admin.recentTemplate').replace('{n}', notifications.length)}</>}</>
                   )}
                 </p>
                 {notifUnread > 0 && (
@@ -1106,7 +1111,7 @@ export default function AdminReports() {
                       fontFamily: t.fontBody,
                     }}
                   >
-                    Mark all read
+                    {tr('common.markAllRead')}
                   </button>
                 )}
               </div>
@@ -1114,9 +1119,9 @@ export default function AdminReports() {
               {notifications.length === 0 ? (
                 <div style={{ ...card, padding: '56px 24px', textAlign: 'center' }}>
                   <Bell size={40} color={t.inkFaint} style={{ margin: '0 auto 12px' }} />
-                  <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: '0 0 8px', color: t.ink, fontWeight: 500 }}>No report alerts yet</h3>
+                  <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: '0 0 8px', color: t.ink, fontWeight: 500 }}>{tr('admin.noReportAlerts')}</h3>
                   <p style={{ color: t.inkSoft, fontSize: 14, margin: 0, maxWidth: 360, marginInline: 'auto', lineHeight: 1.5 }}>
-                    When a member reports a post or comment, it will appear here.
+                    {tr('admin.noReportAlertsHint')}
                   </p>
                 </div>
               ) : (
@@ -1175,14 +1180,14 @@ export default function AdminReports() {
                             </span>
                             {n.senderId?.name && (
                               <span style={{ display: 'block', marginTop: 6, fontSize: 12, color: t.inkFaint }}>
-                                From {n.senderId.name}
+                                {tr('admin.fromTemplate').replace('{name}', n.senderId.name)}
                                 {n.senderId.username ? ` @${n.senderId.username}` : ''}
                               </span>
                             )}
                           </span>
                           {!n.isRead && (
                             <span
-                              aria-label="Unread"
+                              aria-label={tr('admin.unread')}
                               style={{
                                 width: 8,
                                 height: 8,
@@ -1204,8 +1209,8 @@ export default function AdminReports() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {[
-                  { id: 'pending', label: 'Pending queue' },
-                  { id: 'history', label: 'History' },
+                  { id: 'pending', label: tr('admin.pendingQueue') },
+                  { id: 'history', label: tr('admin.history') },
                 ].map((v) => (
                   <button
                     key={v.id}
@@ -1215,7 +1220,7 @@ export default function AdminReports() {
                       padding: '8px 14px',
                       borderRadius: 999,
                       border: `1.5px solid ${reportView === v.id ? t.forest : t.line}`,
-                      background: reportView === v.id ? t.forest : '#FFF',
+                      background: reportView === v.id ? t.forest : t.surface,
                       color: reportView === v.id ? '#FFF' : t.inkSoft,
                       fontWeight: 600,
                       fontSize: 13,
@@ -1232,10 +1237,10 @@ export default function AdminReports() {
                 <div style={{ ...card, padding: '60px 24px', textAlign: 'center' }}>
                   <Check size={48} color={t.sage} style={{ margin: '0 auto 16px' }} />
                   <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: '0 0 8px', color: t.ink }}>
-                    {reportView === 'history' ? 'No history yet' : 'Clean slate'}
+                    {reportView === 'history' ? tr('admin.noHistoryYet') : tr('admin.cleanSlate')}
                   </h3>
                   <p style={{ color: t.inkSoft, fontSize: 14, margin: 0 }}>
-                    {reportView === 'history' ? 'Resolved reports will show up here.' : 'No pending reports.'}
+                    {reportView === 'history' ? tr('admin.resolvedReportsHint') : tr('admin.noPendingReports')}
                   </p>
                 </div>
               ) : (
@@ -1245,20 +1250,20 @@ export default function AdminReports() {
                     <div key={report._id} style={{ ...card, opacity: actioningId === report._id ? 0.6 : 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: t.clayDeep, background: t.clayTint, padding: '4px 10px', borderRadius: 6, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <AlertTriangle size={12} /> {report.reason}
+                          <AlertTriangle size={12} /> {tr(`reportReasons.${report.reason}`, report.reason)}
                         </span>
                         <span style={{ fontSize: 12, color: t.inkFaint }}>
-                          by {report.reporterId?.name || 'Anonymous'} · {new Date(report.createdAt).toLocaleDateString()}
+                          {tr('admin.byTemplate').replace('{name}', report.reporterId?.name || tr('admin.anonymous'))} · {new Date(report.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                       <p style={{ fontSize: 14, color: t.ink, margin: '0 0 12px', lineHeight: 1.5, background: t.bg, padding: '12px 16px', borderRadius: 8 }}>
-                        {report.description || 'No additional explanation.'}
+                        {report.description || tr('admin.noAdditionalExplanation')}
                       </p>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.surfaceSunken, padding: '12px 16px', borderRadius: 10, marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           {report.targetType === 'ForumPost' ? <FileText size={18} color={t.skyDeep} /> : <MessageSquare size={18} color={t.sageDeep} />}
                           <span style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>
-                            {report.targetType === 'ForumPost' ? 'Post' : 'Comment'} · {String(report.targetId).slice(-8)}
+                            {report.targetType === 'ForumPost' ? tr('admin.post') : tr('admin.comment')} · {String(report.targetId).slice(-8)}
                           </span>
                         </div>
                         {viewPostId && (
@@ -1273,29 +1278,29 @@ export default function AdminReports() {
                             }
                             style={{ background: 'none', border: 'none', color: t.skyDeep, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
                           >
-                            View <ExternalLink size={12} />
+                            {tr('admin.view')} <ExternalLink size={12} />
                           </button>
                         )}
                       </div>
                       {reportView === 'history' ? (
                         <p style={{ margin: 0, fontSize: 13, color: t.inkSoft }}>
-                          Action: <strong style={{ color: t.ink }}>{ACTION_LABELS[report.actionTaken] || report.actionTaken || 'Reviewed'}</strong>
-                          {report.resolvedBy?.name ? ` · by ${report.resolvedBy.name}` : ''}
+                          {tr('admin.actionLabel')} <strong style={{ color: t.ink }}>{ACTION_LABELS[report.actionTaken] || report.actionTaken || tr('admin.reviewed')}</strong>
+                          {report.resolvedBy?.name ? ` · ${tr('admin.byTemplate').replace('{name}', report.resolvedBy.name)}` : ''}
                           {report.resolvedAt ? ` · ${new Date(report.resolvedAt).toLocaleString()}` : ''}
                         </p>
                       ) : (
                         <div className="db-admin-user-actions" style={{ justifyContent: 'flex-end' }}>
                           <ActionBtn color={t.sageDeep} bg={t.sageSoft} border={`${t.sage}40`} onClick={() => handleResolveReport(report._id, 'dismiss')} disabled={!!actioningId}>
-                            <Check size={14} /> Dismiss
+                            <Check size={14} /> {tr('admin.actions.dismiss')}
                           </ActionBtn>
                           <ActionBtn color={t.gold} bg={t.goldSoft} border={`${t.gold}30`} onClick={() => handleResolveReport(report._id, 'hide_content')} disabled={!!actioningId}>
-                            <EyeOff size={14} /> Hide
+                            <EyeOff size={14} /> {tr('admin.actions.hide')}
                           </ActionBtn>
                           <ActionBtn color={t.clayDeep} bg={t.claySoft} border={`${t.clay}30`} onClick={() => handleResolveReport(report._id, 'delete_content')} disabled={!!actioningId}>
-                            <Trash2 size={14} /> Soft delete
+                            <Trash2 size={14} /> {tr('admin.actions.softDelete')}
                           </ActionBtn>
                           <ActionBtn color="#D32F2F" bg="#FFECEC" border="#FFCDD2" onClick={() => handleResolveReport(report._id, 'ban_user')} disabled={!!actioningId}>
-                            <Ban size={14} /> Ban author
+                            <Ban size={14} /> {tr('admin.banAuthorBtn')}
                           </ActionBtn>
                         </div>
                       )}
@@ -1366,6 +1371,7 @@ export default function AdminReports() {
 }
 
 function ConfirmDialog({ open, title, message, confirmLabel, danger, onCancel, onConfirm }) {
+  const { t: tr } = useI18n();
   if (!open) return null;
   return (
     <div
@@ -1385,7 +1391,7 @@ function ConfirmDialog({ open, title, message, confirmLabel, danger, onCancel, o
     >
       <div
         style={{
-          background: '#FFF',
+          background: theme.surface,
           border: `1.5px solid ${theme.lineStrong}`,
           borderRadius: 18,
           width: '100%',
@@ -1395,7 +1401,7 @@ function ConfirmDialog({ open, title, message, confirmLabel, danger, onCancel, o
         }}
       >
         <h3 style={{ fontFamily: theme.fontDisplay, fontSize: 20, margin: '0 0 10px', color: theme.ink }}>
-          {title || 'Confirm action'}
+          {title || tr('admin.confirm.confirmActionTitle')}
         </h3>
         <p style={{ margin: '0 0 22px', fontSize: 14, color: theme.inkSoft, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -1414,7 +1420,7 @@ function ConfirmDialog({ open, title, message, confirmLabel, danger, onCancel, o
               color: theme.inkSoft,
             }}
           >
-            Cancel
+            {tr('common.cancel')}
           </button>
           <button
             type="button"
@@ -1431,7 +1437,7 @@ function ConfirmDialog({ open, title, message, confirmLabel, danger, onCancel, o
               fontFamily: theme.fontBody,
             }}
           >
-            {confirmLabel || 'Confirm'}
+            {confirmLabel || tr('common.confirm')}
           </button>
         </div>
       </div>
@@ -1440,6 +1446,7 @@ function ConfirmDialog({ open, title, message, confirmLabel, danger, onCancel, o
 }
 
 function PromptDialog({ open, title, message, placeholder, defaultValue, confirmLabel, required, onCancel, onConfirm }) {
+  const { t: tr } = useI18n();
   const [value, setValue] = useState('');
   const [fieldError, setFieldError] = useState('');
 
@@ -1454,7 +1461,7 @@ function PromptDialog({ open, title, message, placeholder, defaultValue, confirm
 
   const handleSubmit = () => {
     if (required && !value.trim()) {
-      setFieldError('This field is required.');
+      setFieldError(tr('admin.fieldRequired'));
       return;
     }
     onConfirm(value);
@@ -1478,7 +1485,7 @@ function PromptDialog({ open, title, message, placeholder, defaultValue, confirm
     >
       <div
         style={{
-          background: '#FFF',
+          background: theme.surface,
           border: `1.5px solid ${theme.lineStrong}`,
           borderRadius: 18,
           width: '100%',
@@ -1488,7 +1495,7 @@ function PromptDialog({ open, title, message, placeholder, defaultValue, confirm
         }}
       >
         <h3 style={{ fontFamily: theme.fontDisplay, fontSize: 20, margin: '0 0 10px', color: theme.ink }}>
-          {title || 'Enter details'}
+          {title || tr('admin.enterDetails')}
         </h3>
         {message && <p style={{ margin: '0 0 14px', fontSize: 14, color: theme.inkSoft, lineHeight: 1.5 }}>{message}</p>}
         <textarea
@@ -1530,7 +1537,7 @@ function PromptDialog({ open, title, message, placeholder, defaultValue, confirm
               color: theme.inkSoft,
             }}
           >
-            Cancel
+            {tr('common.cancel')}
           </button>
           <button
             type="button"
@@ -1547,7 +1554,7 @@ function PromptDialog({ open, title, message, placeholder, defaultValue, confirm
               fontFamily: theme.fontBody,
             }}
           >
-            {confirmLabel || 'Submit'}
+            {confirmLabel || tr('admin.submit')}
           </button>
         </div>
       </div>

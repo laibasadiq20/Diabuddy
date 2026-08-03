@@ -1,14 +1,9 @@
 import React from 'react';
 import { RefreshCw, MessageSquarePlus, PlusCircle } from 'lucide-react';
 import { theme } from '../../../theme';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const t = theme;
-
-const FIRST_POST_IDEAS = [
-  'A question about meals, meds, or a recent reading',
-  'What helped you in the first weeks after diagnosis',
-  'A routine that made logging easier',
-];
 
 export default function FeedState({
   loading,
@@ -17,11 +12,18 @@ export default function FeedState({
   onRetry,
   onCreatePost,
 }) {
+  const { t: tr } = useI18n();
+  const FIRST_POST_IDEAS = [
+    tr('community.state.idea1'),
+    tr('community.state.idea2'),
+    tr('community.state.idea3'),
+  ];
+
   if (loading) {
     return (
       <div className="db-community-state">
         <RefreshCw className="animate-spin" size={28} />
-        <p>Loading discussions…</p>
+        <p>{tr('community.state.loading')}</p>
       </div>
     );
   }
@@ -31,7 +33,7 @@ export default function FeedState({
       <div className="db-community-state db-community-state--error">
         <p>{error}</p>
         <button type="button" onClick={onRetry}>
-          Try again
+          {tr('common.retry')}
         </button>
       </div>
     );
@@ -41,9 +43,9 @@ export default function FeedState({
     return (
       <div className="db-community-state db-community-state--empty">
         <MessageSquarePlus size={36} color={t.sageDeep} strokeWidth={1.6} />
-        <h3>Start the first post</h3>
+        <h3>{tr('community.state.emptyTitle')}</h3>
         <p>
-          This space is quiet right now. One clear question or tip helps the next person feel less alone.
+          {tr('community.state.emptyBody')}
         </p>
         <ul className="db-community-first-tips">
           {FIRST_POST_IDEAS.map((idea) => (
@@ -52,7 +54,7 @@ export default function FeedState({
         </ul>
         <button type="button" className="db-community-cta" onClick={onCreatePost}>
           <PlusCircle size={16} />
-          <span>Write your first post</span>
+          <span>{tr('community.state.writeFirstPost')}</span>
         </button>
       </div>
     );

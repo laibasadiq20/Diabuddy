@@ -31,10 +31,6 @@ const medicationLogSchema = new mongoose.Schema(
       enum: ['', 'Oral', 'Injection', 'Inhaler', 'Other'],
       default: '',
     },
-    reminderTime: {
-      type: String,
-      default: '',
-    },
     notes: {
       type: String,
       maxlength: [500, 'Notes cannot exceed 500 characters'],

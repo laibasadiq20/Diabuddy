@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { ArrowRight, ArrowLeft, Info, Activity } from 'lucide-react';
+import { useI18n } from '../../../i18n/I18nContext';
 
 /**
  * Symptoms page — restyled to match the DiaBuddy design tokens
@@ -21,96 +22,40 @@ import { ArrowRight, ArrowLeft, Info, Activity } from 'lucide-react';
  * - Values that Tailwind can't express as a utility (custom keyframes,
  *   the .dbx-symptoms variable block, per-row hover choreography) stay
  *   in the scoped <style> tag at the bottom.
- * - Behavior, structure, and copy are unchanged from the previous version.
+ * - Copy is sourced from i18n (landing.learn.symptoms.*); structure and
+ *   behavior are unchanged from the previous version.
  */
 
-const symptoms = [
-  {
-    title: 'Increased Thirst',
-    description:
-      'Feeling thirsty more often than usual, even after drinking water.',
-    accent: 'text-[var(--sage-deep)]',
-    tag: 'Hydration',
-    stat: '01',
-  },
-  {
-    title: 'Frequent Urination',
-    description:
-      'Needing to use the bathroom more often, especially at night.',
-    accent: 'text-[var(--rust)]',
-    tag: 'Routine',
-    stat: '02',
-  },
-  {
-    title: 'Extreme Fatigue',
-    description:
-      "Feeling tired and low on energy, even after a full night's sleep.",
-    accent: 'text-[var(--olive)]',
-    tag: 'Energy',
-    stat: '03',
-  },
-  {
-    title: 'Blurred Vision',
-    description:
-      'Eyesight that comes and goes, or feels fuzzy and unclear.',
-    accent: 'text-[var(--sage-deep)]',
-    tag: 'Senses',
-    stat: '04',
-  },
-  {
-    title: 'Unexplained Weight Loss',
-    description:
-      'Losing weight without trying, even when eating normally.',
-    accent: 'text-[var(--butter)]',
-    tag: 'Body',
-    stat: '05',
-  },
-  {
-    title: 'Slow Healing',
-    description:
-      'Cuts and bruises that take longer than usual to heal.',
-    accent: 'text-[var(--rust)]',
-    tag: 'Recovery',
-    stat: '06',
-  },
+const SYMPTOM_IDS = ['thirst', 'urination', 'fatigue', 'vision', 'weightLoss', 'healing'];
+
+const symptomMeta = [
+  { id: 'thirst', accent: 'text-[var(--sage-deep)]', stat: '01' },
+  { id: 'urination', accent: 'text-[var(--rust)]', stat: '02' },
+  { id: 'fatigue', accent: 'text-[var(--olive)]', stat: '03' },
+  { id: 'vision', accent: 'text-[var(--sage-deep)]', stat: '04' },
+  { id: 'weightLoss', accent: 'text-[var(--butter)]', stat: '05' },
+  { id: 'healing', accent: 'text-[var(--rust)]', stat: '06' },
 ];
 
-const warningLevels = [
-  {
-    level: 'Immediate Attention',
-    short: 'Urgent',
-    description:
-      'Seek medical help right away if you experience these symptoms.',
-    accent: 'text-[var(--rust)]',
-    items: [
-      'Severe abdominal pain',
-      'Difficulty breathing',
-      'Extreme confusion',
-      'Loss of consciousness',
-    ],
-  },
-  {
-    level: 'Keep Monitoring',
-    short: 'Watch',
-    description: 'Stay aware and track any changes in your symptoms.',
-    accent: 'text-[var(--sage)]',
-    items: [
-      'Mild thirst',
-      'Occasional fatigue',
-      'Minor changes in appetite',
-    ],
-  },
+const warningLevelMeta = [
+  { id: 'urgent', accent: 'text-[var(--rust)]', itemKeys: ['item1', 'item2', 'item3', 'item4'] },
+  { id: 'watch', accent: 'text-[var(--sage)]', itemKeys: ['item1', 'item2', 'item3'] },
 ];
 
 const Symptoms = ({
   showHeader = true,
-  eyebrow = 'Body signals',
+  eyebrow,
   showNavbar = true,
   backTo = '/',
-  backLabel = 'Back',
+  backLabel,
 }) => {
+  const { t: tr } = useI18n();
   const [activeLevel, setActiveLevel] = useState(0);
-  const active = warningLevels[activeLevel];
+  const activeMeta = warningLevelMeta[activeLevel];
+  const activeLevelData = tr(`landing.learn.symptoms.levels.${activeMeta.id}`);
+
+  const resolvedEyebrow = eyebrow ?? tr('landing.learn.symptoms.eyebrow');
+  const resolvedBackLabel = backLabel ?? tr('landing.learn.symptoms.backLabel');
 
   return (
     <>
@@ -126,7 +71,7 @@ const Symptoms = ({
           className="dbx-back-link absolute left-6 top-[88px] z-10 inline-flex items-center gap-2 font-sans text-sm font-bold tracking-[0.02em] text-[var(--brown)] no-underline transition-transform duration-200 ease-out hover:-translate-x-1 hover:opacity-75"
         >
           <ArrowLeft size={16} strokeWidth={2.5} />
-          {backLabel}
+          {resolvedBackLabel}
         </Link>
 
         <div
@@ -139,29 +84,28 @@ const Symptoms = ({
               style={{ animationDelay: '0ms' }}
             >
               <div className="md:col-span-7">
-                {eyebrow && (
+                {resolvedEyebrow && (
                   <div className="mb-6 inline-flex items-center gap-2 font-sans text-xs font-extrabold uppercase tracking-[0.22em] text-[var(--sage-deep)]">
                     <span className="h-[1.5px] w-7 bg-[var(--sage-deep)]" />
-                    {eyebrow}
+                    {resolvedEyebrow}
                   </div>
                 )}
                 <h1 className="m-0 font-serif text-[clamp(48px,7vw,96px)] font-bold leading-[0.95] tracking-[-0.035em] text-[var(--brown)]">
-                  Warning signs
+                  {tr('landing.learn.symptoms.titleLine1')}
                   <br />
                   <em className="font-semibold not-italic italic text-[var(--olive)]">
-                    worth noticing.
+                    {tr('landing.learn.symptoms.titleEmphasis')}
                   </em>
                 </h1>
               </div>
 
               <div className="flex flex-col justify-end md:col-span-5 md:pt-6">
                 <p className="max-w-[38ch] font-sans text-[17px] font-semibold leading-relaxed text-[var(--brown-soft)]">
-                  Your body speaks in quiet signals. Below are the most common
-                  ones — and a simple guide to knowing when to act.
+                  {tr('landing.learn.symptoms.lead')}
                 </p>
                 <div className="mt-6 inline-flex items-center gap-2 font-sans text-xs font-bold uppercase tracking-[0.18em] text-[var(--ink-soft)]">
                   <Activity size={14} strokeWidth={2.5} />
-                  06 signals · 02 response levels
+                  {tr('landing.learn.symptoms.signalsCount')}
                 </div>
               </div>
             </header>
@@ -171,17 +115,17 @@ const Symptoms = ({
           <div className="mb-28">
             <div className="mb-8 flex items-baseline justify-between border-b-2 border-[var(--line)] pb-4">
               <h2 className="m-0 font-serif text-[22px] font-bold tracking-[-0.02em] text-[var(--brown)]">
-                The signals
+                {tr('landing.learn.symptoms.signalsHeading')}
               </h2>
               <span className="font-sans text-xs font-bold uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-                Scroll to explore
+                {tr('landing.learn.symptoms.scrollHint')}
               </span>
             </div>
 
             <ul className="grid gap-0">
-              {symptoms.map((s, idx) => (
+              {symptomMeta.map((s, idx) => (
                   <li
-                    key={s.title}
+                    key={s.id}
                     className="dbx-symptom-row dbx-fade-item group grid grid-cols-12 items-start gap-4 border-b border-[var(--line)] py-7 md:gap-6 md:py-8"
                     style={{ animationDelay: `${100 + idx * 80}ms` }}
                   >
@@ -195,16 +139,16 @@ const Symptoms = ({
 
                     <div className="col-span-10 md:col-span-5">
                       <div className="mb-1.5 font-sans text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--ink-soft)]">
-                        {s.tag}
+                        {tr(`landing.learn.symptoms.items.${s.id}.tag`)}
                       </div>
                       <h3 className="m-0 font-serif text-[22px] font-bold tracking-[-0.02em] text-[var(--brown)] md:text-[26px]">
-                        {s.title}
+                        {tr(`landing.learn.symptoms.items.${s.id}.title`)}
                       </h3>
                     </div>
 
                     <div className="col-span-12 md:col-span-6">
                       <p className="m-0 max-w-[52ch] font-sans text-base font-semibold leading-relaxed text-[var(--brown-soft)]">
-                        {s.description}
+                        {tr(`landing.learn.symptoms.items.${s.id}.description`)}
                       </p>
                     </div>
                   </li>
@@ -217,21 +161,21 @@ const Symptoms = ({
             <div className="md:col-span-5">
               <div className="mb-5 inline-flex items-center gap-2 font-sans text-xs font-extrabold uppercase tracking-[0.22em] text-[var(--sage-deep)]">
                 <Info size={14} strokeWidth={2.5} />
-                Response guide
+                {tr('landing.learn.symptoms.guideKicker')}
               </div>
               <h2 className="m-0 mb-[18px] font-serif text-[clamp(34px,4.4vw,52px)] font-bold leading-[1.05] tracking-[-0.03em] text-[var(--brown)]">
-                When should you take action?
+                {tr('landing.learn.symptoms.guideHeading')}
               </h2>
               <p className="mb-8 max-w-[42ch] font-sans text-base font-semibold leading-relaxed text-[var(--brown-soft)]">
-                Choose a level to see what belongs there — and how urgently to
-                move.
+                {tr('landing.learn.symptoms.guideLead')}
               </p>
 
               <ul className="mt-2">
-                {warningLevels.map((lvl, i) => {
+                {warningLevelMeta.map((lvl, i) => {
                   const isActive = activeLevel === i;
+                  const levelData = tr(`landing.learn.symptoms.levels.${lvl.id}`);
                   return (
-                    <li key={lvl.level}>
+                    <li key={lvl.id}>
                       <button
                         onClick={() => setActiveLevel(i)}
                         className={`dbx-level-btn group flex w-full cursor-pointer items-center justify-between border-b border-[var(--line)] bg-transparent py-4 text-left font-serif text-[22px] font-bold tracking-[-0.015em] transition-transform duration-200 ease-out hover:translate-x-1 ${
@@ -246,7 +190,7 @@ const Symptoms = ({
                           >
                             0{i + 1}
                           </span>
-                          <span>{lvl.level}</span>
+                          <span>{levelData.level}</span>
                         </span>
                         <ArrowRight
                           size={18}
@@ -272,46 +216,46 @@ const Symptoms = ({
                 <div className="mb-8 flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="mb-1.5 font-sans text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--ink-soft)]">
-                      Level {activeLevel + 1} · {active.short}
+                      {tr('landing.learn.symptoms.levelLabelTemplate').replace('{n}', activeLevel + 1)} {activeLevelData.short}
                     </div>
                     <h3 className="m-0 font-serif text-[26px] font-bold tracking-[-0.02em] text-[var(--brown)] md:text-[30px]">
-                      {active.level}
+                      {activeLevelData.level}
                     </h3>
                     <p className="m-0 mt-2 max-w-[46ch] font-sans text-[15px] font-semibold leading-snug text-[var(--brown-soft)]">
-                      {active.description}
+                      {activeLevelData.description}
                     </p>
                   </div>
                   <span
-                    className={`font-serif text-[36px] font-semibold italic leading-none md:text-[44px] ${active.accent}`}
+                    className={`font-serif text-[36px] font-semibold italic leading-none md:text-[44px] ${activeMeta.accent}`}
                   >
                     0{activeLevel + 1}
                   </span>
                 </div>
 
                 <ul className="grid gap-3">
-                  {active.items.map((item, i) => (
+                  {activeMeta.itemKeys.map((itemKey, i) => (
                     <li
-                      key={item}
+                      key={itemKey}
                       className="dbx-fade-item flex items-start gap-3 border-t border-[var(--line)] py-2 font-sans text-base font-semibold text-[var(--brown)]"
                       style={{ animationDelay: `${i * 60}ms` }}
                     >
-                      <span className={`font-extrabold ${active.accent}`}>
+                      <span className={`font-extrabold ${activeMeta.accent}`}>
                         —
                       </span>
-                      {item}
+                      {activeLevelData.items[itemKey]}
                     </li>
                   ))}
                 </ul>
 
                 <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--line)] pt-6">
                   <span className="font-sans text-xs font-bold uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-                    Informational only — not a substitute for medical advice.
+                    {tr('landing.learn.symptoms.disclaimer')}
                   </span>
                   <Link
                     to="/learn/risk-assessment"
-                    className={`dbx-text-link inline-flex items-center gap-2 font-sans text-sm font-bold no-underline transition-transform duration-200 ease-out hover:translate-x-1 ${active.accent}`}
+                    className={`dbx-text-link inline-flex items-center gap-2 font-sans text-sm font-bold no-underline transition-transform duration-200 ease-out hover:translate-x-1 ${activeMeta.accent}`}
                   >
-                    Take the risk assessment
+                    {tr('landing.learn.symptoms.takeAssessment')}
                     <ArrowRight size={16} strokeWidth={2.5} />
                   </Link>
                 </div>
@@ -342,21 +286,20 @@ const Symptoms = ({
               <div className="md:col-span-8">
                 <div className="mb-5 inline-flex items-center gap-2.5 font-sans text-xs font-extrabold uppercase tracking-[0.22em] text-[color-mix(in_srgb,var(--cream)_88%,transparent)]">
                   <span className="h-[1.5px] w-7 bg-[var(--butter)]" />
-                  Next step
+                  {tr('landing.learn.symptoms.ctaKicker')}
                 </div>
                 <h2 className="m-0 font-serif text-[clamp(34px,5vw,56px)] font-bold leading-[1.02] tracking-[-0.03em] text-[var(--cream)]">
-                  Not sure if you&apos;re
+                  {tr('landing.learn.symptoms.ctaTitleLine1')}
                   <br />
                   <em className="font-semibold italic text-[#D4A84A]">
-                    experiencing warning signs?
+                    {tr('landing.learn.symptoms.ctaTitleEmphasis')}
                   </em>
                 </h2>
                 <p className="mt-5 max-w-[48ch] font-sans text-base font-semibold leading-relaxed text-[color-mix(in_srgb,var(--cream)_86%,transparent)]">
-                  Take our quick self-assessment — it only takes a couple of
-                  minutes.
+                  {tr('landing.learn.symptoms.ctaLead')}
                 </p>
                 <p className="mt-4 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--cream)_55%,transparent)]">
-                  Free · 2–3 minutes · No account needed
+                  {tr('landing.learn.symptoms.ctaMeta')}
                 </p>
               </div>
 
@@ -365,7 +308,7 @@ const Symptoms = ({
                   to="/learn/risk-assessment"
                   className="dbx-cta-solid inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-[var(--cream)] px-7 py-3.5 font-sans text-sm font-bold tracking-[0.04em] text-[var(--sage-deep)] no-underline shadow-[0_12px_28px_-16px_rgba(42,33,23,0.55)] transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-[var(--butter)] hover:text-[var(--brown)] hover:shadow-[0_18px_36px_-14px_rgba(42,33,23,0.45)] sm:w-auto"
                 >
-                  Take Assessment
+                  {tr('landing.learn.symptoms.ctaButton')}
                   <ArrowRight
                     className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1"
                     strokeWidth={2.5}

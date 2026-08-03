@@ -1,6 +1,7 @@
 import React from 'react';
 import { theme } from '../../../theme';
 import { REPORT_REASONS } from './reportReasons';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const t = theme;
 
@@ -14,6 +15,7 @@ export default function ReportModal({
   onCancel,
   onSubmit,
 }) {
+  const { t: tr } = useI18n();
   if (!open) return null;
 
   return (
@@ -29,7 +31,7 @@ export default function ReportModal({
       padding: 16,
     }}>
       <div style={{
-        background: '#FFF',
+        background: t.surface,
         border: `1.5px solid ${t.lineStrong}`,
         borderRadius: '18px',
         width: '100%',
@@ -40,18 +42,18 @@ export default function ReportModal({
         {success ? (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>✅</div>
-            <h3 style={{ fontFamily: t.fontDisplay, margin: '0 0 8px 0' }}>Report Submitted</h3>
-            <p style={{ color: t.inkSoft, fontSize: '14px', margin: 0 }}>Thank you, moderators will review this content.</p>
+            <h3 style={{ fontFamily: t.fontDisplay, margin: '0 0 8px 0' }}>{tr('reportModal.reportSubmitted')}</h3>
+            <p style={{ color: t.inkSoft, fontSize: '14px', margin: 0 }}>{tr('reportModal.thankYou')}</p>
           </div>
         ) : (
           <>
             <h3 style={{ fontFamily: t.fontDisplay, fontSize: '22px', margin: '0 0 16px 0', color: t.ink }}>
-              Report Content
+              {tr('reportModal.reportContent')}
             </h3>
 
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', marginBottom: '6px' }}>
-                Reason
+                {tr('reportModal.reason')}
               </label>
               <select
                 value={reason}
@@ -61,24 +63,25 @@ export default function ReportModal({
                   padding: '10px 14px',
                   borderRadius: '8px',
                   border: `1.5px solid ${t.line}`,
-                  background: t.bg,
+                  background: t.surfaceSunken,
+                  color: t.ink,
                   fontSize: '13px'
                 }}
               >
                 {REPORT_REASONS.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
+                  <option key={r.value} value={r.value}>{tr(`reportReasons.${r.value}`)}</option>
                 ))}
               </select>
             </div>
 
             <div style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: t.inkSoft, textTransform: 'uppercase', marginBottom: '6px' }}>
-                Additional Details
+                {tr('reportModal.additionalDetails')}
               </label>
               <textarea
                 value={description}
                 onChange={(e) => onDescriptionChange(e.target.value)}
-                placeholder="Describe why you believe this content is inappropriate..."
+                placeholder={tr('reportModal.describePlaceholder')}
                 rows={4}
                 style={{
                   width: '100%',
@@ -86,6 +89,8 @@ export default function ReportModal({
                   padding: '10px',
                   borderRadius: '8px',
                   border: `1.5px solid ${t.line}`,
+                  background: t.surfaceSunken,
+                  color: t.ink,
                   fontSize: '13px',
                   fontFamily: 'inherit'
                 }}
@@ -105,7 +110,7 @@ export default function ReportModal({
                   cursor: 'pointer'
                 }}
               >
-                Cancel
+                {tr('common.cancel')}
               </button>
 
               <button
@@ -122,7 +127,7 @@ export default function ReportModal({
                   cursor: 'pointer'
                 }}
               >
-                Submit Report
+                {tr('reportModal.submitReport')}
               </button>
             </div>
           </>

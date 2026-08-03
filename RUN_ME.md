@@ -89,7 +89,7 @@ Diabuddy/
 | Community + DMs | Live |
 | Toolbox | Live (client-side; educational disclaimers) |
 | Logs | Live locally (browser storage; no cloud API yet) |
-| Fitbit / Reminders | UI stubs |
+| Fitbit | UI stub |
 | Admin console | Live |
 
 OTP codes expire in **15 minutes** (matches email copy).

@@ -7,6 +7,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { theme } from '../../../theme';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const t = theme;
 
@@ -29,6 +30,7 @@ export default function NewChatModal({
   onStartOneToOne,
   onCreateGroup,
 }) {
+  const { t: tr } = useI18n();
   if (!open) return null;
 
   return (
@@ -55,7 +57,7 @@ export default function NewChatModal({
         className="db-newchat-sheet"
         style={{
           position: 'relative',
-          background: '#FFF',
+          background: t.surface,
           borderRadius: '20px 20px 0 0',
           width: '100%',
           maxWidth: '480px',
@@ -88,15 +90,15 @@ export default function NewChatModal({
                   padding: 0,
                   color: t.ink,
                 }}
-                aria-label="Back"
+                aria-label={tr('common.back')}
               >
                 <ArrowLeft size={18} />
               </button>
             )}
             <h3 style={{ fontFamily: t.fontDisplay, fontSize: 20, margin: 0, color: t.ink }}>
-              {modalMode === 'pick' && 'New'}
-              {modalMode === 'chat' && 'New chat'}
-              {modalMode === 'group' && 'New group'}
+              {modalMode === 'pick' && tr('messages.new')}
+              {modalMode === 'chat' && tr('messages.newChat')}
+              {modalMode === 'group' && tr('messages.newGroup')}
             </h3>
           </div>
           <button
@@ -111,7 +113,7 @@ export default function NewChatModal({
               lineHeight: 1,
               padding: 4,
             }}
-            aria-label="Close"
+            aria-label={tr('common.close')}
           >
             ×
           </button>
@@ -134,7 +136,7 @@ export default function NewChatModal({
                 gap: 14,
                 width: '100%',
                 textAlign: 'left',
-                background: '#FAF8F5',
+                background: t.surfaceSunken,
                 border: `1.5px solid ${t.line}`,
                 borderRadius: 14,
                 padding: '14px 16px',
@@ -155,8 +157,8 @@ export default function NewChatModal({
                 <MessageSquare size={18} />
               </span>
               <span>
-                <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: t.ink }}>New chat</span>
-                <span style={{ display: 'block', fontSize: 12, color: t.inkSoft, marginTop: 2 }}>Message one person (1:1)</span>
+                <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: t.ink }}>{tr('messages.newChat')}</span>
+                <span style={{ display: 'block', fontSize: 12, color: t.inkSoft, marginTop: 2 }}>{tr('messages.messageOnePerson')}</span>
               </span>
             </button>
 
@@ -169,7 +171,7 @@ export default function NewChatModal({
                 gap: 14,
                 width: '100%',
                 textAlign: 'left',
-                background: '#FAF8F5',
+                background: t.surfaceSunken,
                 border: `1.5px solid ${t.line}`,
                 borderRadius: 14,
                 padding: '14px 16px',
@@ -190,8 +192,8 @@ export default function NewChatModal({
                 <Users size={18} />
               </span>
               <span>
-                <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: t.ink }}>New group</span>
-                <span style={{ display: 'block', fontSize: 12, color: t.inkSoft, marginTop: 2 }}>Chat with several people</span>
+                <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: t.ink }}>{tr('messages.newGroup')}</span>
+                <span style={{ display: 'block', fontSize: 12, color: t.inkSoft, marginTop: 2 }}>{tr('messages.chatWithSeveral')}</span>
               </span>
             </button>
           </div>
@@ -205,7 +207,7 @@ export default function NewChatModal({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search name or username…"
+                placeholder={tr('messages.searchNameUsername')}
                 autoFocus
                 style={{
                   width: '100%',
@@ -228,7 +230,7 @@ export default function NewChatModal({
               overflowY: 'auto',
               borderRadius: 12,
               border: `1px solid ${t.line}`,
-              background: '#FAF8F5',
+              background: t.surfaceSunken,
             }}>
               {searchLoading || creating ? (
                 <div style={{ textAlign: 'center', padding: 28, color: t.inkSoft }}>
@@ -236,7 +238,7 @@ export default function NewChatModal({
                 </div>
               ) : searchResults.length === 0 ? (
                 <p style={{ textAlign: 'center', fontSize: 13, color: t.inkFaint, margin: '28px 12px' }}>
-                  {searchQuery ? 'No one found.' : 'Search for someone to message.'}
+                  {searchQuery ? tr('messages.noOneFound') : tr('messages.searchToMessage')}
                 </p>
               ) : (
                 searchResults.map((peer) => (
@@ -291,13 +293,13 @@ export default function NewChatModal({
           <>
             <div style={{ marginBottom: 12, flexShrink: 0 }}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: t.inkSoft, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-                Group name
+                {tr('messages.groupName')}
               </label>
               <input
                 type="text"
                 value={groupName}
                 onChange={(e) => onGroupNameChange(e.target.value)}
-                placeholder="e.g. Type 1 Support"
+                placeholder={tr('messages.groupNamePlaceholder')}
                 style={{
                   width: '100%',
                   boxSizing: 'border-box',
@@ -306,6 +308,8 @@ export default function NewChatModal({
                   border: `1.5px solid ${t.line}`,
                   fontSize: 14,
                   outline: 'none',
+                  background: t.bg,
+                  color: t.ink,
                   fontFamily: t.fontBody,
                 }}
               />
@@ -317,7 +321,7 @@ export default function NewChatModal({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Add people…"
+                placeholder={tr('messages.addPeople')}
                 style={{
                   width: '100%',
                   boxSizing: 'border-box',
@@ -334,7 +338,7 @@ export default function NewChatModal({
 
             {selectedUserIds.length > 0 && (
               <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: t.sageDeep, flexShrink: 0 }}>
-                {selectedUserIds.length} selected
+                {tr('messages.selectedTemplate').replace('{n}', selectedUserIds.length)}
               </p>
             )}
 
@@ -345,7 +349,7 @@ export default function NewChatModal({
               overflowY: 'auto',
               borderRadius: 12,
               border: `1px solid ${t.line}`,
-              background: '#FAF8F5',
+              background: t.surfaceSunken,
               marginBottom: 14,
             }}>
               {searchLoading ? (
@@ -354,7 +358,7 @@ export default function NewChatModal({
                 </div>
               ) : searchResults.length === 0 ? (
                 <p style={{ textAlign: 'center', fontSize: 13, color: t.inkFaint, margin: '24px 12px' }}>
-                  {searchQuery ? 'No one found.' : 'Search to add members.'}
+                  {searchQuery ? tr('messages.noOneFound') : tr('messages.searchToAddMembers')}
                 </p>
               ) : (
                 searchResults.map((peer) => {
@@ -381,7 +385,7 @@ export default function NewChatModal({
                         width: 36,
                         height: 36,
                         borderRadius: '50%',
-                        background: '#fff',
+                        background: t.surface,
                         color: t.sageDeep,
                         display: 'flex',
                         alignItems: 'center',
@@ -440,7 +444,7 @@ export default function NewChatModal({
                 flexShrink: 0,
               }}
             >
-              {creating ? 'Creating…' : 'Create group'}
+              {creating ? tr('messages.creating') : tr('messages.createGroup')}
             </button>
           </>
         )}

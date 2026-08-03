@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { theme } from '../../../theme';
 import PollDisplay from './PollDisplay';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const t = theme;
 
@@ -40,6 +41,7 @@ export default function PostThreadCard({
   onReport,
   onDelete,
 }) {
+  const { t: tr } = useI18n();
   const hasBestAnswerPointer = !!post.bestAnswerCommentId;
   const isHidden = post.status === 'hidden';
 
@@ -65,7 +67,7 @@ export default function PostThreadCard({
           fontSize: 13,
           fontWeight: 600,
         }}>
-          <EyeOff size={15} /> Hidden from the community — only moderators and the author can view this.
+          <EyeOff size={15} /> {tr('postThreadCard.hiddenNotice')}
         </div>
       )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
@@ -110,7 +112,7 @@ export default function PostThreadCard({
 
           <div>
             <h3 style={{ fontSize: '15px', fontWeight: '700', color: t.ink, margin: 0 }}>
-              {post.isAnonymous ? 'Anonymous Buddy' : post.authorId?.name}
+              {post.isAnonymous ? tr('postThreadCard.anonymousBuddy') : post.authorId?.name}
             </h3>
             <p style={{ fontSize: '12px', color: t.inkFaint, margin: 0 }}>
               {!post.isAnonymous && post.authorId?.diabetesType ? `${post.authorId.diabetesType} · ` : ''}
@@ -159,17 +161,17 @@ export default function PostThreadCard({
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {post.isPinned && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: '700', color: t.sageDeep, background: t.sageTint, padding: '2px 8px', borderRadius: '4px' }}>
-            <Pin size={10} /> Pinned
+            <Pin size={10} /> {tr('postThreadCard.pinned')}
           </span>
         )}
         {post.isLocked && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: '700', color: t.clayDeep, background: t.clayTint, padding: '2px 8px', borderRadius: '4px' }}>
-            <Lock size={10} /> Locked
+            <Lock size={10} /> {tr('postThreadCard.locked')}
           </span>
         )}
         {hasBestAnswerPointer && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: '700', color: t.gold, background: t.goldTint, padding: '2px 8px', borderRadius: '4px' }}>
-            <Award size={10} /> Solved
+            <Award size={10} /> {tr('postThreadCard.solved')}
           </span>
         )}
       </div>
@@ -206,7 +208,7 @@ export default function PostThreadCard({
                 cursor: 'pointer',
               }}
             >
-              {savingEdit ? 'Saving…' : 'Save changes'}
+              {savingEdit ? tr('postThreadCard.savingEllipsis') : tr('postThreadCard.saveChanges')}
             </button>
             <button
               type="button"
@@ -219,7 +221,7 @@ export default function PostThreadCard({
                 cursor: 'pointer',
               }}
             >
-              Cancel
+              {tr('common.cancel')}
             </button>
           </div>
         </div>
@@ -319,7 +321,7 @@ export default function PostThreadCard({
                 fontFamily: t.fontBody,
               }}
             >
-              <Pencil size={12} /> Edit
+              <Pencil size={12} /> {tr('postThreadCard.edit')}
             </button>
           )}
 
@@ -343,7 +345,7 @@ export default function PostThreadCard({
                   fontFamily: t.fontBody,
                 }}
               >
-                <Pin size={12} /> {post.isPinned ? 'Unpin' : 'Pin'}
+                <Pin size={12} /> {post.isPinned ? tr('postThreadCard.unpin') : tr('postThreadCard.pin')}
               </button>
               <button
                 type="button"
@@ -364,7 +366,7 @@ export default function PostThreadCard({
                 }}
               >
                 {post.isLocked ? <Unlock size={12} /> : <Lock size={12} />}
-                {post.isLocked ? 'Unlock' : 'Lock'}
+                {post.isLocked ? tr('postThreadCard.unlock') : tr('postThreadCard.lock')}
               </button>
               <button
                 type="button"
@@ -385,7 +387,7 @@ export default function PostThreadCard({
                 }}
               >
                 {isHidden ? <Eye size={12} /> : <EyeOff size={12} />}
-                {isHidden ? 'Restore' : 'Hide'}
+                {isHidden ? tr('postThreadCard.restore') : tr('postThreadCard.hide')}
               </button>
             </>
           )}
@@ -408,7 +410,7 @@ export default function PostThreadCard({
               fontFamily: t.fontBody,
             }}
           >
-            <Flag size={12} /> Report
+            <Flag size={12} /> {tr('postThreadCard.report')}
           </button>
 
           {(isPostOwner || isPostAdmin) && (
@@ -430,7 +432,7 @@ export default function PostThreadCard({
                 fontFamily: t.fontBody,
               }}
             >
-              <Trash2 size={12} /> Delete
+              <Trash2 size={12} /> {tr('postThreadCard.delete')}
             </button>
           )}
         </div>

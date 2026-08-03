@@ -1,5 +1,6 @@
 import React from 'react';
 import { Droplet, Activity, HeartPulse, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const getArcValue = (stat) => {
   if (stat === '1 in 3') return 33;
@@ -9,42 +10,34 @@ const getArcValue = (stat) => {
   return 50;
 };
 
+const STAT_LABEL_KEYS = {
+  '1 in 3': 'landing.learn.diabetesTypes.statOneInThree',
+};
+
 const ITEMS = [
   {
-    chip: 'Autoimmune',
-    name: 'Type 1',
-    tag: 'The body stops making insulin.',
-    desc: 'An immune response halts insulin production. Lifelong insulin support is essential.',
+    id: 'type1',
     stat: '5–10%',
     Icon: Droplet,
     color: '#2F6A4F',
     link: 'https://en.wikipedia.org/wiki/Type_1_diabetes',
   },
   {
-    chip: 'Most common',
-    name: 'Type 2',
-    tag: 'Insulin works — just not well enough.',
-    desc: 'The body resists insulin. Often managed through lifestyle, food, and medication.',
+    id: 'type2',
     stat: '90–95%',
     Icon: Activity,
     color: '#7D8F5D',
     link: 'https://en.wikipedia.org/wiki/Type_2_diabetes',
   },
   {
-    chip: 'Pregnancy',
-    name: 'Gestational',
-    tag: 'Glucose shifts during pregnancy.',
-    desc: 'Appears during pregnancy and usually resolves after birth, but worth watching.',
+    id: 'gestational',
     stat: '2–10%',
     Icon: HeartPulse,
     color: '#2F6A4F',
     link: 'https://en.wikipedia.org/wiki/Gestational_diabetes',
   },
   {
-    chip: 'Early signal',
-    name: 'Prediabetes',
-    tag: 'Higher than normal — not yet diabetes.',
-    desc: 'A reversible window. Small daily shifts can quietly turn the trend around.',
+    id: 'prediabetes',
     stat: '1 in 3',
     Icon: AlertCircle,
     color: '#556B2F',
@@ -53,6 +46,8 @@ const ITEMS = [
 ];
 
 const DiabetesTypes = ({ showHeader = true }) => {
+  const { t: tr } = useI18n();
+
   return (
     <section id="types" className={`font-body px-6 ${showHeader ? 'py-20 sm:py-28' : 'pt-8'}`} style={{ background: 'var(--cream-soft)' }}>
       <style>{`
@@ -69,15 +64,15 @@ const DiabetesTypes = ({ showHeader = true }) => {
           <header className="mb-14 grid gap-6 md:grid-cols-[1.2fr_0.8fr] items-end">
             <div>
               <span className="inline-flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.24em] text-[var(--brown-soft)] before:h-px before:w-7 before:bg-current before:opacity-55">
-                Know the types
+                {tr('landing.learn.diabetesTypes.eyebrow')}
               </span>
               <h2 className="mt-4 font-display text-[2.2rem] sm:text-[3.2rem] font-light leading-[1.05] text-[var(--brown)]">
-                Four types of diabetes, <em className="italic font-light text-[var(--sage-deep)]">gently explained.</em>
+                {tr('landing.learn.diabetesTypes.headingStart')}{' '}
+                <em className="italic font-light text-[var(--sage-deep)]">{tr('landing.learn.diabetesTypes.headingEmphasis')}</em>
               </h2>
             </div>
             <p className="max-w-[32ch] text-[1rem] leading-[1.65] text-[var(--brown-soft)] md:justify-self-end">
-              Each type begins differently and asks for different care. Here's a calm,
-              side-by-side look — no jargon, no alarm.
+              {tr('landing.learn.diabetesTypes.subtitle')}
             </p>
           </header>
         )}
@@ -85,9 +80,13 @@ const DiabetesTypes = ({ showHeader = true }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {ITEMS.map((it, i) => {
             const arcValue = getArcValue(it.stat);
+            const chip = tr(`landing.learn.diabetesTypes.items.${it.id}.chip`);
+            const name = tr(`landing.learn.diabetesTypes.items.${it.id}.name`);
+            const tag = tr(`landing.learn.diabetesTypes.items.${it.id}.tag`);
+            const desc = tr(`landing.learn.diabetesTypes.items.${it.id}.desc`);
             return (
               <article
-                key={it.name}
+                key={it.id}
                 className="group flex flex-col rounded-3xl border border-line bg-white p-6 transition-all duration-500 hover:-translate-y-2 hover:shadow-lifted opacity-0 animate-fade-up"
                 style={{ animationDelay: `${i * 110}ms` }}
               >
@@ -98,7 +97,7 @@ const DiabetesTypes = ({ showHeader = true }) => {
                     style={{ background: `${it.color}1f`, color: it.color }}
                   >
                     <span className="h-1.5 w-1.5 rounded-full" style={{ background: it.color }} />
-                    {it.chip}
+                    {chip}
                   </span>
                 </div>
 
@@ -109,9 +108,9 @@ const DiabetesTypes = ({ showHeader = true }) => {
                   <it.Icon size={22} strokeWidth={1.5} />
                 </div>
 
-                <h3 className="mt-5 font-display text-[1.7rem] font-medium text-ink">{it.name}</h3>
-                <p className="mb-2.5 text-[0.85rem] font-medium text-sage-deep">{it.tag}</p>
-                <p className="text-[0.88rem] leading-[1.6] text-ink-soft">{it.desc}</p>
+                <h3 className="mt-5 font-display text-[1.7rem] font-medium text-ink">{name}</h3>
+                <p className="mb-2.5 text-[0.85rem] font-medium text-sage-deep">{tag}</p>
+                <p className="text-[0.88rem] leading-[1.6] text-ink-soft">{desc}</p>
 
                 <div className="mt-auto flex items-center justify-between gap-3 border-t border-dashed border-line pt-4">
                   <div className="flex items-center gap-2.5 text-[0.74rem] text-ink-soft">
@@ -131,8 +130,10 @@ const DiabetesTypes = ({ showHeader = true }) => {
                       />
                     </svg>
                     <span>
-                      <b className="block font-display text-[0.95rem] font-medium text-ink">{it.stat}</b>
-                      <span className="text-[0.65rem] uppercase tracking-[0.14em]">Prevalence</span>
+                      <b className="block font-display text-[0.95rem] font-medium text-ink">
+                        {STAT_LABEL_KEYS[it.stat] ? tr(STAT_LABEL_KEYS[it.stat], it.stat) : it.stat}
+                      </b>
+                      <span className="text-[0.65rem] uppercase tracking-[0.14em]">{tr('landing.learn.diabetesTypes.prevalenceLabel')}</span>
                     </span>
                   </div>
 
@@ -143,7 +144,7 @@ const DiabetesTypes = ({ showHeader = true }) => {
                     className="inline-flex items-center gap-1.5 text-[0.8rem] font-semibold"
                     style={{ color: it.color }}
                   >
-                    Learn
+                    {tr('landing.learn.diabetesTypes.learnLink')}
                     <ArrowUpRight size={16} className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </a>
                 </div>

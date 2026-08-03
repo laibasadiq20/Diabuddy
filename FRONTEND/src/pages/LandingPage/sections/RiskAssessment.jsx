@@ -2,75 +2,69 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../../../components/Navbar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
+import { useI18n } from "../../../i18n/I18nContext";
 
 const questions = [
   {
     id: 'age',
-    question: 'How old are you?',
     options: [
-      { label: 'Less than 40 years', points: 0 },
-      { label: '40–49 years', points: 1 },
-      { label: '50–59 years', points: 2 },
-      { label: '60 years or older', points: 3 },
+      { value: 'under40', points: 0 },
+      { value: 'from40to49', points: 1 },
+      { value: 'from50to59', points: 2 },
+      { value: 'over60', points: 3 },
     ],
   },
   {
     id: 'sex',
-    question: 'Are you a man or a woman?',
     options: [
-      { label: 'Man', points: 1 },
-      { label: 'Woman', points: 0 },
+      { value: 'man', points: 1 },
+      { value: 'woman', points: 0 },
     ],
   },
   {
     id: 'gestational',
-    question: 'Have you ever been diagnosed with gestational diabetes, or given birth to a baby weighing 9 pounds or more?',
-    onlyIfSex: 'Woman',
+    onlyIfSex: 'woman',
     options: [
-      { label: 'Yes', points: 1 },
-      { label: 'No', points: 0 },
+      { value: 'yes', points: 1 },
+      { value: 'no', points: 0 },
     ],
   },
   {
     id: 'family',
-    question: 'Do you have a mother, father, sister, or brother with diabetes?',
     options: [
-      { label: 'Yes', points: 1 },
-      { label: 'No', points: 0 },
+      { value: 'yes', points: 1 },
+      { value: 'no', points: 0 },
     ],
   },
   {
     id: 'bp',
-    question: 'Have you ever been diagnosed with high blood pressure?',
     options: [
-      { label: 'Yes', points: 1 },
-      { label: 'No', points: 0 },
+      { value: 'yes', points: 1 },
+      { value: 'no', points: 0 },
     ],
   },
   {
     id: 'activity',
-    question: 'Are you physically active?',
     options: [
-      { label: 'Yes', points: 0 },
-      { label: 'No', points: 1 },
+      { value: 'yes', points: 0 },
+      { value: 'no', points: 1 },
     ],
   },
   {
     id: 'weight',
-    question: 'What best describes your weight status?',
     options: [
-      { label: 'Normal or underweight (BMI under 25)', points: 0 },
-      { label: 'Overweight (BMI 25–29.9)', points: 1 },
-      { label: 'Obese (BMI 30–39.9)', points: 2 },
-      { label: 'Severely obese (BMI 40 or higher)', points: 3 },
+      { value: 'normal', points: 0 },
+      { value: 'overweight', points: 1 },
+      { value: 'obese', points: 2 },
+      { value: 'severelyObese', points: 3 },
     ],
   },
 ];
 
-function buildQuizFlow(sexLabel) {
+function buildQuizFlow(sexValue) {
   return questions.filter((q) => {
     if (!q.onlyIfSex) return true;
-    return sexLabel === q.onlyIfSex;
+    return sexValue === q.onlyIfSex;
   });
 }
 
@@ -104,123 +98,31 @@ const HeartIcon = () => (
   </svg>
 );
 
-/* ── advice cards per risk level ── */
-const RESULT_DATA = {
+/* ── presentational config per risk level (copy comes from i18n) ── */
+const RESULT_META = {
   low: {
-    title: "Lower Risk — Keep Going",
-    subtitle: "Based on the ADA-style risk factors, your score is under the high-risk threshold. Stay active, eat well, and recheck if anything changes.",
     color: "#2D6A4F",
     bgColor: "#D8F3DC",
     Icon: ShieldIcon,
-    advice: [
-      {
-        emoji: "🥦",
-        title: "Keep eating well",
-        body: "A diet rich in vegetables, whole grains, lean proteins, and healthy fats is your best long-term defense. Limit processed sugar and refined carbs.",
-      },
-      {
-        emoji: "🏃",
-        title: "Stay active",
-        body: "Aim for at least 150 minutes of moderate exercise per week — brisk walks, cycling, swimming. Physical activity keeps insulin sensitivity high.",
-      },
-      {
-        emoji: "🩺",
-        title: "Annual checkups",
-        body: "Even at low risk, get a fasting blood glucose test every 1–3 years, especially after age 35. Early detection is everything.",
-      },
-      {
-        emoji: "💤",
-        title: "Prioritize sleep & stress",
-        body: "Poor sleep and chronic stress raise cortisol, which can spike blood glucose. Aim for 7–9 hours nightly and find healthy stress outlets.",
-      },
-    ],
+    adviceKeys: ['diet', 'activity', 'checkups', 'sleep'],
   },
   moderate: {
-    title: "Borderline — Stay Alert",
-    subtitle: "You're approaching the ADA high-risk cutoff (5+). Small lifestyle changes now can make a real difference. Consider talking with a clinician.",
     color: "#B45309",
     bgColor: "#FEF3C7",
     Icon: WarningIcon,
-    advice: [
-      {
-        emoji: "🧑‍⚕️",
-        title: "Get a fasting glucose test",
-        body: "Ask your doctor for a fasting plasma glucose or HbA1c test. This gives you a real baseline and detects prediabetes before it progresses.",
-      },
-      {
-        emoji: "🥗",
-        title: "Cut refined carbs & sugar",
-        body: "Swap white bread, rice, and sugary drinks for whole-grain alternatives. Focus on low-glycemic foods that don't spike blood sugar.",
-      },
-      {
-        emoji: "🏋️",
-        title: "Add 30 min of exercise daily",
-        body: "Regular moderate exercise — even brisk walking — can meaningfully lower type 2 diabetes risk in people with prediabetes. Structured lifestyle programs have cut new diabetes cases by about half in major studies (CDC Diabetes Prevention Program).",
-      },
-      {
-        emoji: "⚖️",
-        title: "Target 5–7% weight loss",
-        body: "If you're overweight, losing even a small percentage of body weight dramatically reduces your diabetes risk. Small changes, big impact.",
-      },
-    ],
+    adviceKeys: ['test', 'diet', 'exercise', 'weight'],
   },
   high: {
-    title: "Higher Risk — Get Tested",
-    subtitle: "A score of 5 or higher on the ADA Diabetes Risk Test means you should ask your doctor about blood glucose or HbA1c testing. This is not a diagnosis.",
     color: "#B91C1C",
     bgColor: "#FEE2E2",
     Icon: AlertIcon,
-    advice: [
-      {
-        emoji: "📋",
-        title: "Schedule a doctor's appointment",
-        body: "Ask for an HbA1c test (shows 3-month blood sugar average) and a fasting glucose test. Both together give the clearest picture of your risk.",
-      },
-      {
-        emoji: "🚫",
-        title: "Stop smoking & limit alcohol",
-        body: "Both significantly increase diabetes risk and complications. Quitting smoking improves insulin sensitivity within weeks.",
-      },
-      {
-        emoji: "🍽️",
-        title: "Follow a diabetes-prevention diet",
-        body: "The DASH diet and Mediterranean diet are clinically proven to reduce diabetes risk. Focus on fiber, healthy fats, lean protein — not restriction.",
-      },
-      {
-        emoji: "💊",
-        title: "Ask about Metformin or a program",
-        body: "If you have prediabetes, your doctor may recommend metformin or a structured Diabetes Prevention Program (DPP) — both proven to help.",
-      },
-    ],
+    adviceKeys: ['appointment', 'smoking', 'diet', 'medication'],
   },
   diagnosed: {
-    title: "Living Well With Diabetes",
-    subtitle: "A diabetes diagnosis isn't the end — millions of people manage it successfully every day. Here's how to take control.",
     color: "#1D4ED8",
     bgColor: "#DBEAFE",
     Icon: HeartIcon,
-    advice: [
-      {
-        emoji: "📊",
-        title: "Monitor your blood glucose regularly",
-        body: "Know your target range (usually 80–130 mg/dL fasting, <180 mg/dL post-meal). Use a CGM or glucometer consistently. Patterns reveal everything.",
-      },
-      {
-        emoji: "💉",
-        title: "Follow your medication plan",
-        body: "Never skip doses. If you're on insulin, learn carb-counting to dose correctly. Work with your endocrinologist to find the right routine.",
-      },
-      {
-        emoji: "🥑",
-        title: "Eat to control blood sugar",
-        body: "Choose low-GI foods, eat at consistent times, control portions. Avoid sugary drinks entirely. Fiber slows sugar absorption — eat more of it.",
-      },
-      {
-        emoji: "👥",
-        title: "Join a support community",
-        body: "People who engage with diabetes communities have better outcomes. DiaBuddy connects you with patients who truly understand what you're going through.",
-      },
-    ],
+    adviceKeys: ['monitor', 'medication', 'diet', 'community'],
   },
 };
 
@@ -252,9 +154,12 @@ const AdviceCard = ({ title, body, accentColor }) => (
   </div>
 );
 
-const ResultPanel = ({ resultKey, score, onRetake, navigate, isLoggedIn }) => {
-  const data = RESULT_DATA[resultKey];
-  const { title, subtitle, color, bgColor, Icon, advice } = data;
+const ResultPanel = ({ resultKey, score, onRetake, navigate, isLoggedIn, tr }) => {
+  const meta = RESULT_META[resultKey];
+  const { color, bgColor, Icon, adviceKeys } = meta;
+  const base = `landing.learn.riskAssessment.results.${resultKey}`;
+  const title = tr(`${base}.title`);
+  const subtitle = tr(`${base}.subtitle`);
 
   return (
     <div style={{ animation: "fadeUp 0.5s ease both" }}>
@@ -276,7 +181,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate, isLoggedIn }) => {
         <div aria-hidden style={{ position: "absolute", left: -20, bottom: -40, width: 130, height: 130, borderRadius: "50%", background: "rgba(168,184,154,0.18)" }} />
         <div style={{ position: "relative", color: "#BDCAA1", marginBottom: "16px" }}><Icon /></div>
         <div style={{ position: "relative", display: "inline-block", background: "rgba(247,243,236,0.12)", color: "#E8CF7A", border: "1px solid rgba(232,207,122,0.35)", borderRadius: "20px", padding: "4px 16px", fontSize: "12px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "16px" }}>
-          Score {score}
+          {tr('landing.learn.riskAssessment.scorePillTemplate').replace('{n}', score)}
         </div>
         <h2 style={{ position: "relative", fontFamily: "'Playfair Display', serif", fontSize: "clamp(24px, 4vw, 36px)", fontWeight: "700", color: "#F7F3EC", margin: "0 0 12px 0", lineHeight: "1.2" }}>{title}</h2>
         <p style={{ position: "relative", fontFamily: "'DM Sans', sans-serif", fontSize: "16px", color: "rgba(247,243,236,0.72)", maxWidth: "540px", margin: "0 auto", lineHeight: "1.7" }}>{subtitle}</p>
@@ -284,14 +189,17 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate, isLoggedIn }) => {
 
       {/* Advice heading */}
       <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: "22px", fontWeight: "600", color: "#1F2937", margin: "0 0 20px 0" }}>
-        What you should do
+        {tr('landing.learn.riskAssessment.whatYouShouldDo')}
       </h3>
 
       {/* Advice cards grid */}
       <div className="ra-advice-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "32px" }}>
-        {advice.map(a => (
-          <AdviceCard key={a.title} {...a} accentColor={color} />
-        ))}
+        {adviceKeys.map((key) => {
+          const advice = tr(`${base}.advice.${key}`);
+          return (
+            <AdviceCard key={key} title={`${advice.emoji} ${advice.title}`} body={advice.body} accentColor={color} />
+          );
+        })}
       </div>
 
       {/* CTA row */}
@@ -309,7 +217,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate, isLoggedIn }) => {
           onMouseEnter={e => { e.currentTarget.style.background = "#C56A3E"; e.currentTarget.style.transform = "translateY(-2px)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "#022D20"; e.currentTarget.style.transform = "translateY(0)"; }}
         >
-          {isLoggedIn ? "Open Community" : "Join DiaBuddy Community"}
+          {isLoggedIn ? tr('landing.learn.riskAssessment.openCommunity') : tr('landing.learn.riskAssessment.joinCommunity')}
         </button>
         <button
           onClick={onRetake}
@@ -323,7 +231,7 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate, isLoggedIn }) => {
           onMouseEnter={e => { e.currentTarget.style.borderColor = "#9CA3AF"; e.currentTarget.style.color = "#374151"; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = "#D1D5DB"; e.currentTarget.style.color = "#6B7280"; }}
         >
-          Take Again
+          {tr('landing.learn.riskAssessment.takeAgain')}
         </button>
       </div>
     </div>
@@ -334,8 +242,9 @@ const ResultPanel = ({ resultKey, score, onRetake, navigate, isLoggedIn }) => {
 const RiskAssessment = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t: tr } = useI18n();
   const [currentQuestion, setCurrentQuestion] = useState(-1); // -1 = intro screen
-  const [answers, setAnswers] = useState([]); // { id, label, points }
+  const [answers, setAnswers] = useState([]); // { id, value, points }
   const [showAlreadyDiagnosed, setShowAlreadyDiagnosed] = useState(false);
   const [quizFlow, setQuizFlow] = useState(() => buildQuizFlow(null));
 
@@ -368,11 +277,11 @@ const RiskAssessment = () => {
 
   const handleSelect = (option) => {
     const q = quizFlow[currentQuestion];
-    const nextAnswers = [...answers, { id: q.id, label: option.label, points: option.points }];
+    const nextAnswers = [...answers, { id: q.id, value: option.value, points: option.points }];
 
     let nextFlow = quizFlow;
     if (q.id === 'sex') {
-      nextFlow = buildQuizFlow(option.label);
+      nextFlow = buildQuizFlow(option.value);
       setQuizFlow(nextFlow);
     }
 
@@ -408,6 +317,12 @@ const RiskAssessment = () => {
 
   const quizComplete = currentQuestion >= quizFlow.length && currentQuestion >= 0 && answers.length > 0;
 
+  const riskLabel = score >= 5
+    ? tr('landing.learn.riskAssessment.riskHigher')
+    : score >= 3
+      ? tr('landing.learn.riskAssessment.riskBorderline')
+      : tr('landing.learn.riskAssessment.riskLower');
+
   return (
     <>
       <Navbar />
@@ -418,13 +333,13 @@ const RiskAssessment = () => {
           {/* Page header */}
           <div className="ra-header" style={{ textAlign: "center", marginBottom: "48px" }}>
             <span className="ra-pill" style={{ display: "inline-block", background: "#022D20", color: "#64E3C0", borderRadius: "20px", padding: "6px 18px", fontSize: "12px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "16px", fontFamily: "'DM Sans', sans-serif" }}>
-              Free · 60 seconds · No sign-up needed
+              {tr('landing.learn.riskAssessment.pageTag')}
             </span>
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px, 6vw, 52px)", fontWeight: "700", color: "#022D20", margin: "0 0 16px 0", lineHeight: "1.15" }}>
-              Know Your Diabetes Risk
+              {tr('landing.learn.riskAssessment.title')}
             </h1>
             <p className="ra-header-lead" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", color: "#374151", maxWidth: "560px", margin: "0 auto", lineHeight: "1.7" }}>
-              Inspired by the ADA Type 2 Diabetes Risk Test. Answer a few questions — a score of 5+ means talk to your doctor about screening.
+              {tr('landing.learn.riskAssessment.lead')}
             </p>
           </div>
 
@@ -438,15 +353,15 @@ const RiskAssessment = () => {
                 borderRadius: "24px", padding: "32px", marginBottom: "32px",
                 boxShadow: "0 12px 40px rgba(2,45,32,0.3)",
               }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", textTransform: "uppercase", letterSpacing: "3px", color: "#67E7C5", fontSize: "11px", margin: "0 0 12px 0", fontWeight: "600" }}>Global Diabetes Stats</p>
-                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(20px, 4vw, 24px)", fontWeight: "700", color: "#fff", margin: "0 0 8px 0", lineHeight: "1.3" }}>Knowledge is your superpower</h2>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#86EFAC", margin: "0 0 24px 0", lineHeight: "1.6" }}>Understanding your risk is the most powerful thing you can do for your future health.</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", textTransform: "uppercase", letterSpacing: "3px", color: "#67E7C5", fontSize: "11px", margin: "0 0 12px 0", fontWeight: "600" }}>{tr('landing.learn.riskAssessment.statsKicker')}</p>
+                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(20px, 4vw, 24px)", fontWeight: "700", color: "#fff", margin: "0 0 8px 0", lineHeight: "1.3" }}>{tr('landing.learn.riskAssessment.statsHeading')}</h2>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#86EFAC", margin: "0 0 24px 0", lineHeight: "1.6" }}>{tr('landing.learn.riskAssessment.statsLead')}</p>
 
                 <div className="ra-stats-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                   {[
-                    { val: `${stats.diabetes}M`, label: "Adults living with diabetes" },
-                    { val: `${stats.undiagnosed}%`, label: "Cases undiagnosed today" },
-                    { val: `${stats.prevented}%`, label: "T2D cases preventable" },
+                    { val: `${stats.diabetes}M`, label: tr('landing.learn.riskAssessment.statAdults') },
+                    { val: `${stats.undiagnosed}%`, label: tr('landing.learn.riskAssessment.statUndiagnosed') },
+                    { val: `${stats.prevented}%`, label: tr('landing.learn.riskAssessment.statPreventable') },
                   ].map(s => (
                     <div key={s.label} className="ra-stat-cell" style={{
                       background: "rgba(255,255,255,0.06)",
@@ -469,6 +384,7 @@ const RiskAssessment = () => {
                   onRetake={resetAssessment}
                   navigate={navigate}
                   isLoggedIn={!!user}
+                  tr={tr}
                 />
               )}
 
@@ -480,6 +396,7 @@ const RiskAssessment = () => {
                   onRetake={resetAssessment}
                   navigate={navigate}
                   isLoggedIn={!!user}
+                  tr={tr}
                 />
               )}
             </div>
@@ -500,8 +417,8 @@ const RiskAssessment = () => {
                 {/* Intro screen */}
                 {currentQuestion === -1 && !showAlreadyDiagnosed && (
                   <div style={{ textAlign: "center" }}>
-                    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "26px", fontWeight: "700", color: "#022D20", margin: "0 0 12px 0" }}>Ready to check your risk?</h2>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 28px 0", lineHeight: "1.7" }}>Based on the ADA Diabetes Risk Test — age, sex, family history, blood pressure, activity, and weight. Anonymous and free.</p>
+                    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "26px", fontWeight: "700", color: "#022D20", margin: "0 0 12px 0" }}>{tr('landing.learn.riskAssessment.introHeading')}</h2>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 28px 0", lineHeight: "1.7" }}>{tr('landing.learn.riskAssessment.introLead')}</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                       <button
                         onClick={() => setCurrentQuestion(0)}
@@ -514,7 +431,7 @@ const RiskAssessment = () => {
                         onMouseEnter={e => e.currentTarget.style.background = "#C56A3E"}
                         onMouseLeave={e => e.currentTarget.style.background = "#022D20"}
                       >
-                        Start the Assessment
+                        {tr('landing.learn.riskAssessment.startButton')}
                       </button>
                       <button
                         onClick={() => setShowAlreadyDiagnosed(true)}
@@ -527,7 +444,7 @@ const RiskAssessment = () => {
                         onMouseEnter={e => { e.currentTarget.style.borderColor = "#022D20"; e.currentTarget.style.color = "#022D20"; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#4B5563"; }}
                       >
-                        I already have diabetes
+                        {tr('landing.learn.riskAssessment.alreadyDiagnosedButton')}
                       </button>
                     </div>
                   </div>
@@ -539,7 +456,7 @@ const RiskAssessment = () => {
                     {/* Progress */}
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
                       <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#9CA3AF", whiteSpace: "nowrap" }}>
-                        {currentQuestion + 1} of {quizFlow.length}
+                        {tr('landing.learn.riskAssessment.progressTemplate').replace('{current}', currentQuestion + 1).replace('{total}', quizFlow.length)}
                       </span>
                       <div style={{ flexGrow: 1, height: "6px", background: "#F3F4F6", borderRadius: "10px", overflow: "hidden" }}>
                         <div style={{
@@ -551,13 +468,13 @@ const RiskAssessment = () => {
                     </div>
 
                     <h2 className="ra-question" style={{ fontFamily: "'Playfair Display', serif", fontSize: "22px", fontWeight: "600", color: "#1F2937", margin: "0 0 24px 0", minHeight: "80px", lineHeight: "1.4" }}>
-                      {quizFlow[currentQuestion].question}
+                      {tr(`landing.learn.riskAssessment.questions.${quizFlow[currentQuestion].id}.question`)}
                     </h2>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                       {quizFlow[currentQuestion].options.map(option => (
                         <button
-                          key={option.label}
+                          key={option.value}
                           onClick={() => handleSelect(option)}
                           style={{
                             width: "100%", padding: "14px 20px",
@@ -571,7 +488,7 @@ const RiskAssessment = () => {
                           onMouseEnter={e => { e.currentTarget.style.background = "#ECFDF5"; e.currentTarget.style.borderColor = "#6EE7B7"; e.currentTarget.style.color = "#022D20"; }}
                           onMouseLeave={e => { e.currentTarget.style.background = "#F9FAFB"; e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#374151"; }}
                         >
-                          {option.label}
+                          {tr(`landing.learn.riskAssessment.questions.${quizFlow[currentQuestion].id}.options.${option.value}`)}
                         </button>
                       ))}
                     </div>
@@ -629,7 +546,7 @@ const RiskAssessment = () => {
                         margin: "0 0 12px",
                       }}
                     >
-                      Score
+                      {tr('landing.learn.riskAssessment.scoreLabel')}
                     </p>
                     <p
                       style={{
@@ -654,7 +571,7 @@ const RiskAssessment = () => {
                         margin: "0 0 28px",
                       }}
                     >
-                      {score >= 5 ? "Higher risk" : score >= 3 ? "Borderline" : "Lower risk"}
+                      {riskLabel}
                     </p>
                     <button
                       onClick={resetAssessment}
@@ -671,7 +588,7 @@ const RiskAssessment = () => {
                         fontFamily: "'DM Sans', sans-serif",
                       }}
                     >
-                      Take again
+                      {tr('landing.learn.riskAssessment.takeAgain')}
                     </button>
                   </div>
                 )}
@@ -679,11 +596,11 @@ const RiskAssessment = () => {
                 {/* Already diagnosed path in card */}
                 {showAlreadyDiagnosed && !quizComplete && (
                   <div style={{ textAlign: "center" }}>
-                    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "24px", fontWeight: "700", color: "#1D4ED8", margin: "0 0 8px 0" }}>Living with diabetes</h2>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 20px 0", lineHeight: "1.7" }}>You're not alone. Millions manage it well every day — here are the most important things to focus on.</p>
+                    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "24px", fontWeight: "700", color: "#1D4ED8", margin: "0 0 8px 0" }}>{tr('landing.learn.riskAssessment.livingWithDiabetesTitle')}</h2>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 20px 0", lineHeight: "1.7" }}>{tr('landing.learn.riskAssessment.livingWithDiabetesLead')}</p>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#9CA3AF" }}>
-                      <span className="ra-hint-desktop">See your personalized guide on the left</span>
-                      <span className="ra-hint-mobile">See your personalized guide below</span>
+                      <span className="ra-hint-desktop">{tr('landing.learn.riskAssessment.seeGuideDesktop')}</span>
+                      <span className="ra-hint-mobile">{tr('landing.learn.riskAssessment.seeGuideMobile')}</span>
                     </p>
                     <button
                       onClick={resetAssessment}
@@ -693,7 +610,7 @@ const RiskAssessment = () => {
                         fontSize: "14px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
                       }}
                     >
-                      Go back
+                      {tr('landing.learn.riskAssessment.goBack')}
                     </button>
                   </div>
                 )}

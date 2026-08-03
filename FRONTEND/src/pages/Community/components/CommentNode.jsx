@@ -12,6 +12,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { theme } from '../../../theme';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const t = theme;
 
@@ -40,6 +41,7 @@ export default function CommentNode({
   onSubmitReply,
   onCancelReply,
 }) {
+  const { t: tr } = useI18n();
   const isCommentAuthor = user && node.authorId?._id === user.id;
   const isPostAuthor = user && post && post.authorId?._id === user.id;
   const isAdmin = user && user.role === 'admin';
@@ -75,7 +77,7 @@ export default function CommentNode({
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
           }}>
-            Hidden from community
+            {tr('commentNode.hiddenFromCommunity')}
           </div>
         )}
         {isBest && (
@@ -91,7 +93,7 @@ export default function CommentNode({
             fontWeight: '700',
             textTransform: 'uppercase'
           }}>
-            <Award size={14} /> Best Answer
+            <Award size={14} /> {tr('commentNode.bestAnswer')}
           </div>
         )}
 
@@ -133,7 +135,7 @@ export default function CommentNode({
             </div>
 
             <span style={{ fontSize: '13px', fontWeight: '600', color: t.ink }}>
-              {node.authorId?.name || 'Deleted Account'}
+              {node.authorId?.name || tr('commentNode.deletedAccount')}
             </span>
           </button>
 
@@ -174,7 +176,7 @@ export default function CommentNode({
                   cursor: 'pointer',
                 }}
               >
-                Save
+                {tr('commentNode.save')}
               </button>
               <button
                 type="button"
@@ -188,7 +190,7 @@ export default function CommentNode({
                   cursor: 'pointer',
                 }}
               >
-                Cancel
+                {tr('common.cancel')}
               </button>
             </div>
           </div>
@@ -196,7 +198,7 @@ export default function CommentNode({
           <p style={{ fontSize: '14px', color: t.ink, margin: '0 0 14px 0', lineHeight: '1.5' }}>
             {node.content}
             {node.isEdited && (
-              <span style={{ marginLeft: 6, fontSize: 11, color: t.inkFaint }}>(edited)</span>
+              <span style={{ marginLeft: 6, fontSize: 11, color: t.inkFaint }}>{tr('commentNode.edited')}</span>
             )}
           </p>
         )}
@@ -217,7 +219,7 @@ export default function CommentNode({
               padding: 0
             }}
           >
-            <Heart size={13} color={t.inkFaint} /> {node.likesCount || 0} Like
+            <Heart size={13} color={t.inkFaint} /> {node.likesCount || 0} {tr('commentNode.like')}
           </button>
 
           {depth < 3 && !post?.isLocked && (
@@ -236,7 +238,7 @@ export default function CommentNode({
                 padding: 0
               }}
             >
-              <CornerDownRight size={13} /> Reply
+              <CornerDownRight size={13} /> {tr('commentNode.reply')}
             </button>
           )}
 
@@ -256,7 +258,7 @@ export default function CommentNode({
                 padding: 0
               }}
             >
-              <Check size={13} /> Set Best Answer
+              <Check size={13} /> {tr('commentNode.setBestAnswer')}
             </button>
           )}
 
@@ -276,7 +278,7 @@ export default function CommentNode({
                 padding: 0
               }}
             >
-              <Flag size={12} /> Report
+              <Flag size={12} /> {tr('commentNode.report')}
             </button>
           )}
 
@@ -297,7 +299,7 @@ export default function CommentNode({
               }}
             >
               {isHidden ? <Eye size={12} /> : <EyeOff size={12} />}
-              {isHidden ? 'Restore' : 'Hide'}
+              {isHidden ? tr('commentNode.restore') : tr('commentNode.hide')}
             </button>
           )}
 
@@ -317,7 +319,7 @@ export default function CommentNode({
                 padding: 0
               }}
             >
-              <Pencil size={12} /> Edit
+              <Pencil size={12} /> {tr('commentNode.edit')}
             </button>
           )}
 
@@ -338,7 +340,7 @@ export default function CommentNode({
                 marginLeft: 'auto'
               }}
             >
-              <Trash2 size={13} /> Delete
+              <Trash2 size={13} /> {tr('commentNode.delete')}
             </button>
           )}
         </div>
@@ -358,7 +360,7 @@ export default function CommentNode({
               type="text"
               value={replyContent}
               onChange={(e) => onReplyContentChange(e.target.value)}
-              placeholder={`Replying to ${node.authorId?.name}...`}
+              placeholder={tr('commentNode.replyingToTemplate').replace('{name}', node.authorId?.name || '')}
               required
               style={{
                 flexGrow: 1,
@@ -388,7 +390,7 @@ export default function CommentNode({
                 gap: '4px'
               }}
             >
-              <Send size={12} /> Send
+              <Send size={12} /> {tr('commentNode.send')}
             </button>
             <button
               type="button"
@@ -403,7 +405,7 @@ export default function CommentNode({
                 cursor: 'pointer'
               }}
             >
-              Cancel
+              {tr('common.cancel')}
             </button>
           </form>
         )}
