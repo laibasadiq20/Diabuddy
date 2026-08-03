@@ -8,6 +8,7 @@ import AppSidebar from '../../components/AppSidebar';
 import { ChevronRight, ClipboardList, Check, Flame, AlertTriangle } from 'lucide-react';
 import { LOG_TYPES } from './logsConfig';
 import { mlToUsFlOz, round0 } from '../../utils/waterUnits';
+import { fromMgdl, glucoseUnitLabel, resolveGlucoseUnit } from '../../utils/glucoseUnits';
 
 const t = theme;
 
@@ -21,16 +22,21 @@ const MOOD_VALUE_KEYS = {
   Anxious: 'anxious',
 };
 
-function typeStatus(summary, typeId, tr) {
+function typeStatus(summary, typeId, tr, glucoseUnit) {
   if (!summary) return { done: false, detail: '' };
   switch (typeId) {
-    case 'glucose':
+    case 'glucose': {
+      const display =
+        summary.glucose?.valueMgDl != null
+          ? `${fromMgdl(summary.glucose.valueMgDl, glucoseUnit)} ${glucoseUnitLabel(glucoseUnit)}`
+          : summary.glucose?.value;
       return {
         done: (summary.glucose?.count || 0) > 0,
-        detail: summary.glucose?.value
-          ? tr('logs.typeStatus.glucoseTemplate').replace('{value}', summary.glucose.value).replace('{count}', summary.glucose.count)
+        detail: display
+          ? tr('logs.typeStatus.glucoseTemplate').replace('{value}', display).replace('{count}', summary.glucose.count)
           : '',
       };
+    }
     case 'meal':
       return {
         done: (summary.meals?.value || 0) > 0,
@@ -88,6 +94,7 @@ export default function Logs() {
   const navigate = useNavigate();
   const { user, authHeaders } = useAuth();
   const { t: tr } = useI18n();
+  const glucoseUnit = resolveGlucoseUnit(user);
   const [summary, setSummary] = useState(null);
   const [streak, setStreak] = useState(null);
 
@@ -132,7 +139,7 @@ export default function Logs() {
 
   const renderCard = (item, featured = false) => {
     const Icon = item.icon;
-    const status = typeStatus(summary, item.id, tr);
+    const status = typeStatus(summary, item.id, tr, glucoseUnit);
     const label = tr(`logs.types.${item.id}.label`, item.label);
     const hubLine = tr(`logs.types.${item.id}.hubLine`, item.hubLine);
     return (

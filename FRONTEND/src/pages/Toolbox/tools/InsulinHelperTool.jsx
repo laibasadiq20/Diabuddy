@@ -1,20 +1,36 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { theme as t } from '../../../theme';
 import { fieldStyle, labelStyle, resultPanel, eyebrow, disclaimerStyle } from '../toolboxStyles';
 import { useI18n } from '../../../i18n/I18nContext';
+import { useUnits } from '../../../hooks/useUnits';
+import { fromMgdl, glucoseInputBounds } from '../../../utils/glucoseUnits';
 
 export default function InsulinHelperTool() {
   const { t: tr } = useI18n();
-  const [current, setCurrent] = useState('220');
-  const [target, setTarget] = useState('120');
-  const [isf, setIsf] = useState('50');
+  const { glucoseUnit, glucoseUnitLabel } = useUnits();
+  const bounds = glucoseInputBounds(glucoseUnit);
+  const defaults = glucoseUnit === 'mmol/L'
+    ? { current: '12.2', target: '6.7', isf: '2.8' }
+    : { current: '220', target: '120', isf: '50' };
+
+  const [current, setCurrent] = useState(defaults.current);
+  const [target, setTarget] = useState(defaults.target);
+  const [isf, setIsf] = useState(defaults.isf);
   const [showMath, setShowMath] = useState(false);
+
+  useEffect(() => {
+    setCurrent(defaults.current);
+    setTarget(defaults.target);
+    setIsf(defaults.isf);
+    setShowMath(false);
+  }, [glucoseUnit, defaults.current, defaults.target, defaults.isf]);
 
   const result = useMemo(() => {
     const c = parseFloat(current);
     const tgt = parseFloat(target);
     const factor = parseFloat(isf);
     if (!c || !tgt || !factor || factor <= 0) return null;
+    // Arithmetic is unit-agnostic when current, target, and ISF share the same unit.
     const raw = (c - tgt) / factor;
     if (raw <= 0) {
       return { kind: 'none', note: tr('toolboxTools.insulin.atOrBelowTarget') };
@@ -25,6 +41,8 @@ export default function InsulinHelperTool() {
       raw: +raw.toFixed(2),
     };
   }, [current, target, isf, tr]);
+
+  const isfExample = fromMgdl(50, glucoseUnit);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -38,21 +56,43 @@ export default function InsulinHelperTool() {
 
       <div className="db-tool-grid-3">
         <div>
-          <label style={labelStyle}>{tr('toolboxTools.insulin.current')}</label>
-          <input type="number" min="40" max="600" value={current} onChange={(e) => setCurrent(e.target.value)} style={fieldStyle} />
+          <label style={labelStyle}>
+            {tr('toolboxTools.insulin.current').replace('{unit}', glucoseUnitLabel)}
+          </label>
+          <input
+            type="number"
+            min={bounds.min}
+            max={bounds.max}
+            step={bounds.step}
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+            style={fieldStyle}
+          />
         </div>
         <div>
-          <label style={labelStyle}>{tr('toolboxTools.insulin.target')}</label>
-          <input type="number" min="70" max="180" value={target} onChange={(e) => setTarget(e.target.value)} style={fieldStyle} />
+          <label style={labelStyle}>
+            {tr('toolboxTools.insulin.target').replace('{unit}', glucoseUnitLabel)}
+          </label>
+          <input
+            type="number"
+            min={glucoseUnit === 'mmol/L' ? 3.9 : 70}
+            max={glucoseUnit === 'mmol/L' ? 10 : 180}
+            step={bounds.step}
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            style={fieldStyle}
+          />
         </div>
         <div>
           <label style={labelStyle}>{tr('toolboxTools.insulin.isf')}</label>
-          <input type="number" min="1" step="1" value={isf} onChange={(e) => setIsf(e.target.value)} style={fieldStyle} />
+          <input type="number" min="0.1" step={glucoseUnit === 'mmol/L' ? 0.1 : 1} value={isf} onChange={(e) => setIsf(e.target.value)} style={fieldStyle} />
         </div>
       </div>
 
       <p style={{ margin: 0, fontSize: 12, color: t.inkFaint, lineHeight: 1.45 }}>
-        {tr('toolboxTools.insulin.isfHint')}
+        {tr('toolboxTools.insulin.isfHint')
+          .replace('{drop}', String(isfExample))
+          .replace('{unit}', glucoseUnitLabel)}
       </p>
 
       {result && (

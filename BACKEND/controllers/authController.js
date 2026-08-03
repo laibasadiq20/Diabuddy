@@ -706,6 +706,9 @@ const updateProfile = async (req, res) => {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
 
+    if (updates.glucoseUnit && !['mg/dL', 'mmol/L'].includes(updates.glucoseUnit)) {
+      return res.status(400).json({ status: 'error', message: 'glucoseUnit must be mg/dL or mmol/L' });
+    }
     if (updates.weightUnit && !['kg', 'lbs'].includes(updates.weightUnit)) {
       return res.status(400).json({ status: 'error', message: 'weightUnit must be kg or lbs' });
     }

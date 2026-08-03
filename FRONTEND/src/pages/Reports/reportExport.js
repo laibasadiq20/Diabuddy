@@ -1,3 +1,5 @@
+import { fromMgdl, glucoseUnitLabel, resolveGlucoseUnit } from '../../utils/glucoseUnits';
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -26,11 +28,11 @@ function reportKindFromLabel(rawLabel, tr) {
  * SVG glucose trend line — shows shape, not just the average.
  * Prefers individual readings when the set is small; otherwise daily averages.
  */
-function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }, tr) {
+function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }, tr, glucoseUnit = 'mg/dL') {
   const series = (charts?.glucoseSeries || [])
     .filter((p) => p.valueMgDl != null && Number.isFinite(Number(p.valueMgDl)))
     .map((p) => ({
-      value: Number(p.valueMgDl),
+      value: fromMgdl(Number(p.valueMgDl), glucoseUnit),
       label: p.label || '',
       at: p.at,
     }));
@@ -38,7 +40,7 @@ function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }, tr) {
   const daily = (charts?.daily || [])
     .filter((d) => d.avgGlucose != null && Number.isFinite(Number(d.avgGlucose)))
     .map((d) => ({
-      value: Number(d.avgGlucose),
+      value: fromMgdl(Number(d.avgGlucose), glucoseUnit),
       label: d.label || d.date || '',
     }));
 
@@ -94,10 +96,11 @@ function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }, tr) {
   const values = points.map((p) => p.value);
   const dataMin = Math.min(...values);
   const dataMax = Math.max(...values);
-  const bandLow = Number(tirTarget.low) || 70;
-  const bandHigh = Number(tirTarget.high) || 180;
-  let yMin = Math.min(dataMin, bandLow) - 15;
-  let yMax = Math.max(dataMax, bandHigh) + 15;
+  const bandLow = fromMgdl(tirTarget.low ?? 70, glucoseUnit);
+  const bandHigh = fromMgdl(tirTarget.high ?? 180, glucoseUnit);
+  const padY = glucoseUnit === 'mmol/L' ? 0.8 : 15;
+  let yMin = Math.min(dataMin, bandLow) - padY;
+  let yMax = Math.max(dataMax, bandHigh) + padY;
   if (yMax - yMin < 40) {
     yMin -= 20;
     yMax += 20;
@@ -156,7 +159,12 @@ function glucoseTrendSvg(charts, tirTarget = { low: 70, high: 180 }, tr) {
     <div class="trend">
       <div class="trend-meta">
         <span>${escapeHtml(modeLabel)}</span>
-        <span>${escapeHtml(tr('reports.pdfExport.trend.shadedBandTemplate').replace('{low}', bandLow).replace('{high}', bandHigh))}</span>
+        <span>${escapeHtml(
+          tr('reports.pdfExport.trend.shadedBandTemplate')
+            .replace('{low}', bandLow)
+            .replace('{high}', bandHigh)
+            .replace('{unit}', glucoseUnitLabel(glucoseUnit))
+        )}</span>
       </div>
       <svg viewBox="0 0 ${W} ${H}" width="100%" height="200" role="img" aria-label="${escapeHtml(tr('reports.pdfExport.trend.ariaLabel'))}">
         <rect x="${padL}" y="${bandTop.toFixed(1)}" width="${innerW}" height="${bandHeight.toFixed(1)}" class="band" />
@@ -225,19 +233,29 @@ function formatDeltaLine(delta, { unit = '', invert = false, against, tr }) {
 /**
  * Opens the system print dialog (choose "Save as PDF") via a same-page iframe.
  */
-export function downloadReportPdf(report, { userName, tr } = {}) {
+export function downloadReportPdf(report, { userName, tr, glucoseUnit: glucoseUnitPref } = {}) {
   const period = report?.period;
   const metrics = period?.metrics || {};
   const charts = period?.charts || {};
   const story = report?.story || {};
   const deltas = report?.deltas || {};
   const against = report?.compareAgainst || tr('reports.pdfExport.delta.previousPeriod');
-  const tirTarget = report?.tirTarget || { low: 70, high: 180 };
+  const tirTargetRaw = report?.tirTarget || { low: 70, high: 180 };
+  const glucoseUnit = resolveGlucoseUnit(glucoseUnitPref);
+  const unitLabel = glucoseUnitLabel(glucoseUnit);
+  const tirTarget = {
+    low: fromMgdl(tirTargetRaw.low ?? 70, glucoseUnit),
+    high: fromMgdl(tirTargetRaw.high ?? 180, glucoseUnit),
+  };
+  const avgGlucoseDisplay = fromMgdl(metrics.avgGlucose, glucoseUnit);
+  const stdDevDisplay = fromMgdl(metrics.glucoseStdDev, glucoseUnit);
+  const avgGlucoseDelta = deltas.avgGlucose != null ? fromMgdl(deltas.avgGlucose, glucoseUnit) : deltas.avgGlucose;
+  const stdDevDelta = deltas.glucoseStdDev != null ? fromMgdl(deltas.glucoseStdDev, glucoseUnit) : deltas.glucoseStdDev;
   const reportKind = reportKindFromLabel(period?.label, tr);
 
   const variabilityDisplay =
     story.variabilityLabel ||
-    (metrics.glucoseStdDev != null ? `${metrics.glucoseStdDev} mg/dL` : '—');
+    (stdDevDisplay != null ? `${stdDevDisplay} ${unitLabel}` : '—');
 
   // Keep PDF lean: care letter covers encouragement; skip separate "What went well" + care-area dump.
   const goals = (story.recommendations || []).slice(0, 3);
@@ -669,7 +687,7 @@ export function downloadReportPdf(report, { userName, tr } = {}) {
 
   <div class="meta">
     <strong>${escapeHtml(tr('reports.pdfExport.patientLabel'))}</strong> ${escapeHtml(userName || tr('reports.pdfExport.patientFallback'))}
-    · ${escapeHtml(tr('reports.pdfExport.targetLabel'))} ${escapeHtml(tirTarget.low)}–${escapeHtml(tirTarget.high)} mg/dL
+    · ${escapeHtml(tr('reports.pdfExport.targetLabel'))} ${escapeHtml(tirTarget.low)}–${escapeHtml(tirTarget.high)} ${escapeHtml(unitLabel)}
     · ${escapeHtml(tr('reports.pdfExport.exportedLabel'))} ${escapeHtml(new Date().toLocaleString())}
   </div>
 
@@ -690,11 +708,11 @@ export function downloadReportPdf(report, { userName, tr } = {}) {
     <div class="kpi">
       <label>${escapeHtml(tr('reports.pdfExport.kpis.avgGlucose'))}</label>
       <strong>${
-        metrics.avgGlucose != null
-          ? `${escapeHtml(metrics.avgGlucose)}<span class="unit"> mg/dL</span>`
+        avgGlucoseDisplay != null
+          ? `${escapeHtml(avgGlucoseDisplay)}<span class="unit"> ${escapeHtml(unitLabel)}</span>`
           : '—'
       }</strong>
-      ${formatDeltaLine(deltas.avgGlucose, { unit: ' mg/dL', invert: true, against, tr })}
+      ${formatDeltaLine(avgGlucoseDelta, { unit: ` ${unitLabel}`, invert: true, against, tr })}
     </div>
     <div class="kpi">
       <label>${escapeHtml(tr('reports.pdfExport.kpis.estimatedA1c'))}</label>
@@ -704,14 +722,14 @@ export function downloadReportPdf(report, { userName, tr } = {}) {
     <div class="kpi">
       <label>${escapeHtml(tr('reports.pdfExport.kpis.variability'))}</label>
       <strong>${escapeHtml(variabilityDisplay)}</strong>
-      ${formatDeltaLine(deltas.glucoseStdDev, { unit: ' mg/dL', invert: true, against, tr })}
+      ${formatDeltaLine(stdDevDelta, { unit: ` ${unitLabel}`, invert: true, against, tr })}
     </div>
   </div>
 
   <div class="row-2 visuals">
     <section class="trend-card" style="margin:0;">
       <h2>${escapeHtml(tr('reports.pdfExport.glucoseTrendTitle'))}</h2>
-      ${glucoseTrendSvg(charts, tirTarget, tr)}
+      ${glucoseTrendSvg(charts, tirTargetRaw, tr, glucoseUnit)}
     </section>
     <div class="card tir-card" style="margin:0;">
       <h2>${escapeHtml(tr('reports.pdfExport.timeInRangeTitle'))}</h2>

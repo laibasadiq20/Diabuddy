@@ -8,6 +8,8 @@ import api from '../../config/axios';
 import { getLogType } from './logsConfig';
 import { LogEntryForm } from './components/LogEntryForm';
 import { mlToUsFlOz, round1 } from '../../utils/waterUnits';
+import { formatGlucoseReading, resolveGlucoseUnit } from '../../utils/glucoseUnits';
+import { useAuth } from '../../context/AuthContext';
 
 const t = theme;
 
@@ -62,6 +64,8 @@ export default function LogTypePage() {
   const { typeId } = useParams();
   const navigate = useNavigate();
   const { t: tr } = useI18n();
+  const { user } = useAuth();
+  const glucoseUnit = resolveGlucoseUnit(user);
   const config = getLogType(typeId);
 
   const [entries, setEntries] = useState([]);
@@ -192,7 +196,12 @@ export default function LogTypePage() {
     const isExercise = config.id === 'exercise';
     const isSleep = config.id === 'sleep';
     const isMood = config.id === 'mood';
+    const isGlucose = config.id === 'glucose';
     const raw = item.raw || {};
+    const glucoseTitle =
+      isGlucose && raw.glucoseLevel != null
+        ? formatGlucoseReading(raw.glucoseLevel, raw.unit || 'mg/dL', glucoseUnit)
+        : item.title;
     const moodMeta = MOOD_CARD[raw.mood];
     const moodLabel = moodMeta ? tr(`logEntryForm.mood.moods.${moodMeta.key}`) : raw.mood || tr('logTypePage.entry.moodFallback');
     const MoodIcon = (moodMeta && moodMeta.Icon) || Smile;
@@ -354,6 +363,24 @@ export default function LogTypePage() {
                 )}
               </p>
               {raw.journalEntry ? <p style={{ ...noteLine }}>{raw.journalEntry}</p> : null}
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
+                {formatTodayTime(item.timestamp, tr)}
+              </p>
+            </>
+          ) : isGlucose ? (
+            <>
+              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>{glucoseTitle}</p>
+              {item.subtitle && (
+                <p style={{ margin: '3px 0 0', fontSize: 13, color: t.inkSoft, wordBreak: 'break-word' }}>
+                  {item.subtitle}
+                </p>
+              )}
+              {item.valueStr && (
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>{item.valueStr}</p>
+              )}
+              {(raw.notes || item.notes) ? (
+                <p style={{ ...noteLine }}>{raw.notes || item.notes}</p>
+              ) : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                 {formatTodayTime(item.timestamp, tr)}
               </p>

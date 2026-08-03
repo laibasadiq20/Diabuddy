@@ -6,6 +6,7 @@ import { useI18n } from '../../../i18n/I18nContext';
 import { API_URL } from '../../../config/api';
 import { Annoyed, Frown, Laugh, Loader2, Meh, Smile } from 'lucide-react';
 import { mlToUsFlOz, usFlOzToMl, OZ_PER_GLASS, round1 } from '../../../utils/waterUnits';
+import { convertGlucose, glucoseInputBounds, glucoseUnitLabel } from '../../../utils/glucoseUnits';
 
 const t = theme;
 
@@ -134,29 +135,33 @@ const GLUCOSE_CONTEXT_KEYS = {
 function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
   const { user } = useAuth();
   const { t: tr } = useI18n();
+  // Always use Settings preference — change units in Settings, not per log.
   const preferredUnit = user?.glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
+  const unitLabel = glucoseUnitLabel(preferredUnit);
+  const bounds = glucoseInputBounds(preferredUnit);
   const [form, setForm] = useState({
     glucoseLevel: '',
-    unit: preferredUnit,
     readingType: 'Before Breakfast',
     notes: '',
     timestamp: toLocalInput(),
   });
 
   useEffect(() => {
+    let level = initialRaw?.glucoseLevel ?? '';
+    if (level !== '' && initialRaw?.unit && initialRaw.unit !== preferredUnit) {
+      const converted = convertGlucose(level, initialRaw.unit, preferredUnit);
+      level = converted != null ? converted : level;
+    }
     setForm({
-      glucoseLevel: initialRaw?.glucoseLevel ?? '',
-      // New entries default to the user's saved glucose unit preference (Account page)
-      unit: initialRaw?.unit || preferredUnit,
+      glucoseLevel: level,
       readingType: initialRaw?.readingType || 'Before Breakfast',
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRaw, preferredUnit]);
 
   const glucoseHelp =
-    form.unit === 'mmol/L'
+    preferredUnit === 'mmol/L'
       ? tr('logEntryForm.glucose.lowHighMmol')
       : tr('logEntryForm.glucose.lowHighMgdl');
 
@@ -167,7 +172,7 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
         e.preventDefault();
         const body = {
           glucoseLevel: Number(form.glucoseLevel),
-          unit: form.unit,
+          unit: preferredUnit,
           readingType: form.readingType,
           notes: form.notes || undefined,
         };
@@ -179,20 +184,31 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
         <input
           required
           type="number"
-          step="0.1"
-          min={form.unit === 'mmol/L' ? 1 : 20}
-          max={form.unit === 'mmol/L' ? 33 : 600}
+          step={bounds.step}
+          min={bounds.min}
+          max={bounds.max}
           value={form.glucoseLevel}
           onChange={(e) => setForm({ ...form, glucoseLevel: e.target.value })}
           style={field}
-          placeholder={form.unit === 'mmol/L' ? tr('logEntryForm.glucose.placeholderMmol') : tr('logEntryForm.glucose.placeholderMgdl')}
+          placeholder={
+            preferredUnit === 'mmol/L'
+              ? tr('logEntryForm.glucose.placeholderMmol')
+              : tr('logEntryForm.glucose.placeholderMgdl')
+          }
         />
       </Field>
-      <Field title={tr('logEntryForm.glucose.unit')}>
-        <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} style={field}>
-          <option value="mg/dL">mg/dL</option>
-          <option value="mmol/L">mmol/L</option>
-        </select>
+      <Field title={tr('logEntryForm.glucose.unit')} help={tr('logEntryForm.glucose.unitFromSettings')}>
+        <div
+          style={{
+            ...field,
+            display: 'flex',
+            alignItems: 'center',
+            color: t.inkSoft,
+            background: t.surfaceSunken,
+          }}
+        >
+          {unitLabel}
+        </div>
       </Field>
       <Field title={tr('logEntryForm.glucose.readingContext')}>
         <select value={form.readingType} onChange={(e) => setForm({ ...form, readingType: e.target.value })} style={field}>

@@ -294,7 +294,7 @@ export default function Reports() {
     if (!report) return;
     setExportError('');
     try {
-      downloadReportPdf(report, { userName: exportUserName, tr });
+      downloadReportPdf(report, { userName: exportUserName, tr, glucoseUnit });
     } catch (err) {
       setExportError(err.message || tr('reports.errors.exportFailed'));
     }

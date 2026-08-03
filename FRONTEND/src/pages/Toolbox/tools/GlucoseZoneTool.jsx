@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { theme as t } from '../../../theme';
 import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge, disclaimerStyle, resultRowStyle } from '../toolboxStyles';
 import { useI18n } from '../../../i18n/I18nContext';
+import { useUnits } from '../../../hooks/useUnits';
+import { convertGlucose, fromMgdl, glucoseInputBounds, readingToMgdl } from '../../../utils/glucoseUnits';
 
 /**
- * Context-aware educational zones (mg/dL). Not a diagnosis.
+ * Context-aware educational zones (canonical thresholds in mg/dL). Not a diagnosis.
  */
 function glucoseZone(mgdl, context, tr) {
   const zk = (key) => tr(`toolboxTools.glucoseZone.zones.${key}.label`);
@@ -59,8 +61,22 @@ function glucoseZone(mgdl, context, tr) {
 
 export default function GlucoseZoneTool() {
   const { t: tr } = useI18n();
-  const [reading, setReading] = useState('110');
+  const { glucoseUnit, glucoseUnitLabel } = useUnits();
+  const bounds = glucoseInputBounds(glucoseUnit);
+  const defaultReading = glucoseUnit === 'mmol/L' ? '6.1' : '110';
+  const [reading, setReading] = useState(defaultReading);
   const [context, setContext] = useState('random');
+  const prevUnitRef = useRef(glucoseUnit);
+
+  useEffect(() => {
+    const prevUnit = prevUnitRef.current;
+    if (prevUnit === glucoseUnit) return;
+    setReading((prev) => {
+      const converted = convertGlucose(prev, prevUnit, glucoseUnit);
+      return converted != null ? String(converted) : defaultReading;
+    });
+    prevUnitRef.current = glucoseUnit;
+  }, [glucoseUnit, defaultReading]);
 
   const CONTEXTS = [
     { id: 'fasting', label: tr('toolboxTools.glucoseZone.contexts.fasting') },
@@ -69,13 +85,15 @@ export default function GlucoseZoneTool() {
   ];
 
   const value = parseFloat(reading);
-  const outOfRange = reading !== '' && (!value || value < 20 || value > 600);
+  const outOfRange = reading !== '' && (!value || value < bounds.min || value > bounds.max);
 
   const zone = useMemo(() => {
     const v = parseFloat(reading);
-    if (!v || v < 20 || v > 600) return null;
-    return { value: v, ...glucoseZone(v, context, tr) };
-  }, [reading, context, tr]);
+    if (!v || v < bounds.min || v > bounds.max) return null;
+    const mgdl = readingToMgdl(v, glucoseUnit);
+    if (mgdl == null) return null;
+    return { value: fromMgdl(mgdl, glucoseUnit), ...glucoseZone(mgdl, context, tr) };
+  }, [reading, context, tr, glucoseUnit, bounds.min, bounds.max]);
 
   const tabStyle = (active) => ({
     flex: '1 1 0',
@@ -98,17 +116,25 @@ export default function GlucoseZoneTool() {
       </div>
 
       <div>
-        <label style={labelStyle}>{tr('toolboxTools.glucoseZone.readingLabel')}</label>
+        <label style={labelStyle}>
+          {tr('toolboxTools.glucoseZone.readingLabel').replace('{unit}', glucoseUnitLabel)}
+        </label>
         <input
           type="number"
-          min="20"
-          max="600"
+          min={bounds.min}
+          max={bounds.max}
+          step={bounds.step}
           value={reading}
           onChange={(e) => setReading(e.target.value)}
           style={{ ...fieldStyle, fontSize: 18, fontWeight: 600 }}
         />
         {outOfRange && (
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: t.clayDeep }}>{tr('toolboxTools.glucoseZone.outOfRangeError')}</p>
+          <p style={{ margin: '6px 0 0', fontSize: 12, color: t.clayDeep }}>
+            {tr('toolboxTools.glucoseZone.outOfRangeError')
+              .replace('{min}', String(bounds.min))
+              .replace('{max}', String(bounds.max))
+              .replace('{unit}', glucoseUnitLabel)}
+          </p>
         )}
       </div>
 
@@ -130,7 +156,9 @@ export default function GlucoseZoneTool() {
               <p style={eyebrow}>{tr('toolboxTools.glucoseZone.reading')}</p>
               <p style={{ margin: '4px 0 0', fontFamily: t.fontDisplay, fontSize: 36, color: t.ink, fontWeight: 600 }}>
                 {zone.value}
-                <span style={{ fontSize: 14, fontFamily: t.fontBody, fontWeight: 500, color: t.inkFaint, marginLeft: 8 }}>mg/dL</span>
+                <span style={{ fontSize: 14, fontFamily: t.fontBody, fontWeight: 500, color: t.inkFaint, marginLeft: 8 }}>
+                  {glucoseUnitLabel}
+                </span>
               </p>
             </div>
             <ResultBadge label={zone.label} color={zone.color} />
