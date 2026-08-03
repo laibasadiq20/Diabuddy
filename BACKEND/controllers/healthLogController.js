@@ -111,7 +111,8 @@ exports.getTimeline = async (req, res) => {
             valueStr = log.status;
             color = log.status === 'Taken' ? 'green' : log.status === 'Missed' ? 'red' : 'yellow';
           } else if (type === 'Water') {
-            title = `${log.amount} ml`;
+            const oz = Math.round((Number(log.amount) / 29.5735295625) * 10) / 10;
+            title = `${oz} oz`;
             subtitle = 'Water Intake';
             valueStr = 'Hydration';
             color = 'teal';

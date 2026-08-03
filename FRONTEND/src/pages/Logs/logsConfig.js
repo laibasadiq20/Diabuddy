@@ -56,9 +56,9 @@ export const LOG_TYPES = [
     apiPath: 'water',
     label: 'Water intake',
     icon: GlassWater,
-    hubLine: 'Log fluid intake in ml with quick-add.',
+    hubLine: 'Log fluid intake in oz (1 glass = 8 oz).',
     why: 'Hydration support matters for energy and day-to-day diabetes management.',
-    how: 'Enter the amount in ml, or use a quick-add button, then set the date and time.',
+    how: 'Enter the amount in US fluid ounces, or use a quick-add glass button, then set the date and time.',
   },
   {
     id: 'exercise',

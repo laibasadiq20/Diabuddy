@@ -5,6 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useI18n } from '../../../i18n/I18nContext';
 import { API_URL } from '../../../config/api';
 import { Annoyed, Frown, Laugh, Loader2, Meh, Smile } from 'lucide-react';
+import { mlToUsFlOz, usFlOzToMl, OZ_PER_GLASS, round1 } from '../../../utils/waterUnits';
 
 const t = theme;
 
@@ -245,7 +246,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     protein: '',
     fat: '',
     calories: '',
-    waterConsumed: '',
+    waterOz: '',
     bloodSugarImpact: '',
     notes: '',
     timestamp: toLocalInput(),
@@ -265,7 +266,10 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
       protein: initialRaw?.protein != null ? String(initialRaw.protein) : '',
       fat: initialRaw?.fat != null ? String(initialRaw.fat) : '',
       calories: initialRaw?.calories != null ? String(initialRaw.calories) : '',
-      waterConsumed: initialRaw?.waterConsumed ?? '',
+      waterOz:
+        initialRaw?.waterConsumed != null && Number(initialRaw.waterConsumed) > 0
+          ? String(round1(mlToUsFlOz(initialRaw.waterConsumed)))
+          : '',
       bloodSugarImpact: initialRaw?.bloodSugarImpact || '',
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
@@ -428,7 +432,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           protein: Number(form.protein) || 0,
           fat: Number(form.fat) || 0,
           calories: Number(form.calories) || 0,
-          waterConsumed: Number(form.waterConsumed) || 0,
+          waterConsumed: form.waterOz ? Math.round(usFlOzToMl(form.waterOz)) : 0,
           bloodSugarImpact: form.bloodSugarImpact || '',
           notes: form.notes || undefined,
         };
@@ -661,8 +665,23 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
         )}
       </div>
 
-      <Field title={tr('logEntryForm.meal.waterIntakeMl')}>
-        <input type="number" min="0" value={form.waterConsumed} onChange={(e) => setForm({ ...form, waterConsumed: e.target.value })} style={field} />
+      <Field title={tr('logEntryForm.meal.waterIntakeOz')}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input
+            type="number"
+            min="0"
+            step="0.5"
+            inputMode="decimal"
+            value={form.waterOz}
+            onChange={(e) => setForm({ ...form, waterOz: e.target.value })}
+            style={{ ...field, flex: 1 }}
+            placeholder="8"
+          />
+          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>
+            {tr('logEntryForm.water.unitOz')}
+          </span>
+        </div>
+        <p style={hint}>{tr('logEntryForm.water.glassHint')}</p>
       </Field>
 
       <div>
@@ -1087,19 +1106,20 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
   );
 }
 
-const WATER_QUICK = [250, 500, 750, 1000];
+const WATER_QUICK_OZ = [OZ_PER_GLASS, OZ_PER_GLASS * 2, OZ_PER_GLASS * 3, OZ_PER_GLASS * 4];
 
 function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
   const { t: tr } = useI18n();
   const [form, setForm] = useState({
-    amount: '250',
+    amountOz: String(OZ_PER_GLASS),
     notes: '',
     timestamp: toLocalInput(),
   });
 
   useEffect(() => {
     setForm({
-      amount: initialRaw?.amount != null ? String(initialRaw.amount) : '250',
+      amountOz:
+        initialRaw?.amount != null ? String(round1(mlToUsFlOz(initialRaw.amount))) : String(OZ_PER_GLASS),
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
@@ -1111,7 +1131,7 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
       onSubmit={(e) => {
         e.preventDefault();
         const body = {
-          amount: Number(form.amount),
+          amount: Math.round(usFlOzToMl(form.amountOz)),
           notes: form.notes || undefined,
         };
         body.timestamp = new Date(form.timestamp).toISOString();
@@ -1123,25 +1143,30 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
           <input
             required
             type="number"
-            min="1"
-            inputMode="numeric"
-            value={form.amount}
-            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            min="0.5"
+            step="0.5"
+            inputMode="decimal"
+            value={form.amountOz}
+            onChange={(e) => setForm({ ...form, amountOz: e.target.value })}
             style={{ ...field, flex: 1 }}
-            placeholder="250"
+            placeholder={String(OZ_PER_GLASS)}
           />
-          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>ml</span>
+          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>
+            {tr('logEntryForm.water.unitOz')}
+          </span>
         </div>
+        <p style={hint}>{tr('logEntryForm.water.glassHint')}</p>
       </Field>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {WATER_QUICK.map((ml) => {
-          const active = Number(form.amount) === ml;
+        {WATER_QUICK_OZ.map((oz) => {
+          const active = Number(form.amountOz) === oz;
+          const glasses = oz / OZ_PER_GLASS;
           return (
             <button
-              key={ml}
+              key={oz}
               type="button"
-              onClick={() => setForm({ ...form, amount: String(ml) })}
+              onClick={() => setForm({ ...form, amountOz: String(oz) })}
               style={{
                 padding: '8px 12px',
                 borderRadius: 8,
@@ -1154,7 +1179,8 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
                 fontFamily: t.fontBody,
               }}
             >
-              +{ml} ml
+              +{oz} oz ({glasses}{' '}
+              {glasses === 1 ? tr('logEntryForm.water.glass') : tr('logEntryForm.water.glasses')})
             </button>
           );
         })}

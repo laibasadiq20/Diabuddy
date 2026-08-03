@@ -7,6 +7,7 @@ import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
 import { ChevronRight, ClipboardList, Check, Flame, AlertTriangle } from 'lucide-react';
 import { LOG_TYPES } from './logsConfig';
+import { mlToUsFlOz, round0 } from '../../utils/waterUnits';
 
 const t = theme;
 
@@ -49,13 +50,18 @@ function typeStatus(summary, typeId, tr) {
           ? tr('logs.typeStatus.takenTemplate').replace('{n}', summary.medications.value)
           : '',
       };
-    case 'water':
+    case 'water': {
+      const ml = summary.water?.value || 0;
+      const goalMl = summary.water?.goal || 2000;
       return {
-        done: (summary.water?.value || 0) > 0,
-        detail: summary.water?.value
-          ? tr('logs.typeStatus.mlOfGoalTemplate').replace('{n}', summary.water.value).replace('{goal}', summary.water.goal || 2000)
+        done: ml > 0,
+        detail: ml
+          ? tr('logs.typeStatus.mlOfGoalTemplate')
+              .replace('{n}', round0(mlToUsFlOz(ml)))
+              .replace('{goal}', round0(mlToUsFlOz(goalMl)))
           : '',
       };
+    }
     case 'exercise':
       return {
         done: (summary.exercise?.value || 0) > 0,

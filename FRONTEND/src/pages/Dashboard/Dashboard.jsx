@@ -16,6 +16,7 @@ import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
 import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
+import { formatWaterShort, mlToLiters, mlToUsFlOz, round0, round1 } from '../../utils/waterUnits';
 import {
   AlertTriangle,
   ArrowRight,
@@ -197,12 +198,9 @@ export default function Dashboard() {
     };
   }, [user]);
 
-  const waterLabel =
-    waterToday > 0
-      ? waterToday >= 1000
-        ? `${(waterToday / 1000).toFixed(1)} L`
-        : `${waterToday} ml`
-      : '—';
+  const waterLabel = formatWaterShort(waterToday);
+  const waterGoalL = round1(mlToLiters(waterGoal));
+  const waterGoalOz = round0(mlToUsFlOz(waterGoal));
 
   const waterPct = Math.min(100, Math.round((waterToday / waterGoal) * 100));
   const stepsPct = Math.min(100, Math.round((stepsToday / stepsGoal) * 100));
@@ -339,10 +337,27 @@ export default function Dashboard() {
                 </span>
                 <span className="db-home-glance-label">{tr('dashboard.glance.water')}</span>
                 <strong>
-                  {waterToday > 0 ? (waterToday >= 1000 ? `${(waterToday / 1000).toFixed(1)}` : waterToday) : '—'}
-                  {waterToday > 0 ? <small>{waterToday >= 1000 ? 'L' : 'ml'}</small> : null}
+                  {waterToday > 0 ? (
+                    waterToday >= 1000 ? (
+                      <>
+                        {round1(mlToLiters(waterToday))}
+                        <small>L</small>
+                      </>
+                    ) : (
+                      <>
+                        {round0(mlToUsFlOz(waterToday))}
+                        <small>oz</small>
+                      </>
+                    )
+                  ) : (
+                    '—'
+                  )}
                 </strong>
-                <span className="db-home-glance-sub">{tr('dashboard.glance.ofLGoal').replace('{n}', (waterGoal / 1000).toFixed(1))}</span>
+                <span className="db-home-glance-sub">
+                  {tr('dashboard.glance.ofGoalLOz')
+                    .replace('{L}', String(waterGoalL))
+                    .replace('{oz}', String(waterGoalOz))}
+                </span>
                 <span className="db-home-glance-bar" aria-hidden>
                   <span style={{ width: `${waterPct}%` }} />
                 </span>

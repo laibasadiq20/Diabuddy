@@ -7,6 +7,7 @@ import { Annoyed, ArrowLeft, Frown, Laugh, Loader2, Meh, Smile, Trash2 } from 'l
 import api from '../../config/axios';
 import { getLogType } from './logsConfig';
 import { LogEntryForm } from './components/LogEntryForm';
+import { mlToUsFlOz, round1 } from '../../utils/waterUnits';
 
 const t = theme;
 
@@ -272,7 +273,10 @@ export default function LogTypePage() {
           ) : isWater ? (
             <>
               <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                💧 {raw.amount ?? item.title} ml
+                💧{' '}
+                {raw.amount != null
+                  ? `${round1(mlToUsFlOz(raw.amount))} oz`
+                  : item.title}
               </p>
               {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>

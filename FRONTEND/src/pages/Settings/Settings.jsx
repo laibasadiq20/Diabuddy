@@ -5,6 +5,15 @@ import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import { fromMgdl, mmolToMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
+import {
+  formatGoalHint,
+  litersToMl,
+  mlToLiters,
+  mlToUsFlOz,
+  round0,
+  round1,
+  usFlOzToMl,
+} from '../../utils/waterUnits';
 import AppSidebar from '../../components/AppSidebar';
 import {
   CheckCircle2,
@@ -56,7 +65,8 @@ export default function Settings() {
   const { lang, setLang, t: tr } = useI18n();
   const [glucoseUnit, setGlucoseUnit] = useState('mg/dL');
   const [ranges, setRanges] = useState(rangesToDisplay(DEFAULT_RANGES_MGDL, 'mg/dL'));
-  const [waterMl, setWaterMl] = useState(2000);
+  const [waterLiters, setWaterLiters] = useState('2');
+  const [waterOz, setWaterOz] = useState('68');
   const [steps, setSteps] = useState(8000);
   const [savingKey, setSavingKey] = useState('');
   const [message, setMessage] = useState('');
@@ -67,7 +77,9 @@ export default function Settings() {
     const unit = user.glucoseUnit || 'mg/dL';
     setGlucoseUnit(unit);
     setRanges(rangesToDisplay(user.targetRanges, unit));
-    setWaterMl(user.dailyGoals?.waterMl ?? 2000);
+    const ml = user.dailyGoals?.waterMl ?? 2000;
+    setWaterLiters(String(round1(mlToLiters(ml))));
+    setWaterOz(String(round0(mlToUsFlOz(ml))));
     setSteps(user.dailyGoals?.steps ?? 8000);
   }, [user]);
 
@@ -124,15 +136,31 @@ export default function Settings() {
 
   const handleSaveGoals = async (e) => {
     e.preventDefault();
+    // Prefer liters if set; otherwise US oz. Persist as ml.
+    const fromL = litersToMl(waterLiters);
+    const fromOz = usFlOzToMl(waterOz);
+    const waterMl = Math.round(fromL > 0 ? fromL : fromOz);
     await saveProfile(
       {
         dailyGoals: {
-          waterMl: Number(waterMl),
+          waterMl,
           steps: Number(steps),
         },
       },
       'goals'
     );
+  };
+
+  const syncGoalFromLiters = (litersStr) => {
+    setWaterLiters(litersStr);
+    const ml = litersToMl(litersStr);
+    if (Number.isFinite(ml) && ml > 0) setWaterOz(String(round0(mlToUsFlOz(ml))));
+  };
+
+  const syncGoalFromOz = (ozStr) => {
+    setWaterOz(ozStr);
+    const ml = usFlOzToMl(ozStr);
+    if (Number.isFinite(ml) && ml > 0) setWaterLiters(String(round1(mlToLiters(ml))));
   };
 
   const labelStyle = {
@@ -348,35 +376,54 @@ export default function Settings() {
               <div>
                 <label style={labelStyle}>
                   <GlassWater size={12} style={{ marginRight: 5 }} />
-                  {tr('settings.waterGoal')}
+                  {tr('settings.waterGoalLiters')}
                 </label>
                 <input
                   type="number"
-                  min={250}
-                  max={10000}
-                  step={50}
-                  value={waterMl}
-                  onChange={(e) => setWaterMl(e.target.value)}
+                  min={0.25}
+                  max={10}
+                  step={0.1}
+                  value={waterLiters}
+                  onChange={(e) => syncGoalFromLiters(e.target.value)}
                   style={fieldStyle}
                 />
-                <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{tr('settings.waterGoalUnit')}</p>
+                <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{tr('settings.waterGoalLitersHint')}</p>
               </div>
               <div>
                 <label style={labelStyle}>
-                  <Footprints size={12} style={{ marginRight: 5 }} />
-                  {tr('settings.stepsGoal')}
+                  <GlassWater size={12} style={{ marginRight: 5 }} />
+                  {tr('settings.waterGoalOz')}
                 </label>
                 <input
                   type="number"
-                  min={500}
-                  max={50000}
-                  step={500}
-                  value={steps}
-                  onChange={(e) => setSteps(e.target.value)}
+                  min={8}
+                  max={340}
+                  step={1}
+                  value={waterOz}
+                  onChange={(e) => syncGoalFromOz(e.target.value)}
                   style={fieldStyle}
                 />
-                <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{tr('settings.stepsGoalUnit')}</p>
+                <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{tr('settings.waterGoalOzHint')}</p>
               </div>
+            </div>
+            <p style={{ margin: '10px 0 0', fontSize: 12, color: t.inkSoft }}>
+              {formatGoalHint(litersToMl(waterLiters) || usFlOzToMl(waterOz))}
+            </p>
+            <div style={{ marginTop: 14 }}>
+              <label style={labelStyle}>
+                <Footprints size={12} style={{ marginRight: 5 }} />
+                {tr('settings.stepsGoal')}
+              </label>
+              <input
+                type="number"
+                min={500}
+                max={50000}
+                step={500}
+                value={steps}
+                onChange={(e) => setSteps(e.target.value)}
+                style={fieldStyle}
+              />
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{tr('settings.stepsGoalUnit')}</p>
             </div>
 
             <button type="submit" style={saveBtnStyle} disabled={savingKey === 'goals'}>
