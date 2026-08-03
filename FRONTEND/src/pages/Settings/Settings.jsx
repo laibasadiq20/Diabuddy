@@ -4,29 +4,81 @@ import { useThemeMode } from '../../context/ThemeContext';
 import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
+import { fromMgdl, mmolToMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
 import AppSidebar from '../../components/AppSidebar';
-import { CheckCircle2, Droplet, Sun, Moon, Languages } from 'lucide-react';
+import {
+  Bell,
+  BellOff,
+  CheckCircle2,
+  Droplet,
+  Footprints,
+  GlassWater,
+  Languages,
+  Moon,
+  Sun,
+  Target,
+} from 'lucide-react';
 
 const t = theme;
+
+const DEFAULT_RANGES_MGDL = {
+  fastingMin: 70,
+  fastingMax: 100,
+  postMealMin: 70,
+  postMealMax: 140,
+};
+
+function rangesToDisplay(rangesMgdl, unit) {
+  const src = rangesMgdl || DEFAULT_RANGES_MGDL;
+  return {
+    fastingMin: fromMgdl(src.fastingMin ?? 70, unit),
+    fastingMax: fromMgdl(src.fastingMax ?? 100, unit),
+    postMealMin: fromMgdl(src.postMealMin ?? 70, unit),
+    postMealMax: fromMgdl(src.postMealMax ?? 140, unit),
+  };
+}
+
+function rangesToMgdl(display, unit) {
+  const toStore = (v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return null;
+    return unit === 'mmol/L' ? mmolToMgdl(n) : Math.round(n);
+  };
+  return {
+    fastingMin: toStore(display.fastingMin),
+    fastingMax: toStore(display.fastingMax),
+    postMealMin: toStore(display.postMealMin),
+    postMealMax: toStore(display.postMealMax),
+  };
+}
 
 export default function Settings() {
   const { user, setUser, authHeaders } = useAuth();
   const { mode, setMode } = useThemeMode();
   const { lang, setLang, t: tr } = useI18n();
   const [glucoseUnit, setGlucoseUnit] = useState('mg/dL');
-  const [saving, setSaving] = useState(false);
+  const [ranges, setRanges] = useState(rangesToDisplay(DEFAULT_RANGES_MGDL, 'mg/dL'));
+  const [waterMl, setWaterMl] = useState(2000);
+  const [steps, setSteps] = useState(8000);
+  const [reminderAlertsEnabled, setReminderAlertsEnabled] = useState(true);
+  const [savingKey, setSavingKey] = useState('');
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!user) return;
-    setGlucoseUnit(user.glucoseUnit || 'mg/dL');
+    const unit = user.glucoseUnit || 'mg/dL';
+    setGlucoseUnit(unit);
+    setRanges(rangesToDisplay(user.targetRanges, unit));
+    setWaterMl(user.dailyGoals?.waterMl ?? 2000);
+    setSteps(user.dailyGoals?.steps ?? 8000);
+    setReminderAlertsEnabled(user.reminderAlertsEnabled !== false);
   }, [user]);
 
-  const handleGlucoseUnitChange = async (e) => {
-    const next = e.target.value;
-    setGlucoseUnit(next);
+  const saveProfile = async (payload, key) => {
     setMessage('');
-    setSaving(true);
+    setError('');
+    setSavingKey(key);
     try {
       const res = await fetch(`${API_URL}/auth/me`, {
         method: 'PUT',
@@ -35,18 +87,63 @@ export default function Settings() {
           'Content-Type': 'application/json',
           ...authHeaders(),
         },
-        body: JSON.stringify({ glucoseUnit: next }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (res.ok && data.data) {
-        setUser(data.data);
-        setMessage(tr('settings.unitUpdated'));
+      if (!res.ok || !data.data) {
+        setError(data.message || tr('settings.saveError'));
+        return false;
       }
-    } catch (err) {
-      // Non-blocking — the selector already reflects the chosen value.
+      setUser(data.data);
+      setMessage(tr('settings.saved'));
+      return true;
+    } catch (_) {
+      setError(tr('settings.saveError'));
+      return false;
     } finally {
-      setSaving(false);
+      setSavingKey('');
     }
+  };
+
+  const handleGlucoseUnitChange = async (e) => {
+    const next = e.target.value;
+    const prev = glucoseUnit;
+    setGlucoseUnit(next);
+    // Re-express current fields in the new unit from stored mg/dL after save,
+    // but optimistically convert what's on screen first.
+    const asMgdl = rangesToMgdl(ranges, prev);
+    setRanges(rangesToDisplay(asMgdl, next));
+    await saveProfile({ glucoseUnit: next }, 'unit');
+  };
+
+  const handleSaveRanges = async (e) => {
+    e.preventDefault();
+    const asMgdl = rangesToMgdl(ranges, glucoseUnit);
+    if (Object.values(asMgdl).some((n) => n == null)) {
+      setError(tr('settings.rangesInvalid'));
+      return;
+    }
+    await saveProfile({ targetRanges: asMgdl }, 'ranges');
+  };
+
+  const handleSaveGoals = async (e) => {
+    e.preventDefault();
+    await saveProfile(
+      {
+        dailyGoals: {
+          waterMl: Number(waterMl),
+          steps: Number(steps),
+        },
+      },
+      'goals'
+    );
+  };
+
+  const handleReminderAlertsToggle = async () => {
+    const next = !reminderAlertsEnabled;
+    setReminderAlertsEnabled(next);
+    const ok = await saveProfile({ reminderAlertsEnabled: next }, 'alerts');
+    if (!ok) setReminderAlertsEnabled(!next);
   };
 
   const labelStyle = {
@@ -109,6 +206,37 @@ export default function Settings() {
     color: t.forest,
   };
 
+  const saveBtnStyle = {
+    marginTop: 16,
+    border: 'none',
+    background: t.forest,
+    color: '#FFF',
+    borderRadius: 12,
+    padding: '11px 18px',
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: 'pointer',
+    fontFamily: t.fontBody,
+  };
+
+  const unitLabel = glucoseUnitLabel(glucoseUnit);
+  const rangeStep = glucoseUnit === 'mmol/L' ? 0.1 : 1;
+
+  const rangeField = (key, label) => (
+    <div style={{ minWidth: 0 }}>
+      <label style={labelStyle}>{label}</label>
+      <input
+        type="number"
+        step={rangeStep}
+        min={glucoseUnit === 'mmol/L' ? 2 : 40}
+        max={glucoseUnit === 'mmol/L' ? 22 : 400}
+        value={ranges[key] ?? ''}
+        onChange={(e) => setRanges((prev) => ({ ...prev, [key]: e.target.value }))}
+        style={fieldStyle}
+      />
+    </div>
+  );
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: t.bg, fontFamily: t.fontBody }}>
       <AppSidebar />
@@ -123,6 +251,22 @@ export default function Settings() {
               {tr('settings.subheading')}
             </p>
           </div>
+
+          {(message || error) && (
+            <p
+              style={{
+                margin: '0 0 16px',
+                color: error ? t.clayDeep : t.sageDeep,
+                fontSize: 13,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <CheckCircle2 size={15} /> {error || message}
+            </p>
+          )}
 
           <div className="db-account-card" style={cardStyle}>
             <p style={cardTitleStyle}>{tr('settings.appearance')}</p>
@@ -173,16 +317,128 @@ export default function Settings() {
               style={{ ...fieldStyle, maxWidth: 240 }}
               value={glucoseUnit}
               onChange={handleGlucoseUnitChange}
-              disabled={saving}
+              disabled={savingKey === 'unit'}
             >
               <option value="mg/dL">mg/dL</option>
               <option value="mmol/L">mmol/L</option>
             </select>
-            {message && (
-              <p style={{ margin: '12px 0 0', color: t.sageDeep, fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <CheckCircle2 size={15} /> {message}
-              </p>
-            )}
+          </div>
+
+          <form className="db-account-card" style={cardStyle} onSubmit={handleSaveRanges}>
+            <p style={cardTitleStyle}>{tr('settings.targetRanges')}</p>
+            <label style={labelStyle}>
+              <Target size={12} style={{ marginRight: 5 }} />
+              {tr('settings.targetRanges')}
+            </label>
+            <p style={{ margin: '0 0 14px', fontSize: 12, color: t.inkFaint }}>
+              {tr('settings.targetRangesHint').replace('{unit}', unitLabel)}
+            </p>
+
+            <p style={{ ...labelStyle, marginBottom: 10 }}>{tr('settings.fastingRange')}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              {rangeField('fastingMin', tr('settings.min'))}
+              {rangeField('fastingMax', tr('settings.max'))}
+            </div>
+
+            <p style={{ ...labelStyle, marginBottom: 10 }}>{tr('settings.postMealRange')}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {rangeField('postMealMin', tr('settings.min'))}
+              {rangeField('postMealMax', tr('settings.max'))}
+            </div>
+
+            <button type="submit" style={saveBtnStyle} disabled={savingKey === 'ranges'}>
+              {savingKey === 'ranges' ? tr('settings.saving') : tr('settings.saveRanges')}
+            </button>
+          </form>
+
+          <form className="db-account-card" style={cardStyle} onSubmit={handleSaveGoals}>
+            <p style={cardTitleStyle}>{tr('settings.dailyGoals')}</p>
+            <p style={{ margin: '0 0 14px', fontSize: 12, color: t.inkFaint }}>{tr('settings.dailyGoalsHint')}</p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>
+                  <GlassWater size={12} style={{ marginRight: 5 }} />
+                  {tr('settings.waterGoal')}
+                </label>
+                <input
+                  type="number"
+                  min={250}
+                  max={10000}
+                  step={50}
+                  value={waterMl}
+                  onChange={(e) => setWaterMl(e.target.value)}
+                  style={fieldStyle}
+                />
+                <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{tr('settings.waterGoalUnit')}</p>
+              </div>
+              <div>
+                <label style={labelStyle}>
+                  <Footprints size={12} style={{ marginRight: 5 }} />
+                  {tr('settings.stepsGoal')}
+                </label>
+                <input
+                  type="number"
+                  min={500}
+                  max={50000}
+                  step={500}
+                  value={steps}
+                  onChange={(e) => setSteps(e.target.value)}
+                  style={fieldStyle}
+                />
+                <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{tr('settings.stepsGoalUnit')}</p>
+              </div>
+            </div>
+
+            <button type="submit" style={saveBtnStyle} disabled={savingKey === 'goals'}>
+              {savingKey === 'goals' ? tr('settings.saving') : tr('settings.saveGoals')}
+            </button>
+          </form>
+
+          <div className="db-account-card" style={cardStyle}>
+            <p style={cardTitleStyle}>{tr('settings.notifications')}</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+              <div style={{ minWidth: 0 }}>
+                <label style={{ ...labelStyle, marginBottom: 4 }}>
+                  {reminderAlertsEnabled ? <Bell size={12} style={{ marginRight: 5 }} /> : <BellOff size={12} style={{ marginRight: 5 }} />}
+                  {tr('settings.reminderAlerts')}
+                </label>
+                <p style={{ margin: 0, fontSize: 12, color: t.inkFaint }}>{tr('settings.reminderAlertsHint')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleReminderAlertsToggle}
+                disabled={savingKey === 'alerts'}
+                aria-pressed={reminderAlertsEnabled}
+                title={reminderAlertsEnabled ? tr('settings.turnOff') : tr('settings.turnOn')}
+                style={{
+                  width: 52,
+                  height: 30,
+                  borderRadius: 999,
+                  border: 'none',
+                  background: reminderAlertsEnabled ? t.sageDeep : t.line,
+                  cursor: savingKey === 'alerts' ? 'wait' : 'pointer',
+                  position: 'relative',
+                  padding: 0,
+                  flexShrink: 0,
+                  opacity: savingKey === 'alerts' ? 0.7 : 1,
+                }}
+              >
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: reminderAlertsEnabled ? 25 : 3,
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: '#FFF',
+                    transition: 'left 0.15s ease',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }}
+                />
+              </button>
+            </div>
           </div>
         </div>
       </main>

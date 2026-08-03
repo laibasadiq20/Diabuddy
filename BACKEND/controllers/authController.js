@@ -685,7 +685,18 @@ const resetPassword = async (req, res) => {
  */
 const updateProfile = async (req, res) => {
   try {
-    const allowed = ['name', 'bio', 'location', 'diabetesType', 'gender', 'age', 'glucoseUnit', 'theme', 'language'];
+    const allowed = [
+      'name',
+      'bio',
+      'location',
+      'diabetesType',
+      'gender',
+      'age',
+      'glucoseUnit',
+      'theme',
+      'language',
+      'reminderAlertsEnabled',
+    ];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
@@ -693,6 +704,45 @@ const updateProfile = async (req, res) => {
 
     if (updates.name && String(updates.name).trim().length < 2) {
       return res.status(400).json({ status: 'error', message: 'Name must be at least 2 characters' });
+    }
+
+    if (req.body.targetRanges && typeof req.body.targetRanges === 'object') {
+      const tr = req.body.targetRanges;
+      const fastingMin = Number(tr.fastingMin);
+      const fastingMax = Number(tr.fastingMax);
+      const postMealMin = Number(tr.postMealMin);
+      const postMealMax = Number(tr.postMealMax);
+      const nums = [fastingMin, fastingMax, postMealMin, postMealMax];
+      if (nums.some((n) => !Number.isFinite(n))) {
+        return res.status(400).json({ status: 'error', message: 'Target ranges must be numbers' });
+      }
+      if (fastingMin >= fastingMax || postMealMin >= postMealMax) {
+        return res.status(400).json({ status: 'error', message: 'Each range minimum must be less than its maximum' });
+      }
+      if (nums.some((n) => n < 40 || n > 400)) {
+        return res.status(400).json({ status: 'error', message: 'Target ranges must be between 40 and 400 mg/dL' });
+      }
+      updates.targetRanges = { fastingMin, fastingMax, postMealMin, postMealMax };
+    }
+
+    if (req.body.dailyGoals && typeof req.body.dailyGoals === 'object') {
+      const dg = req.body.dailyGoals;
+      const waterMl = Number(dg.waterMl);
+      const steps = Number(dg.steps);
+      if (!Number.isFinite(waterMl) || !Number.isFinite(steps)) {
+        return res.status(400).json({ status: 'error', message: 'Daily goals must be numbers' });
+      }
+      if (waterMl < 250 || waterMl > 10000) {
+        return res.status(400).json({ status: 'error', message: 'Water goal must be between 250 and 10000 ml' });
+      }
+      if (steps < 500 || steps > 50000) {
+        return res.status(400).json({ status: 'error', message: 'Steps goal must be between 500 and 50000' });
+      }
+      updates.dailyGoals = { waterMl: Math.round(waterMl), steps: Math.round(steps) };
+    }
+
+    if (updates.reminderAlertsEnabled !== undefined) {
+      updates.reminderAlertsEnabled = Boolean(updates.reminderAlertsEnabled);
     }
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {

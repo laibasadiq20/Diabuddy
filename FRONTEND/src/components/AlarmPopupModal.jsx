@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
 import { theme } from '../theme';
 import { API_URL } from '../config/api';
 import { Clock, CheckCircle2, X, BellRing, Sparkles, AlarmClock } from 'lucide-react';
 
 const t = theme;
+
+const DEFAULT_TITLE_KEYS = {
+  'Take Insulin': 'reminders.titles.takeInsulin',
+  'Take Medicine': 'reminders.titles.takeMedicine',
+  'Check Blood Glucose': 'reminders.titles.checkBloodGlucose',
+  Bedtime: 'reminders.titles.bedtime',
+  'Doctor Appointment': 'reminders.titles.doctorAppointment',
+};
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -48,6 +57,7 @@ function playAlarmChime() {
 
 export default function AlarmPopupModal() {
   const { user, authHeaders } = useAuth();
+  const { t: tr } = useI18n();
   const [activeAlarm, setActiveAlarm] = useState(null);
   const [completing, setCompleting] = useState(false);
   const [currentTimeStr, setCurrentTimeStr] = useState('');
@@ -79,6 +89,10 @@ export default function AlarmPopupModal() {
   // Poll for due reminders and unread reminder notifications every 5 seconds
   useEffect(() => {
     if (!user) return;
+    if (user.reminderAlertsEnabled === false) {
+      setActiveAlarm(null);
+      return undefined;
+    }
 
     const checkDueReminders = async () => {
       try {
@@ -316,10 +330,11 @@ export default function AlarmPopupModal() {
           width: '100%',
           maxWidth: 440,
           margin: '0 auto',
-          background: '#FFF',
+          background: t.surface,
           borderRadius: 28,
           padding: '28px 24px 24px',
-          boxShadow: '0 24px 48px -12px rgba(45, 90, 39, 0.25), 0 0 0 1.5px rgba(45, 90, 39, 0.15)',
+          boxShadow: t.shadowLifted,
+          border: `1px solid ${t.lineStrong}`,
           position: 'relative',
           textAlign: 'center',
           overflow: 'hidden',
@@ -334,7 +349,7 @@ export default function AlarmPopupModal() {
             transform: 'translateX(-50%)',
             width: 200,
             height: 120,
-            background: 'radial-gradient(circle, rgba(163, 177, 138, 0.45) 0%, rgba(255,255,255,0) 70%)',
+            background: `radial-gradient(circle, ${t.sageSoft} 0%, transparent 70%)`,
             pointerEvents: 'none',
           }}
         />
@@ -385,7 +400,7 @@ export default function AlarmPopupModal() {
             padding: '4px 12px',
             borderRadius: 999,
             background: t.sageSoft,
-            color: t.forest,
+            color: t.sageDeep,
             fontSize: 12,
             fontWeight: 800,
             letterSpacing: '0.04em',
@@ -393,12 +408,12 @@ export default function AlarmPopupModal() {
           }}
         >
           <BellRing size={13} />
-          ALARM AT {displayTime}
+          {tr('reminders.alarm.atTemplate').replace('{time}', displayTime)}
         </div>
 
         {/* Live Digital Clock */}
         <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 700, color: t.inkFaint }}>
-          Current Time: {currentTimeStr}
+          {tr('reminders.alarm.currentTime').replace('{time}', currentTimeStr)}
         </p>
 
         {/* Reminder Title */}
@@ -416,18 +431,27 @@ export default function AlarmPopupModal() {
           }}
         >
           <span>{activeAlarm.icon || '🔔'}</span>
-          <span>{activeAlarm.title}</span>
+          <span>
+            {DEFAULT_TITLE_KEYS[activeAlarm.title]
+              ? tr(DEFAULT_TITLE_KEYS[activeAlarm.title])
+              : activeAlarm.title}
+          </span>
         </h2>
 
         {/* Description Message */}
         <p style={{ margin: '0 0 24px', fontSize: 14, color: t.inkSoft, lineHeight: 1.5, padding: '0 8px' }}>
           {activeAlarm.title?.toLowerCase().includes('insulin')
-            ? 'Time to take your insulin.'
+            ? tr('reminders.alarm.insulinMsg')
             : activeAlarm.title?.toLowerCase().includes('medicine')
-            ? 'Time to take your medicine.'
+            ? tr('reminders.alarm.medicineMsg')
             : activeAlarm.title?.toLowerCase().includes('blood glucose')
-            ? 'Time to check your blood glucose level.'
-            : `Scheduled reminder for ${activeAlarm.title}.`}
+            ? tr('reminders.alarm.glucoseMsg')
+            : tr('reminders.alarm.genericMsgTemplate').replace(
+                '{title}',
+                DEFAULT_TITLE_KEYS[activeAlarm.title]
+                  ? tr(DEFAULT_TITLE_KEYS[activeAlarm.title])
+                  : activeAlarm.title
+              )}
         </p>
 
         {/* Action Buttons */}
@@ -448,7 +472,7 @@ export default function AlarmPopupModal() {
               fontFamily: t.fontBody,
             }}
           >
-            Snooze / Dismiss
+            {tr('reminders.alarm.snooze')}
           </button>
           <button
             type="button"
@@ -474,7 +498,7 @@ export default function AlarmPopupModal() {
             }}
           >
             <CheckCircle2 size={18} />
-            {completing ? 'Marking...' : 'Mark Completed'}
+            {completing ? tr('reminders.alarm.marking') : tr('reminders.alarm.markCompleted')}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
@@ -23,10 +24,23 @@ import {
 
 const t = theme;
 
+const DEFAULT_TITLE_KEYS = {
+  'Take Insulin': 'reminders.titles.takeInsulin',
+  'Take Medicine': 'reminders.titles.takeMedicine',
+  'Check Blood Glucose': 'reminders.titles.checkBloodGlucose',
+  Bedtime: 'reminders.titles.bedtime',
+  'Doctor Appointment': 'reminders.titles.doctorAppointment',
+};
+
+function translateReminderTitle(title, tr) {
+  const key = DEFAULT_TITLE_KEYS[title];
+  return key ? tr(key) : title;
+}
+
 // Helper to format 24h HH:mm string to 12h AM/PM string for display
-function formatTime12h(time24) {
+function formatTime12h(time24, notSetLabel = 'Not Set') {
   if (!time24 || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(time24)) {
-    return 'Not Set';
+    return notSetLabel;
   }
   const [h, m] = time24.split(':').map(Number);
   const period = h >= 12 ? 'PM' : 'AM';
@@ -52,6 +66,7 @@ const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default function Reminders() {
   const { user, authHeaders } = useAuth();
+  const { t: tr } = useI18n();
 
   const [defaultReminders, setDefaultReminders] = useState([]);
   const [customReminders, setCustomReminders] = useState([]);
@@ -100,7 +115,7 @@ export default function Reminders() {
           setTimeout(() => fetchReminders(retryCount + 1), 500);
           return;
         }
-        throw new Error('Server returned invalid response');
+        throw new Error(tr('reminders.errors.invalidResponse'));
       }
 
       const data = await res.json();
@@ -111,13 +126,13 @@ export default function Reminders() {
         setCustomReminders(payload.customReminders || []);
         setError(null);
       } else if (res.status === 401) {
-        setError('Please sign in to view reminders');
+        setError(tr('reminders.errors.signIn'));
       } else {
         if (retryCount < 1) {
           setTimeout(() => fetchReminders(retryCount + 1), 500);
           return;
         }
-        setError(data?.message || 'Failed to load reminders');
+        setError(data?.message || tr('reminders.errors.loadFailed'));
       }
     } catch (err) {
       console.error('Fetch reminders error:', err);
@@ -125,7 +140,7 @@ export default function Reminders() {
         setTimeout(() => fetchReminders(retryCount + 1), 500);
         return;
       }
-      setError('Unable to connect to the server. Please verify backend is running.');
+      setError(tr('reminders.errors.connectFailed'));
     } finally {
       setLoading(false);
     }
@@ -165,7 +180,7 @@ function urlBase64ToUint8Array(base64String) {
   const handleEnablePush = async () => {
     try {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        showToast('Web Push Notifications are not supported in this browser.');
+        showToast(tr('reminders.toasts.pushUnsupported'));
         return;
       }
 
@@ -173,7 +188,7 @@ function urlBase64ToUint8Array(base64String) {
       setPushStatus(perm);
 
       if (perm !== 'granted') {
-        showToast('Notification permission was denied. Please allow notifications in browser settings.');
+        showToast(tr('reminders.toasts.pushDenied'));
         return;
       }
 
@@ -216,13 +231,13 @@ function urlBase64ToUint8Array(base64String) {
           body: JSON.stringify({ subscription: subJson }),
         });
         setPushSubscribed(true);
-        showToast('Web Push Notifications enabled successfully!');
+        showToast(tr('reminders.toasts.pushEnabled'));
       } else {
-        showToast('Browser notifications active for in-app alerts.');
+        showToast(tr('reminders.toasts.pushInApp'));
       }
     } catch (err) {
       console.error('Push error:', err);
-      showToast('Browser notifications active for in-app alerts.');
+      showToast(tr('reminders.toasts.pushInApp'));
     }
   };
 
@@ -245,11 +260,11 @@ function urlBase64ToUint8Array(base64String) {
       });
 
       setPushSubscribed(false);
-      showToast('Web Push Notifications turned off.');
+      showToast(tr('reminders.toasts.pushOff'));
     } catch (err) {
       console.error('Disable push error:', err);
       setPushSubscribed(false);
-      showToast('Notifications turned off.');
+      showToast(tr('reminders.toasts.notifOff'));
     }
   };
 
@@ -266,10 +281,10 @@ function urlBase64ToUint8Array(base64String) {
         const updated = data.data;
         setDefaultReminders((prev) => prev.map((r) => (r.id === id ? updated : r)));
         setCustomReminders((prev) => prev.map((r) => (r.id === id ? updated : r)));
-        showToast(`Reminder ${updated.enabled ? 'enabled' : 'disabled'}`);
+        showToast(updated.enabled ? tr('reminders.toasts.enabled') : tr('reminders.toasts.disabled'));
       }
     } catch (err) {
-      showToast('Error updating status');
+      showToast(tr('reminders.toasts.statusError'));
     }
   };
 
@@ -303,7 +318,7 @@ function urlBase64ToUint8Array(base64String) {
   const handleSaveModal = async (e) => {
     e.preventDefault();
     if (!formTitle.trim()) {
-      showToast('Please enter a reminder title.');
+      showToast(tr('reminders.toasts.titleRequired'));
       return;
     }
 
@@ -334,9 +349,9 @@ function urlBase64ToUint8Array(base64String) {
           setDefaultReminders((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
           setCustomReminders((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
           setIsModalOpen(false);
-          showToast('Reminder saved successfully!');
+          showToast(tr('reminders.toasts.saved'));
         } else {
-          showToast(data.message || 'Failed to update reminder');
+          showToast(data.message || tr('reminders.toasts.updateFailed'));
         }
       } else {
         // POST create custom
@@ -350,14 +365,14 @@ function urlBase64ToUint8Array(base64String) {
         if (data.status === 'success') {
           setCustomReminders((prev) => [...prev, data.data]);
           setIsModalOpen(false);
-          showToast('Custom reminder created!');
+          showToast(tr('reminders.toasts.created'));
         } else {
-          showToast(data.message || 'Failed to create custom reminder');
+          showToast(data.message || tr('reminders.toasts.createFailed'));
         }
       }
     } catch (err) {
       console.error('Save error:', err);
-      showToast('Error saving reminder');
+      showToast(tr('reminders.toasts.saveError'));
     } finally {
       setSaving(false);
     }
@@ -377,12 +392,12 @@ function urlBase64ToUint8Array(base64String) {
       if (data.status === 'success') {
         setCustomReminders((prev) => prev.filter((r) => r.id !== deletingItem.id));
         setDeletingItem(null);
-        showToast('Custom reminder deleted!');
+        showToast(tr('reminders.toasts.deleted'));
       } else {
-        showToast(data.message || 'Failed to delete reminder');
+        showToast(data.message || tr('reminders.toasts.deleteFailed'));
       }
     } catch (err) {
-      showToast('Error deleting reminder');
+      showToast(tr('reminders.toasts.deleteError'));
     } finally {
       setDeleting(false);
     }
@@ -404,20 +419,20 @@ function urlBase64ToUint8Array(base64String) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
+    <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, ${t.pageFadeTop} 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
       <AppSidebar />
       <main style={{ flex: 1, minWidth: 0, padding: '28px 20px 80px' }}>
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
           {/* Header */}
           <div style={{ marginBottom: 24 }}>
             <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
-              DiaBuddy Care
+              {tr('reminders.kicker')}
             </p>
             <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(26px, 5vw, 34px)', fontWeight: 500, color: t.ink }}>
-              Reminder Management
+              {tr('reminders.heading')}
             </h1>
             <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft, lineHeight: 1.45 }}>
-              Hybrid reminder system. Manage default health routines and create custom nudges for meds, checks, and appointments.
+              {tr('reminders.lead')}
             </p>
           </div>
 
@@ -452,12 +467,12 @@ function urlBase64ToUint8Array(base64String) {
               </span>
               <div>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: t.ink }}>
-                  {pushStatus === 'granted' && pushSubscribed ? 'Web Push Notifications Active' : 'Enable Web Push Notifications'}
+                  {pushStatus === 'granted' && pushSubscribed ? tr('reminders.pushActive') : tr('reminders.pushEnable')}
                 </p>
                 <p style={{ margin: '2px 0 0', fontSize: 12, color: t.inkSoft }}>
                   {pushStatus === 'granted' && pushSubscribed
-                    ? 'Scheduled push alerts will ring directly on this device.'
-                    : 'Get gentle push notifications on time even when DiaBuddy is closed.'}
+                    ? tr('reminders.pushActiveHint')
+                    : tr('reminders.pushEnableHint')}
                 </p>
               </div>
             </div>
@@ -478,7 +493,7 @@ function urlBase64ToUint8Array(base64String) {
                   fontFamily: t.fontBody,
                 }}
               >
-                Turn Off Push
+                {tr('reminders.turnOffPush')}
               </button>
             ) : (
               <button
@@ -497,7 +512,7 @@ function urlBase64ToUint8Array(base64String) {
                   fontFamily: t.fontBody,
                 }}
               >
-                Enable Push
+                {tr('reminders.enablePush')}
               </button>
             )}
           </div>
@@ -529,7 +544,7 @@ function urlBase64ToUint8Array(base64String) {
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: t.inkSoft, fontSize: 14 }}>
-              Loading your reminders...
+              {tr('reminders.loading')}
             </div>
           ) : error ? (
             <div
@@ -563,7 +578,7 @@ function urlBase64ToUint8Array(base64String) {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Retry
+                {tr('reminders.retry')}
               </button>
             </div>
           ) : (
@@ -572,9 +587,9 @@ function urlBase64ToUint8Array(base64String) {
               <section style={{ marginBottom: 36 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', color: t.inkFaint }}>
-                    Default Reminders
+                    {tr('reminders.defaultSection')}
                   </h2>
-                  <span style={{ fontSize: 12, color: t.inkFaint }}>Core health routines</span>
+                  <span style={{ fontSize: 12, color: t.inkFaint }}>{tr('reminders.defaultHint')}</span>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -588,7 +603,7 @@ function urlBase64ToUint8Array(base64String) {
                         padding: '16px 18px',
                         borderRadius: 18,
                         border: `1.5px solid ${t.lineStrong}`,
-                        background: '#FFF',
+                        background: t.surface,
                         boxShadow: t.shadowCard,
                         opacity: r.enabled ? 1 : 0.65,
                         transition: 'all 0.15s ease',
@@ -611,16 +626,16 @@ function urlBase64ToUint8Array(base64String) {
                       </span>
 
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: t.ink }}>{r.title}</p>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: t.ink }}>{translateReminderTitle(r.title, tr)}</p>
                         <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft, display: 'flex', alignItems: 'center', gap: 6 }}>
                           <Clock size={13} color={t.inkFaint} />
                           <strong>
                             {r.title === 'Doctor Appointment' && r.appointmentDate
-                              ? `${formatTime12h(r.time)} · ${new Date(r.appointmentDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
-                              : formatTime12h(r.time)}
+                              ? `${formatTime12h(r.time, tr('reminders.notSet'))} · ${new Date(r.appointmentDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                              : formatTime12h(r.time, tr('reminders.notSet'))}
                           </strong>
                           <span style={{ color: t.inkFaint, fontSize: 12 }}>
-                            ({r.repeat === 'daily' ? 'Daily' : r.repeat === 'weekly' ? 'Weekly' : 'Custom Days'})
+                            ({r.repeat === 'daily' ? tr('reminders.daily') : r.repeat === 'weekly' ? tr('reminders.weekly') : tr('reminders.customDays')})
                           </span>
                         </p>
                       </div>
@@ -645,7 +660,7 @@ function urlBase64ToUint8Array(base64String) {
                         }}
                       >
                         <Edit2 size={13} />
-                        Edit
+                        {tr('reminders.edit')}
                       </button>
 
                       {/* Toggle ON/OFF Switch */}
@@ -653,7 +668,7 @@ function urlBase64ToUint8Array(base64String) {
                         type="button"
                         onClick={() => handleToggle(r.id)}
                         aria-pressed={r.enabled}
-                        title={r.enabled ? 'Turn OFF' : 'Turn ON'}
+                        title={r.enabled ? tr('reminders.turnOff') : tr('reminders.turnOn')}
                         style={{
                           width: 48,
                           height: 28,
@@ -690,7 +705,7 @@ function urlBase64ToUint8Array(base64String) {
               <section>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', color: t.inkFaint }}>
-                    Custom Reminders
+                    {tr('reminders.customSection')}
                   </h2>
                   <button
                     type="button"
@@ -711,7 +726,7 @@ function urlBase64ToUint8Array(base64String) {
                     }}
                   >
                     <Plus size={15} />
-                    Add Custom Reminder
+                    {tr('reminders.addCustom')}
                   </button>
                 </div>
 
@@ -723,7 +738,7 @@ function urlBase64ToUint8Array(base64String) {
                       textAlign: 'center',
                       borderRadius: 18,
                       border: `1.5px dashed ${t.lineStrong}`,
-                      background: 'rgba(255, 255, 255, 0.6)',
+                      background: t.surfaceSunken,
                     }}
                   >
                     <span
@@ -741,16 +756,16 @@ function urlBase64ToUint8Array(base64String) {
                     >
                       <Bell size={22} />
                     </span>
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: t.ink }}>No custom reminders yet</p>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: t.ink }}>{tr('reminders.emptyTitle')}</p>
                     <p style={{ margin: '4px 0 16px', fontSize: 13, color: t.inkSoft }}>
-                      Create tailored reminders for vitamins, BP checks, eye drops, or custom health activities.
+                      {tr('reminders.emptyHint')}
                     </p>
                     <button
                       type="button"
                       onClick={openAddModal}
                       style={{
                         border: `1px solid ${t.lineStrong}`,
-                        background: '#FFF',
+                        background: t.surface,
                         color: t.ink,
                         padding: '8px 16px',
                         borderRadius: 10,
@@ -764,7 +779,7 @@ function urlBase64ToUint8Array(base64String) {
                       }}
                     >
                       <Plus size={14} />
-                      Add Custom Reminder
+                      {tr('reminders.addCustom')}
                     </button>
                   </div>
                 ) : (
@@ -779,7 +794,7 @@ function urlBase64ToUint8Array(base64String) {
                           padding: '16px 18px',
                           borderRadius: 18,
                           border: `1.5px solid ${t.lineStrong}`,
-                          background: '#FFF',
+                          background: t.surface,
                           boxShadow: t.shadowCard,
                           opacity: r.enabled ? 1 : 0.65,
                           transition: 'all 0.15s ease',
@@ -805,9 +820,9 @@ function urlBase64ToUint8Array(base64String) {
                           <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: t.ink }}>{r.title}</p>
                           <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft, display: 'flex', alignItems: 'center', gap: 6 }}>
                             <Clock size={13} color={t.inkFaint} />
-                            <strong>{formatTime12h(r.time)}</strong>
+                            <strong>{formatTime12h(r.time, tr('reminders.notSet'))}</strong>
                             <span style={{ color: t.inkFaint, fontSize: 12 }}>
-                              ({r.repeat === 'daily' ? 'Daily' : r.repeat === 'weekly' ? 'Weekly' : 'Custom Days'})
+                              ({r.repeat === 'daily' ? tr('reminders.daily') : r.repeat === 'weekly' ? tr('reminders.weekly') : tr('reminders.customDays')})
                             </span>
                           </p>
                         </div>
@@ -832,7 +847,7 @@ function urlBase64ToUint8Array(base64String) {
                           }}
                         >
                           <Edit2 size={13} />
-                          Edit
+                          {tr('reminders.edit')}
                         </button>
 
                         {/* Delete Button */}
@@ -855,7 +870,7 @@ function urlBase64ToUint8Array(base64String) {
                           }}
                         >
                           <Trash2 size={13} />
-                          Delete
+                          {tr('reminders.delete')}
                         </button>
 
                         {/* Toggle ON/OFF Switch */}
@@ -863,7 +878,7 @@ function urlBase64ToUint8Array(base64String) {
                           type="button"
                           onClick={() => handleToggle(r.id)}
                           aria-pressed={r.enabled}
-                          title={r.enabled ? 'Turn OFF' : 'Turn ON'}
+                          title={r.enabled ? tr('reminders.turnOff') : tr('reminders.turnOn')}
                           style={{
                             width: 48,
                             height: 28,
@@ -931,7 +946,7 @@ function urlBase64ToUint8Array(base64String) {
                 maxHeight: '90vh',
                 margin: '0 auto',
                 overflowY: 'auto',
-                background: '#FFF',
+                background: t.surface,
                 borderRadius: 24,
                 padding: 24,
                 boxShadow: t.shadowLifted,
@@ -940,7 +955,11 @@ function urlBase64ToUint8Array(base64String) {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <h3 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, color: t.ink }}>
-                  {editingItem ? (editingItem.type === 'default' ? `Edit ${editingItem.title}` : 'Edit Custom Reminder') : 'Add Custom Reminder'}
+                  {editingItem
+                    ? editingItem.type === 'default'
+                      ? tr('reminders.editDefaultTemplate').replace('{title}', translateReminderTitle(editingItem.title, tr))
+                      : tr('reminders.editCustom')
+                    : tr('reminders.addCustom')}
                 </h3>
                 <button
                   type="button"
@@ -955,20 +974,20 @@ function urlBase64ToUint8Array(base64String) {
                 {/* Title */}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', marginBottom: 6 }}>
-                    Reminder Name
+                    {tr('reminders.reminderName')}
                   </label>
                   <input
                     type="text"
-                    value={formTitle}
+                    value={editingItem?.type === 'default' ? translateReminderTitle(formTitle, tr) : formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
                     disabled={editingItem && editingItem.type === 'default'}
-                    placeholder="e.g., Vitamin D, Check BP"
+                    placeholder={tr('reminders.titlePlaceholder')}
                     style={{
                       width: '100%',
                       padding: '10px 14px',
                       borderRadius: 12,
                       border: `1.5px solid ${t.line}`,
-                      background: editingItem && editingItem.type === 'default' ? t.surfaceSunken : '#FFF',
+                      background: editingItem && editingItem.type === 'default' ? t.surfaceSunken : t.surface,
                       fontSize: 14,
                       color: t.ink,
                       outline: 'none',
@@ -978,7 +997,7 @@ function urlBase64ToUint8Array(base64String) {
                   />
                   {editingItem && editingItem.type === 'default' && (
                     <p style={{ margin: '4px 0 0', fontSize: 12, color: t.inkFaint }}>
-                      Default reminder titles cannot be changed.
+                      {tr('reminders.defaultTitleLocked')}
                     </p>
                   )}
                 </div>
@@ -987,7 +1006,7 @@ function urlBase64ToUint8Array(base64String) {
                 {(!editingItem || editingItem.type === 'custom') && (
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', marginBottom: 6 }}>
-                      Icon
+                      {tr('reminders.icon')}
                     </label>
                     <div style={{ display: 'flex', gap: 8 }}>
                       {['💊', '🩺', '👁️', '💉', '🩸', '🌙', '📅', '🔔'].map((icon) => (
@@ -1016,7 +1035,7 @@ function urlBase64ToUint8Array(base64String) {
                 {formTitle === 'Doctor Appointment' ? (
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', marginBottom: 6 }}>
-                      Appointment Date & Time
+                      {tr('reminders.apptDateTime')}
                     </label>
                     <input
                       type="datetime-local"
@@ -1035,12 +1054,13 @@ function urlBase64ToUint8Array(base64String) {
                         padding: '10px 14px',
                         borderRadius: 12,
                         border: `1.5px solid ${t.line}`,
-                        background: '#FFF',
+                        background: t.surface,
                         fontSize: 14,
                         color: t.ink,
                         outline: 'none',
                         boxSizing: 'border-box',
                         fontFamily: t.fontBody,
+                        colorScheme: 'light dark',
                       }}
                     />
                   </div>
@@ -1048,7 +1068,7 @@ function urlBase64ToUint8Array(base64String) {
                   /* Time */
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', marginBottom: 6 }}>
-                      Time (24-Hour Format)
+                      {tr('reminders.timeLabel')}
                     </label>
                     <input
                       type="time"
@@ -1059,16 +1079,17 @@ function urlBase64ToUint8Array(base64String) {
                         padding: '10px 14px',
                         borderRadius: 12,
                         border: `1.5px solid ${t.line}`,
-                        background: '#FFF',
+                        background: t.surface,
                         fontSize: 14,
                         color: t.ink,
                         outline: 'none',
                         boxSizing: 'border-box',
                         fontFamily: t.fontBody,
+                        colorScheme: 'light dark',
                       }}
                     />
                     <p style={{ margin: '4px 0 0', fontSize: 12, color: t.inkSoft }}>
-                      Display time: <strong>{formatTime12h(formTime)}</strong>
+                      {tr('reminders.displayTime')} <strong>{formatTime12h(formTime, tr('reminders.notSet'))}</strong>
                     </p>
                   </div>
                 )}
@@ -1076,13 +1097,13 @@ function urlBase64ToUint8Array(base64String) {
                 {/* Repeat Selector */}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', marginBottom: 6 }}>
-                    Repeat Schedule
+                    {tr('reminders.repeatSchedule')}
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                     {[
-                      { id: 'daily', label: 'Daily' },
-                      { id: 'weekly', label: 'Weekly' },
-                      { id: 'custom', label: 'Custom Days' },
+                      { id: 'daily', label: tr('reminders.daily') },
+                      { id: 'weekly', label: tr('reminders.weekly') },
+                      { id: 'custom', label: tr('reminders.customDays') },
                     ].map((opt) => (
                       <button
                         key={opt.id}
@@ -1113,7 +1134,7 @@ function urlBase64ToUint8Array(base64String) {
                 {(formRepeat === 'weekly' || formRepeat === 'custom') && (
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', marginBottom: 6 }}>
-                      {formRepeat === 'weekly' ? 'Select Day of Week' : 'Select Active Days'}
+                      {formRepeat === 'weekly' ? tr('reminders.selectDayOfWeek') : tr('reminders.selectActiveDays')}
                     </label>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {ALL_DAYS.map((day) => {
@@ -1136,7 +1157,7 @@ function urlBase64ToUint8Array(base64String) {
                               fontFamily: t.fontBody,
                             }}
                           >
-                            {day}
+                            {tr(`reminders.days.${day}`)}
                           </button>
                         );
                       })}
@@ -1146,7 +1167,7 @@ function urlBase64ToUint8Array(base64String) {
 
                 {/* Enable Switch */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: t.ink }}>Notification On</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: t.ink }}>{tr('reminders.notificationOn')}</span>
                   <button
                     type="button"
                     onClick={() => setFormEnabled(!formEnabled)}
@@ -1194,7 +1215,7 @@ function urlBase64ToUint8Array(base64String) {
                       fontFamily: t.fontBody,
                     }}
                   >
-                    Cancel
+                    {tr('reminders.cancel')}
                   </button>
                   <button
                     type="submit"
@@ -1213,7 +1234,7 @@ function urlBase64ToUint8Array(base64String) {
                       fontFamily: t.fontBody,
                     }}
                   >
-                    {saving ? 'Saving...' : 'Save Reminder'}
+                    {saving ? tr('reminders.saving') : tr('reminders.saveReminder')}
                   </button>
                 </div>
               </form>
@@ -1250,7 +1271,7 @@ function urlBase64ToUint8Array(base64String) {
                 width: '100%',
                 maxWidth: 400,
                 margin: '0 auto',
-                background: '#FFF',
+                background: t.surface,
                 borderRadius: 20,
                 padding: 24,
                 boxShadow: t.shadowLifted,
@@ -1274,10 +1295,10 @@ function urlBase64ToUint8Array(base64String) {
                 <ShieldAlert size={24} />
               </div>
               <h3 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, color: t.ink }}>
-                Delete Custom Reminder?
+                {tr('reminders.deleteTitle')}
               </h3>
               <p style={{ margin: '8px 0 20px', fontSize: 14, color: t.inkSoft }}>
-                Are you sure you want to delete <strong>"{deletingItem.title}"</strong>? This action cannot be undone.
+                {tr('reminders.deleteConfirmTemplate').replace('{title}', deletingItem.title)}
               </p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
@@ -1296,7 +1317,7 @@ function urlBase64ToUint8Array(base64String) {
                     fontFamily: t.fontBody,
                   }}
                 >
-                  Cancel
+                  {tr('reminders.cancel')}
                 </button>
                 <button
                   type="button"
@@ -1316,7 +1337,7 @@ function urlBase64ToUint8Array(base64String) {
                     fontFamily: t.fontBody,
                   }}
                 >
-                  {deleting ? 'Deleting...' : 'Delete'}
+                  {deleting ? tr('reminders.deleting') : tr('reminders.delete')}
                 </button>
               </div>
             </div>

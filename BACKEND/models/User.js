@@ -70,6 +70,16 @@ const userSchema = new mongoose.Schema(
       postMealMin: { type: Number, default: 70 },
       postMealMax: { type: Number, default: 140 },
     },
+    /** Daily wellness goals used by dashboard summary rings. */
+    dailyGoals: {
+      waterMl: { type: Number, default: 2000, min: 250, max: 10000 },
+      steps: { type: Number, default: 8000, min: 500, max: 50000 },
+    },
+    /** When false, reminder scheduler skips in-app + web-push alerts. */
+    reminderAlertsEnabled: {
+      type: Boolean,
+      default: true,
+    },
     profileImageUrl: {
       type: String,
       default: '',

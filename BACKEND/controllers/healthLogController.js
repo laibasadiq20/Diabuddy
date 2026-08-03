@@ -274,6 +274,9 @@ exports.getTodaySummary = async (req, res) => {
     const moodLogs = await MoodLog.find(todayQuery).sort({ timestamp: -1 });
     const moodToday = moodLogs[0] ? moodLogs[0].mood : null;
 
+    const waterGoal = Number(req.user?.dailyGoals?.waterMl) || 2000;
+    const stepsGoal = Number(req.user?.dailyGoals?.steps) || 8000;
+
     res.json({
       status: 'success',
       data: {
@@ -281,9 +284,9 @@ exports.getTodaySummary = async (req, res) => {
         meals: { value: mealsCount, goal: 3 },
         insulin: { value: insulinUnits },
         medications: { value: medsTaken },
-        water: { value: waterTotal, goal: 2000 }, // default 2L
+        water: { value: waterTotal, goal: waterGoal },
         exercise: { value: exerciseTotal, goal: 30 }, // default 30 mins
-        steps: { value: stepsTotal, goal: 8000 },
+        steps: { value: stepsTotal, goal: stepsGoal },
         sleep: { value: sleepHours, goal: 8 },
         mood: { value: moodToday },
       },

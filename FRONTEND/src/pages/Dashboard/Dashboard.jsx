@@ -502,11 +502,11 @@ export default function Dashboard() {
               <div className="db-home-panel">
                 <header className="db-home-card-head">
                   <div>
-                    <p className="db-home-kicker">Reminders</p>
-                    <h2>Today's Schedule</h2>
+                    <p className="db-home-kicker">{tr('reminders.dashboard.kicker')}</p>
+                    <h2>{tr('reminders.dashboard.title')}</h2>
                   </div>
                   <button type="button" className="db-home-text-link" onClick={() => navigate('/reminders')}>
-                    Manage
+                    {tr('reminders.dashboard.manage')}
                     <ArrowRight size={14} />
                   </button>
                 </header>
@@ -524,7 +524,16 @@ export default function Dashboard() {
                       else if (iconName === '🌙' || titleLower.includes('bed')) iconEl = <Moon size={15} />;
                       else if (iconName === '📅' || titleLower.includes('doctor')) iconEl = <Calendar size={15} />;
 
-                      let timeStr = 'Not Set';
+                      const titleMap = {
+                        'Take Insulin': 'reminders.titles.takeInsulin',
+                        'Take Medicine': 'reminders.titles.takeMedicine',
+                        'Check Blood Glucose': 'reminders.titles.checkBloodGlucose',
+                        Bedtime: 'reminders.titles.bedtime',
+                        'Doctor Appointment': 'reminders.titles.doctorAppointment',
+                      };
+                      const displayTitle = titleMap[r.title] ? tr(titleMap[r.title]) : r.title;
+
+                      let timeStr = tr('reminders.notSet');
                       if (r.time && /^([01]\d|2[0-3]):([0-5]\d)$/.test(r.time)) {
                         const [h, m] = r.time.split(':').map(Number);
                         const period = h >= 12 ? 'PM' : 'AM';
@@ -551,7 +560,7 @@ export default function Dashboard() {
                             <span style={{ color: isComp ? t.sageDeep : t.ink, display: 'flex' }}>{iconEl}</span>
                             <div style={{ minWidth: 0 }}>
                               <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: t.ink, textDecoration: isComp ? 'line-through' : 'none' }}>
-                                {r.title}
+                                {displayTitle}
                               </p>
                               <p style={{ margin: '1px 0 0', fontSize: 11, color: t.inkSoft }}>
                                 {timeStr}
@@ -571,7 +580,7 @@ export default function Dashboard() {
                               display: 'flex',
                               alignItems: 'center',
                             }}
-                            title={isComp ? 'Mark as Pending' : 'Mark as Completed'}
+                            title={isComp ? tr('reminders.dashboard.markPending') : tr('reminders.dashboard.markCompleted')}
                           >
                             {isComp ? <CheckCircle2 size={20} color={t.sageDeep} /> : <Circle size={20} color={t.lineStrong} />}
                           </button>
@@ -580,7 +589,7 @@ export default function Dashboard() {
                     })}
                   </div>
                 ) : (
-                  <p className="db-home-empty-note">No active reminders scheduled for today.</p>
+                  <p className="db-home-empty-note">{tr('reminders.dashboard.empty')}</p>
                 )}
               </div>
             </section>

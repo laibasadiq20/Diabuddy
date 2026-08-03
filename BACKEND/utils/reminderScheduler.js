@@ -56,40 +56,42 @@ async function processDueReminders() {
       try {
         const bodyMessage = getNotificationBody(reminder);
         const title = 'DiaBuddy Reminder';
-
-        // 1. Create In-App Notification in DB
-        await Notification.create({
-          recipientId: reminder.userId,
-          message: `${title}: ${bodyMessage}`,
-          type: 'reminder',
-          isRead: false,
-        });
-
-        // 2. Send Web Push Notification if user has push subscription
         const user = await User.findById(reminder.userId);
-        if (user && user.pushSubscription && user.pushSubscription.endpoint && vapidKeysConfigured) {
-          const payload = JSON.stringify({
-            title,
-            body: bodyMessage,
-            icon: '/favicon.svg',
-            data: { url: '/reminders' },
+        const alertsEnabled = user?.reminderAlertsEnabled !== false;
+
+        // 1. Create In-App Notification + push only when reminder alerts are enabled
+        if (alertsEnabled) {
+          await Notification.create({
+            recipientId: reminder.userId,
+            message: `${title}: ${bodyMessage}`,
+            type: 'reminder',
+            isRead: false,
           });
 
-          webPush
-            .sendNotification(user.pushSubscription, payload)
-            .catch((err) => {
-              if (err.statusCode === 410 || err.statusCode === 404) {
-                // Subscription has expired or revoked — clear subscription
-                User.findByIdAndUpdate(user._id, {
-                  pushSubscription: { endpoint: '', keys: { p256dh: '', auth: '' } },
-                }).catch(() => {});
-              } else {
-                console.warn(`Web push notification failed for user ${user._id}:`, err.message);
-              }
+          if (user && user.pushSubscription && user.pushSubscription.endpoint && vapidKeysConfigured) {
+            const payload = JSON.stringify({
+              title,
+              body: bodyMessage,
+              icon: '/favicon.svg',
+              data: { url: '/reminders' },
             });
+
+            webPush
+              .sendNotification(user.pushSubscription, payload)
+              .catch((err) => {
+                if (err.statusCode === 410 || err.statusCode === 404) {
+                  // Subscription has expired or revoked — clear subscription
+                  User.findByIdAndUpdate(user._id, {
+                    pushSubscription: { endpoint: '', keys: { p256dh: '', auth: '' } },
+                  }).catch(() => {});
+                } else {
+                  console.warn(`Web push notification failed for user ${user._id}:`, err.message);
+                }
+              });
+          }
         }
 
-        // 3. Recalculate nextTriggerAt and update lastTriggeredAt
+        // 2. Recalculate nextTriggerAt and update lastTriggeredAt
         reminder.lastTriggeredAt = now;
         reminder.nextTriggerAt = calculateNextTriggerAt(reminder, new Date(now.getTime() + 60000));
         await reminder.save();
