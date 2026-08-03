@@ -406,39 +406,3 @@ exports.savePushSubscription = async (req, res) => {
     return res.status(500).json({ status: 'error', message: 'Failed to save push subscription' });
   }
 };
-
-/**
- * POST /api/reminders/test-push
- * Immediately send a test web-push notification to the current user.
- */
-exports.sendTestPush = async (req, res) => {
-  try {
-    const { sendPushToUser } = require('../utils/reminderScheduler');
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ status: 'error', message: 'User not found' });
-    }
-
-    const result = await sendPushToUser(user, {
-      title: 'DiaBuddy Test',
-      body: 'Push notifications are working. You will get reminder alerts like this.',
-      icon: '/favicon.svg',
-      data: { url: '/reminders' },
-    });
-
-    if (!result.ok) {
-      return res.status(400).json({
-        status: 'error',
-        message: result.reason || 'Failed to send test push',
-      });
-    }
-
-    return res.json({
-      status: 'success',
-      message: 'Test notification sent',
-    });
-  } catch (err) {
-    console.error('sendTestPush error:', err);
-    return res.status(500).json({ status: 'error', message: 'Failed to send test push' });
-  }
-};

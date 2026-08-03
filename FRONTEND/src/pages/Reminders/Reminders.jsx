@@ -248,24 +248,6 @@ function urlBase64ToUint8Array(base64String) {
     }
   };
 
-  const handleTestPush = async () => {
-    try {
-      const res = await fetch(`${API_URL}/reminders/test-push`, {
-        method: 'POST',
-        headers: authHeaders(),
-        credentials: 'include',
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        showToast(data?.message || tr('reminders.toasts.testPushFailed'));
-        return;
-      }
-      showToast(tr('reminders.toasts.testPushSent'));
-    } catch (err) {
-      showToast(tr('reminders.toasts.testPushFailed'));
-    }
-  };
-
   // Disable / Turn Off Web Push Notifications
   const handleDisablePush = async () => {
     try {
@@ -503,67 +485,45 @@ function urlBase64ToUint8Array(base64String) {
                 </p>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              {pushStatus === 'granted' && pushSubscribed ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleTestPush}
-                    style={{
-                      border: `1px solid ${t.lineStrong}`,
-                      background: t.surface,
-                      color: t.ink,
-                      padding: '8px 14px',
-                      borderRadius: 10,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      fontFamily: t.fontBody,
-                    }}
-                  >
-                    {tr('reminders.testPush')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDisablePush}
-                    style={{
-                      border: `1px solid ${t.lineStrong}`,
-                      background: t.surfaceSunken,
-                      color: t.ink,
-                      padding: '8px 14px',
-                      borderRadius: 10,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      fontFamily: t.fontBody,
-                    }}
-                  >
-                    {tr('reminders.turnOffPush')}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleEnablePush}
-                  style={{
-                    border: 'none',
-                    background: t.forest,
-                    color: '#FFF',
-                    padding: '8px 14px',
-                    borderRadius: 10,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    fontFamily: t.fontBody,
-                  }}
-                >
-                  {tr('reminders.enablePush')}
-                </button>
-              )}
-            </div>
+            {pushStatus === 'granted' && pushSubscribed ? (
+              <button
+                type="button"
+                onClick={handleDisablePush}
+                style={{
+                  border: `1px solid ${t.lineStrong}`,
+                  background: t.surfaceSunken,
+                  color: t.ink,
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {tr('reminders.turnOffPush')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleEnablePush}
+                style={{
+                  border: 'none',
+                  background: t.forest,
+                  color: '#FFF',
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {tr('reminders.enablePush')}
+              </button>
+            )}
           </div>
 
           {/* Toast Notification */}
