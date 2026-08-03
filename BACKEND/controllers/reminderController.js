@@ -72,9 +72,21 @@ exports.getVapidPublicKey = (req, res) => {
 exports.getReminders = async (req, res) => {
   try {
     const userId = req.user.id;
-    await autoSeedDefaultReminders(userId);
+    const parsedTz = Number(req.query.tzOffset);
+    const tzOffset = Number.isFinite(parsedTz) ? parsedTz : 0;
+    await autoSeedDefaultReminders(userId, tzOffset);
 
+    // Keep schedules aligned to the client's local timezone.
     const reminders = await Reminder.find({ userId }).sort({ createdAt: 1 });
+    for (const r of reminders) {
+      if (r.tzOffset !== tzOffset) {
+        r.tzOffset = tzOffset;
+        if (r.enabled) {
+          r.nextTriggerAt = calculateNextTriggerAt(r, new Date(), tzOffset);
+        }
+        await r.save();
+      }
+    }
 
     const formatted = reminders.map((r) => {
       const doc = r.toObject();
@@ -107,7 +119,9 @@ exports.getReminders = async (req, res) => {
 exports.getTodayReminders = async (req, res) => {
   try {
     const userId = req.user.id;
-    await autoSeedDefaultReminders(userId);
+    const parsedTz = Number(req.query.tzOffset);
+    const tzOffset = Number.isFinite(parsedTz) ? parsedTz : 0;
+    await autoSeedDefaultReminders(userId, tzOffset);
 
     const reminders = await Reminder.find({ userId, enabled: true });
 
@@ -298,8 +312,11 @@ exports.toggleReminder = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Reminder not found' });
     }
 
+    const parsedTz = Number(req.body?.tzOffset);
+    if (Number.isFinite(parsedTz)) reminder.tzOffset = parsedTz;
+
     reminder.enabled = !reminder.enabled;
-    reminder.nextTriggerAt = calculateNextTriggerAt(reminder);
+    reminder.nextTriggerAt = calculateNextTriggerAt(reminder, new Date(), reminder.tzOffset || 0);
     await reminder.save();
 
     const doc = reminder.toObject();
@@ -387,5 +404,41 @@ exports.savePushSubscription = async (req, res) => {
   } catch (err) {
     console.error('savePushSubscription error:', err);
     return res.status(500).json({ status: 'error', message: 'Failed to save push subscription' });
+  }
+};
+
+/**
+ * POST /api/reminders/test-push
+ * Immediately send a test web-push notification to the current user.
+ */
+exports.sendTestPush = async (req, res) => {
+  try {
+    const { sendPushToUser } = require('../utils/reminderScheduler');
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    const result = await sendPushToUser(user, {
+      title: 'DiaBuddy Test',
+      body: 'Push notifications are working. You will get reminder alerts like this.',
+      icon: '/favicon.svg',
+      data: { url: '/reminders' },
+    });
+
+    if (!result.ok) {
+      return res.status(400).json({
+        status: 'error',
+        message: result.reason || 'Failed to send test push',
+      });
+    }
+
+    return res.json({
+      status: 'success',
+      message: 'Test notification sent',
+    });
+  } catch (err) {
+    console.error('sendTestPush error:', err);
+    return res.status(500).json({ status: 'error', message: 'Failed to send test push' });
   }
 };

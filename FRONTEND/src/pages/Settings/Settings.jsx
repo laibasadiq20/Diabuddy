@@ -7,8 +7,6 @@ import { API_URL } from '../../config/api';
 import { fromMgdl, mmolToMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
 import AppSidebar from '../../components/AppSidebar';
 import {
-  Bell,
-  BellOff,
   CheckCircle2,
   Droplet,
   Footprints,
@@ -60,7 +58,6 @@ export default function Settings() {
   const [ranges, setRanges] = useState(rangesToDisplay(DEFAULT_RANGES_MGDL, 'mg/dL'));
   const [waterMl, setWaterMl] = useState(2000);
   const [steps, setSteps] = useState(8000);
-  const [reminderAlertsEnabled, setReminderAlertsEnabled] = useState(true);
   const [savingKey, setSavingKey] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -72,7 +69,6 @@ export default function Settings() {
     setRanges(rangesToDisplay(user.targetRanges, unit));
     setWaterMl(user.dailyGoals?.waterMl ?? 2000);
     setSteps(user.dailyGoals?.steps ?? 8000);
-    setReminderAlertsEnabled(user.reminderAlertsEnabled !== false);
   }, [user]);
 
   const saveProfile = async (payload, key) => {
@@ -137,13 +133,6 @@ export default function Settings() {
       },
       'goals'
     );
-  };
-
-  const handleReminderAlertsToggle = async () => {
-    const next = !reminderAlertsEnabled;
-    setReminderAlertsEnabled(next);
-    const ok = await saveProfile({ reminderAlertsEnabled: next }, 'alerts');
-    if (!ok) setReminderAlertsEnabled(!next);
   };
 
   const labelStyle = {
@@ -394,52 +383,6 @@ export default function Settings() {
               {savingKey === 'goals' ? tr('settings.saving') : tr('settings.saveGoals')}
             </button>
           </form>
-
-          <div className="db-account-card" style={cardStyle}>
-            <p style={cardTitleStyle}>{tr('settings.notifications')}</p>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-              <div style={{ minWidth: 0 }}>
-                <label style={{ ...labelStyle, marginBottom: 4 }}>
-                  {reminderAlertsEnabled ? <Bell size={12} style={{ marginRight: 5 }} /> : <BellOff size={12} style={{ marginRight: 5 }} />}
-                  {tr('settings.reminderAlerts')}
-                </label>
-                <p style={{ margin: 0, fontSize: 12, color: t.inkFaint }}>{tr('settings.reminderAlertsHint')}</p>
-              </div>
-              <button
-                type="button"
-                onClick={handleReminderAlertsToggle}
-                disabled={savingKey === 'alerts'}
-                aria-pressed={reminderAlertsEnabled}
-                title={reminderAlertsEnabled ? tr('settings.turnOff') : tr('settings.turnOn')}
-                style={{
-                  width: 52,
-                  height: 30,
-                  borderRadius: 999,
-                  border: 'none',
-                  background: reminderAlertsEnabled ? t.sageDeep : t.line,
-                  cursor: savingKey === 'alerts' ? 'wait' : 'pointer',
-                  position: 'relative',
-                  padding: 0,
-                  flexShrink: 0,
-                  opacity: savingKey === 'alerts' ? 0.7 : 1,
-                }}
-              >
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 3,
-                    left: reminderAlertsEnabled ? 25 : 3,
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    background: '#FFF',
-                    transition: 'left 0.15s ease',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                  }}
-                />
-              </button>
-            </div>
-          </div>
         </div>
       </main>
 

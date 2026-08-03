@@ -104,7 +104,8 @@ export default function Reminders() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`${API_URL}/reminders`, {
+      const tzOffset = new Date().getTimezoneOffset();
+      const res = await fetch(`${API_URL}/reminders?tzOffset=${tzOffset}`, {
         headers: authHeaders(),
         credentials: 'include',
       });
@@ -211,33 +212,57 @@ function urlBase64ToUint8Array(base64String) {
         } catch (e) {}
       }
 
-      if (vapidPublicKey) {
-        const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+      if (!vapidPublicKey) {
+        showToast(tr('reminders.toasts.pushNoVapid'));
+        return;
+      }
+
+      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+      try {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey,
-        }).catch((e) => {
-          console.warn('VAPID subscription warning:', e);
-          return null;
         });
+      } catch (e) {
+        console.warn('VAPID subscription warning:', e);
+        showToast(tr('reminders.toasts.pushSubscribeFailed'));
+        return;
       }
 
-      if (sub) {
-        const subJson = sub.toJSON();
-        await fetch(`${API_URL}/reminders/push-subscription`, {
-          method: 'POST',
-          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ subscription: subJson }),
-        });
-        setPushSubscribed(true);
-        showToast(tr('reminders.toasts.pushEnabled'));
-      } else {
-        showToast(tr('reminders.toasts.pushInApp'));
+      const subJson = sub.toJSON();
+      const saveRes = await fetch(`${API_URL}/reminders/push-subscription`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ subscription: subJson }),
+      });
+      if (!saveRes.ok) {
+        showToast(tr('reminders.toasts.pushSaveFailed'));
+        return;
       }
+      setPushSubscribed(true);
+      showToast(tr('reminders.toasts.pushEnabled'));
     } catch (err) {
       console.error('Push error:', err);
-      showToast(tr('reminders.toasts.pushInApp'));
+      showToast(tr('reminders.toasts.pushSubscribeFailed'));
+    }
+  };
+
+  const handleTestPush = async () => {
+    try {
+      const res = await fetch(`${API_URL}/reminders/test-push`, {
+        method: 'POST',
+        headers: authHeaders(),
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        showToast(data?.message || tr('reminders.toasts.testPushFailed'));
+        return;
+      }
+      showToast(tr('reminders.toasts.testPushSent'));
+    } catch (err) {
+      showToast(tr('reminders.toasts.testPushFailed'));
     }
   };
 
@@ -273,8 +298,9 @@ function urlBase64ToUint8Array(base64String) {
     try {
       const res = await fetch(`${API_URL}/reminders/${id}/toggle`, {
         method: 'PATCH',
-        headers: authHeaders(),
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify({ tzOffset: new Date().getTimezoneOffset() }),
       });
       const data = await res.json();
       if (data.status === 'success') {
@@ -333,6 +359,7 @@ function urlBase64ToUint8Array(base64String) {
         appointmentDate: formApptDate ? new Date(formApptDate).toISOString() : null,
         enabled: formEnabled,
         icon: formIcon,
+        tzOffset: new Date().getTimezoneOffset(),
       };
 
       if (editingItem) {
@@ -476,45 +503,67 @@ function urlBase64ToUint8Array(base64String) {
                 </p>
               </div>
             </div>
-            {pushStatus === 'granted' && pushSubscribed ? (
-              <button
-                type="button"
-                onClick={handleDisablePush}
-                style={{
-                  border: `1px solid ${t.lineStrong}`,
-                  background: t.surfaceSunken,
-                  color: t.ink,
-                  padding: '8px 14px',
-                  borderRadius: 10,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  fontFamily: t.fontBody,
-                }}
-              >
-                {tr('reminders.turnOffPush')}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleEnablePush}
-                style={{
-                  border: 'none',
-                  background: t.forest,
-                  color: '#FFF',
-                  padding: '8px 14px',
-                  borderRadius: 10,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  fontFamily: t.fontBody,
-                }}
-              >
-                {tr('reminders.enablePush')}
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {pushStatus === 'granted' && pushSubscribed ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleTestPush}
+                    style={{
+                      border: `1px solid ${t.lineStrong}`,
+                      background: t.surface,
+                      color: t.ink,
+                      padding: '8px 14px',
+                      borderRadius: 10,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      fontFamily: t.fontBody,
+                    }}
+                  >
+                    {tr('reminders.testPush')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDisablePush}
+                    style={{
+                      border: `1px solid ${t.lineStrong}`,
+                      background: t.surfaceSunken,
+                      color: t.ink,
+                      padding: '8px 14px',
+                      borderRadius: 10,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      fontFamily: t.fontBody,
+                    }}
+                  >
+                    {tr('reminders.turnOffPush')}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleEnablePush}
+                  style={{
+                    border: 'none',
+                    background: t.forest,
+                    color: '#FFF',
+                    padding: '8px 14px',
+                    borderRadius: 10,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    fontFamily: t.fontBody,
+                  }}
+                >
+                  {tr('reminders.enablePush')}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Toast Notification */}

@@ -18,5 +18,6 @@ router.patch('/:id/toggle', reminderController.toggleReminder);
 router.patch('/:id/complete', reminderController.toggleComplete);
 
 router.post('/push-subscription', reminderController.savePushSubscription);
+router.post('/test-push', reminderController.sendTestPush);
 
 module.exports = router;

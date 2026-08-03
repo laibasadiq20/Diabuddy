@@ -68,26 +68,17 @@ async function processDueReminders() {
             isRead: false,
           });
 
-          if (user && user.pushSubscription && user.pushSubscription.endpoint && vapidKeysConfigured) {
-            const payload = JSON.stringify({
+          if (user) {
+            sendPushToUser(user, {
               title,
               body: bodyMessage,
               icon: '/favicon.svg',
               data: { url: '/reminders' },
+            }).then((result) => {
+              if (!result.ok && result.reason) {
+                console.warn(`Web push notification failed for user ${user._id}:`, result.reason);
+              }
             });
-
-            webPush
-              .sendNotification(user.pushSubscription, payload)
-              .catch((err) => {
-                if (err.statusCode === 410 || err.statusCode === 404) {
-                  // Subscription has expired or revoked — clear subscription
-                  User.findByIdAndUpdate(user._id, {
-                    pushSubscription: { endpoint: '', keys: { p256dh: '', auth: '' } },
-                  }).catch(() => {});
-                } else {
-                  console.warn(`Web push notification failed for user ${user._id}:`, err.message);
-                }
-              });
           }
         }
 
@@ -118,8 +109,36 @@ function initReminderScheduler() {
   setInterval(processDueReminders, 5000);
 }
 
+/**
+ * Send a one-off web push to a user (used by test endpoint + scheduler).
+ * @returns {Promise<{ ok: boolean, reason?: string }>}
+ */
+async function sendPushToUser(user, payloadObj) {
+  if (!vapidKeysConfigured) {
+    return { ok: false, reason: 'VAPID keys are not configured on the server' };
+  }
+  if (!user?.pushSubscription?.endpoint) {
+    return { ok: false, reason: 'No push subscription saved for this user' };
+  }
+
+  const payload = JSON.stringify(payloadObj);
+  try {
+    await webPush.sendNotification(user.pushSubscription, payload);
+    return { ok: true };
+  } catch (err) {
+    if (err.statusCode === 410 || err.statusCode === 404) {
+      await User.findByIdAndUpdate(user._id, {
+        pushSubscription: { endpoint: '', keys: { p256dh: '', auth: '' } },
+      }).catch(() => {});
+      return { ok: false, reason: 'Push subscription expired — enable push again' };
+    }
+    return { ok: false, reason: err.message || 'Web push failed' };
+  }
+}
+
 module.exports = {
   initReminderScheduler,
   processDueReminders,
   getVapidPublicKey,
+  sendPushToUser,
 };

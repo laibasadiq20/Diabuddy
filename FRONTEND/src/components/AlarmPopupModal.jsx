@@ -161,7 +161,7 @@ export default function AlarmPopupModal() {
         }
 
         // 2. Check today's reminders schedule
-        const remRes = await fetch(`${API_URL}/reminders/today`, {
+        const remRes = await fetch(`${API_URL}/reminders/today?tzOffset=${new Date().getTimezoneOffset()}`, {
           headers,
           credentials: 'include',
         });

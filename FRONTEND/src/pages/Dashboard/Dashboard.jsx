@@ -154,7 +154,7 @@ export default function Dashboard() {
             credentials: 'include',
             headers,
           }),
-          fetch(`${API_URL}/reminders/today`, {
+          fetch(`${API_URL}/reminders/today?tzOffset=${tzOffset}`, {
             credentials: 'include',
             headers,
           }),
