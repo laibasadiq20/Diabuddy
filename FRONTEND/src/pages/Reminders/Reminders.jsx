@@ -406,21 +406,8 @@ function urlBase64ToUint8Array(base64String) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: `linear-gradient(180deg, #EDE6DA 0%, ${t.bg} 45%)`, fontFamily: t.fontBody }}>
       <AppSidebar />
-      <main style={{ flex: 1, minWidth: 0, padding: '28px 20px 64px' }}>
-        <div style={{ maxWidth: 560, margin: '0 auto' }}>
-          <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
-            Reminders
-          </p>
-          <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(26px, 6vw, 32px)', fontWeight: 500, color: t.ink }}>
-            Reminders
-          </h1>
-          <p style={{ margin: '8px 0 24px', fontSize: 14, color: t.inkSoft }}>
-            A preview of soft nudges for checks and meds. Reminders aren’t sending yet — toggle what you’d want on so it’s ready when they go live.
-          </p>
-
       <main style={{ flex: 1, minWidth: 0, padding: '28px 20px 80px' }}>
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
-          
           {/* Header */}
           <div style={{ marginBottom: 24 }}>
             <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
