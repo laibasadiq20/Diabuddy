@@ -127,8 +127,16 @@ app.use('/api/google-health', googleHealthRoutes);
 const reminderRoutes = require('./routes/reminderRoutes');
 app.use('/api/reminders', reminderRoutes);
 
+const mealAnalyzeRoutes = require('./routes/mealAnalyzeRoutes');
+app.use('/api/meals', mealAnalyzeRoutes);
+
 const { initReminderScheduler } = require('./utils/reminderScheduler');
 initReminderScheduler();
+
+console.log(
+  'GEMINI =',
+  process.env.GEMINI_API_KEY ? `Configured ✅ (${process.env.GEMINI_MODEL || 'gemini-2.0-flash'})` : 'Missing ❌ (AI meal analyzer disabled)'
+);
 
 // Test / health routes
 app.get('/api/test', (req, res) => {

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../../../theme';
 import { useAuth } from '../../../context/AuthContext';
 import { useI18n } from '../../../i18n/I18nContext';
+import { API_URL } from '../../../config/api';
 import { Annoyed, Frown, Laugh, Loader2, Meh, Smile } from 'lucide-react';
 
 const t = theme;
@@ -235,6 +236,8 @@ const MEAL_TYPE_KEYS = { Breakfast: 'breakfast', Lunch: 'lunch', Dinner: 'dinner
 
 function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
   const { t: tr } = useI18n();
+  const { authHeaders } = useAuth();
+  const fileInputRef = useRef(null);
   const [form, setForm] = useState({
     mealType: 'Breakfast',
     foodItems: '',
@@ -248,6 +251,11 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     timestamp: toLocalInput(),
   });
   const [nutritionMode, setNutritionMode] = useState('manual');
+  const [aiFile, setAiFile] = useState(null);
+  const [aiPreview, setAiPreview] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState('');
+  const [aiResultMeta, setAiResultMeta] = useState(null);
 
   useEffect(() => {
     setForm({
@@ -263,7 +271,17 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
     setNutritionMode('manual');
+    setAiFile(null);
+    setAiPreview('');
+    setAnalyzeError('');
+    setAiResultMeta(null);
   }, [initialRaw]);
+
+  useEffect(() => {
+    return () => {
+      if (aiPreview) URL.revokeObjectURL(aiPreview);
+    };
+  }, [aiPreview]);
 
   const impactOptions = [
     { value: 'High', label: tr('logEntryForm.meal.impact.high') },
@@ -271,12 +289,138 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     { value: 'Low', label: tr('logEntryForm.meal.impact.low') },
   ];
 
+  const canSave =
+    nutritionMode === 'manual' ||
+    (form.foodItems.trim() && form.carbohydrates !== '');
+
+  const clearAiPhoto = () => {
+    if (aiPreview) URL.revokeObjectURL(aiPreview);
+    setAiFile(null);
+    setAiPreview('');
+    setAnalyzeError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const onPickAiPhoto = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setAnalyzeError(tr('logEntryForm.meal.aiInvalidImage'));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAnalyzeError(tr('logEntryForm.meal.aiImageTooLarge'));
+      return;
+    }
+    if (aiPreview) URL.revokeObjectURL(aiPreview);
+    setAiFile(file);
+    setAiPreview(URL.createObjectURL(file));
+    setAnalyzeError('');
+    setAiResultMeta(null);
+  };
+
+  const analyzeMealPhoto = async () => {
+    if (!aiFile || analyzing) return;
+    setAnalyzing(true);
+    setAnalyzeError('');
+    try {
+      const body = new FormData();
+      body.append('image', aiFile);
+      const res = await fetch(`${API_URL}/meals/analyze`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...authHeaders() },
+        body,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || tr('logEntryForm.meal.aiAnalyzeFailed'));
+      }
+      const result = data.data;
+      const n = result?.nutrition || {};
+      const dishName = result?.foodName || result?.identification?.dishName || '';
+      setForm((prev) => ({
+        ...prev,
+        foodItems: dishName || prev.foodItems,
+        carbohydrates: n.carbohydrates != null ? String(n.carbohydrates) : prev.carbohydrates,
+        protein: n.protein != null ? String(n.protein) : prev.protein,
+        fat: n.fat != null ? String(n.fat) : prev.fat,
+        calories: n.calories != null ? String(n.calories) : prev.calories,
+      }));
+      setAiResultMeta({
+        matchScore: result?.matchScore,
+        identifiedAs: result?.identification?.dishName,
+        disclaimer: result?.disclaimer,
+        alternatives: result?.alternatives || [],
+      });
+    } catch (err) {
+      setAnalyzeError(err.message || tr('logEntryForm.meal.aiAnalyzeFailed'));
+      setAiResultMeta(null);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const macroInputs = (
+    <div className="db-log-macro-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <Field title={tr('logEntryForm.meal.carbsG')}>
+        <input
+          required={canSave}
+          type="number"
+          min="0"
+          step="0.1"
+          inputMode="decimal"
+          value={form.carbohydrates}
+          onChange={(e) => setForm({ ...form, carbohydrates: e.target.value })}
+          style={field}
+          placeholder="45"
+        />
+      </Field>
+      <Field title={tr('logEntryForm.meal.proteinG')}>
+        <input
+          type="number"
+          min="0"
+          step="0.1"
+          inputMode="decimal"
+          value={form.protein}
+          onChange={(e) => setForm({ ...form, protein: e.target.value })}
+          style={field}
+          placeholder="20"
+        />
+      </Field>
+      <Field title={tr('logEntryForm.meal.fatG')}>
+        <input
+          type="number"
+          min="0"
+          step="0.1"
+          inputMode="decimal"
+          value={form.fat}
+          onChange={(e) => setForm({ ...form, fat: e.target.value })}
+          style={field}
+          placeholder="12"
+        />
+      </Field>
+      <Field title={tr('logEntryForm.meal.caloriesKcal')}>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          inputMode="numeric"
+          value={form.calories}
+          onChange={(e) => setForm({ ...form, calories: e.target.value })}
+          style={field}
+          placeholder="350"
+        />
+      </Field>
+    </div>
+  );
+
   return (
     <form
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
-        if (nutritionMode !== 'manual') return;
+        if (!canSave) return;
         const body = {
           mealType: form.mealType,
           foodItems: form.foodItems,
@@ -308,7 +452,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
 
       <Field title={tr('logEntryForm.meal.foodDescription')}>
         <textarea
-          required
+          required={nutritionMode === 'manual' || Boolean(aiResultMeta)}
           rows={3}
           value={form.foodItems}
           onChange={(e) => setForm({ ...form, foodItems: e.target.value })}
@@ -372,60 +516,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
             <p style={{ ...hint, marginTop: 0, marginBottom: 10 }}>
               {tr('logEntryForm.meal.carbsHint')}
             </p>
-            <div
-              className="db-log-macro-grid"
-              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}
-            >
-              <Field title={tr('logEntryForm.meal.carbsG')}>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  inputMode="decimal"
-                  value={form.carbohydrates}
-                  onChange={(e) => setForm({ ...form, carbohydrates: e.target.value })}
-                  style={field}
-                  placeholder="45"
-                />
-              </Field>
-              <Field title={tr('logEntryForm.meal.proteinG')}>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  inputMode="decimal"
-                  value={form.protein}
-                  onChange={(e) => setForm({ ...form, protein: e.target.value })}
-                  style={field}
-                  placeholder="20"
-                />
-              </Field>
-              <Field title={tr('logEntryForm.meal.fatG')}>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  inputMode="decimal"
-                  value={form.fat}
-                  onChange={(e) => setForm({ ...form, fat: e.target.value })}
-                  style={field}
-                  placeholder="12"
-                />
-              </Field>
-              <Field title={tr('logEntryForm.meal.caloriesKcal')}>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  inputMode="numeric"
-                  value={form.calories}
-                  onChange={(e) => setForm({ ...form, calories: e.target.value })}
-                  style={field}
-                  placeholder="350"
-                />
-              </Field>
-            </div>
+            {macroInputs}
           </>
         )}
 
@@ -433,17 +524,139 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           <div
             key="nutrition-ai"
             style={{
-              padding: '18px 16px',
+              padding: '16px',
               borderRadius: 10,
               border: `1px dashed ${t.lineStrong}`,
               background: t.surfaceRaised,
-              textAlign: 'center',
             }}
           >
             <p style={{ margin: 0, fontSize: 14, fontWeight: 650, color: t.ink }}>{tr('logEntryForm.meal.aiTitle')}</p>
-            <p style={{ margin: '6px 0 0', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
+            <p style={{ margin: '6px 0 12px', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
               {tr('logEntryForm.meal.aiBody')}
             </p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={onPickAiPhoto}
+              style={{ display: 'none' }}
+            />
+
+            {aiPreview ? (
+              <div style={{ marginBottom: 12 }}>
+                <img
+                  src={aiPreview}
+                  alt=""
+                  style={{
+                    width: '100%',
+                    maxHeight: 220,
+                    objectFit: 'cover',
+                    borderRadius: 10,
+                    border: `1px solid ${t.lineStrong}`,
+                    display: 'block',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={analyzing}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: `1px solid ${t.lineStrong}`,
+                      background: t.surface,
+                      color: t.ink,
+                      fontWeight: 650,
+                      fontSize: 13,
+                      cursor: analyzing ? 'not-allowed' : 'pointer',
+                      fontFamily: t.fontBody,
+                    }}
+                  >
+                    {tr('logEntryForm.meal.aiChangePhoto')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearAiPhoto}
+                    disabled={analyzing}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: `1px solid ${t.lineStrong}`,
+                      background: t.surface,
+                      color: t.inkSoft,
+                      fontWeight: 650,
+                      fontSize: 13,
+                      cursor: analyzing ? 'not-allowed' : 'pointer',
+                      fontFamily: t.fontBody,
+                    }}
+                  >
+                    {tr('logEntryForm.meal.aiRemovePhoto')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={analyzeMealPhoto}
+                    disabled={analyzing || !aiFile}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: `1.5px solid ${t.forest}`,
+                      background: t.forest,
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: analyzing || !aiFile ? 'not-allowed' : 'pointer',
+                      fontFamily: t.fontBody,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      opacity: analyzing || !aiFile ? 0.7 : 1,
+                    }}
+                  >
+                    {analyzing ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : null}
+                    {analyzing ? tr('logEntryForm.meal.aiAnalyzing') : tr('logEntryForm.meal.aiAnalyze')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  width: '100%',
+                  padding: '18px 14px',
+                  borderRadius: 10,
+                  border: `1.5px dashed ${t.lineStrong}`,
+                  background: t.surface,
+                  color: t.ink,
+                  fontWeight: 650,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {tr('logEntryForm.meal.aiUploadPhoto')}
+              </button>
+            )}
+
+            {analyzeError ? (
+              <p style={{ margin: '10px 0 0', fontSize: 13, color: '#b42318', lineHeight: 1.45 }}>
+                {analyzeError}
+              </p>
+            ) : null}
+
+            {aiResultMeta ? (
+              <div style={{ marginTop: 14 }}>
+                <p style={{ ...hint, marginTop: 0, marginBottom: 10 }}>
+                  {tr('logEntryForm.meal.aiMatchHint')}
+                  {form.foodItems ? ` (${form.foodItems})` : ''}
+                </p>
+                {macroInputs}
+                <p style={{ ...hint, marginTop: 10 }}>{tr('logEntryForm.meal.aiDisclaimer')}</p>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
@@ -496,10 +709,10 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
         />
       </Field>
 
-      {nutritionMode === 'manual' ? (
+      {canSave ? (
         <Submit submitting={submitting} isEdit={isEdit} tr={tr} />
       ) : (
-        <p style={{ ...hint, marginTop: 4 }}>{tr('logEntryForm.meal.savingManualOnly')}</p>
+        <p style={{ ...hint, marginTop: 4 }}>{tr('logEntryForm.meal.savingAiHint')}</p>
       )}
     </form>
   );

@@ -148,3 +148,9 @@ vite.config.ts.timestamp-*
 /headers*.txt
 /b_ck*.txt
 /h_ck*.txt
+
+# Large raw Kaggle CSVs (filtered JSON is kept under BACKEND/data/food)
+/recipes_master.csv
+/recipe_nutrition.csv
+/recipe_ingredients.csv
+/recipe_steps.csv
