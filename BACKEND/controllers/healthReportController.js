@@ -10,6 +10,19 @@ const MoodLog = require('../models/MoodLog');
 const TIR_LOW = 70;
 const TIR_HIGH = 180;
 const MS_DAY = 24 * 60 * 60 * 1000;
+/** US fl oz — matches frontend waterUnits.js (storage stays ml). */
+const ML_PER_US_FLOZ = 29.5735295625;
+const WATER_GOAL_ML = 2000;
+
+function mlToUsFlOz(ml) {
+  const n = Number(ml);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n / ML_PER_US_FLOZ);
+}
+
+function formatWaterOz(ml) {
+  return `${mlToUsFlOz(ml)} oz`;
+}
 
 function toMgDl(level, unit) {
   const n = Number(level);
@@ -729,9 +742,8 @@ function buildStoryReport(period) {
     );
   }
   if (m.avgWaterPerDay != null && m.avgWaterPerDay < 1500 && m.totalWaterMl > 0) {
-    const liters = (m.avgWaterPerDay / 1000).toFixed(1);
     recommendations.push(
-      `Increase water intake to at least 2 L/day, as your average intake ${when} was ${liters} L (${m.avgWaterPerDay} ml/day), below the common recommended level.`
+      `Increase water intake to at least ${formatWaterOz(WATER_GOAL_ML)}/day (~2 L); your average ${when} was ${formatWaterOz(m.avgWaterPerDay)}/day.`
     );
   }
   if (m.totalExerciseMinutes === 0 && (m.dayCount || 0) >= 3) {
@@ -785,7 +797,7 @@ function buildStoryReport(period) {
         : 'No meals logged.',
     lifestyle: [
       m.totalExerciseMinutes > 0 ? `${m.totalExerciseMinutes} activity min` : null,
-      m.totalWaterMl > 0 ? `${m.totalWaterMl} ml water` : null,
+      m.totalWaterMl > 0 ? `${formatWaterOz(m.totalWaterMl)} water` : null,
       m.avgSleepHours != null ? `${m.avgSleepHours} h avg sleep` : null,
       m.moodEntries > 0 ? `${m.moodEntries} mood entries` : null,
     ]
@@ -919,7 +931,7 @@ function buildInsights(period) {
   if (m.avgWaterPerDay != null && m.avgWaterPerDay < 1200 && m.totalWaterMl > 0) {
     insights.push({
       type: 'Suggestion',
-      message: `Average water intake was ${m.avgWaterPerDay} ml/day. A common daily target is around 2000 ml.`,
+      message: `Average water intake was ${formatWaterOz(m.avgWaterPerDay)}/day. A common daily target is around ${formatWaterOz(WATER_GOAL_ML)}.`,
     });
   }
 
