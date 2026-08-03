@@ -2,6 +2,7 @@
  * Call Gemini vision to identify a meal photo, then map to nutrition lookup data.
  */
 const { matchPakistaniFood } = require('./pakistaniFoodLookup');
+const { applyPortionToNutrition } = require('./mealNutritionCalc');
 
 const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
 
@@ -233,6 +234,7 @@ function pickNutrition(identification) {
     return {
       matched: false,
       foodName: identification.dishName,
+      food: null,
       nutrition: null,
       alternatives: [],
     };
@@ -255,6 +257,7 @@ function pickNutrition(identification) {
     matched: true,
     matchScore: Number(best.score.toFixed(3)),
     foodName: best.food.name,
+    food: best.food,
     queriedAs: best.queriedAs,
     nutrition: {
       carbohydrates: best.food.carbs_g,
@@ -268,15 +271,38 @@ function pickNutrition(identification) {
   };
 }
 
-async function analyzeMealImage({ buffer, mimeType }) {
+async function analyzeMealImage({ buffer, mimeType, dishWeightG, oilG }) {
   const identification = await identifyMealFromImage({ buffer, mimeType });
   const nutritionMatch = pickNutrition(identification);
 
+  if (nutritionMatch.matched && nutritionMatch.food) {
+    const scaled = applyPortionToNutrition(nutritionMatch.nutrition, nutritionMatch.food, {
+      dishWeightG,
+      oilG,
+    });
+    nutritionMatch.nutrition = {
+      carbohydrates: scaled.carbohydrates,
+      protein: scaled.protein,
+      fat: scaled.fat,
+      calories: scaled.calories,
+      fiber_g: scaled.fiber_g,
+      sugar_g: scaled.sugar_g,
+    };
+    nutritionMatch.portion = {
+      dishWeightG: Number(dishWeightG) || null,
+      oilG: Number(oilG) > 0 ? Number(oilG) : 0,
+      serving_basis: nutritionMatch.food.serving_basis || 'per_serving',
+    };
+  }
+
+  // Don't leak full food row to clients
+  const { food, ...safe } = nutritionMatch;
+
   return {
     identification,
-    ...nutritionMatch,
+    ...safe,
     disclaimer:
-      'AI meal estimates are approximate and for self-management only — not medical advice.',
+      'AI meal estimates are approximate and for self-management only — not medical advice. Scaled by the dish weight and oil you entered.',
   };
 }
 

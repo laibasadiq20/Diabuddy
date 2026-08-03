@@ -11,4 +11,6 @@ router.post(
   mealAnalyzeController.analyzeMeal
 );
 
+router.post('/calculate', mealAnalyzeController.calculateMealNutrition);
+
 module.exports = router;
