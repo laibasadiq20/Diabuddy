@@ -135,7 +135,7 @@ initReminderScheduler();
 
 console.log(
   'GEMINI =',
-  process.env.GEMINI_API_KEY ? `Configured ✅ (${process.env.GEMINI_MODEL || 'gemini-2.5-flash'})` : 'Missing ❌ (AI meal analyzer disabled)'
+  process.env.GEMINI_API_KEY ? `Configured ✅ (${process.env.GEMINI_MODEL || 'gemini-3.5-flash'})` : 'Missing ❌ (AI meal analyzer disabled)'
 );
 
 // Test / health routes

@@ -3,16 +3,18 @@
  */
 const { matchPakistaniFood } = require('./pakistaniFoodLookup');
 
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+
 function getModel() {
-  const raw = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
-  // Free-tier quota for 2.0 Flash is 0 (model shut down). Ignore stale env.
-  if (/^gemini-2\.0-flash(-lite)?$/i.test(raw)) {
+  const raw = (process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL).trim();
+  // 2.0 shut down; 2.5 blocked for new API projects — remap stale env.
+  if (/^gemini-2\.(0|5)-flash(-lite)?$/i.test(raw)) {
     console.warn(
-      `[meals/analyze] GEMINI_MODEL=${raw} is deprecated (free-tier limit 0). Using gemini-2.5-flash instead.`
+      `[meals/analyze] GEMINI_MODEL=${raw} is unavailable for new projects. Using ${DEFAULT_GEMINI_MODEL} instead.`
     );
-    return 'gemini-2.5-flash';
+    return DEFAULT_GEMINI_MODEL;
   }
-  return raw || 'gemini-2.5-flash';
+  return raw || DEFAULT_GEMINI_MODEL;
 }
 
 function extractJsonObject(text) {
