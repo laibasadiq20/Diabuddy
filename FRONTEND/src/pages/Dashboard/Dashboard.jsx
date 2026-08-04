@@ -17,7 +17,7 @@ import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
 import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
 import { formatWaterShort, mlToLiters, mlToUsFlOz, round0, round1 } from '../../utils/waterUnits';
-import { getUserTzOffset } from '../../utils/timezone';
+import { formatClock12, getUserTzOffset } from '../../utils/timezone';
 import {
   AlertTriangle,
   ArrowRight,
@@ -419,7 +419,7 @@ export default function Dashboard() {
     if (!googleHealth?.lastSyncAt) return null;
     const d = new Date(googleHealth.lastSyncAt);
     if (Number.isNaN(d.getTime())) return null;
-    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return formatClock12(d);
   }, [googleHealth?.lastSyncAt]);
 
   const heroCopy = useMemo(() => {

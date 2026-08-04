@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n/I18nContext';
 import AppSidebar from '../../components/AppSidebar';
 import { ArrowLeft, Link2Off, RefreshCw, Watch } from 'lucide-react';
+import { formatClock12 } from '../../utils/timezone';
 
 const t = theme;
 
@@ -86,9 +87,7 @@ export default function GoogleHealth() {
         data.data?.distanceKm ? `${data.data.distanceKm} ${tr('googleHealth.kmUnit')}` : null,
         data.data?.durationMinutes ? `${data.data.durationMinutes} ${tr('googleHealth.minUnit')}` : null,
       ].filter(Boolean);
-      const when = data.data?.lastSyncAt
-        ? new Date(data.data.lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : null;
+      const when = data.data?.lastSyncAt ? formatClock12(data.data.lastSyncAt) : null;
       setMessage(
         `${tr('googleHealth.syncedForToday')}${when ? ` ${tr('googleHealth.syncedAt').replace('{time}', when)}` : ''}: ${parts.join(' · ')}. ${tr('googleHealth.savedInActivityLogs')}`
       );
@@ -216,7 +215,7 @@ export default function GoogleHealth() {
                 <p style={{ margin: '0 0 8px', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
                   {connected
                     ? status?.lastSyncAt
-                      ? `${tr('googleHealth.lastSync').replace('{time}', new Date(status.lastSyncAt).toLocaleString())} · ${[
+                      ? `${tr('googleHealth.lastSync').replace('{time}', `${new Date(status.lastSyncAt).toLocaleDateString()} · ${formatClock12(status.lastSyncAt)}`)} · ${[
                           `${Number(status.lastSteps || 0).toLocaleString()} ${tr('googleHealth.stepsUnit')}`,
                           status.lastCalories ? `${status.lastCalories} ${tr('googleHealth.kcalUnit')}` : null,
                           status.lastDistanceKm ? `${status.lastDistanceKm} ${tr('googleHealth.kmUnit')}` : null,

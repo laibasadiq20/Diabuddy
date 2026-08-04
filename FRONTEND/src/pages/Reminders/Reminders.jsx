@@ -726,28 +726,38 @@ function urlBase64ToUint8Array(base64String) {
             )}
           </div>
 
-          {/* Toast Notification */}
+          {/* Toast — sit above mobile bottom tabs so the full message is readable */}
           {toastMessage && (
             <div
+              className="db-reminders-toast"
+              role="status"
               style={{
                 position: 'fixed',
-                bottom: 24,
-                right: 24,
-                zIndex: 9999,
+                left: 16,
+                right: 16,
+                bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+                zIndex: 200,
+                maxWidth: 420,
+                marginLeft: 'auto',
+                marginRight: 0,
                 background: t.forest,
                 color: '#FFF',
-                padding: '12px 18px',
-                borderRadius: 12,
+                padding: '14px 16px',
+                borderRadius: 14,
                 fontSize: 13,
                 fontWeight: 600,
+                lineHeight: 1.45,
                 boxShadow: t.shadowLifted,
                 display: 'flex',
-                alignItems: 'center',
-                gap: 8,
+                alignItems: 'flex-start',
+                gap: 10,
+                boxSizing: 'border-box',
               }}
             >
-              <Check size={16} color={t.sageSoft} />
-              {toastMessage}
+              <Check size={16} color={t.sageSoft} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span style={{ flex: 1, minWidth: 0, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                {toastMessage}
+              </span>
             </div>
           )}
 
@@ -1684,6 +1694,17 @@ function urlBase64ToUint8Array(base64String) {
           </div>,
           document.body
         )}
+      <style>{`
+        @media (min-width: 900px) {
+          .db-reminders-toast {
+            left: auto !important;
+            right: 24px !important;
+            bottom: 24px !important;
+            width: auto;
+            max-width: min(420px, calc(100vw - 48px));
+          }
+        }
+      `}</style>
     </div>
   );
 }

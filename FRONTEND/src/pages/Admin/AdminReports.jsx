@@ -6,6 +6,7 @@ import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { API_URL } from '../../config/api';
 import ThemedSelect from '../../components/ThemedSelect';
+import { formatClock12 } from '../../utils/timezone';
 import {
   Shield,
   Trash2,
@@ -1171,12 +1172,7 @@ export default function AdminReports() {
                                 {meta.label}
                               </span>
                               <span style={{ fontSize: 12, color: t.inkFaint, whiteSpace: 'nowrap' }}>
-                                {new Date(n.createdAt).toLocaleString(undefined, {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
+                                {`${new Date(n.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${formatClock12(n.createdAt)}`}
                               </span>
                             </span>
                             <span style={{ display: 'block', fontSize: 14, color: t.ink, fontWeight: n.isRead ? 500 : 700, lineHeight: 1.45 }}>

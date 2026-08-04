@@ -10,6 +10,7 @@ import { LogEntryForm } from './components/LogEntryForm';
 import { mlToUsFlOz, round0, round1 } from '../../utils/waterUnits';
 import { formatGlucoseReading, resolveGlucoseUnit } from '../../utils/glucoseUnits';
 import { useAuth } from '../../context/AuthContext';
+import { formatClock12 } from '../../utils/timezone';
 
 const t = theme;
 
@@ -31,9 +32,8 @@ function isSameLocalDay(dateLike, ref = new Date()) {
 }
 
 function formatTodayTime(dateLike, tr) {
-  const d = new Date(dateLike);
-  if (Number.isNaN(d.getTime())) return '';
-  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const time = formatClock12(dateLike);
+  if (!time) return '';
   return tr('logTypePage.todayAtTemplate').replace('{time}', time);
 }
 

@@ -33,6 +33,7 @@ import AppSidebar from '../../components/AppSidebar';
 import { downloadReportPdf } from './reportExport';
 import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
 import { mlToUsFlOz, round0, round1, mlToLiters } from '../../utils/waterUnits';
+import { formatClock12 } from '../../utils/timezone';
 
 const t = theme;
 
@@ -315,13 +316,11 @@ export default function Reports() {
   };
 
   const generatedLabel = report?.generatedAt
-    ? new Date(report.generatedAt).toLocaleString(undefined, {
+    ? `${new Date(report.generatedAt).toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+      })} · ${formatClock12(report.generatedAt)}`
     : '';
 
   return (

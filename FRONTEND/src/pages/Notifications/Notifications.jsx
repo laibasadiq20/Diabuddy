@@ -6,6 +6,7 @@ import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
+import { formatClock12 } from '../../utils/timezone';
 
 const t = theme;
 
@@ -160,12 +161,7 @@ export default function Notifications() {
                     {n.message}
                   </span>
                   <span style={{ display: 'block', marginTop: 6, fontSize: 12, color: t.inkFaint }}>
-                    {new Date(n.createdAt).toLocaleString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {`${new Date(n.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${formatClock12(n.createdAt)}`}
                   </span>
                 </button>
               ))

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowRight, Send, Award } from 'lucide-react';
 import { useI18n } from '../../../i18n/I18nContext';
+import { formatClock12 } from '../../../utils/timezone';
 
 const HowItWorks = () => {
   const navigate = useNavigate();
@@ -81,7 +82,7 @@ const HowItWorks = () => {
   const sendMockMessage = (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-    setMessages([...messages, { sender: 'me', text: chatInput, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    setMessages([...messages, { sender: 'me', text: chatInput, time: formatClock12(new Date()) }]);
     setChatInput('');
   };
 

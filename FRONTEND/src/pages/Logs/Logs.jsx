@@ -206,11 +206,11 @@ export default function Logs() {
               <ArrowLeft size={16} />
               {tr('common.back')}
             </button>
-            <p className="db-logs-hub-eyebrow">{tr('logs.eyebrow')}</p>
             <h1 className="db-logs-hub-title">
               <ClipboardList size={26} color={t.forest} strokeWidth={1.75} />
               {tr('logs.title')}
             </h1>
+            <p className="db-logs-hub-subtitle">{tr('logs.eyebrow')}</p>
             <p className="db-logs-hub-lead">
               {tr('logs.lead')}
             </p>
@@ -349,13 +349,12 @@ export default function Logs() {
           font-weight: 600;
           cursor: pointer;
         }
-        .db-logs-hub-eyebrow {
-          margin: 0 0 6px;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          color: ${t.inkFaint};
+        .db-logs-hub-subtitle {
+          margin: 8px 0 0;
+          font-size: 15px;
+          font-weight: 600;
+          color: ${t.inkSoft};
+          line-height: 1.4;
         }
         .db-logs-hub-title {
           margin: 0;
@@ -368,9 +367,9 @@ export default function Logs() {
           gap: 12px;
         }
         .db-logs-hub-lead {
-          margin: 12px 0 0;
-          font-size: 15px;
-          color: ${t.inkSoft};
+          margin: 6px 0 0;
+          font-size: 14px;
+          color: ${t.inkFaint};
           line-height: 1.55;
           max-width: none;
         }

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { theme } from '../../../theme';
 import { useI18n } from '../../../i18n/I18nContext';
+import { formatClock12 } from '../../../utils/timezone';
 
 const t = theme;
 
@@ -140,7 +141,7 @@ export default function CommentNode({
           </button>
 
           <span style={{ fontSize: '11px', color: t.inkFaint }}>
-            {new Date(node.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            {`${new Date(node.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${formatClock12(node.createdAt)}`}
           </span>
         </div>
 

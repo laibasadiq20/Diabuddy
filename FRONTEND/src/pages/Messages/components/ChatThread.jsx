@@ -18,14 +18,12 @@ import {
   isMessageReadByOthers,
 } from './messageHelpers';
 import { ConversationAvatar } from './ConversationList';
+import { formatClock12 } from '../../../utils/timezone';
 
 const t = theme;
 
 function formatMessageClock(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return formatClock12(iso);
 }
 
 function dayKey(iso) {

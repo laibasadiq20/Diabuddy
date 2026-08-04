@@ -111,3 +111,16 @@ export function timezoneLabel(timeZone) {
   const opt = TIMEZONE_OPTIONS.find((o) => o.value === timeZone);
   return opt ? opt.label : timeZone || DEFAULT_TIMEZONE;
 }
+
+/** Display clock in 12-hour AM/PM (not 24h), regardless of device locale. */
+export function formatClock12(dateOrIso, { seconds = false } = {}) {
+  if (dateOrIso == null || dateOrIso === '') return '';
+  const d = dateOrIso instanceof Date ? dateOrIso : new Date(dateOrIso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    ...(seconds ? { second: '2-digit' } : {}),
+    hour12: true,
+  });
+}

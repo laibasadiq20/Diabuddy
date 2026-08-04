@@ -65,6 +65,7 @@ async function processDueReminders() {
             recipientId: reminder.userId,
             message: `${title}: ${bodyMessage}`,
             type: 'reminder',
+            referenceId: reminder._id,
             isRead: false,
           });
 
@@ -73,7 +74,14 @@ async function processDueReminders() {
               title,
               body: bodyMessage,
               icon: '/favicon.svg',
-              data: { url: '/reminders' },
+              badge: '/favicon.svg',
+              tag: `reminder-${reminder._id}`,
+              renotify: true,
+              requireInteraction: true,
+              data: {
+                url: '/reminders',
+                reminderId: String(reminder._id),
+              },
             }).then((result) => {
               if (!result.ok && result.reason) {
                 console.warn(`Web push notification failed for user ${user._id}:`, result.reason);

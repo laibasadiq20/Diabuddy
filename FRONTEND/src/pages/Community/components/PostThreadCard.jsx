@@ -15,6 +15,7 @@ import {
 import { theme } from '../../../theme';
 import PollDisplay from './PollDisplay';
 import { useI18n } from '../../../i18n/I18nContext';
+import { formatClock12 } from '../../../utils/timezone';
 
 const t = theme;
 
@@ -116,7 +117,7 @@ export default function PostThreadCard({
             </h3>
             <p style={{ fontSize: '12px', color: t.inkFaint, margin: 0 }}>
               {!post.isAnonymous && post.authorId?.diabetesType ? `${post.authorId.diabetesType} · ` : ''}
-              {new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              {`${new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${formatClock12(post.createdAt)}`}
             </p>
           </div>
         </button>

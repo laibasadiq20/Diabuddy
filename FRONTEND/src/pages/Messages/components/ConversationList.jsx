@@ -8,6 +8,7 @@ import {
   getChatPartner,
   getChatPartnerName,
 } from './messageHelpers';
+import { formatClock12 } from '../../../utils/timezone';
 
 const t = theme;
 
@@ -20,7 +21,7 @@ function formatConversationTime(iso) {
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
-  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const time = formatClock12(d);
   if (sameDay) return time;
   const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   return `${date} · ${time}`;

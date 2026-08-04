@@ -1,11 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
 import { theme } from '../theme';
 import { API_URL } from '../config/api';
-import { getUserTzOffset } from '../utils/timezone';
-import { Clock, CheckCircle2, X, BellRing, Sparkles, AlarmClock, Bell, Pill, Syringe, Droplets, Moon, Calendar } from 'lucide-react';
+import { formatClock12, getUserTzOffset } from '../utils/timezone';
+import { CheckCircle2, X, BellRing, AlarmClock, Bell, Pill, Syringe, Droplets, Moon, Calendar } from 'lucide-react';
+
+/** How long after the scheduled minute the in-app alarm may still open. */
+const DUE_GRACE_MS = 90 * 1000;
+/** How long after a reminder notification is created it may open the blocking modal. */
+const NOTIF_MODAL_MAX_AGE_MS = 3 * 60 * 1000;
+/** Snooze duration before the alarm can show again. */
+const SNOOZE_MS = 10 * 60 * 1000;
+
+const HANDLED_STORAGE_KEY = 'diabuddy_handled_alarms';
+const SNOOZE_STORAGE_KEY = 'diabuddy_snoozed_alarms';
 
 function alarmIconEl(iconName, title, size = 22) {
   const id = String(iconName || '').trim();
@@ -28,24 +38,11 @@ const DEFAULT_TITLE_KEYS = {
   'Doctor Appointment': 'reminders.titles.doctorAppointment',
 };
 
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-// Play soft Web Audio API chime sound
 function playAlarmChime() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
-
     const playNote = (freq, startTime, duration) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -58,13 +55,101 @@ function playAlarmChime() {
       osc.start(startTime);
       osc.stop(startTime + duration);
     };
-
     const now = ctx.currentTime;
-    playNote(587.33, now, 0.4);        // D5
-    playNote(880.00, now + 0.25, 0.6); // A5
-  } catch (err) {
-    // Ignore audio autoplay restrictions if user has not interacted
+    playNote(587.33, now, 0.4);
+    playNote(880.0, now + 0.25, 0.6);
+  } catch {
+    // Ignore autoplay restrictions
   }
+}
+
+function readJson(key, fallback) {
+  try {
+    const saved = sessionStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(key, value) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+function wallParts(now, tzOffset) {
+  const wall = new Date(now.getTime() - tzOffset * 60000);
+  return {
+    wall,
+    dayKey: `${wall.getUTCFullYear()}-${wall.getUTCMonth()}-${wall.getUTCDate()}`,
+  };
+}
+
+function reminderHandledKey(remId, dayKey) {
+  return `rem:${remId}:${dayKey}`;
+}
+
+function notifHandledKey(notifId) {
+  return `notif:${notifId}`;
+}
+
+/** True only around the scheduled HH:mm in the user's timezone (plus short grace). */
+function isWithinDueWindow(remTime, now, tzOffset) {
+  if (!remTime || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(remTime)) return false;
+  const [h, m] = remTime.split(':').map(Number);
+  const { wall } = wallParts(now, tzOffset);
+  const scheduledMs = Date.UTC(
+    wall.getUTCFullYear(),
+    wall.getUTCMonth(),
+    wall.getUTCDate(),
+    h,
+    m,
+    0,
+    0
+  );
+  const nowWallMs = Date.UTC(
+    wall.getUTCFullYear(),
+    wall.getUTCMonth(),
+    wall.getUTCDate(),
+    wall.getUTCHours(),
+    wall.getUTCMinutes(),
+    wall.getUTCSeconds(),
+    wall.getUTCMilliseconds()
+  );
+  const diff = nowWallMs - scheduledMs;
+  return diff >= 0 && diff < DUE_GRACE_MS;
+}
+
+function parseTitleFromNotif(rawMsg) {
+  let bodyStr = rawMsg;
+  if (rawMsg.includes(':')) {
+    bodyStr = rawMsg.split(':').slice(1).join(':').trim();
+  }
+  let icon = 'bell';
+  let parsedTitle = 'Scheduled Reminder';
+  const lowerMsg = rawMsg.toLowerCase();
+  if (lowerMsg.includes('insulin')) {
+    icon = 'syringe';
+    parsedTitle = 'Take Insulin';
+  } else if (lowerMsg.includes('medicine') || lowerMsg.includes('vitamin')) {
+    icon = 'pill';
+    parsedTitle = 'Take Medicine';
+  } else if (lowerMsg.includes('blood glucose') || lowerMsg.includes('glucose')) {
+    icon = 'droplets';
+    parsedTitle = 'Check Blood Glucose';
+  } else if (lowerMsg.includes('bedtime')) {
+    icon = 'moon';
+    parsedTitle = 'Bedtime';
+  } else if (lowerMsg.includes('doctor') || lowerMsg.includes('appointment')) {
+    icon = 'calendar';
+    parsedTitle = 'Doctor Appointment';
+  } else if (rawMsg.includes('Reminder:')) {
+    parsedTitle = rawMsg.split('Reminder:')[1].replace(/\./g, '').trim();
+  }
+  return { icon, parsedTitle, bodyStr };
 }
 
 export default function AlarmPopupModal() {
@@ -73,34 +158,68 @@ export default function AlarmPopupModal() {
   const [activeAlarm, setActiveAlarm] = useState(null);
   const [completing, setCompleting] = useState(false);
   const [currentTimeStr, setCurrentTimeStr] = useState('');
-  const [handledNotifIds, setHandledNotifIds] = useState([]);
+  const [handledKeys, setHandledKeys] = useState(() => readJson(HANDLED_STORAGE_KEY, []));
+  const [snoozedUntil, setSnoozedUntil] = useState(() => readJson(SNOOZE_STORAGE_KEY, {}));
 
-  // Track triggered alarm IDs in session to avoid duplicate popups in the same minute
-  const [handledAlarms, setHandledAlarms] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem('diabuddy_handled_alarms');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const activeAlarmRef = useRef(null);
+  const handledKeysRef = useRef(handledKeys);
+  const snoozedUntilRef = useRef(snoozedUntil);
 
-  // Live digital clock string update
   useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      setCurrentTimeStr(
-        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-      );
-    };
+    activeAlarmRef.current = activeAlarm;
+  }, [activeAlarm]);
+  useEffect(() => {
+    handledKeysRef.current = handledKeys;
+  }, [handledKeys]);
+  useEffect(() => {
+    snoozedUntilRef.current = snoozedUntil;
+  }, [snoozedUntil]);
+
+  useEffect(() => {
+    const updateClock = () => setCurrentTimeStr(formatClock12(new Date(), { seconds: true }));
     updateClock();
     const interval = setInterval(updateClock, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Poll for due reminders and unread reminder notifications every 5 seconds
+  const addHandled = useCallback((key) => {
+    if (!key) return;
+    setHandledKeys((prev) => {
+      if (prev.includes(key)) return prev;
+      const next = [...prev, key];
+      writeJson(HANDLED_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const setSnooze = useCallback((key, untilMs) => {
+    if (!key) return;
+    setSnoozedUntil((prev) => {
+      const next = { ...prev, [key]: untilMs };
+      writeJson(SNOOZE_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const isSnoozed = useCallback((key) => {
+    const until = snoozedUntilRef.current[key];
+    return typeof until === 'number' && until > Date.now();
+  }, []);
+
+  const markNotifRead = useCallback(
+    (notifId) => {
+      if (!notifId) return;
+      fetch(`${API_URL}/notifications/${notifId}/read`, {
+        method: 'PUT',
+        headers: authHeaders ? authHeaders() : {},
+        credentials: 'include',
+      }).catch(() => {});
+    },
+    [authHeaders]
+  );
+
   useEffect(() => {
-    if (!user) return;
+    if (!user) return undefined;
     if (user.reminderAlertsEnabled === false) {
       setActiveAlarm(null);
       return undefined;
@@ -109,62 +228,53 @@ export default function AlarmPopupModal() {
     const checkDueReminders = async () => {
       try {
         const headers = authHeaders ? authHeaders() : {};
+        const now = new Date();
+        const offset = getUserTzOffset(user);
+        const { dayKey } = wallParts(now, offset);
+        const handled = handledKeysRef.current;
+        const current = activeAlarmRef.current;
 
-        // 1. Check unread inbox notifications for type === 'reminder'
-        const notifRes = await fetch(`${API_URL}/notifications`, {
+        // 1) Fresh unread reminder notifications only (not all-day backlog)
+        const notifRes = await fetch(`${API_URL}/notifications?limit=20`, {
           headers,
           credentials: 'include',
         });
         const notifData = await notifRes.json().catch(() => null);
 
         if (notifRes.ok && Array.isArray(notifData?.notifications)) {
-          const unreadReminderNotif = notifData.notifications.find(
-            (n) => n.type === 'reminder' && !n.isRead && !handledNotifIds.includes(n._id)
-          );
+          const fresh = notifData.notifications.find((n) => {
+            if (n.type !== 'reminder' || n.isRead) return false;
+            const nKey = notifHandledKey(n._id);
+            if (handled.includes(nKey)) return false;
+            if (isSnoozed(nKey)) return false;
+            const remKey = n.referenceId
+              ? reminderHandledKey(String(n.referenceId), dayKey)
+              : null;
+            if (remKey && (handled.includes(remKey) || isSnoozed(remKey))) return false;
+            const age = now.getTime() - new Date(n.createdAt).getTime();
+            return age >= 0 && age < NOTIF_MODAL_MAX_AGE_MS;
+          });
 
-          if (unreadReminderNotif) {
-            const rawMsg = unreadReminderNotif.message || 'DiaBuddy Reminder';
-            let bodyStr = rawMsg;
-            if (rawMsg.includes(':')) {
-              bodyStr = rawMsg.split(':').slice(1).join(':').trim();
-            }
-
-            let icon = 'bell';
-            let parsedTitle = 'Scheduled Reminder';
-            const lowerMsg = rawMsg.toLowerCase();
-
-            if (lowerMsg.includes('insulin')) {
-              icon = 'syringe';
-              parsedTitle = 'Take Insulin';
-            } else if (lowerMsg.includes('medicine') || lowerMsg.includes('vitamin')) {
-              icon = 'pill';
-              parsedTitle = 'Take Medicine';
-            } else if (lowerMsg.includes('blood glucose') || lowerMsg.includes('glucose')) {
-              icon = 'droplets';
-              parsedTitle = 'Check Blood Glucose';
-            } else if (lowerMsg.includes('bedtime')) {
-              icon = 'moon';
-              parsedTitle = 'Bedtime';
-            } else if (lowerMsg.includes('doctor') || lowerMsg.includes('appointment')) {
-              icon = 'calendar';
-              parsedTitle = 'Doctor Appointment';
-            } else if (rawMsg.includes('Reminder:')) {
-              parsedTitle = rawMsg.split('Reminder:')[1].replace(/\./g, '').trim();
-            }
-
-            const notifTime = new Date(unreadReminderNotif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
+          if (fresh) {
+            const rawMsg = fresh.message || 'DiaBuddy Reminder';
+            const { icon, parsedTitle, bodyStr } = parseTitleFromNotif(rawMsg);
+            const remId = fresh.referenceId ? String(fresh.referenceId) : null;
             const newAlarm = {
-              id: unreadReminderNotif._id,
-              notificationId: unreadReminderNotif._id,
+              id: remId || fresh._id,
+              reminderId: remId,
+              notificationId: fresh._id,
               title: parsedTitle,
               message: bodyStr,
               icon,
-              time: notifTime,
+              time: formatClock12(fresh.createdAt),
               isFromNotification: true,
+              handledKeys: [
+                notifHandledKey(fresh._id),
+                remId ? reminderHandledKey(remId, dayKey) : null,
+              ].filter(Boolean),
             };
 
-            if (!activeAlarm || activeAlarm.notificationId !== unreadReminderNotif._id) {
+            if (!current || current.notificationId !== fresh._id) {
               setActiveAlarm(newAlarm);
               playAlarmChime();
             }
@@ -172,53 +282,39 @@ export default function AlarmPopupModal() {
           }
         }
 
-        // 2. Check today's reminders schedule
-        const remRes = await fetch(`${API_URL}/reminders/today?tzOffset=${getUserTzOffset(user)}`, {
+        // 2) Schedule match — only within the due window (not all day after trigger)
+        const remRes = await fetch(`${API_URL}/reminders/today?tzOffset=${offset}`, {
           headers,
           credentials: 'include',
         });
         const remData = await remRes.json().catch(() => null);
 
         if (remRes.ok && remData?.status === 'success' && Array.isArray(remData.data)) {
-          const now = new Date();
-          const offset = getUserTzOffset(user);
-          const wall = new Date(now.getTime() - offset * 60000);
-          const currentHHMM = `${wall.getUTCHours().toString().padStart(2, '0')}:${wall.getUTCMinutes().toString().padStart(2, '0')}`;
-          const wallDayKey = `${wall.getUTCFullYear()}-${wall.getUTCMonth()}-${wall.getUTCDate()}`;
-
           const due = remData.data.find((rem) => {
             if (!rem.enabled || rem.isCompletedToday) return false;
-            const handledKey = `${rem.id}_${rem.time}_${wallDayKey}`;
-            if (handledAlarms.includes(handledKey)) return false;
-
-            // 1. Exact match for current HH:mm
-            if (rem.time === currentHHMM) return true;
-
-            // 2. Reminder was triggered today by backend
-            if (rem.lastTriggeredAt) {
-              const triggeredDate = new Date(rem.lastTriggeredAt);
-              const tw = new Date(triggeredDate.getTime() - offset * 60000);
-              const sameDay =
-                tw.getUTCFullYear() === wall.getUTCFullYear() &&
-                tw.getUTCMonth() === wall.getUTCMonth() &&
-                tw.getUTCDate() === wall.getUTCDate();
-              if (sameDay) return true;
-            }
-
-            // 3. Reminder nextTriggerAt is past or due right now
-            if (rem.nextTriggerAt) {
-              const nextTrigger = new Date(rem.nextTriggerAt);
-              if (nextTrigger <= now) {
-                return true;
-              }
-            }
-
-            return false;
+            const remId = rem.id || rem._id;
+            const key = reminderHandledKey(remId, dayKey);
+            if (handled.includes(key)) return false;
+            if (isSnoozed(key)) return false;
+            return isWithinDueWindow(rem.time, now, offset);
           });
 
-          if (due && (!activeAlarm || activeAlarm.id !== due.id)) {
-            setActiveAlarm(due);
-            playAlarmChime();
+          if (due) {
+            const remId = due.id || due._id;
+            const key = reminderHandledKey(remId, dayKey);
+            if (!current || current.id !== remId) {
+              setActiveAlarm({
+                ...due,
+                id: remId,
+                reminderId: remId,
+                handledKeys: [key],
+              });
+              playAlarmChime();
+            }
+          } else if (current && !current.isFromNotification && !current.notificationId) {
+            // Clear stale schedule alarm if we're outside the window
+            const stillDue = isWithinDueWindow(current.time, now, offset);
+            if (!stillDue) setActiveAlarm(null);
           }
         }
       } catch (err) {
@@ -227,18 +323,17 @@ export default function AlarmPopupModal() {
     };
 
     checkDueReminders();
-    const pollInterval = setInterval(checkDueReminders, 3000);
+    const pollInterval = setInterval(checkDueReminders, 5000);
     return () => clearInterval(pollInterval);
-  }, [user, handledAlarms, handledNotifIds, activeAlarm]);
+  }, [user, authHeaders, isSnoozed]);
 
-  // Listen for manual test trigger event from Reminders page
   useEffect(() => {
     const handleTestTrigger = (e) => {
       const demoReminder = e.detail || {
-        id: 'test_demo_' + Date.now(),
+        id: `test_demo_${Date.now()}`,
         title: 'Take Insulin',
         message: 'Time to take your insulin.',
-        time: `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`,
+        time: formatClock12(new Date()),
         icon: 'syringe',
         enabled: true,
         isCompletedToday: false,
@@ -246,33 +341,38 @@ export default function AlarmPopupModal() {
       setActiveAlarm(demoReminder);
       playAlarmChime();
     };
-
     window.addEventListener('diabuddy:trigger-test-alarm', handleTestTrigger);
     return () => window.removeEventListener('diabuddy:trigger-test-alarm', handleTestTrigger);
   }, []);
 
-  const markHandled = (remId, remTime) => {
-    const todayStr = new Date().toDateString();
-    const handledKey = `${remId}_${remTime}_${todayStr}`;
-    const nextHandled = [...handledAlarms, handledKey];
-    setHandledAlarms(nextHandled);
-    try {
-      sessionStorage.setItem('diabuddy_handled_alarms', JSON.stringify(nextHandled));
-    } catch {}
+  const clearAlarmKeys = (alarm, { snooze = false } = {}) => {
+    if (!alarm) return;
+    const offset = getUserTzOffset(user);
+    const { dayKey } = wallParts(new Date(), offset);
+    const keys = new Set(alarm.handledKeys || []);
+    if (alarm.notificationId) keys.add(notifHandledKey(alarm.notificationId));
+    if (alarm.reminderId || (alarm.id && !String(alarm.id).startsWith('test_'))) {
+      keys.add(reminderHandledKey(alarm.reminderId || alarm.id, dayKey));
+    }
+    const until = Date.now() + SNOOZE_MS;
+    keys.forEach((key) => {
+      if (snooze) setSnooze(key, until);
+      else addHandled(key);
+    });
   };
 
-  const handleDismiss = async () => {
+  const handleSnooze = () => {
     if (activeAlarm) {
-      if (activeAlarm.notificationId) {
-        setHandledNotifIds((prev) => [...prev, activeAlarm.notificationId]);
-        fetch(`${API_URL}/notifications/${activeAlarm.notificationId}/read`, {
-          method: 'PUT',
-          headers: authHeaders ? authHeaders() : {},
-          credentials: 'include',
-        }).catch(() => {});
-      } else {
-        markHandled(activeAlarm.id, activeAlarm.time);
-      }
+      clearAlarmKeys(activeAlarm, { snooze: true });
+      if (activeAlarm.notificationId) markNotifRead(activeAlarm.notificationId);
+    }
+    setActiveAlarm(null);
+  };
+
+  const handleDismiss = () => {
+    if (activeAlarm) {
+      clearAlarmKeys(activeAlarm, { snooze: false });
+      if (activeAlarm.notificationId) markNotifRead(activeAlarm.notificationId);
     }
     setActiveAlarm(null);
   };
@@ -282,18 +382,11 @@ export default function AlarmPopupModal() {
     try {
       setCompleting(true);
       const headers = authHeaders ? authHeaders() : {};
+      if (activeAlarm.notificationId) markNotifRead(activeAlarm.notificationId);
 
-      if (activeAlarm.notificationId) {
-        setHandledNotifIds((prev) => [...prev, activeAlarm.notificationId]);
-        fetch(`${API_URL}/notifications/${activeAlarm.notificationId}/read`, {
-          method: 'PUT',
-          headers,
-          credentials: 'include',
-        }).catch(() => {});
-      }
-
-      if (activeAlarm.id && !String(activeAlarm.id).startsWith('test_')) {
-        await fetch(`${API_URL}/reminders/${activeAlarm.id}/complete`, {
+      const remId = activeAlarm.reminderId || activeAlarm.id;
+      if (remId && !String(remId).startsWith('test_')) {
+        await fetch(`${API_URL}/reminders/${remId}/complete`, {
           method: 'PATCH',
           headers: { ...headers, 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -304,7 +397,7 @@ export default function AlarmPopupModal() {
         });
       }
 
-      markHandled(activeAlarm.id, activeAlarm.time);
+      clearAlarmKeys(activeAlarm, { snooze: false });
       setActiveAlarm(null);
       window.dispatchEvent(new Event('diabuddy:notifs-refresh'));
       window.dispatchEvent(new Event('diabuddy:reminders-refresh'));
@@ -317,14 +410,18 @@ export default function AlarmPopupModal() {
 
   if (!activeAlarm) return null;
 
-  const displayTime = activeAlarm.time
-    ? (() => {
-        const [h, m] = activeAlarm.time.split(':').map(Number);
-        const p = h >= 12 ? 'PM' : 'AM';
-        const h12 = h % 12 || 12;
-        return `${h12}:${m.toString().padStart(2, '0')} ${p}`;
-      })()
-    : 'Now';
+  const displayTime = (() => {
+    if (!activeAlarm.time) return 'Now';
+    const raw = String(activeAlarm.time).trim();
+    if (/am|pm/i.test(raw)) return raw;
+    if (/^([01]?\d|2[0-3]):([0-5]\d)$/.test(raw)) {
+      const [h, m] = raw.split(':').map(Number);
+      const p = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return `${h12}:${m.toString().padStart(2, '0')} ${p}`;
+    }
+    return raw;
+  })();
 
   return createPortal(
     <div
@@ -363,7 +460,6 @@ export default function AlarmPopupModal() {
           overflow: 'hidden',
         }}
       >
-        {/* Decorative Top Ambient Glow */}
         <div
           style={{
             position: 'absolute',
@@ -377,10 +473,11 @@ export default function AlarmPopupModal() {
           }}
         />
 
-        {/* Close Button */}
         <button
           type="button"
           onClick={handleDismiss}
+          aria-label={tr('common.close')}
+          title={tr('reminders.alarm.dismissToday')}
           style={{
             position: 'absolute',
             top: 18,
@@ -394,13 +491,12 @@ export default function AlarmPopupModal() {
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justify: 'center',
+            justifyContent: 'center',
           }}
         >
           <X size={18} />
         </button>
 
-        {/* Alarm Clock Icon (No Green Box) */}
         <div
           style={{
             display: 'inline-flex',
@@ -414,7 +510,6 @@ export default function AlarmPopupModal() {
           <AlarmClock size={56} style={{ filter: 'drop-shadow(0 6px 14px rgba(224, 122, 95, 0.4))' }} />
         </div>
 
-        {/* Alarm Time Badge */}
         <div
           style={{
             display: 'inline-flex',
@@ -434,12 +529,10 @@ export default function AlarmPopupModal() {
           {tr('reminders.alarm.atTemplate').replace('{time}', displayTime)}
         </div>
 
-        {/* Live Digital Clock */}
         <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 700, color: t.inkFaint }}>
           {tr('reminders.alarm.currentTime').replace('{time}', currentTimeStr)}
         </p>
 
-        {/* Reminder Title */}
         <h2
           style={{
             margin: '6px 0 8px',
@@ -449,7 +542,7 @@ export default function AlarmPopupModal() {
             color: t.ink,
             display: 'flex',
             alignItems: 'center',
-            justify: 'center',
+            justifyContent: 'center',
             gap: 8,
           }}
         >
@@ -463,27 +556,25 @@ export default function AlarmPopupModal() {
           </span>
         </h2>
 
-        {/* Description Message */}
         <p style={{ margin: '0 0 24px', fontSize: 14, color: t.inkSoft, lineHeight: 1.5, padding: '0 8px' }}>
           {activeAlarm.title?.toLowerCase().includes('insulin')
             ? tr('reminders.alarm.insulinMsg')
             : activeAlarm.title?.toLowerCase().includes('medicine')
-            ? tr('reminders.alarm.medicineMsg')
-            : activeAlarm.title?.toLowerCase().includes('blood glucose')
-            ? tr('reminders.alarm.glucoseMsg')
-            : tr('reminders.alarm.genericMsgTemplate').replace(
-                '{title}',
-                DEFAULT_TITLE_KEYS[activeAlarm.title]
-                  ? tr(DEFAULT_TITLE_KEYS[activeAlarm.title])
-                  : activeAlarm.title
-              )}
+              ? tr('reminders.alarm.medicineMsg')
+              : activeAlarm.title?.toLowerCase().includes('blood glucose')
+                ? tr('reminders.alarm.glucoseMsg')
+                : tr('reminders.alarm.genericMsgTemplate').replace(
+                    '{title}',
+                    DEFAULT_TITLE_KEYS[activeAlarm.title]
+                      ? tr(DEFAULT_TITLE_KEYS[activeAlarm.title])
+                      : activeAlarm.title
+                  )}
         </p>
 
-        {/* Action Buttons */}
         <div style={{ display: 'flex', gap: 12 }}>
           <button
             type="button"
-            onClick={handleDismiss}
+            onClick={handleSnooze}
             style={{
               flex: 1,
               padding: '13px',
@@ -512,10 +603,10 @@ export default function AlarmPopupModal() {
               color: '#FFF',
               fontSize: 14,
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor: completing ? 'wait' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justify: 'center',
+              justifyContent: 'center',
               gap: 8,
               boxShadow: '0 4px 14px rgba(45, 90, 39, 0.3)',
               fontFamily: t.fontBody,
