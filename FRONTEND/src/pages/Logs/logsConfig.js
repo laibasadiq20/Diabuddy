@@ -26,7 +26,7 @@ export const LOG_TYPES = [
     label: 'Meals & nutrition',
     icon: Utensils,
     hubLine: 'Record meals and track nutrition.',
-    tip: 'Need macros for a dish? Open Toolbox → Nutrition Calculator (search a food, weigh grams, optional oil), then enter the numbers here.',
+    tip: 'Need help? Open Toolbox → Nutrition Calculator, then enter the numbers here.',
   },
   {
     id: 'insulin',

@@ -383,51 +383,56 @@ export default function Reports() {
             </div>
 
             {preset === 'custom' && (
-              <div className="db-rep-dates">
-                <label>
-                  {tr('reports.from')}
-                  <input
-                    type="date"
-                    value={custom.start}
-                    max={custom.end || undefined}
-                    onChange={(e) => setCustom((c) => ({ ...c, start: e.target.value }))}
-                  />
-                </label>
-                <label>
-                  {tr('reports.to')}
-                  <input
-                    type="date"
-                    value={custom.end}
-                    min={custom.start || undefined}
-                    onChange={(e) => setCustom((c) => ({ ...c, end: e.target.value }))}
-                  />
-                </label>
+              <div className="db-rep-dates db-rep-dates--primary">
+                <p className="db-rep-dates-heading">{tr('reports.presets.custom')}</p>
+                <div className="db-rep-dates-row">
+                  <label>
+                    {tr('reports.from')}
+                    <input
+                      type="date"
+                      value={custom.start}
+                      max={custom.end || undefined}
+                      onChange={(e) => setCustom((c) => ({ ...c, start: e.target.value }))}
+                    />
+                  </label>
+                  <label>
+                    {tr('reports.to')}
+                    <input
+                      type="date"
+                      value={custom.end}
+                      min={custom.start || undefined}
+                      onChange={(e) => setCustom((c) => ({ ...c, end: e.target.value }))}
+                    />
+                  </label>
+                </div>
               </div>
             )}
 
             {compare && (
               <div className="db-rep-dates db-rep-dates--compare">
-                <p>
+                <p className="db-rep-dates-heading">
                   <CalendarRange size={14} /> {tr('reports.compareAgainst')}
                 </p>
-                <label>
-                  {tr('reports.from')}
-                  <input
-                    type="date"
-                    value={compareCustom.start}
-                    max={compareCustom.end || undefined}
-                    onChange={(e) => setCompareCustom((c) => ({ ...c, start: e.target.value }))}
-                  />
-                </label>
-                <label>
-                  {tr('reports.to')}
-                  <input
-                    type="date"
-                    value={compareCustom.end}
-                    min={compareCustom.start || undefined}
-                    onChange={(e) => setCompareCustom((c) => ({ ...c, end: e.target.value }))}
-                  />
-                </label>
+                <div className="db-rep-dates-row">
+                  <label>
+                    {tr('reports.from')}
+                    <input
+                      type="date"
+                      value={compareCustom.start}
+                      max={compareCustom.end || undefined}
+                      onChange={(e) => setCompareCustom((c) => ({ ...c, start: e.target.value }))}
+                    />
+                  </label>
+                  <label>
+                    {tr('reports.to')}
+                    <input
+                      type="date"
+                      value={compareCustom.end}
+                      min={compareCustom.start || undefined}
+                      onChange={(e) => setCompareCustom((c) => ({ ...c, end: e.target.value }))}
+                    />
+                  </label>
+                </div>
               </div>
             )}
           </div>
@@ -457,10 +462,15 @@ export default function Reports() {
             <>
               <div className="db-rep-period-line">
                 <strong>{period.label}</strong>
-                <span>{period.shortLabel}</span>
+                {period.shortLabel && period.shortLabel !== period.label && preset !== 'custom' ? (
+                  <span>{period.shortLabel}</span>
+                ) : null}
                 {comparePeriod ? (
                   <span className="db-rep-vs">
-                    {tr('reports.vs')} {comparePeriod.label} ({comparePeriod.shortLabel})
+                    {tr('reports.vs')} {comparePeriod.label}
+                    {comparePeriod.shortLabel && comparePeriod.shortLabel !== comparePeriod.label
+                      ? ` (${comparePeriod.shortLabel})`
+                      : ''}
                   </span>
                 ) : null}
                 {generatedLabel ? <span className="db-rep-generated">{tr('reports.generated')} {generatedLabel}</span> : null}
@@ -968,6 +978,28 @@ export default function Reports() {
         }
         .db-rep-dates {
           display: flex;
+          flex-direction: column;
+          gap: 10px;
+          width: 100%;
+          padding: 12px;
+          border-radius: 12px;
+          border: 1px solid ${t.lineStrong};
+          background: ${t.surfaceSunken};
+          box-sizing: border-box;
+        }
+        .db-rep-dates-heading {
+          margin: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          font-weight: 700;
+          color: ${t.inkSoft};
+          text-transform: none;
+          letter-spacing: 0;
+        }
+        .db-rep-dates-row {
+          display: flex;
           flex-wrap: wrap;
           gap: 12px;
           align-items: flex-end;
@@ -981,6 +1013,8 @@ export default function Reports() {
           color: ${t.inkFaint};
           text-transform: uppercase;
           letter-spacing: 0.04em;
+          flex: 1 1 140px;
+          min-width: 0;
         }
         .db-rep-dates input {
           border: 1px solid ${t.lineStrong};
@@ -989,23 +1023,12 @@ export default function Reports() {
           font-size: 14px;
           font-family: ${t.fontBody};
           color: ${t.ink};
-          background: ${t.surfaceSunken};
+          background: ${t.surface};
+          width: 100%;
+          box-sizing: border-box;
         }
         .db-rep-dates--compare {
-          padding-top: 10px;
-          border-top: 1px solid ${t.line};
-        }
-        .db-rep-dates--compare > p {
-          width: 100%;
-          margin: 0;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          color: ${t.inkSoft};
-          text-transform: none;
-          letter-spacing: 0;
+          margin-top: 4px;
         }
         .db-rep-compare-toggle {
           display: inline-flex;
@@ -1356,11 +1379,14 @@ export default function Reports() {
             font-size: 12px;
           }
           .db-rep-dates {
+            gap: 10px;
+          }
+          .db-rep-dates-row {
             flex-direction: column;
             align-items: stretch;
             gap: 10px;
           }
-          .db-rep-dates label { width: 100%; }
+          .db-rep-dates label { width: 100%; flex: 1 1 auto; }
           .db-rep-dates input {
             width: 100%;
             box-sizing: border-box;

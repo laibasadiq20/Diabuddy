@@ -107,17 +107,11 @@ function buildHourOptions() {
   });
 }
 
-function buildMinuteOptions(currentMinute) {
-  const opts = [];
-  for (let i = 0; i < 60; i += 5) {
-    opts.push({ value: pad2(i), label: pad2(i) });
-  }
-  const cur = currentMinute != null ? pad2(Number(currentMinute)) : null;
-  if (cur && !opts.some((o) => o.value === cur)) {
-    opts.push({ value: cur, label: cur });
-    opts.sort((a, b) => Number(a.value) - Number(b.value));
-  }
-  return opts;
+function buildMinuteOptions() {
+  return Array.from({ length: 60 }, (_, i) => ({
+    value: pad2(i),
+    label: pad2(i),
+  }));
 }
 
 /** Split HH:mm (24h) → { hour12, minute, period } */
@@ -1335,7 +1329,7 @@ function urlBase64ToUint8Array(base64String) {
                           const p = splitTime12(formTime);
                           setFormTime(joinTime12(p.hour12, minute, p.period));
                         }}
-                        options={buildMinuteOptions(splitTime12(formTime).minute)}
+                        options={buildMinuteOptions()}
                       />
                       <ThemedSelect
                         aria-label={tr('reminders.period')}
@@ -1376,7 +1370,7 @@ function urlBase64ToUint8Array(base64String) {
                           const p = splitTime12(formTime);
                           setFormTime(joinTime12(p.hour12, minute, p.period));
                         }}
-                        options={buildMinuteOptions(splitTime12(formTime).minute)}
+                        options={buildMinuteOptions()}
                       />
                       <ThemedSelect
                         aria-label={tr('reminders.period')}
@@ -1585,7 +1579,7 @@ function urlBase64ToUint8Array(base64String) {
                   border-radius: 10px;
                 }
                 .db-reminder-modal .db-themed-select-menu {
-                  max-height: 168px;
+                  max-height: min(280px, 45vh);
                 }
               `}</style>
             </div>

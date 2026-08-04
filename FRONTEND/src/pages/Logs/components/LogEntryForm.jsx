@@ -43,11 +43,94 @@ const hint = {
 
 const row = { display: 'flex', flexDirection: 'column', gap: 12 };
 
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function daysInMonth(year, month) {
+  return new Date(Number(year), Number(month), 0).getDate();
+}
+
+function buildHourOptions() {
+  return Array.from({ length: 12 }, (_, i) => {
+    const h = i + 1;
+    return { value: String(h), label: String(h) };
+  });
+}
+
+function buildMinuteOptions() {
+  return Array.from({ length: 60 }, (_, i) => ({
+    value: pad2(i),
+    label: pad2(i),
+  }));
+}
+
+function buildYearOptions() {
+  const y = new Date().getFullYear();
+  return Array.from({ length: 8 }, (_, i) => {
+    const year = String(y - 5 + i);
+    return { value: year, label: year };
+  });
+}
+
+function buildMonthOptions() {
+  return Array.from({ length: 12 }, (_, i) => {
+    const m = i + 1;
+    const label = new Date(2000, i, 1).toLocaleString('en-US', { month: 'short' });
+    return { value: String(m), label };
+  });
+}
+
+function buildDayOptions(year, month) {
+  const max = daysInMonth(year, month);
+  return Array.from({ length: max }, (_, i) => {
+    const d = i + 1;
+    return { value: String(d), label: String(d) };
+  });
+}
+
+function splitTime12(time24) {
+  if (!time24 || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(time24)) {
+    return { hour12: '8', minute: '00', period: 'AM' };
+  }
+  const [h24, m] = time24.split(':').map(Number);
+  const period = h24 >= 12 ? 'PM' : 'AM';
+  const hour12 = String(h24 % 12 || 12);
+  return { hour12, minute: pad2(m), period };
+}
+
+function joinTime12(hour12, minute, period) {
+  let h = Number(hour12) % 12;
+  if (period === 'PM') h += 12;
+  return `${pad2(h)}:${pad2(Number(minute) || 0)}`;
+}
+
+function splitDateParts(dateStr) {
+  const now = new Date();
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return {
+      year: String(now.getFullYear()),
+      month: String(now.getMonth() + 1),
+      day: String(now.getDate()),
+    };
+  }
+  const [y, mo, d] = dateStr.split('-');
+  return { year: y, month: String(Number(mo)), day: String(Number(d)) };
+}
+
+function joinDateParts(year, month, day) {
+  const y = Number(year);
+  const m = Number(month);
+  let d = Number(day);
+  const max = daysInMonth(y, m);
+  if (d > max) d = max;
+  return `${y}-${pad2(m)}-${pad2(d)}`;
+}
+
 function toLocalInput(value) {
   const d = value ? new Date(value) : new Date();
   if (Number.isNaN(d.getTime())) return toLocalInput(new Date());
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
 function splitLocal(ts) {
@@ -70,28 +153,84 @@ function Field({ title, help, children }) {
   );
 }
 
+const PERIOD_OPTIONS = [
+  { value: 'AM', label: 'AM' },
+  { value: 'PM', label: 'PM' },
+];
+
+/** Themed DiaBuddy date + 12h time — same pattern as Reminders (one row each). */
 function DateTimeFields({ value, onChange, tr }) {
   const { date, time } = splitLocal(value);
+  const dateParts = splitDateParts(date);
+  const timeParts = splitTime12(time);
+
+  const setDate = (year, month, day) => {
+    onChange(joinLocal(joinDateParts(year, month, day), time));
+  };
+  const setTime = (hour12, minute, period) => {
+    onChange(
+      joinLocal(
+        date || joinDateParts(dateParts.year, dateParts.month, dateParts.day),
+        joinTime12(hour12, minute, period)
+      )
+    );
+  };
+
+  const rowStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: 8,
+    width: '100%',
+  };
+
   return (
-    <div className="db-log-datetime">
-      <Field title={tr('logEntryForm.common.date')}>
-        <input
-          required
-          type="date"
-          value={date}
-          onChange={(e) => onChange(joinLocal(e.target.value, time))}
-          style={field}
-        />
-      </Field>
-      <Field title={tr('logEntryForm.common.time')}>
-        <input
-          required
-          type="time"
-          value={time}
-          onChange={(e) => onChange(joinLocal(date, e.target.value))}
-          style={field}
-        />
-      </Field>
+    <div className="db-log-datetime" style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%' }}>
+      <div>
+        <label style={label}>{tr('logEntryForm.common.date')}</label>
+        <div className="db-log-datetime-row" style={rowStyle}>
+          <ThemedSelect
+            aria-label="Day"
+            value={dateParts.day}
+            onChange={(day) => setDate(dateParts.year, dateParts.month, day)}
+            options={buildDayOptions(dateParts.year, dateParts.month)}
+          />
+          <ThemedSelect
+            aria-label="Month"
+            value={dateParts.month}
+            onChange={(month) => setDate(dateParts.year, month, dateParts.day)}
+            options={buildMonthOptions()}
+          />
+          <ThemedSelect
+            aria-label="Year"
+            value={dateParts.year}
+            onChange={(year) => setDate(year, dateParts.month, dateParts.day)}
+            options={buildYearOptions()}
+          />
+        </div>
+      </div>
+      <div>
+        <label style={label}>{tr('logEntryForm.common.time')}</label>
+        <div className="db-log-datetime-row" style={rowStyle}>
+          <ThemedSelect
+            aria-label="Hour"
+            value={timeParts.hour12}
+            onChange={(hour12) => setTime(hour12, timeParts.minute, timeParts.period)}
+            options={buildHourOptions()}
+          />
+          <ThemedSelect
+            aria-label="Minute"
+            value={timeParts.minute}
+            onChange={(minute) => setTime(timeParts.hour12, minute, timeParts.period)}
+            options={buildMinuteOptions()}
+          />
+          <ThemedSelect
+            aria-label="AM/PM"
+            value={timeParts.period}
+            onChange={(period) => setTime(timeParts.hour12, timeParts.minute, period)}
+            options={PERIOD_OPTIONS}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -312,8 +451,7 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
               color: t.forest,
               cursor: 'pointer',
               fontFamily: t.fontBody,
-              textDecoration: 'underline',
-              textUnderlineOffset: 2,
+              textDecoration: 'none',
             }}
           >
             {tr('logEntryForm.glucose.changeUnitInSettings', 'Change unit in Settings')}
@@ -860,11 +998,11 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
               style={{
                 marginTop: 12,
                 width: '100%',
-                padding: '12px 14px',
+                padding: '11px 14px',
                 borderRadius: 10,
-                border: `1px solid ${t.sage}66`,
-                background: t.sageTint,
-                color: t.sageDeep,
+                border: `1px solid ${t.lineStrong}`,
+                background: t.surface,
+                color: t.forest,
                 fontWeight: 650,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -1136,9 +1274,31 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           editLabel={tr('logEntryForm.common.updateMeal')}
         />
       ) : (
-        <p style={{ ...hint, marginTop: 4 }}>
-          {nutritionMode === 'ai' ? tr('logEntryForm.meal.savingAiHint') : tr('logEntryForm.meal.calcFirstHint')}
-        </p>
+        <>
+          <p style={{ ...hint, marginTop: 4 }}>
+            {nutritionMode === 'ai' ? tr('logEntryForm.meal.savingAiHint') : tr('logEntryForm.meal.calcFirstHint')}
+          </p>
+          <button
+            type="submit"
+            disabled
+            style={{
+              marginTop: 6,
+              width: '100%',
+              padding: '13px 16px',
+              borderRadius: 10,
+              border: 'none',
+              background: t.forest,
+              color: '#F7F3EC',
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: 'not-allowed',
+              fontFamily: t.fontBody,
+              opacity: 0.45,
+            }}
+          >
+            {isEdit ? tr('logEntryForm.common.updateMeal') : tr('logEntryForm.common.saveMeal')}
+          </button>
+        </>
       )}
     </form>
   );
@@ -2129,7 +2289,7 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
         <label style={label}>{tr('logEntryForm.mood.mood')}</label>
         <div
           className="db-log-mood-grid"
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))', gap: 8 }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 8 }}
         >
           {MOOD_OPTIONS.map((opt) => {
             const active = form.mood === opt.id;
@@ -2140,7 +2300,7 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
                 type="button"
                 onClick={() => setForm({ ...form, mood: opt.id })}
                 style={{
-                  padding: '12px 10px',
+                  padding: '10px 6px',
                   borderRadius: 12,
                   border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
                   background: active ? t.surfaceSunken : t.surface,
@@ -2150,11 +2310,25 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: 6,
+                  minHeight: 72,
+                  minWidth: 0,
                 }}
               >
                 <Icon size={22} strokeWidth={1.75} aria-hidden />
-                <span style={{ fontSize: 12, fontWeight: 650, color: t.ink }}>{tr(`logEntryForm.mood.moods.${opt.key}`, opt.id)}</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 650,
+                    color: t.ink,
+                    textAlign: 'center',
+                    lineHeight: 1.25,
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {tr(`logEntryForm.mood.moods.${opt.key}`, opt.id)}
+                </span>
               </button>
             );
           })}
@@ -2163,7 +2337,7 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
 
       <div>
         <label style={label}>{tr('logEntryForm.mood.stressLevel')}</label>
-        <div className="db-log-stress-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        <div className="db-log-stress-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
           {STRESS_LEVELS.map((level) => {
             const active = form.stressLevel === level;
             return (
@@ -2172,7 +2346,7 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
                 type="button"
                 onClick={() => setForm({ ...form, stressLevel: level })}
                 style={{
-                  padding: '11px 8px',
+                  padding: '12px 8px',
                   borderRadius: 10,
                   border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
                   background: active ? t.surfaceSunken : t.surface,
@@ -2181,6 +2355,7 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
                   fontSize: 13,
                   cursor: 'pointer',
                   fontFamily: t.fontBody,
+                  minHeight: 44,
                 }}
               >
                 {tr(`logEntryForm.mood.stress.${STRESS_LEVEL_KEYS[level]}`, level)}

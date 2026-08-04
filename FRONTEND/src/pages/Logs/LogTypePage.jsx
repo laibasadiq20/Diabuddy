@@ -14,13 +14,6 @@ import { formatClock12 } from '../../utils/timezone';
 
 const t = theme;
 
-const MEAL_EMOJI = {
-  Breakfast: '🍳',
-  Lunch: '🍲',
-  Dinner: '🍽',
-  Snack: '🥪',
-};
-
 function isSameLocalDay(dateLike, ref = new Date()) {
   const d = new Date(dateLike);
   if (Number.isNaN(d.getTime())) return false;
@@ -207,19 +200,34 @@ export default function LogTypePage() {
     const moodMeta = MOOD_CARD[raw.mood];
     const moodLabel = moodMeta ? tr(`logEntryForm.mood.moods.${moodMeta.key}`) : raw.mood || tr('logTypePage.entry.moodFallback');
     const MoodIcon = (moodMeta && moodMeta.Icon) || Smile;
-    const mealEmoji = MEAL_EMOJI[raw.mealType || item.title] || '🍽';
     const impact = raw.bloodSugarImpact;
     const insulinReason =
       raw.mealRelation && raw.mealRelation !== 'None' ? raw.mealRelation : item.valueStr;
+    const EntryIcon = config.icon;
+    const titleRow = (text) => (
+      <p
+        style={{
+          margin: 0,
+          fontWeight: 650,
+          fontSize: 15,
+          color: t.ink,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          minWidth: 0,
+        }}
+      >
+        {EntryIcon ? <EntryIcon size={17} strokeWidth={1.85} color={t.forest} aria-hidden style={{ flexShrink: 0 }} /> : null}
+        <span style={{ minWidth: 0, wordBreak: 'break-word' }}>{text}</span>
+      </p>
+    );
 
     return (
       <div key={item._id} className="db-log-entry-row" style={entryRow}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {isMeal ? (
             <>
-              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                {mealEmoji} {raw.mealType || item.title}
-              </p>
+              {titleRow(raw.mealType || item.title)}
               {raw.foodItems ? (
                 <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft, wordBreak: 'break-word' }}>
                   {raw.foodItems}
@@ -248,9 +256,7 @@ export default function LogTypePage() {
             </>
           ) : isInsulin ? (
             <>
-              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                💉 {raw.insulinType || item.title}
-              </p>
+              {titleRow(raw.insulinType || item.title)}
               <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
                 {tr('logTypePage.entry.unitsTemplate').replace('{n}', raw.units ?? 0)}
               </p>
@@ -264,9 +270,7 @@ export default function LogTypePage() {
             </>
           ) : isMedication ? (
             <>
-              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                💊 {raw.medicineName || item.title}
-              </p>
+              {titleRow(raw.medicineName || item.title)}
               <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
                 {raw.dose || item.subtitle}
               </p>
@@ -283,11 +287,11 @@ export default function LogTypePage() {
             </>
           ) : isWater ? (
             <>
-              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                {raw.amount != null
+              {titleRow(
+                raw.amount != null
                   ? `${round1(mlToUsFlOz(raw.amount))} oz`
-                  : item.title}
-              </p>
+                  : item.title
+              )}
               {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
               <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
                 {formatTodayTime(item.timestamp, tr)}
@@ -295,9 +299,7 @@ export default function LogTypePage() {
             </>
           ) : isExercise ? (
             <>
-              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                🏃 {raw.activity || item.title}
-              </p>
+              {titleRow(raw.activity || item.title)}
               <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
                 {[
                   raw.duration > 0 ? tr('logTypePage.entry.minTemplate').replace('{n}', raw.duration) : null,
@@ -325,9 +327,11 @@ export default function LogTypePage() {
             </>
           ) : isSleep ? (
             <>
-              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                🌙 {raw.totalHours != null ? tr('logTypePage.entry.hoursTemplate').replace('{n}', Number(raw.totalHours).toFixed(1)) : item.title}
-              </p>
+              {titleRow(
+                raw.totalHours != null
+                  ? tr('logTypePage.entry.hoursTemplate').replace('{n}', Number(raw.totalHours).toFixed(1))
+                  : item.title
+              )}
               <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
                 {raw.quality
                   ? tr(`logEntryForm.sleep.qualities.${raw.quality === 'Average' ? 'fair' : (raw.quality || '').toLowerCase()}`, raw.quality === 'Average' ? 'Fair' : raw.quality)
@@ -354,7 +358,7 @@ export default function LogTypePage() {
                   gap: 8,
                 }}
               >
-                <MoodIcon size={18} strokeWidth={1.75} color={t.forest} aria-hidden />
+                <MoodIcon size={17} strokeWidth={1.85} color={t.forest} aria-hidden />
                 {moodLabel}
               </p>
               <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
@@ -370,7 +374,7 @@ export default function LogTypePage() {
             </>
           ) : isGlucose ? (
             <>
-              <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>{glucoseTitle}</p>
+              {titleRow(glucoseTitle)}
               {item.subtitle && (
                 <p style={{ margin: '3px 0 0', fontSize: 13, color: t.inkSoft, wordBreak: 'break-word' }}>
                   {item.subtitle}
@@ -388,7 +392,7 @@ export default function LogTypePage() {
             </>
           ) : (
             <>
-              <p style={{ margin: 0, fontWeight: 650, fontSize: 14, color: t.ink }}>{item.title}</p>
+              {titleRow(item.title)}
               {item.subtitle && (
                 <p style={{ margin: '3px 0 0', fontSize: 13, color: t.inkSoft, wordBreak: 'break-word' }}>
                   {item.subtitle}
@@ -733,7 +737,7 @@ export default function LogTypePage() {
             grid-template-columns: 1fr !important;
           }
           .db-log-mood-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
           }
           .db-log-intensity-grid,
           .db-log-stress-grid {
@@ -749,12 +753,31 @@ export default function LogTypePage() {
         }
         @media (max-width: 380px) {
           .db-log-mood-grid {
-            grid-template-columns: 1fr 1fr !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
           .db-log-intensity-grid,
           .db-log-stress-grid {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
           }
+          .db-log-datetime-row {
+            gap: 6px !important;
+          }
+        }
+        .db-log-datetime {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 14px !important;
+          width: 100% !important;
+        }
+        .db-log-datetime-row {
+          display: grid !important;
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: 8px !important;
+          width: 100% !important;
+        }
+        .db-log-datetime-row .db-themed-select {
+          width: 100% !important;
+          min-width: 0 !important;
         }
       `}</style>
     </div>

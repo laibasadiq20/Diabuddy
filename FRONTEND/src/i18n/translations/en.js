@@ -944,7 +944,7 @@ export default {
       meal: {
         label: 'Meals & nutrition',
         hubLine: 'Record meals and track nutrition.',
-        tip: 'Need macros for a dish? Open Toolbox → Nutrition Calculator (search a food, weigh grams, optional oil), then enter the numbers here.',
+        tip: 'Need help? Open Toolbox → Nutrition Calculator, then enter the numbers here.',
       },
       insulin: {
         label: 'Insulin',
@@ -1987,7 +1987,7 @@ export default {
       aiAnalyzer: 'Analyze a meal',
       carbsHint: 'Carbs matter most for glucose. Protein and fat help complete the picture.',
       manualCalcHint: 'Enter carbs (required) plus protein, fat, and calories if you know them.',
-      openCarbToolbox: 'Need help with macros? Open Nutrition Calculator in Toolbox →',
+      openCarbToolbox: 'Need help? Open Nutrition Calculator in Toolbox →',
       portionDetails: 'Portion details',
       portionEaten: 'Portion eaten',
       portionHint: 'Cooked food only.',

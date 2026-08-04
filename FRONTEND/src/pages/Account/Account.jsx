@@ -263,29 +263,25 @@ export default function Account() {
 
           {/* Profile summary card */}
           <div
-            className="db-account-card"
+            className="db-account-card db-account-hero"
             style={{
               background: `linear-gradient(150deg, ${t.forestDeep} 0%, ${t.forest} 100%)`,
               borderRadius: 20,
-              padding: '26px 28px',
+              padding: '22px 20px',
               boxShadow: t.shadowCard,
               marginBottom: 20,
               display: 'flex',
               alignItems: 'center',
-              gap: 18,
+              gap: 16,
               flexWrap: 'wrap',
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingPhoto}
-                aria-label={hasPhoto ? tr('account.changePhoto') : tr('account.uploadPhoto')}
+              <label
                 style={{
                   position: 'relative',
-                  width: 88,
-                  height: 88,
+                  width: 84,
+                  height: 84,
                   borderRadius: '50%',
                   border: '2px solid rgba(255,255,255,0.35)',
                   background: t.peach,
@@ -300,11 +296,12 @@ export default function Account() {
                 {hasPhoto ? (
                   <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <span style={{ fontSize: 32, fontWeight: 700 }}>
+                  <span style={{ fontSize: 30, fontWeight: 700 }}>
                     {(form.name || user?.name || '?').charAt(0).toUpperCase()}
                   </span>
                 )}
                 <span
+                  className="db-account-photo-overlay"
                   style={{
                     position: 'absolute',
                     inset: 0,
@@ -312,23 +309,37 @@ export default function Account() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    opacity: uploadingPhoto ? 1 : undefined,
+                    pointerEvents: 'none',
                   }}
-                  className="db-account-photo-overlay"
                 >
                   <Camera size={22} color="#FFF" />
                 </span>
-              </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  disabled={uploadingPhoto}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    opacity: 0,
+                    width: '100%',
+                    height: '100%',
+                    cursor: uploadingPhoto ? 'wait' : 'pointer',
+                  }}
+                  onChange={handlePhotoChange}
+                />
+              </label>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingPhoto}
                 style={{
                   border: 'none',
-                  background: 'rgba(255,255,255,0.14)',
+                  background: 'rgba(255,255,255,0.16)',
                   color: '#F4F0E8',
                   borderRadius: 999,
-                  padding: '5px 12px',
+                  padding: '6px 12px',
                   fontSize: 11,
                   fontWeight: 700,
                   cursor: uploadingPhoto ? 'wait' : 'pointer',
@@ -341,17 +352,10 @@ export default function Account() {
                     ? tr('account.changePhoto')
                     : tr('account.uploadPhoto')}
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={handlePhotoChange}
-              />
             </div>
 
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 22, fontWeight: 600, color: '#FFF', fontFamily: t.fontDisplay, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+              <p style={{ margin: 0, fontSize: 'clamp(18px, 5vw, 22px)', fontWeight: 600, color: '#FFF', fontFamily: t.fontDisplay, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {form.name || user?.name}
               </p>
 
@@ -563,16 +567,29 @@ export default function Account() {
 
       <style>{`
         .db-account-photo-overlay {
-          opacity: 0;
+          opacity: 0.9;
           transition: opacity 0.15s ease;
         }
-        button:hover .db-account-photo-overlay,
-        button:focus-visible .db-account-photo-overlay {
-          opacity: 1;
+        @media (min-width: 641px) {
+          .db-account-photo-overlay { opacity: 0; }
+          label:hover .db-account-photo-overlay,
+          label:focus-within .db-account-photo-overlay {
+            opacity: 1;
+          }
         }
         @media (max-width: 640px) {
-          .db-account-card { padding: 18px !important; border-radius: 18px !important; }
-          .db-account-photo-overlay { opacity: 0.85; }
+          .db-account-hero {
+            padding: 16px !important;
+            border-radius: 16px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .db-account-hero > div:first-child {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 12px !important;
+          }
+          .db-account-card { padding: 16px !important; border-radius: 16px !important; }
         }
       `}</style>
     </div>

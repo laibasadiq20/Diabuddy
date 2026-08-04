@@ -217,8 +217,8 @@ export default function SearchSelect({
         }
         .db-search-select.is-open .db-search-select-trigger,
         .db-search-select-trigger:focus-visible {
-          border-color: ${t.forest};
-          box-shadow: 0 0 0 3px rgba(39, 57, 46, 0.12);
+          border-color: ${t.lineStrong};
+          box-shadow: 0 0 0 3px rgba(43, 42, 40, 0.08);
         }
         .db-search-select.is-disabled .db-search-select-trigger {
           opacity: 0.55;
@@ -334,9 +334,10 @@ export default function SearchSelect({
           outline: none;
         }
         .db-search-select-option.is-active {
-          background: ${t.sageTint};
-          color: ${t.forest};
+          background: ${t.surfaceSunken};
+          color: ${t.ink};
           font-weight: 650;
+          box-shadow: inset 2px 0 0 ${t.forest};
         }
         .db-search-select-hint {
           margin: 10px 4px 4px;
@@ -356,9 +357,9 @@ export default function SearchSelect({
           gap: 10px;
         }
         .db-search-select-custom {
-          border: none;
-          background: ${t.forest};
-          color: #fff;
+          border: 1.5px solid ${t.lineStrong};
+          background: ${t.surface};
+          color: ${t.ink};
           border-radius: 8px;
           padding: 10px 14px;
           font-size: 13px;
