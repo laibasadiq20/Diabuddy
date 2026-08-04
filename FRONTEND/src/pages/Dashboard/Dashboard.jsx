@@ -155,6 +155,15 @@ const tooltipStyle = {
   boxShadow: t.shadowCard,
 };
 
+const tooltipItemStyle = {
+  color: t.ink,
+};
+
+const tooltipLabelStyle = {
+  color: t.ink,
+  fontWeight: 600,
+};
+
 export default function Dashboard() {
   const { user, authHeaders } = useAuth();
   const { t: tr } = useI18n();
@@ -926,6 +935,8 @@ export default function Dashboard() {
                     />
                     <Tooltip
                       contentStyle={tooltipStyle}
+                      itemStyle={tooltipItemStyle}
+                      labelStyle={tooltipLabelStyle}
                       formatter={(value) => [`${value} ${unitLabel}`, tr('dashboard.avgTooltip')]}
                     />
                     <ReferenceLine y={tirHigh} stroke={t.clay} strokeDasharray="4 4" strokeOpacity={0.5} />

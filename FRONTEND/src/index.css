@@ -1429,3 +1429,62 @@ html[data-theme='dark'] .recharts-cartesian-grid-line line {
   stroke: rgba(255, 255, 255, 0.08) !important;
   opacity: 0.45 !important;
 }
+
+/* =========================================
+   DARK THEME CONTRAST & ACCENT POLISH
+   ========================================= */
+html[data-theme='dark'] {
+  --forest-text: #A8C3B2;
+}
+
+/* Fix dark-green text contrast on dark background */
+html[data-theme='dark'] .db-community-cta--ghost,
+html[data-theme='dark'] .db-drafts-list button {
+  color: var(--sage-deep) !important;
+  border-color: var(--sage-deep) !important;
+}
+
+html[data-theme='dark'] .db-post-card:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--sage-deep), var(--shadow-card) !important;
+}
+
+/* Recharts Tooltips in Dark Mode */
+html[data-theme='dark'] .recharts-default-tooltip {
+  background-color: var(--surface) !important;
+  border-color: var(--line-strong) !important;
+  color: var(--ink) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--shadow-lifted) !important;
+}
+
+html[data-theme='dark'] .recharts-tooltip-item,
+html[data-theme='dark'] .recharts-tooltip-item-name,
+html[data-theme='dark'] .recharts-tooltip-item-value,
+html[data-theme='dark'] .recharts-tooltip-label {
+  color: var(--ink) !important;
+}
+
+/* Inputs, Textareas, and Dropdowns in Dark Mode */
+html[data-theme='dark'] input:not([type='checkbox']):not([type='radio']),
+html[data-theme='dark'] textarea,
+html[data-theme='dark'] select {
+  color: var(--ink);
+}
+
+html[data-theme='dark'] input::placeholder,
+html[data-theme='dark'] textarea::placeholder {
+  color: var(--ink-faint);
+}
+
+/* Mobile Responsiveness & Viewport Safeguards */
+@media (max-width: 640px) {
+  html, body {
+    overflow-x: hidden;
+  }
+  
+  .db-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+

@@ -225,6 +225,15 @@ const tooltipStyle = {
   color: t.ink,
 };
 
+const tooltipItemStyle = {
+  color: t.ink,
+};
+
+const tooltipLabelStyle = {
+  color: t.ink,
+  fontWeight: 600,
+};
+
 export default function Reports() {
   const { user } = useAuth();
   const { t: tr } = useI18n();
@@ -648,7 +657,7 @@ export default function Reports() {
                           width={isNarrow ? 28 : 40}
                           domain={['auto', 'auto']}
                         />
-                        <Tooltip contentStyle={tooltipStyle} />
+                        <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                         <Area
                           type="monotone"
                           dataKey="avgGlucose"
@@ -679,7 +688,7 @@ export default function Reports() {
                             <Cell key={entry.name} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip contentStyle={tooltipStyle} />
+                        <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                         <Legend wrapperStyle={{ fontSize: isNarrow ? 11 : 12 }} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -713,7 +722,7 @@ export default function Reports() {
                           tickLine={false}
                         />
                         <Tooltip
-                          contentStyle={tooltipStyle}
+                          contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle}
                           formatter={(value, _n, item) => [
                             tr('reports.chartNames.readingsTemplate')
                               .replace('{value}', value)
@@ -735,7 +744,7 @@ export default function Reports() {
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} interval={isNarrow ? 'preserveStartEnd' : 0} minTickGap={isNarrow ? 16 : 8} />
                         <YAxis tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 28 : 36} />
-                        <Tooltip contentStyle={tooltipStyle} />
+                        <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                         <Bar dataKey="carbs" name={tr('reports.chartNames.carbsG')} fill={t.sage} radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -749,7 +758,7 @@ export default function Reports() {
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} interval={isNarrow ? 'preserveStartEnd' : 0} minTickGap={isNarrow ? 16 : 8} />
                         <YAxis tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 28 : 36} />
-                        <Tooltip contentStyle={tooltipStyle} />
+                        <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                         <Bar dataKey="insulin" name={tr('reports.chartNames.units')} fill={t.clay} radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -769,7 +778,7 @@ export default function Reports() {
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} interval={isNarrow ? 'preserveStartEnd' : 0} minTickGap={isNarrow ? 16 : 8} />
                         <YAxis yAxisId="left" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 28 : 40} />
                         <YAxis yAxisId="right" orientation="right" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 28 : 36} />
-                        <Tooltip contentStyle={tooltipStyle} />
+                        <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                         <Legend wrapperStyle={{ fontSize: isNarrow ? 11 : 12 }} />
                         <Line yAxisId="left" type="monotone" dataKey="waterOz" name={tr('reports.chartNames.waterMl')} stroke={t.skyDeep} strokeWidth={2} dot={false} />
                         <Line yAxisId="right" type="monotone" dataKey="exercise" name={tr('reports.chartNames.activityMin')} stroke={t.gold} strokeWidth={2} dot={false} />
@@ -785,7 +794,7 @@ export default function Reports() {
                         <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="label" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} interval={isNarrow ? 'preserveStartEnd' : 0} minTickGap={isNarrow ? 16 : 8} />
                         <YAxis tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 24 : 32} domain={[0, 'auto']} />
-                        <Tooltip contentStyle={tooltipStyle} />
+                        <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                         <Area
                           type="monotone"
                           dataKey="sleepHours"
@@ -808,7 +817,7 @@ export default function Reports() {
                           <CartesianGrid stroke={t.line} strokeDasharray="3 3" horizontal={false} />
                           <XAxis type="number" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} />
                           <YAxis type="category" dataKey="name" width={isNarrow ? 72 : 90} tick={{ fill: t.inkSoft, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} />
-                          <Tooltip contentStyle={tooltipStyle} />
+                          <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                           <Bar dataKey="units" name={tr('reports.chartNames.units')} fill={t.clay} radius={[0, 6, 6, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
@@ -824,7 +833,7 @@ export default function Reports() {
                           <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="name" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 9 : 10 }} axisLine={false} tickLine={false} interval={0} angle={isNarrow ? -35 : -20} textAnchor="end" height={isNarrow ? 58 : 50} />
                           <YAxis allowDecimals={false} tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 22 : 28} />
-                          <Tooltip contentStyle={tooltipStyle} />
+                          <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                           <Bar dataKey="count" name={tr('reports.chartNames.entries')} fill={t.peach} radius={[6, 6, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>

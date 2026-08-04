@@ -139,8 +139,8 @@ export default function ThemedSelect({
         }
         .db-themed-select.is-open .db-themed-select-trigger,
         .db-themed-select-trigger:focus-visible {
-          border-color: ${t.forest};
-          box-shadow: 0 0 0 3px rgba(39, 57, 46, 0.12);
+          border-color: ${t.sageDeep};
+          box-shadow: 0 0 0 3px rgba(124, 148, 112, 0.18);
         }
         .db-themed-select.is-disabled .db-themed-select-trigger {
           opacity: 0.55;
@@ -164,7 +164,7 @@ export default function ThemedSelect({
         }
         .db-themed-select.is-open .db-themed-select-chevron {
           transform: rotate(180deg);
-          color: ${t.forest};
+          color: ${t.sageDeep};
         }
         .db-themed-select-menu {
           position: absolute;
@@ -220,7 +220,7 @@ export default function ThemedSelect({
         }
         .db-themed-select-option.is-active {
           background: ${t.sageTint};
-          color: ${t.forest};
+          color: ${t.sageDeep};
           font-weight: 650;
         }
         .db-themed-select-option:disabled {

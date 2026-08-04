@@ -554,7 +554,8 @@ export default function Logs() {
           text-transform: uppercase;
         }
         .db-logs-day.is-today .db-logs-day-name {
-          color: ${t.forest};
+          color: ${t.sageDeep};
+          font-weight: 800;
         }
         @media (max-width: 420px) {
           .db-logs-week-days { gap: 4px; }

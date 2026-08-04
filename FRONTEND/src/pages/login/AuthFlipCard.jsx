@@ -127,11 +127,9 @@ export default function AuthFlipCard({ startFlipped = false }) {
           minHeight: 0,
           overflowY: 'auto',
           overflowX: 'hidden',
-          padding: '8px 12px',
+          WebkitOverflowScrolling: 'touch',
+          padding: '12px 14px',
           background: t.surfaceRaised,
-          // "safe center" keeps content centered when it fits, but falls back to
-          // top-aligned (scrollable) instead of clipping the top when it doesn't —
-          // this is what keeps the register form reachable on short viewports.
           alignItems: 'safe center',
         }}
       >
