@@ -61,7 +61,6 @@ export default function PostCard({
 
   const isTitleEn = /[a-zA-Z]/.test(post.title || '');
   const isContentEn = /[a-zA-Z]/.test(post.content || '');
-  const isUrduLang = typeof document !== 'undefined' && document.documentElement.getAttribute('data-lang') === 'ur';
 
   const translateBtnLabel = translating
     ? (isUrduLang ? 'ترجمہ ہو رہا ہے…' : 'Translating…')
