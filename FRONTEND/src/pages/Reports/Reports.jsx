@@ -129,19 +129,86 @@ function ChartCard({ title, subtitle, children, empty, wide, emptyLabel }) {
   );
 }
 
+export function getUrduCareLetter(story, preset = '7d') {
+  if (!story) return '';
+  const rating = story.rating || 'fair';
+  const periodTitle =
+    preset === '1d'
+      ? 'روزانہ'
+      : preset === '30d'
+        ? 'ماہانہ'
+        : preset === '90d'
+          ? '3 ماہ کی'
+          : 'ہفتہ وار';
+
+  if (rating === 'empty') {
+    return `ہمارے پاس اس ${periodTitle} کی مکمل رپورٹ تیار کرنے کے لیے ابھی کافی ہیلتھ لاگز موجود نہیں ہیں۔ مزید لاگز (گلوکوز، کھانا، دوائیاں) درج کریں تاکہ آپ کی صحت کے بہتر رجحانات مل سکیں۔`;
+  }
+
+  let text = `یہ آپ کی ${periodTitle} نگہداشت کا جائزہ ہے۔ `;
+
+  if (rating === 'excellent') {
+    text += `آپ کی صحت کی دیکھ بھال اس ${periodTitle} بہت شاندار رہی اور آپ کا شوگر کا لیول کنٹرول میں رہا۔ `;
+  } else if (rating === 'good') {
+    text += `آپ کی دیکھ بھال کی کارکردگی اس ${periodTitle} کافی اچھی رہی اور بیشتر اوقات شوگر کی سطح متوازن رہی۔ `;
+  } else if (rating === 'fair') {
+    text += `آپ کی صحت کا جائزہ متوازن رہا، لیکن کچھ جگہوں پر مزید بہتری لائی جا سکتی ہے۔ `;
+  } else {
+    text += `اس ${periodTitle} شوگر کی سطح میں اتار چڑھاؤ دیکھا گیا، جس پر تھوڑی اضافی توجہ دینے کی ضرورت ہے۔ `;
+  }
+
+  if (story.positiveNotes && story.positiveNotes.length > 0) {
+    text += `مثبت بات یہ ہے کہ آپ نے مستقل مزاجی سے لاگز درج کیے اور اپنی صحت پر نظر رکھی۔ `;
+  }
+
+  if (rating === 'excellent' || rating === 'good') {
+    text += `اسی طرح محنت جاری رکھیں! `;
+  } else {
+    text += `ڈیا بڈی آپ کے ساتھ ہے — مسلسل کوشش سے ہی بہترین نتائج ممکن ہیں۔`;
+  }
+
+  return text;
+}
+
 // Surfaces the same warm "care letter" narrative that reportExport.js renders in the
 // PDF, so it's readable in-app too — above the charts, not buried in a download.
-function CareLetter({ story, tr }) {
+function CareLetter({ story, tr, preset }) {
   if (!story?.careLetter && !story?.narrative && !story?.summary) return null;
-  const letter = story.careLetter || story.narrative || story.summary;
+  const lang = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-lang') : 'en';
+  const isUrdu = lang === 'ur';
+
+  const letter = isUrdu ? getUrduCareLetter(story, preset) : (story.careLetter || story.narrative || story.summary);
   const rating = story.rating || 'fair';
+
+  const titleMap = {
+    'Daily Care Letter': 'روزانہ نگہداشت کا خط',
+    'Weekly Care Letter': 'ہفتہ وار نگہداشت کا خط',
+    'Monthly Care Letter': 'ماہانہ نگہداشت کا خط',
+    '3 Months Care Letter': '3 ماہ کا نگہداشت کا خط',
+    'Care Letter': 'نگہداشت کا خط',
+  };
+  const title = isUrdu
+    ? (titleMap[story.careLetterTitle] || 'نگہداشت کا خط')
+    : (story.careLetterTitle || story.headline || tr('reports.letter.defaultTitle'));
+
+  const ratingMap = {
+    excellent: 'بہترین',
+    good: 'بہت اچھا',
+    fair: 'مناسب',
+    needs_attention: 'توجہ طلب',
+    empty: 'معلومات دستیاب نہیں',
+  };
+  const ratingText = isUrdu
+    ? (ratingMap[rating] || 'مناسب')
+    : (story.ratingLabel || tr(`reports.ratings.${rating}`, story.ratingLabel));
+
   return (
     <section className="db-rep-letter">
       <p className="db-rep-letter-eyebrow">{tr('reports.letter.from')}</p>
       <div className="db-rep-letter-head">
-        <h2>{story.careLetterTitle || story.headline || tr('reports.letter.defaultTitle')}</h2>
-        {story.ratingLabel ? (
-          <span className={`db-rep-letter-rating is-${rating}`}>{story.ratingLabel}</span>
+        <h2>{title}</h2>
+        {ratingText ? (
+          <span className={`db-rep-letter-rating is-${rating}`}>{ratingText}</span>
         ) : null}
       </div>
       <p className="db-rep-letter-body">{letter}</p>
@@ -465,18 +532,10 @@ export default function Reports() {
                 {period.shortLabel && period.shortLabel !== period.label && preset !== 'custom' ? (
                   <span>{period.shortLabel}</span>
                 ) : null}
-                {comparePeriod ? (
-                  <span className="db-rep-vs">
-                    {tr('reports.vs')} {comparePeriod.label}
-                    {comparePeriod.shortLabel && comparePeriod.shortLabel !== comparePeriod.label
-                      ? ` (${comparePeriod.shortLabel})`
-                      : ''}
-                  </span>
-                ) : null}
                 {generatedLabel ? <span className="db-rep-generated">{tr('reports.generated')} {generatedLabel}</span> : null}
               </div>
 
-              <CareLetter story={story} tr={tr} />
+              <CareLetter story={story} tr={tr} preset={preset} />
 
               <div className="db-rep-metrics">
                 <MetricCard
@@ -1363,15 +1422,10 @@ export default function Reports() {
             gap: 12px;
           }
           .db-rep-presets {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            margin: 0 -4px;
-            padding: 0 4px 2px;
+            display: flex;
+            flex-wrap: wrap;
             gap: 6px;
           }
-          .db-rep-presets::-webkit-scrollbar { display: none; }
           .db-rep-preset {
             flex: 0 0 auto;
             padding: 8px 12px;

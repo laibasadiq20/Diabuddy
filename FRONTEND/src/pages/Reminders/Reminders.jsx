@@ -486,8 +486,16 @@ function urlBase64ToUint8Array(base64String) {
       showToast(tr('reminders.toasts.titleRequired'));
       return;
     }
+    if (!formTime) {
+      showToast(tr('reminders.toasts.timeRequired') || 'Reminder time is required.');
+      return;
+    }
     if (formRepeat !== 'daily' && (!formDays || formDays.length === 0)) {
       showToast(tr('reminders.toasts.daysRequired'));
+      return;
+    }
+    if (formTitle === 'Doctor Appointment' && !formApptDate) {
+      showToast(tr('reminders.toasts.dateRequired') || 'Appointment date is required.');
       return;
     }
 

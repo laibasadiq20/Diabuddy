@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   MessageSquare,
   ThumbsUp,
@@ -6,9 +6,11 @@ import {
   Award,
   Lock,
   Pin,
+  Languages,
 } from 'lucide-react';
 import { theme } from '../../../theme';
 import { useI18n } from '../../../i18n/I18nContext';
+import { translateTextToUrdu } from '../../../utils/postTranslator';
 
 const t = theme;
 
@@ -21,6 +23,10 @@ export default function PostCard({
   onStartDm,
 }) {
   const { t: tr } = useI18n();
+  const [translatedText, setTranslatedText] = useState(null);
+  const [translating, setTranslating] = useState(false);
+  const [showTranslated, setShowTranslated] = useState(false);
+
   const postTopicColor = post.topicId?.color || t.sage;
   const hasBestAnswer = !!post.bestAnswerCommentId;
   const myId = String(user?.id || user?._id || '');
@@ -30,10 +36,38 @@ export default function PostCard({
   const authorName = post.isAnonymous
     ? tr('postCard.anonymousBuddy')
     : post.authorId?.name || tr('postCard.member');
-  const dateLabel = new Date(post.createdAt).toLocaleDateString(undefined, {
+  const isUrduLang = typeof document !== 'undefined' && document.documentElement.getAttribute('data-lang') === 'ur';
+  const dateLabel = new Date(post.createdAt).toLocaleDateString(isUrduLang ? 'ur-PK' : undefined, {
     month: 'short',
     day: 'numeric',
   });
+
+  const handleToggleTranslate = async (e) => {
+    e.stopPropagation();
+    if (showTranslated) {
+      setShowTranslated(false);
+      return;
+    }
+    if (translatedText) {
+      setShowTranslated(true);
+      return;
+    }
+    setTranslating(true);
+    const result = await translateTextToUrdu(post.content || post.title);
+    setTranslatedText(result);
+    setShowTranslated(true);
+    setTranslating(false);
+  };
+
+  const isTitleEn = /[a-zA-Z]/.test(post.title || '');
+  const isContentEn = /[a-zA-Z]/.test(post.content || '');
+  const isUrduLang = typeof document !== 'undefined' && document.documentElement.getAttribute('data-lang') === 'ur';
+
+  const translateBtnLabel = translating
+    ? (isUrduLang ? 'ترجمہ ہو رہا ہے…' : 'Translating…')
+    : showTranslated
+      ? (isUrduLang ? 'اصل متن دکھائیں' : 'Show Original')
+      : (isUrduLang ? 'اردو میں ترجمہ کریں' : 'Translate to Urdu');
 
   return (
     <article
@@ -69,7 +103,16 @@ export default function PostCard({
               )}
             </span>
           )}
-          <h2 className="db-post-title">{post.title}</h2>
+          <h2
+            className="db-post-title"
+            style={{
+              direction: isTitleEn ? 'ltr' : 'rtl',
+              textAlign: isTitleEn ? 'left' : 'right',
+              fontFamily: isTitleEn ? "'DM Sans', sans-serif" : 'inherit',
+            }}
+          >
+            {post.title}
+          </h2>
           <span
             className="db-post-topic db-post-topic--desktop"
             style={{ color: postTopicColor, background: `${postTopicColor}18` }}
@@ -79,8 +122,43 @@ export default function PostCard({
         </div>
 
         {post.content ? (
-          <p className="db-post-excerpt">{post.content}</p>
+          <p
+            className="db-post-excerpt"
+            style={{
+              direction: showTranslated ? 'rtl' : isContentEn ? 'ltr' : 'rtl',
+              textAlign: showTranslated ? 'right' : isContentEn ? 'left' : 'right',
+              fontFamily: showTranslated ? "'Noto Nastaliq Urdu', sans-serif" : isContentEn ? "'DM Sans', sans-serif" : 'inherit',
+              lineHeight: showTranslated ? 1.65 : 1.5,
+            }}
+          >
+            {showTranslated ? translatedText : post.content}
+          </p>
         ) : null}
+
+        <button
+          type="button"
+          className="db-post-translate-btn"
+          onClick={handleToggleTranslate}
+          disabled={translating}
+          style={{
+            background: t.skyTint,
+            border: `1px solid ${t.skySoft}`,
+            borderRadius: 20,
+            padding: '3px 10px',
+            fontSize: 12,
+            fontWeight: 650,
+            color: t.skyDeep,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            margin: '4px 0 10px',
+            fontFamily: isUrduLang ? 'var(--font-body)' : 'inherit',
+          }}
+        >
+          <Languages size={13} />
+          <span>{translateBtnLabel}</span>
+        </button>
 
         <div className="db-post-meta">
           <div

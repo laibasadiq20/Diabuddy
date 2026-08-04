@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Heart,
   MessageSquare,
@@ -11,11 +11,13 @@ import {
   Pin,
   Pencil,
   Unlock,
+  Languages,
 } from 'lucide-react';
 import { theme } from '../../../theme';
 import PollDisplay from './PollDisplay';
 import { useI18n } from '../../../i18n/I18nContext';
 import { formatClock12 } from '../../../utils/timezone';
+import { translateTextToUrdu } from '../../../utils/postTranslator';
 
 const t = theme;
 
@@ -42,9 +44,34 @@ export default function PostThreadCard({
   onReport,
   onDelete,
 }) {
-  const { t: tr } = useI18n();
+  const isTitleEn = /[a-zA-Z]/.test(post.title || '');
+  const isContentEn = /[a-zA-Z]/.test(post.content || '');
+  const isUrduLang = typeof document !== 'undefined' && document.documentElement.getAttribute('data-lang') === 'ur';
+
+  const translateBtnLabel = translating
+    ? (isUrduLang ? 'ترجمہ ہو رہا ہے…' : 'Translating…')
+    : showTranslated
+      ? (isUrduLang ? 'اصل متن دکھائیں' : 'Show Original')
+      : (isUrduLang ? 'اردو میں ترجمہ کریں' : 'Translate to Urdu');
+
   const hasBestAnswerPointer = !!post.bestAnswerCommentId;
   const isHidden = post.status === 'hidden';
+
+  const handleToggleTranslate = async () => {
+    if (showTranslated) {
+      setShowTranslated(false);
+      return;
+    }
+    if (translatedText) {
+      setShowTranslated(true);
+      return;
+    }
+    setTranslating(true);
+    const result = await translateTextToUrdu(post.content || post.title);
+    setTranslatedText(result);
+    setShowTranslated(true);
+    setTranslating(false);
+  };
 
   return (
     <article className="db-post-thread" style={{
@@ -117,7 +144,7 @@ export default function PostThreadCard({
             </h3>
             <p style={{ fontSize: '12px', color: t.inkFaint, margin: 0 }}>
               {!post.isAnonymous && post.authorId?.diabetesType ? `${post.authorId.diabetesType} · ` : ''}
-              {`${new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${formatClock12(post.createdAt)}`}
+              {`${new Date(post.createdAt).toLocaleDateString(isUrduLang ? 'ur-PK' : undefined, { month: 'short', day: 'numeric' })} · ${formatClock12(post.createdAt)}`}
             </p>
           </div>
         </button>
@@ -148,12 +175,14 @@ export default function PostThreadCard({
         />
       ) : (
         <h1 className="db-post-heading" style={{
-          fontFamily: t.fontDisplay,
+          fontFamily: isTitleEn ? "'Playfair Display', 'DM Sans', serif" : 'inherit',
           fontSize: 'clamp(22px, 4vw, 28px)',
           color: t.ink,
           fontWeight: '500',
           margin: '0 0 14px 0',
-          lineHeight: '1.25'
+          lineHeight: '1.3',
+          direction: isTitleEn ? 'ltr' : 'rtl',
+          textAlign: isTitleEn ? 'left' : 'right',
         }}>
           {post.title}
         </h1>
@@ -227,15 +256,45 @@ export default function PostThreadCard({
           </div>
         </div>
       ) : (
-        <p style={{
-          fontSize: '16px',
-          color: t.ink,
-          lineHeight: '1.7',
-          whiteSpace: 'pre-wrap',
-          margin: '0 0 24px 0'
-        }}>
-          {post.content}
-        </p>
+        <>
+          <p style={{
+            fontSize: '16px',
+            color: t.ink,
+            lineHeight: showTranslated ? '1.75' : '1.7',
+            whiteSpace: 'pre-wrap',
+            direction: showTranslated ? 'rtl' : isContentEn ? 'ltr' : 'rtl',
+            textAlign: showTranslated ? 'right' : isContentEn ? 'left' : 'right',
+            fontFamily: showTranslated ? "'Noto Nastaliq Urdu', sans-serif" : isContentEn ? "'DM Sans', sans-serif" : 'inherit',
+            margin: '0 0 12px 0'
+          }}>
+            {showTranslated ? translatedText : post.content}
+          </p>
+
+          <button
+            type="button"
+            className="db-post-translate-btn"
+            onClick={handleToggleTranslate}
+            disabled={translating}
+            style={{
+              background: t.skyTint,
+              border: `1px solid ${t.skySoft}`,
+              borderRadius: 20,
+              padding: '4px 12px',
+              fontSize: 13,
+              fontWeight: 650,
+              color: t.skyDeep,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 20,
+              fontFamily: isUrduLang ? 'var(--font-body)' : 'inherit',
+            }}
+          >
+            <Languages size={14} />
+            <span>{translateBtnLabel}</span>
+          </button>
+        </>
       )}
 
       {post.images && post.images.length > 0 && (

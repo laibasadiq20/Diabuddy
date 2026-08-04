@@ -26,8 +26,9 @@ const protect = async (req, res, next) => {
       });
     }
 
+    const jwtSecret = process.env.JWT_SECRET || 'diabuddy_fallback_secret_key_2026';
     // 4. Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, jwtSecret);
 
     // 5. Get user from database (excluding passwordHash)
     req.user = await User.findById(decoded.id).select('-passwordHash');
@@ -91,7 +92,8 @@ const optionalAuth = async (req, res, next) => {
     }
     if (!token) return next();
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const jwtSecret = process.env.JWT_SECRET || 'diabuddy_fallback_secret_key_2026';
+    const decoded = jwt.verify(token, jwtSecret);
     const user = await User.findById(decoded.id).select('-passwordHash');
     if (user && user.isActive !== false) {
       user.id = user._id.toString();

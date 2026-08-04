@@ -167,7 +167,10 @@ export default function usePostDetails({ postId, user, authHeaders }) {
     if (!user) { navigate('/login'); return; }
 
     const contentToSend = parentId ? replyContent : newCommentContent;
-    if (!contentToSend.trim()) return;
+    if (!contentToSend.trim()) {
+      alert('Please enter a comment.');
+      return;
+    }
 
     try {
       const res = await fetch(`${API_URL}/posts/${postId}/comments`, {
@@ -314,7 +317,10 @@ export default function usePostDetails({ postId, user, authHeaders }) {
   };
 
   const saveEditComment = async (commentId) => {
-    if (!editCommentContent.trim()) return;
+    if (!editCommentContent.trim()) {
+      alert('Please enter comment text.');
+      return;
+    }
     setSavingEdit(true);
     try {
       const res = await fetch(`${API_URL}/comments/${commentId}`, {

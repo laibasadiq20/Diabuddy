@@ -282,11 +282,12 @@ export default function Settings() {
     background: t.forest,
     color: '#FFF',
     borderRadius: 12,
-    padding: '11px 18px',
-    fontSize: 13,
+    padding: '12px 22px',
+    fontSize: 13.5,
     fontWeight: 700,
     cursor: 'pointer',
     fontFamily: t.fontBody,
+    transition: 'opacity 0.15s ease, transform 0.1s ease',
   };
 
   const unitLabel = glucoseUnitLabel(glucoseUnit);
@@ -311,7 +312,7 @@ export default function Settings() {
     <div style={{ minHeight: '100vh', display: 'flex', background: t.bg, fontFamily: t.fontBody }}>
       <AppSidebar />
 
-      <main style={{ flex: 1, minWidth: 0, padding: '32px 28px 64px' }}>
+      <main className="db-settings-main">
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div style={{ marginBottom: 24 }}>
             <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(24px, 5vw, 30px)', color: t.ink, fontWeight: 500 }}>
@@ -384,6 +385,7 @@ export default function Settings() {
             </label>
             <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.timezoneHint')}</p>
             <ThemedSelect
+              className="db-settings-select"
               style={{ maxWidth: 420 }}
               value={timezone}
               onChange={handleTimezoneChange}
@@ -401,6 +403,7 @@ export default function Settings() {
             </label>
             <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.glucoseUnitHint')}</p>
             <ThemedSelect
+              className="db-settings-select"
               style={{ maxWidth: 240, marginBottom: 18 }}
               value={glucoseUnit}
               onChange={handleGlucoseUnitChange}
@@ -414,6 +417,7 @@ export default function Settings() {
             <label style={labelStyle}>{tr('settings.weightUnit')}</label>
             <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.weightUnitHint')}</p>
             <ThemedSelect
+              className="db-settings-select"
               style={{ maxWidth: 240, marginBottom: 18 }}
               value={weightUnit}
               onChange={handleWeightUnitChange}
@@ -427,6 +431,7 @@ export default function Settings() {
             <label style={labelStyle}>{tr('settings.heightUnit')}</label>
             <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.heightUnitHint')}</p>
             <ThemedSelect
+              className="db-settings-select"
               style={{ maxWidth: 240 }}
               value={heightUnit}
               onChange={handleHeightUnitChange}
@@ -460,7 +465,7 @@ export default function Settings() {
               {rangeField('postMealMax', tr('settings.max'))}
             </div>
 
-            <button type="submit" style={saveBtnStyle} disabled={savingKey === 'ranges'}>
+            <button type="submit" className="db-settings-save-btn" style={saveBtnStyle} disabled={savingKey === 'ranges'}>
               {savingKey === 'ranges' ? tr('settings.saving') : tr('settings.saveRanges')}
             </button>
           </form>
@@ -469,41 +474,37 @@ export default function Settings() {
             <p style={cardTitleStyle}>{tr('settings.dailyGoals')}</p>
             <p style={{ margin: '0 0 14px', fontSize: 12, color: t.inkFaint }}>{tr('settings.dailyGoalsHint')}</p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <label style={labelStyle}>
+              <GlassWater size={12} style={{ marginRight: 5 }} />
+              {tr('settings.waterGoalLiters')} / {tr('settings.waterGoalOz')}
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
-                <label style={labelStyle}>
-                  <GlassWater size={12} style={{ marginRight: 5 }} />
-                  {tr('settings.waterGoalLiters')}
-                </label>
                 <input
                   type="number"
                   min={0.25}
                   max={10}
                   step={0.1}
+                  placeholder="Liters (L)"
                   value={waterLiters}
                   onChange={(e) => syncGoalFromLiters(e.target.value)}
                   style={fieldStyle}
                 />
-                <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{tr('settings.waterGoalLitersHint')}</p>
               </div>
               <div>
-                <label style={labelStyle}>
-                  <GlassWater size={12} style={{ marginRight: 5 }} />
-                  {tr('settings.waterGoalOz')}
-                </label>
                 <input
                   type="number"
                   min={8}
                   max={340}
                   step={1}
+                  placeholder="fl oz"
                   value={waterOz}
                   onChange={(e) => syncGoalFromOz(e.target.value)}
                   style={fieldStyle}
                 />
-                <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{tr('settings.waterGoalOzHint')}</p>
               </div>
             </div>
-            <p style={{ margin: '10px 0 0', fontSize: 12, color: t.inkSoft }}>
+            <p style={{ margin: '6px 0 0', fontSize: 11.5, color: t.inkFaint }}>
               {formatGoalHint(litersToMl(waterLiters) || usFlOzToMl(waterOz))}
             </p>
             <div style={{ marginTop: 14 }}>
@@ -523,7 +524,7 @@ export default function Settings() {
               <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{tr('settings.stepsGoalUnit')}</p>
             </div>
 
-            <button type="submit" style={saveBtnStyle} disabled={savingKey === 'goals'}>
+            <button type="submit" className="db-settings-save-btn" style={saveBtnStyle} disabled={savingKey === 'goals'}>
               {savingKey === 'goals' ? tr('settings.saving') : tr('settings.saveGoals')}
             </button>
           </form>
@@ -531,8 +532,44 @@ export default function Settings() {
       </main>
 
       <style>{`
+        .db-settings-main {
+          flex: 1;
+          min-width: 0;
+          padding: 32px 28px 64px;
+        }
+        .db-settings-select {
+          width: 100%;
+        }
+        .db-settings-grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .db-settings-save-btn:hover {
+          opacity: 0.92;
+        }
+        .db-settings-save-btn:active {
+          transform: scale(0.98);
+        }
+
         @media (max-width: 640px) {
-          .db-account-card { padding: 18px !important; border-radius: 18px !important; }
+          .db-settings-main {
+            padding: 20px 14px 80px !important;
+          }
+          .db-account-card {
+            padding: 20px 16px !important;
+            border-radius: 16px !important;
+            margin-bottom: 14px !important;
+          }
+          .db-settings-grid-2 {
+            grid-template-columns: 1fr !important;
+          }
+          .db-settings-save-btn {
+            width: 100% !important;
+          }
+          .db-settings-select {
+            max-width: 100% !important;
+          }
         }
       `}</style>
     </div>

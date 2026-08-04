@@ -140,6 +140,11 @@ console.log(
   process.env.GEMINI_API_KEY ? `Configured ✅ (${process.env.GEMINI_MODEL || 'gemini-3.5-flash'})` : 'Missing ❌ (AI meal analyzer disabled)'
 );
 
+// Ping — instant response used by frontend keep-alive & Railway health checks
+app.get('/api/ping', (req, res) => {
+  res.json({ status: 'ok', ts: Date.now() });
+});
+
 // Test / health routes
 app.get('/api/test', (req, res) => {
   res.json({
@@ -161,4 +166,23 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Self-ping every 9 minutes to prevent Railway free-tier cold starts.
+  // Railway sleeps after ~10 min of inactivity; this keeps the server warm.
+  const SELF_URL = process.env.RAILWAY_STATIC_URL
+    ? `https://${process.env.RAILWAY_STATIC_URL}/api/ping`
+    : process.env.BACKEND_URL
+      ? `${process.env.BACKEND_URL}/api/ping`
+      : 'https://backend-production-f8f9.up.railway.app/api/ping'; // hardcoded fallback
+
+  const httpLib = require('https');
+  setInterval(() => {
+    httpLib.get(SELF_URL, (res) => {
+      console.log(`[keepalive] ping → ${res.statusCode}`);
+    }).on('error', (err) => {
+      console.warn('[keepalive] ping failed:', err.message);
+    });
+  }, 9 * 60 * 1000); // 9 minutes
+
+  console.log(`[keepalive] self-ping scheduled → ${SELF_URL}`);
 });

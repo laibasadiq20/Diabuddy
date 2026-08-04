@@ -476,7 +476,7 @@ export default function LogTypePage() {
                   fontSize: 'clamp(24px, 6vw, 32px)',
                   fontWeight: 500,
                   color: t.ink,
-                  lineHeight: 1.2,
+                  lineHeight: 1.35,
                 }}
               >
                 {typeLabel}

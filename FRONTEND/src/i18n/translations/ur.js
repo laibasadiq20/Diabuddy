@@ -30,7 +30,7 @@ export default {
     viewCommunity: 'کمیونٹی دیکھیں',
     messages: 'پیغامات',
     toolbox: 'ٹول باکس',
-    account: 'میرا اکاؤنٹ',
+    account: 'اکاؤنٹ',
     settings: 'ترتیبات',
     notifications: 'اطلاعات',
     alerts: 'الرٹس',

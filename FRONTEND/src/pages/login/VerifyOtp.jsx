@@ -20,7 +20,7 @@ export default function VerifyOtp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [resendLeft, setResendLeft] = useState(30);
+  const [resendLeft, setResendLeft] = useState(60);
   const [expireLeft, setExpireLeft] = useState(15 * 60);
   const [resending, setResending] = useState(false);
   const inputRefs = useRef([]);

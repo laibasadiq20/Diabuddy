@@ -379,6 +379,10 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
+        if (form.glucoseLevel === '') {
+          alert('Please enter a glucose level reading.');
+          return;
+        }
         const body = {
           glucoseLevel: Number(form.glucoseLevel),
           unit: preferredUnit,
@@ -744,7 +748,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     <div className="db-log-macro-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
       <Field title={tr('logEntryForm.meal.carbsG')}>
         <input
-          required={canSave}
+          required
           type="number"
           min="0"
           step="0.1"
@@ -884,7 +888,14 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
-        if (!canSave) return;
+        if (!form.foodItems.trim()) {
+          alert('Please enter a food description.');
+          return;
+        }
+        if (form.carbohydrates === '') {
+          alert('Please enter the carbohydrate content (grams).');
+          return;
+        }
         const body = {
           mealType: form.mealType,
           foodItems: form.foodItems,
@@ -915,7 +926,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
 
       <Field title={tr('logEntryForm.meal.foodDescription')}>
         <textarea
-          required={canSave}
+          required
           rows={6}
           maxLength={1800}
           value={form.foodItems}
@@ -996,20 +1007,21 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
               type="button"
               onClick={() => navigate('/toolbox?tool=carb')}
               style={{
-                marginTop: 12,
-                width: '100%',
-                padding: '11px 14px',
-                borderRadius: 10,
-                border: `1px solid ${t.lineStrong}`,
-                background: t.surface,
+                marginTop: 10,
+                background: 'none',
+                border: 'none',
+                padding: 0,
                 color: t.forest,
-                fontWeight: 650,
-                fontSize: 13,
+                fontWeight: 600,
+                fontSize: 13.5,
                 cursor: 'pointer',
                 fontFamily: t.fontBody,
-                textAlign: 'left',
-                lineHeight: 1.4,
+                display: 'inline-flex',
+                alignItems: 'center',
+                transition: 'opacity 0.2s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
             >
               {tr('logEntryForm.meal.openCarbToolbox')}
             </button>
@@ -1265,41 +1277,18 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
         />
       </Field>
 
-      {canSave ? (
-        <Submit
-          submitting={submitting}
-          isEdit={isEdit}
-          tr={tr}
-          label={tr('logEntryForm.common.saveMeal')}
-          editLabel={tr('logEntryForm.common.updateMeal')}
-        />
-      ) : (
-        <>
-          <p style={{ ...hint, marginTop: 4 }}>
-            {nutritionMode === 'ai' ? tr('logEntryForm.meal.savingAiHint') : tr('logEntryForm.meal.calcFirstHint')}
-          </p>
-          <button
-            type="submit"
-            disabled
-            style={{
-              marginTop: 6,
-              width: '100%',
-              padding: '13px 16px',
-              borderRadius: 10,
-              border: 'none',
-              background: t.forest,
-              color: '#F7F3EC',
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: 'not-allowed',
-              fontFamily: t.fontBody,
-              opacity: 0.45,
-            }}
-          >
-            {isEdit ? tr('logEntryForm.common.updateMeal') : tr('logEntryForm.common.saveMeal')}
-          </button>
-        </>
+      {!canSave && (
+        <p style={{ ...hint, marginTop: 4, marginBottom: 6 }}>
+          {nutritionMode === 'ai' ? tr('logEntryForm.meal.savingAiHint') : tr('logEntryForm.meal.calcFirstHint')}
+        </p>
       )}
+      <Submit
+        submitting={submitting}
+        isEdit={isEdit}
+        tr={tr}
+        label={tr('logEntryForm.common.saveMeal')}
+        editLabel={tr('logEntryForm.common.updateMeal')}
+      />
     </form>
   );
 }
@@ -1384,9 +1373,19 @@ function InsulinFields({ initialRaw, submitting, isEdit, onSubmit }) {
       onSubmit={(e) => {
         e.preventDefault();
         const when = new Date(form.timestamp);
-        if (Number.isNaN(when.getTime())) return;
+        if (Number.isNaN(when.getTime())) {
+          alert('Please enter a valid date and time.');
+          return;
+        }
+        if (form.units === '') {
+          alert('Please enter the insulin dose in units.');
+          return;
+        }
         const unitsNum = Number(form.units);
-        if (!Number.isFinite(unitsNum) || unitsNum < 0.1) return;
+        if (!Number.isFinite(unitsNum) || unitsNum < 0.1) {
+          alert('Please enter a valid insulin dose of at least 0.1 units.');
+          return;
+        }
         onSubmit({
           units: unitsNum,
           insulinType: form.insulinType,
@@ -1551,6 +1550,18 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
+        if (!form.medicineName.trim()) {
+          alert('Please enter the medication name.');
+          return;
+        }
+        if (form.doseAmount === '') {
+          alert('Please enter the dosage amount.');
+          return;
+        }
+        if (!form.doseUnit) {
+          alert('Please select a dosage unit.');
+          return;
+        }
         const body = {
           medicineName: form.medicineName.trim(),
           dose: `${form.doseAmount} ${form.doseUnit}`.trim(),
@@ -1694,6 +1705,10 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
+        if (form.amountOz === '') {
+          alert('Please enter the water intake amount.');
+          return;
+        }
         const body = {
           amount: Math.round(usFlOzToMl(form.amountOz)),
           notes: form.notes || undefined,
@@ -1843,7 +1858,14 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
         e.preventDefault();
         const activityName =
           form.exerciseType === 'Other' ? form.customType.trim() : form.exerciseType;
-        if (!activityName) return;
+        if (!activityName) {
+          alert('Please specify the activity description.');
+          return;
+        }
+        if (form.duration === '') {
+          alert('Please enter the exercise duration in minutes.');
+          return;
+        }
         const body = {
           exerciseType: activityName,
           duration: Number(form.duration),
@@ -2132,7 +2154,10 @@ function SleepFields({ initialRaw, submitting, isEdit, onSubmit }) {
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
-        if (!duration) return;
+        if (!duration) {
+          alert('Please enter valid sleep and wake times. Wake time must be after bedtime.');
+          return;
+        }
         onSubmit({
           sleepTime: new Date(form.sleepTime).toISOString(),
           wakeTime: new Date(form.wakeTime).toISOString(),
@@ -2277,11 +2302,16 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
+        const when = new Date(form.timestamp);
+        if (Number.isNaN(when.getTime())) {
+          alert('Please enter a valid date and time.');
+          return;
+        }
         onSubmit({
           mood: form.mood,
           stressLevel: form.stressLevel,
           journalEntry: form.journalEntry || undefined,
-          timestamp: new Date(form.timestamp).toISOString(),
+          timestamp: when.toISOString(),
         });
       }}
     >

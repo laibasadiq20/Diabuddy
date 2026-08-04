@@ -18,6 +18,7 @@ import AppSidebar from '../../components/AppSidebar';
 import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
 import { formatWaterShort, mlToLiters, mlToUsFlOz, round0, round1 } from '../../utils/waterUnits';
 import { formatClock12, getUserTzOffset } from '../../utils/timezone';
+import { getCachedData, setCachedData } from '../../utils/appCache';
 import {
   AlertTriangle,
   ArrowRight,
@@ -162,7 +163,7 @@ export default function Dashboard() {
   const [weekReport, setWeekReport] = useState(null);
   const [streak, setStreak] = useState(null);
   const [latestPost, setLatestPost] = useState(null);
-  const [todayReminders, setTodayReminders] = useState([]);
+  const [todayReminders, setTodayReminders] = useState(null);
   const [tomorrowReminders, setTomorrowReminders] = useState([]);
   const [googleHealth, setGoogleHealth] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -258,114 +259,78 @@ export default function Dashboard() {
     if (!user) return undefined;
     let cancelled = false;
 
-    const loadReminders = async (headers, tzOffset) => {
-      const [remRes, allRemRes] = await Promise.all([
-        fetch(`${API_URL}/reminders/today?tzOffset=${tzOffset}`, {
-          credentials: 'include',
-          headers,
-        }),
-        fetch(`${API_URL}/reminders?tzOffset=${tzOffset}`, {
-          credentials: 'include',
-          headers,
-        }),
-      ]);
+    // Instant 0ms render from memory cache if previously loaded
+    const cachedSummary = getCachedData('dashboard_summary');
+    const cachedStreak = getCachedData('dashboard_streak');
+    const cachedReport = getCachedData('dashboard_report');
+    const cachedReminders = getCachedData('dashboard_reminders');
 
-      let all = [];
-      if (allRemRes.ok) {
-        const data = await allRemRes.json();
-        if (data?.status === 'success') {
-          const raw = data.data;
-          if (Array.isArray(raw)) {
-            all = raw;
-          } else if (raw && typeof raw === 'object') {
-            all =
-              raw.reminders ||
-              [...(raw.defaultReminders || []), ...(raw.customReminders || [])];
-          }
-          if (!Array.isArray(all)) all = [];
-        }
-      }
+    if (cachedSummary || cachedStreak || cachedReminders) {
+      if (cachedSummary) setSummary(cachedSummary);
+      if (cachedStreak) setStreak(cachedStreak);
+      if (cachedReport) setWeekReport(cachedReport);
+      if (cachedReminders) setTodayReminders(cachedReminders);
+      setLoading(false);
+    }
 
-      // Always derive "today" from the full list so Daily / Custom (all days) match.
-      const fromAll = buildTodayReminders(all, tzOffset);
-      if (!cancelled) {
-        if (fromAll.length > 0) {
-          setTodayReminders(fromAll);
-        } else if (remRes.ok) {
-          const data = await remRes.json();
-          if (data?.status === 'success') {
-            setTodayReminders(Array.isArray(data.data) ? data.data : []);
-          } else {
-            setTodayReminders([]);
-          }
-        } else {
-          setTodayReminders([]);
-        }
-      }
-
-      if (!cancelled && Array.isArray(all)) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(12, 0, 0, 0);
-        const list = all
-          .filter((r) => reminderAppliesOn(r, tomorrow, tzOffset))
-          .map((r) => withCompletedFlag(r, tomorrow, tzOffset))
-          .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
-        setTomorrowReminders(list);
-      }
-    };
-
-    const load = async () => {
+    const loadAllConcurrently = async () => {
       try {
         const headers = { ...authHeaders() };
         const tzOffset = getUserTzOffset(user);
-        const [sumRes, reportRes, streakRes, postRes, ghRes] = await Promise.all([
-          fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, {
-            credentials: 'include',
-            headers,
-          }),
-          fetch(`${API_URL}/health-logs/report?preset=7d&tzOffset=${tzOffset}`, {
-            credentials: 'include',
-            headers,
-          }),
-          fetch(`${API_URL}/health-logs/streak?tzOffset=${tzOffset}`, {
-            credentials: 'include',
-            headers,
-          }),
-          fetch(`${API_URL}/posts?sort=latest&page=1&limit=1`, {
-            credentials: 'include',
-            headers,
-          }),
-          fetch(`${API_URL}/google-health/status`, {
-            credentials: 'include',
-            headers,
-          }),
+
+        const results = await Promise.allSettled([
+          fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, { credentials: 'include', headers }),
+          fetch(`${API_URL}/health-logs/report?preset=7d&tzOffset=${tzOffset}`, { credentials: 'include', headers }),
+          fetch(`${API_URL}/health-logs/streak?tzOffset=${tzOffset}`, { credentials: 'include', headers }),
+          fetch(`${API_URL}/posts?sort=latest&page=1&limit=1`, { credentials: 'include', headers }),
+          fetch(`${API_URL}/google-health/status`, { credentials: 'include', headers }),
+          fetch(`${API_URL}/reminders?tzOffset=${tzOffset}`, { credentials: 'include', headers }),
         ]);
 
         if (cancelled) return;
 
-        if (sumRes.ok) {
-          const data = await sumRes.json();
-          if (data?.status === 'success') setSummary(data.data);
+        const [sumRes, reportRes, streakRes, postRes, ghRes, allRemRes] = results;
+
+        if (sumRes.status === 'fulfilled' && sumRes.value.ok) {
+          const data = await sumRes.value.json();
+          if (data?.status === 'success') {
+            setSummary(data.data);
+            setCachedData('dashboard_summary', data.data);
+          }
         }
-        if (reportRes.ok) {
-          const data = await reportRes.json();
-          if (data?.status === 'success') setWeekReport(data.data);
+        if (reportRes.status === 'fulfilled' && reportRes.value.ok) {
+          const data = await reportRes.value.json();
+          if (data?.status === 'success') {
+            setWeekReport(data.data);
+            setCachedData('dashboard_report', data.data);
+          }
         }
-        if (streakRes.ok) {
-          const data = await streakRes.json();
-          if (data?.status === 'success') setStreak(data.data);
+        if (streakRes.status === 'fulfilled' && streakRes.value.ok) {
+          const data = await streakRes.value.json();
+          if (data?.status === 'success') {
+            setStreak(data.data);
+            setCachedData('dashboard_streak', data.data);
+          }
         }
-        if (postRes.ok) {
-          const data = await postRes.json();
+        if (postRes.status === 'fulfilled' && postRes.value.ok) {
+          const data = await postRes.value.json();
           setLatestPost(data?.posts?.[0] || null);
         }
-        if (ghRes.ok) {
-          const data = await ghRes.json();
+        if (ghRes.status === 'fulfilled' && ghRes.value.ok) {
+          const data = await ghRes.value.json();
           if (data?.status === 'success') setGoogleHealth(data.data || null);
         }
 
-        await loadReminders(headers, tzOffset);
+        if (allRemRes.status === 'fulfilled' && allRemRes.value.ok) {
+          const data = await allRemRes.value.json();
+          if (data?.status === 'success') {
+            const raw = data.data;
+            let all = Array.isArray(raw) ? raw : (raw?.reminders || []);
+            const fromAll = buildTodayReminders(all, tzOffset);
+            setTodayReminders(fromAll);
+            setCachedData('dashboard_reminders', fromAll);
+          }
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -373,8 +338,8 @@ export default function Dashboard() {
       }
     };
 
-    load();
-    const id = setInterval(load, 30000);
+    loadAllConcurrently();
+    const id = setInterval(loadAllConcurrently, 30000);
 
     const onRemindersRefresh = () => {
       const headers = { ...authHeaders() };
@@ -403,13 +368,13 @@ export default function Dashboard() {
   const stepsEmpty = stepsToday <= 0;
   const streakEmpty = !(streak?.currentStreak > 0);
   const pendingReminders = useMemo(
-    () => todayReminders.filter((r) => !r.isCompletedToday),
+    () => (todayReminders ?? []).filter((r) => !r.isCompletedToday),
     [todayReminders]
   );
   const visibleReminders = pendingReminders.slice(0, 4);
   const moreRemindersCount = Math.max(0, pendingReminders.length - 4);
   const remindersEmpty = pendingReminders.length === 0;
-  const remindersAllDone = remindersEmpty && todayReminders.length > 0;
+  const remindersAllDone = remindersEmpty && (todayReminders ?? []).length > 0;
   const tomorrowPreview = tomorrowReminders.slice(0, 3);
   const ghConnected = Boolean(googleHealth?.connected);
   const ghSteps = Number(googleHealth?.lastSteps) || stepsToday || 0;
@@ -529,7 +494,12 @@ export default function Dashboard() {
                   <Droplets size={16} />
                 </span>
                 <span className="db-home-glance-label">{tr('dashboard.glance.glucose')}</span>
-                {!glucoseEmpty ? (
+                {summary == null ? (
+                  <>
+                    <span className="db-skeleton" style={{ width: 64, height: 26, marginTop: 2 }} />
+                    <span className="db-skeleton" style={{ width: 90, height: 12, marginTop: 4 }} />
+                  </>
+                ) : !glucoseEmpty ? (
                   <strong>
                     {latestGlucose}
                     <small>{unitLabel}</small>
@@ -537,7 +507,7 @@ export default function Dashboard() {
                 ) : (
                   <strong className="is-empty">{tr('dashboard.glance.ctaGlucose')}</strong>
                 )}
-                {glucoseCount > 0 ? (
+                {summary != null && glucoseCount > 0 ? (
                   <span className="db-home-glance-sub">
                     {tr(glucoseCount === 1 ? 'dashboard.glance.readingOne' : 'dashboard.glance.readingMany').replace('{n}', glucoseCount)}
                   </span>
@@ -624,7 +594,12 @@ export default function Dashboard() {
                   <Flame size={16} />
                 </span>
                 <span className="db-home-glance-label">{tr('dashboard.glance.streak')}</span>
-                {!streakEmpty ? (
+                {streak == null ? (
+                  <>
+                    <span className="db-skeleton" style={{ width: 52, height: 26, marginTop: 2 }} />
+                    <span className="db-skeleton" style={{ width: 80, height: 12, marginTop: 4 }} />
+                  </>
+                ) : !streakEmpty ? (
                   <strong>
                     {streak.currentStreak}
                     <small>{tr('dashboard.glance.daysWord')}</small>
@@ -632,13 +607,15 @@ export default function Dashboard() {
                 ) : (
                   <strong className="is-empty">{tr('dashboard.glance.ctaStreak')}</strong>
                 )}
-                <span className="db-home-glance-sub">
-                  {streak?.atRisk
-                    ? tr('dashboard.glance.atRiskLogToday')
-                    : !streakEmpty
-                      ? tr('dashboard.glance.keepItGoing')
-                      : tr('dashboard.glance.logAnythingToday')}
-                </span>
+                {streak != null && (
+                  <span className="db-home-glance-sub">
+                    {streak?.atRisk
+                      ? tr('dashboard.glance.atRiskLogToday')
+                      : !streakEmpty
+                        ? tr('dashboard.glance.keepItGoing')
+                        : tr('dashboard.glance.logAnythingToday')}
+                  </span>
+                )}
               </div>
 
               <div className="db-home-glance-card db-home-glance-card--report">
@@ -806,7 +783,19 @@ export default function Dashboard() {
                 </button>
               </header>
 
-              {!remindersEmpty ? (
+              {todayReminders === null ? (
+                <div className="db-home-reminder-list" style={{ gap: 10 }}>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="db-home-reminder-row" style={{ alignItems: 'center', gap: 10 }}>
+                      <span className="db-skeleton" style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0 }} />
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        <span className="db-skeleton" style={{ width: '65%', height: 13 }} />
+                        <span className="db-skeleton" style={{ width: '40%', height: 10 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : !remindersEmpty ? (
                 <div className="db-home-reminder-list">
                   {visibleReminders.map((r) => {
                     const displayTitle = REMINDER_TITLE_KEYS[r.title]

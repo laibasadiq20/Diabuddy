@@ -22,9 +22,9 @@
 
           var lang = localStorage.getItem('diabuddy_lang');
           if (lang !== 'en' && lang !== 'ur') lang = 'en';
-          // Layout always LTR/English bidi — Urdu only changes copy + font.
-          document.documentElement.setAttribute('lang', 'en');
-          document.documentElement.setAttribute('dir', 'ltr');
+          var isUrdu = lang === 'ur';
+          document.documentElement.setAttribute('lang', isUrdu ? 'ur' : 'en');
+          document.documentElement.setAttribute('dir', isUrdu ? 'rtl' : 'ltr');
           document.documentElement.setAttribute('data-lang', lang);
         } catch (e) {
           /* ignore — React providers will set these on mount */

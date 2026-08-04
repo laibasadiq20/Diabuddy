@@ -66,6 +66,10 @@ export default function Account() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!form.name.trim()) {
+      setError(tr('account.nameRequired') || 'Full name is required.');
+      return;
+    }
     setSaving(true);
     setMessage('');
     setError('');
@@ -228,7 +232,7 @@ export default function Account() {
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div
             className="db-account-header"
-            style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}
           >
             <div>
               <h1 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 'clamp(24px, 5vw, 30px)', color: t.ink, fontWeight: 500 }}>
@@ -240,6 +244,7 @@ export default function Account() {
             </div>
             <button
               type="button"
+              className="db-account-logout-btn"
               onClick={handleLogout}
               style={{
                 display: 'inline-flex',
@@ -254,6 +259,8 @@ export default function Account() {
                 color: t.clayDeep,
                 cursor: 'pointer',
                 fontFamily: t.fontBody,
+                flexShrink: 0,
+                transition: 'background 0.15s, border-color 0.15s, color 0.15s',
               }}
             >
               <LogOut size={15} />
@@ -276,8 +283,9 @@ export default function Account() {
               flexWrap: 'wrap',
             }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <div className="db-account-hero-avatar-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <label
+                className="db-account-hero-avatar-label"
                 style={{
                   position: 'relative',
                   width: 84,
@@ -355,61 +363,15 @@ export default function Account() {
             </div>
 
             <div style={{ minWidth: 0, flex: '1 1 180px' }}>
-              <p style={{ margin: 0, fontSize: 'clamp(18px, 5vw, 22px)', fontWeight: 600, color: '#FFF', fontFamily: t.fontDisplay, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <p className="db-account-hero-name" style={{ margin: 0, fontSize: 'clamp(18px, 5vw, 22px)', fontWeight: 600, color: '#FFF', fontFamily: t.fontDisplay, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {form.name || user?.name}
               </p>
 
               {user?.username && (
-                <p style={{ margin: '6px 0 0', fontSize: 14, color: 'rgba(244,240,232,0.78)', fontWeight: 600 }}>
+                <p style={{ margin: '4px 0 0', fontSize: 14, color: 'rgba(244,240,232,0.85)', fontWeight: 500 }}>
                   @{user.username}
                 </p>
               )}
-
-              <p style={{ margin: '8px 0 0', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(244,240,232,0.72)', flexWrap: 'wrap' }}>
-                <Mail size={13} style={{ flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</span>
-                {emailVerified && (
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      background: 'rgba(255,255,255,0.16)',
-                      borderRadius: 999,
-                      padding: '2px 8px',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: '#E8F5E9',
-                    }}
-                  >
-                    <CheckCircle2 size={12} /> {tr('account.emailVerified')}
-                  </span>
-                )}
-              </p>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                {form.diabetesType && (
-                  <span style={pillStyle}>{diabetesTypeLabel(form.diabetesType, tr)}</span>
-                )}
-                {form.location && (
-                  <span style={pillStyle}>
-                    <MapPin size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
-                    {form.location}
-                  </span>
-                )}
-                {form.gender && (
-                  <span style={pillStyle}>
-                    {form.gender === 'Female'
-                      ? tr('account.genderFemale')
-                      : form.gender === 'Male'
-                        ? tr('account.genderMale')
-                        : tr('account.genderOther')}
-                  </span>
-                )}
-                {form.age !== '' && form.age != null && (
-                  <span style={pillStyle}>{form.age}</span>
-                )}
-              </div>
             </div>
           </div>
 
@@ -570,6 +532,10 @@ export default function Account() {
           opacity: 0.9;
           transition: opacity 0.15s ease;
         }
+        .db-account-logout-btn:hover {
+          background: ${t.clayTint} !important;
+          border-color: ${t.clay} !important;
+        }
         @media (min-width: 641px) {
           .db-account-photo-overlay { opacity: 0; }
           label:hover .db-account-photo-overlay,
@@ -578,18 +544,43 @@ export default function Account() {
           }
         }
         @media (max-width: 640px) {
-          .db-account-hero {
-            padding: 16px !important;
-            border-radius: 16px !important;
-            flex-direction: column !important;
-            align-items: stretch !important;
+          .db-account-header {
+            align-items: center !important;
+            margin-bottom: 16px !important;
           }
-          .db-account-hero > div:first-child {
+          .db-account-logout-btn {
+            padding: 8px 14px !important;
+            font-size: 12px !important;
+          }
+          .db-account-hero {
+            padding: 16px 14px !important;
+            border-radius: 18px !important;
+            display: flex !important;
             flex-direction: row !important;
             align-items: center !important;
-            gap: 12px !important;
+            gap: 14px !important;
+            flex-wrap: nowrap !important;
           }
-          .db-account-card { padding: 16px !important; border-radius: 16px !important; }
+          .db-account-hero-avatar-wrap {
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 6px !important;
+            flex-shrink: 0 !important;
+          }
+          .db-account-hero-avatar-label {
+            width: 68px !important;
+            height: 68px !important;
+          }
+          .db-account-hero-avatar-label span {
+            font-size: 24px !important;
+          }
+          .db-account-hero-name {
+            font-size: 17px !important;
+          }
+          .db-account-card {
+            padding: 18px 14px !important;
+            border-radius: 16px !important;
+          }
         }
       `}</style>
     </div>

@@ -36,7 +36,7 @@ export default function FeedFilters({
         </div>
       </div>
 
-      <div className="db-community-topics" role="tablist" aria-label={tr('nav.topics')}>
+      <div className="db-community-topics db-community-topics--desktop" role="tablist" aria-label={tr('nav.topics')}>
         <button
           type="button"
           role="tab"
@@ -59,6 +59,21 @@ export default function FeedFilters({
               {topic.name}
             </button>
           ))}
+      </div>
+
+      <div className="db-community-topics--mobile">
+        <label className="db-community-sort-label" htmlFor="db-community-topic-select" style={{ display: 'block', marginBottom: 6 }}>
+          {tr('nav.topics') || 'Topic'}
+        </label>
+        <ThemedSelect
+          id="db-community-topic-select"
+          value={selectedTopic}
+          onChange={onTopicSelect}
+          options={[
+            { value: '', label: tr('community.topicsAll') },
+            ...(!topicsLoading ? topics.map((t) => ({ value: t._id, label: t.name })) : []),
+          ]}
+        />
       </div>
     </div>
   );

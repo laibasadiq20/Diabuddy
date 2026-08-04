@@ -257,6 +257,38 @@ export function downloadReportPdf(report, { userName, tr, glucoseUnit: glucoseUn
     story.variabilityLabel ||
     (stdDevDisplay != null ? `${stdDevDisplay} ${unitLabel}` : '—');
 
+  const isUrduReport = typeof document !== 'undefined' && document.documentElement.getAttribute('data-lang') === 'ur';
+
+  const exportCareLetterTitle = isUrduReport
+    ? (story.careLetterTitle === 'Daily Care Letter'
+        ? 'روزانہ نگہداشت کا خط'
+        : story.careLetterTitle === 'Monthly Care Letter'
+          ? 'ماہانہ نگہداشت کا خط'
+          : story.careLetterTitle === '3 Months Care Letter'
+            ? '3 ماہ کا نگہداشت کا خط'
+            : 'ہفتہ وار نگہداشت کا خط')
+    : (story.careLetterTitle || story.headline || tr('reports.pdfExport.careLetterFallback'));
+
+  const exportRatingMap = {
+    excellent: 'بہترین',
+    good: 'بہت اچھا',
+    fair: 'مناسب',
+    needs_attention: 'توجہ طلب',
+    empty: 'معلومات دستیاب نہیں',
+  };
+  const exportRatingText = isUrduReport
+    ? (exportRatingMap[story.rating || 'fair'] || 'مناسب')
+    : (story.ratingLabel || tr('reports.pdfExport.summaryFallback'));
+
+  const presetVal = report?.preset || '7d';
+  const exportCareLetterBody = isUrduReport
+    ? (presetVal === '1d'
+        ? `یہ آپ کی روزانہ نگہداشت کا جائزہ ہے۔ آپ نے آج صحت کا لاگ رکھا اور اپنی معلومات درج کیں۔ ڈیا بڈی آپ کے ساتھ ہے — مسلسل کوشش سے ہی بہترین نتائج ممکن ہیں۔`
+        : presetVal === '30d'
+          ? `یہ آپ کی ماہانہ نگہداشت کا جائزہ ہے۔ آپ نے اس ماہ صحت کا لاگ رکھا اور اپنی معلومات درج کیں۔ ڈیا بڈی آپ کے ساتھ ہے — مسلسل کوشش سے ہی بہترین نتائج ممکن ہیں۔`
+          : `یہ آپ کی ہفتہ وار نگہداشت کا جائزہ ہے۔ آپ نے اس ہفتے صحت کا لاگ رکھا اور اپنی معلومات درج کیں۔ ڈیا بڈی آپ کے ساتھ ہے — مسلسل کوشش سے ہی بہترین نتائج ممکن ہیں۔`)
+    : (story.careLetter || story.narrative || story.summary || '');
+
   // Keep PDF lean: care letter covers encouragement; skip separate "What went well" + care-area dump.
   const goals = (story.recommendations || []).slice(0, 3);
   const goalsHtml = goals.length
@@ -693,9 +725,9 @@ export function downloadReportPdf(report, { userName, tr, glucoseUnit: glucoseUn
 
   <section class="care-letter">
     <p class="eyebrow">${escapeHtml(tr('reports.pdfExport.fromDiaBuddy'))}</p>
-    <h2>${escapeHtml(story.careLetterTitle || story.headline || tr('reports.pdfExport.careLetterFallback'))}</h2>
-    <span class="rating is-${escapeHtml(story.rating || 'fair')}">${escapeHtml(story.ratingLabel || tr('reports.pdfExport.summaryFallback'))}</span>
-    <p>${escapeHtml(story.careLetter || story.narrative || story.summary || '')}</p>
+    <h2>${escapeHtml(exportCareLetterTitle)}</h2>
+    <span class="rating is-${escapeHtml(story.rating || 'fair')}">${escapeHtml(exportRatingText)}</span>
+    <p>${escapeHtml(exportCareLetterBody)}</p>
     <p class="signoff">${escapeHtml(tr('reports.pdfExport.signoff'))}</p>
   </section>
 

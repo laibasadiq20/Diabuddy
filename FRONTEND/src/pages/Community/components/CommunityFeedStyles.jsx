@@ -162,6 +162,12 @@ export default function CommunityFeedStyles() {
           scrollbar-width: none;
         }
         .db-community-topics::-webkit-scrollbar { display: none; }
+        .db-community-topics--desktop {
+          display: flex;
+        }
+        .db-community-topics--mobile {
+          display: none;
+        }
         .db-topic-chip {
           flex: 0 0 auto;
           border: 1.5px solid ${t.lineStrong};
@@ -183,10 +189,11 @@ export default function CommunityFeedStyles() {
         .db-community-feed {
           display: flex;
           flex-direction: column;
-          background: ${t.surface};
-          border: 1.5px solid ${t.lineStrong};
-          border-radius: 14px;
-          overflow: hidden;
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          overflow: visible;
+          gap: 12px;
         }
         .db-post-card {
           display: grid;
@@ -194,25 +201,23 @@ export default function CommunityFeedStyles() {
           gap: 12px 16px;
           align-items: start;
           background: ${t.surface};
-          border: none;
-          border-bottom: 1px solid ${t.line};
-          border-radius: 0;
-          padding: 12px 14px;
+          border: 1px solid ${t.line};
+          border-radius: 12px;
+          padding: 16px 18px;
           cursor: pointer;
-          box-shadow: none;
-          transition: background 0.12s ease;
+          box-shadow: ${t.shadowCard};
+          transition: background 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1);
           outline: none;
-        }
-        .db-post-card:last-of-type {
-          border-bottom: none;
         }
         .db-post-card:focus-visible {
           background: ${t.sageTint};
-          box-shadow: inset 0 0 0 2px ${t.forest};
+          box-shadow: inset 0 0 0 2px ${t.forest}, ${t.shadowCard};
         }
         @media (hover: hover) and (pointer: fine) {
           .db-post-card:hover {
-            background: ${t.surfaceSunken};
+            background: ${t.surfaceRaised};
+            box-shadow: ${t.shadowLifted};
+            transform: translateY(-2.5px) scale(1.003);
           }
         }
         .db-post-card-main {
@@ -506,12 +511,18 @@ export default function CommunityFeedStyles() {
             padding-bottom: 8px;
           }
           .db-community-sort-wrap {
-            max-width: none;
+            max-width: 160px;
             flex: 1;
           }
           .db-community-topics {
             margin: 0 -2px;
             padding: 0 2px 2px;
+          }
+          .db-community-topics--desktop {
+            display: none;
+          }
+          .db-community-topics--mobile {
+            display: block;
           }
           .db-drafts-banner {
             padding: 10px 12px;
@@ -525,12 +536,14 @@ export default function CommunityFeedStyles() {
             border-radius: 10px;
           }
           .db-community-feed {
-            border-radius: 12px;
+            border-radius: 0;
           }
           .db-post-card {
             grid-template-columns: 1fr;
             gap: 10px;
-            padding: 12px;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid ${t.line};
           }
           .db-post-title-row {
             align-items: flex-start;

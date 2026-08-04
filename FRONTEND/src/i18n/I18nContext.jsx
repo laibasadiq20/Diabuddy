@@ -36,10 +36,9 @@ export const I18nProvider = ({ children }) => {
   })();
 
   useEffect(() => {
-    // Keep html lang=en + dir=ltr always so Latin punctuation and flex/grid
-    // positions never flip. Urdu only swaps translated strings + font via data-lang.
-    document.documentElement.setAttribute('lang', 'en');
-    document.documentElement.setAttribute('dir', 'ltr');
+    const isUrdu = lang === 'ur';
+    document.documentElement.setAttribute('lang', isUrdu ? 'ur' : 'en');
+    document.documentElement.setAttribute('dir', isUrdu ? 'rtl' : 'ltr');
     document.documentElement.setAttribute('data-lang', lang);
     try {
       localStorage.setItem(STORAGE_KEY, lang);

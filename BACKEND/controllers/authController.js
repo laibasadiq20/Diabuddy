@@ -5,11 +5,13 @@ const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 const { isEmailConfigured } = sendEmail;
 
+const getJwtSecret = () => process.env.JWT_SECRET || 'diabuddy_fallback_secret_key_2026';
+
 /**
  * Generate a JWT token
  */
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  return jwt.sign({ id }, getJwtSecret(), {
     expiresIn: '30d', // Token valid for 30 days
   });
 };
@@ -379,7 +381,15 @@ const login = async (req, res) => {
     }
 
     // 3. Explicitly verify password
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    const passHash = user.passwordHash || user.password;
+    if (!passHash) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Account password data is invalid. Please reset your password.',
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, passHash);
     if (!isMatch) {
       return res.status(400).json({
         status: 'error',

@@ -13,10 +13,10 @@ export default function CommunityGuidelinesBanner() {
         background: t.sageTint,
         border: `1.5px solid ${t.lineStrong}`,
         borderRadius: 10,
-        padding: '8px 12px',
+        padding: '10px 14px',
         marginBottom: 10,
-        fontSize: 12,
-        lineHeight: 1.4,
+        fontSize: 13,
+        lineHeight: 1.65,
         color: t.inkSoft,
         fontWeight: 500,
       }}

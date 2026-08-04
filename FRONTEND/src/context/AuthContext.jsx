@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { API_URL } from "../config/api";
+import { setCachedData } from "../utils/appCache";
 
 const AuthContext = createContext();
 
@@ -65,8 +66,42 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /** Fire-and-forget background preload so dashboard is instant */
+  const preloadDashboardData = (user) => {
+    if (!user) return;
+    const tzOffset = new Date().getTimezoneOffset();
+    const creds = { credentials: 'include' };
+
+    // Parallel: all 3 critical endpoints at once, no await blocking the UI
+    fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, creds)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.status === 'success') setCachedData('dashboard_summary', d.data); })
+      .catch(() => {});
+
+    fetch(`${API_URL}/health-logs/streak?tzOffset=${tzOffset}`, creds)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.status === 'success') setCachedData('dashboard_streak', d.data); })
+      .catch(() => {});
+
+    fetch(`${API_URL}/reminders?tzOffset=${tzOffset}`, creds)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.status === 'success') {
+          const raw = d.data;
+          const all = Array.isArray(raw) ? raw : (raw?.reminders || []);
+          setCachedData('dashboard_reminders', all);
+        }
+      })
+      .catch(() => {});
+
+    fetch(`${API_URL}/health-logs/report?preset=7d&tzOffset=${tzOffset}`, creds)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.status === 'success') setCachedData('dashboard_report', d.data); })
+      .catch(() => {});
+  };
+
   useEffect(() => {
-    fetchUser();
+    fetchUser().then(u => preloadDashboardData(u));
   }, []);
 
   const logout = async () => {

@@ -9,6 +9,7 @@ import { ChevronRight, ClipboardList, Check, Flame, AlertTriangle, ArrowLeft } f
 import { LOG_TYPES } from './logsConfig';
 import { mlToUsFlOz, round0 } from '../../utils/waterUnits';
 import { fromMgdl, glucoseUnitLabel, resolveGlucoseUnit } from '../../utils/glucoseUnits';
+import { getCachedData, setCachedData } from '../../utils/appCache';
 
 const t = theme;
 
@@ -119,12 +120,22 @@ export default function Logs() {
   useEffect(() => {
     if (!user) return undefined;
     let cancelled = false;
+
+    // Instant 0ms render from cache if previously loaded
+    const cachedSum = getCachedData('logs_summary');
+    const cachedStr = getCachedData('logs_streak');
+    if (cachedSum) setSummary(cachedSum);
+    if (cachedStr) {
+      setStreak(cachedStr);
+      setStreakLoading(false);
+    }
+
     const load = async () => {
-      setStreakLoading(true);
+      if (!cachedSum && !cachedStr) setStreakLoading(true);
       try {
         const tzOffset = new Date().getTimezoneOffset();
         const headers = { ...authHeaders() };
-        const [sumRes, streakRes] = await Promise.all([
+        const [sumRes, streakRes] = await Promise.allSettled([
           fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, {
             credentials: 'include',
             headers,
@@ -134,14 +145,22 @@ export default function Logs() {
             headers,
           }),
         ]);
+
         if (cancelled) return;
-        if (sumRes.ok) {
-          const data = await sumRes.json();
-          if (data?.status === 'success') setSummary(data.data);
+
+        if (sumRes.status === 'fulfilled' && sumRes.value.ok) {
+          const data = await sumRes.value.json();
+          if (data?.status === 'success') {
+            setSummary(data.data);
+            setCachedData('logs_summary', data.data);
+          }
         }
-        if (streakRes.ok) {
-          const data = await streakRes.json();
-          if (data?.status === 'success') setStreak(data.data);
+        if (streakRes.status === 'fulfilled' && streakRes.value.ok) {
+          const data = await streakRes.value.json();
+          if (data?.status === 'success') {
+            setStreak(data.data);
+            setCachedData('logs_streak', data.data);
+          }
         }
       } catch {
         /* keep hub usable without summary */
@@ -149,11 +168,12 @@ export default function Logs() {
         if (!cancelled) setStreakLoading(false);
       }
     };
+
     load();
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, authHeaders]);
 
   const priority = LOG_TYPES.filter((x) => PRIORITY_IDS.includes(x.id));
   const more = LOG_TYPES.filter((x) => !PRIORITY_IDS.includes(x.id));

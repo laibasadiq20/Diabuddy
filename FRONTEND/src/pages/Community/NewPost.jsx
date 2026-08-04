@@ -185,6 +185,18 @@ export default function NewPost() {
       return;
     }
 
+    if (!saveAsDraft && !title.trim()) {
+      setError(tr('newPost.errorTitleRequired') || 'Please enter a post title.');
+      setLoading(false);
+      return;
+    }
+
+    if (!saveAsDraft && !content.trim()) {
+      setError(tr('newPost.errorContentRequired') || 'Please enter the post content.');
+      setLoading(false);
+      return;
+    }
+
     if (!topicId) {
       setError(tr('newPost.errorTopic'));
       setLoading(false);
