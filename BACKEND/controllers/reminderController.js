@@ -2,19 +2,21 @@ const Reminder = require('../models/Reminder');
 const User = require('../models/User');
 const { DEFAULT_REMINDERS, DEFAULT_TITLES } = require('../constants/defaultReminders');
 const { calculateNextTriggerAt } = require('../utils/reminderHelper');
+const { getUserTzOffset, weekdayInOffset, isSameCalendarDay } = require('../utils/timezone');
 
 /**
- * Helper to check if a Date is on the same calendar day as today.
+ * Resolve tzOffset from query/body, falling back to the user's saved timezone.
  */
-function isSameDayAsToday(date) {
-  if (!date) return false;
-  const d = new Date(date);
-  const today = new Date();
-  return (
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate()
-  );
+async function resolveRequestTzOffset(req) {
+  const parsed =
+    Number(req.query?.tzOffset ?? req.body?.tzOffset);
+  const deviceOffset = Number.isFinite(parsed) ? parsed : null;
+  try {
+    const user = await User.findById(req.user.id).select('timezone');
+    return getUserTzOffset(user, deviceOffset);
+  } catch {
+    return deviceOffset ?? 0;
+  }
 }
 
 /**
@@ -72,11 +74,10 @@ exports.getVapidPublicKey = (req, res) => {
 exports.getReminders = async (req, res) => {
   try {
     const userId = req.user.id;
-    const parsedTz = Number(req.query.tzOffset);
-    const tzOffset = Number.isFinite(parsedTz) ? parsedTz : 0;
+    const tzOffset = await resolveRequestTzOffset(req);
     await autoSeedDefaultReminders(userId, tzOffset);
 
-    // Keep schedules aligned to the client's local timezone.
+    // Keep schedules aligned to the client's / preference timezone.
     const reminders = await Reminder.find({ userId }).sort({ createdAt: 1 });
     for (const r of reminders) {
       if (r.tzOffset !== tzOffset) {
@@ -88,10 +89,11 @@ exports.getReminders = async (req, res) => {
       }
     }
 
+    const now = new Date();
     const formatted = reminders.map((r) => {
       const doc = r.toObject();
       doc.id = doc._id;
-      doc.isCompletedToday = isSameDayAsToday(doc.lastCompletedAt);
+      doc.isCompletedToday = isSameCalendarDay(doc.lastCompletedAt, now, tzOffset);
       return doc;
     });
 
@@ -119,30 +121,35 @@ exports.getReminders = async (req, res) => {
 exports.getTodayReminders = async (req, res) => {
   try {
     const userId = req.user.id;
-    const parsedTz = Number(req.query.tzOffset);
-    const tzOffset = Number.isFinite(parsedTz) ? parsedTz : 0;
+    const tzOffset = await resolveRequestTzOffset(req);
     await autoSeedDefaultReminders(userId, tzOffset);
 
     const reminders = await Reminder.find({ userId, enabled: true });
-
-    // Filter reminders applicable today (daily, matching weekday, or matching doctor appointment date)
-    const todayStr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()];
+    const now = new Date();
+    const todayStr = weekdayInOffset(now, tzOffset);
 
     const todayReminders = reminders
       .filter((r) => {
+        // One-off appointment: only on that calendar day
         if (r.appointmentDate) {
-          return isSameDayAsToday(r.appointmentDate);
+          return isSameCalendarDay(r.appointmentDate, now, tzOffset);
         }
         if (r.repeat === 'daily') return true;
-        if ((r.repeat === 'weekly' || r.repeat === 'custom') && Array.isArray(r.days)) {
-          return r.days.includes(todayStr);
+
+        const days = Array.isArray(r.days) ? r.days : [];
+        if (days.length === 0) return false;
+        // All weekdays selected ≈ every day
+        if (days.length >= 7) return true;
+
+        if (r.repeat === 'weekly' || r.repeat === 'custom') {
+          return days.includes(todayStr);
         }
         return false;
       })
       .map((r) => {
         const doc = r.toObject();
         doc.id = doc._id;
-        doc.isCompletedToday = isSameDayAsToday(doc.lastCompletedAt);
+        doc.isCompletedToday = isSameCalendarDay(doc.lastCompletedAt, now, tzOffset);
         return doc;
       })
       .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
@@ -163,14 +170,14 @@ exports.getTodayReminders = async (req, res) => {
  */
 exports.createReminder = async (req, res) => {
   try {
-    const { title, time, repeat, days, appointmentDate, enabled, icon, tzOffset } = req.body;
+    const { title, time, repeat, days, appointmentDate, enabled, icon } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({ status: 'error', message: 'Reminder title is required' });
     }
 
     const cleanTitle = title.trim();
-    const offsetMinutes = typeof tzOffset === 'number' ? tzOffset : 0;
+    const offsetMinutes = await resolveRequestTzOffset(req);
 
     // Prevent creating duplicate default reminders
     if (DEFAULT_TITLES.some((t) => t.toLowerCase() === cleanTitle.toLowerCase())) {
@@ -189,7 +196,7 @@ exports.createReminder = async (req, res) => {
       days: Array.isArray(days) ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
       appointmentDate: appointmentDate ? new Date(appointmentDate) : null,
       enabled: enabled !== undefined ? Boolean(enabled) : true,
-      icon: icon || '💊',
+      icon: icon || 'pill',
       tzOffset: offsetMinutes,
     });
 
@@ -224,8 +231,9 @@ exports.updateReminder = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Reminder not found' });
     }
 
-    const { title, time, repeat, days, appointmentDate, enabled, icon, tzOffset } = req.body;
-    const offsetMinutes = typeof tzOffset === 'number' ? tzOffset : (typeof reminder.tzOffset === 'number' ? reminder.tzOffset : 0);
+    const { title, time, repeat, days, appointmentDate, enabled, icon } = req.body;
+    const offsetMinutes = await resolveRequestTzOffset(req);
+    const now = new Date();
 
     // Disallow modifying title for default reminders
     if (reminder.type === 'default' && title && title.trim().toLowerCase() !== reminder.title.toLowerCase()) {
@@ -254,7 +262,7 @@ exports.updateReminder = async (req, res) => {
 
     const doc = reminder.toObject();
     doc.id = doc._id;
-    doc.isCompletedToday = isSameDayAsToday(doc.lastCompletedAt);
+    doc.isCompletedToday = isSameCalendarDay(doc.lastCompletedAt, now, offsetMinutes);
 
     return res.json({
       status: 'success',
@@ -312,16 +320,17 @@ exports.toggleReminder = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Reminder not found' });
     }
 
-    const parsedTz = Number(req.body?.tzOffset);
-    if (Number.isFinite(parsedTz)) reminder.tzOffset = parsedTz;
+    const offsetMinutes = await resolveRequestTzOffset(req);
+    const now = new Date();
+    reminder.tzOffset = offsetMinutes;
 
     reminder.enabled = !reminder.enabled;
-    reminder.nextTriggerAt = calculateNextTriggerAt(reminder, new Date(), reminder.tzOffset || 0);
+    reminder.nextTriggerAt = calculateNextTriggerAt(reminder, new Date(), offsetMinutes);
     await reminder.save();
 
     const doc = reminder.toObject();
     doc.id = doc._id;
-    doc.isCompletedToday = isSameDayAsToday(doc.lastCompletedAt);
+    doc.isCompletedToday = isSameCalendarDay(doc.lastCompletedAt, now, offsetMinutes);
 
     return res.json({
       status: 'success',
@@ -347,17 +356,28 @@ exports.toggleComplete = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Reminder not found' });
     }
 
-    const completedToday = isSameDayAsToday(reminder.lastCompletedAt);
-    reminder.lastCompletedAt = completedToday ? null : new Date();
+    const offsetMinutes = await resolveRequestTzOffset(req);
+    const now = new Date();
+    const completedToday = isSameCalendarDay(reminder.lastCompletedAt, now, offsetMinutes);
+
+    // Body `{ completed: true|false }` forces state; otherwise toggle.
+    let nextCompleted;
+    if (req.body && typeof req.body.completed === 'boolean') {
+      nextCompleted = req.body.completed;
+    } else {
+      nextCompleted = !completedToday;
+    }
+
+    reminder.lastCompletedAt = nextCompleted ? now : null;
     await reminder.save();
 
     const doc = reminder.toObject();
     doc.id = doc._id;
-    doc.isCompletedToday = !completedToday;
+    doc.isCompletedToday = nextCompleted;
 
     return res.json({
       status: 'success',
-      message: `Reminder marked as ${!completedToday ? 'Completed' : 'Pending'}`,
+      message: `Reminder marked as ${nextCompleted ? 'Completed' : 'Pending'}`,
       data: doc,
     });
   } catch (err) {

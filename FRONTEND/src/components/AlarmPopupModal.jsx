@@ -4,7 +4,19 @@ import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
 import { theme } from '../theme';
 import { API_URL } from '../config/api';
-import { Clock, CheckCircle2, X, BellRing, Sparkles, AlarmClock } from 'lucide-react';
+import { getUserTzOffset } from '../utils/timezone';
+import { Clock, CheckCircle2, X, BellRing, Sparkles, AlarmClock, Bell, Pill, Syringe, Droplets, Moon, Calendar } from 'lucide-react';
+
+function alarmIconEl(iconName, title, size = 22) {
+  const id = String(iconName || '').trim();
+  const titleLower = (title || '').toLowerCase();
+  if (id === 'syringe' || id === '💉' || titleLower.includes('insulin')) return <Syringe size={size} strokeWidth={2} />;
+  if (id === 'pill' || id === '💊' || titleLower.includes('medicine')) return <Pill size={size} strokeWidth={2} />;
+  if (id === 'droplets' || id === '🩸' || titleLower.includes('glucose')) return <Droplets size={size} strokeWidth={2} />;
+  if (id === 'moon' || id === '🌙' || titleLower.includes('bed')) return <Moon size={size} strokeWidth={2} />;
+  if (id === 'calendar' || id === '📅' || titleLower.includes('doctor')) return <Calendar size={size} strokeWidth={2} />;
+  return <Bell size={size} strokeWidth={2} />;
+}
 
 const t = theme;
 
@@ -117,24 +129,24 @@ export default function AlarmPopupModal() {
               bodyStr = rawMsg.split(':').slice(1).join(':').trim();
             }
 
-            let icon = '🔔';
+            let icon = 'bell';
             let parsedTitle = 'Scheduled Reminder';
             const lowerMsg = rawMsg.toLowerCase();
 
             if (lowerMsg.includes('insulin')) {
-              icon = '💉';
+              icon = 'syringe';
               parsedTitle = 'Take Insulin';
             } else if (lowerMsg.includes('medicine') || lowerMsg.includes('vitamin')) {
-              icon = '💊';
+              icon = 'pill';
               parsedTitle = 'Take Medicine';
             } else if (lowerMsg.includes('blood glucose') || lowerMsg.includes('glucose')) {
-              icon = '🩸';
+              icon = 'droplets';
               parsedTitle = 'Check Blood Glucose';
             } else if (lowerMsg.includes('bedtime')) {
-              icon = '🌙';
+              icon = 'moon';
               parsedTitle = 'Bedtime';
             } else if (lowerMsg.includes('doctor') || lowerMsg.includes('appointment')) {
-              icon = '📅';
+              icon = 'calendar';
               parsedTitle = 'Doctor Appointment';
             } else if (rawMsg.includes('Reminder:')) {
               parsedTitle = rawMsg.split('Reminder:')[1].replace(/\./g, '').trim();
@@ -161,7 +173,7 @@ export default function AlarmPopupModal() {
         }
 
         // 2. Check today's reminders schedule
-        const remRes = await fetch(`${API_URL}/reminders/today?tzOffset=${new Date().getTimezoneOffset()}`, {
+        const remRes = await fetch(`${API_URL}/reminders/today?tzOffset=${getUserTzOffset(user)}`, {
           headers,
           credentials: 'include',
         });
@@ -169,11 +181,14 @@ export default function AlarmPopupModal() {
 
         if (remRes.ok && remData?.status === 'success' && Array.isArray(remData.data)) {
           const now = new Date();
-          const currentHHMM = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+          const offset = getUserTzOffset(user);
+          const wall = new Date(now.getTime() - offset * 60000);
+          const currentHHMM = `${wall.getUTCHours().toString().padStart(2, '0')}:${wall.getUTCMinutes().toString().padStart(2, '0')}`;
+          const wallDayKey = `${wall.getUTCFullYear()}-${wall.getUTCMonth()}-${wall.getUTCDate()}`;
 
           const due = remData.data.find((rem) => {
             if (!rem.enabled || rem.isCompletedToday) return false;
-            const handledKey = `${rem.id}_${rem.time}_${now.toDateString()}`;
+            const handledKey = `${rem.id}_${rem.time}_${wallDayKey}`;
             if (handledAlarms.includes(handledKey)) return false;
 
             // 1. Exact match for current HH:mm
@@ -182,9 +197,12 @@ export default function AlarmPopupModal() {
             // 2. Reminder was triggered today by backend
             if (rem.lastTriggeredAt) {
               const triggeredDate = new Date(rem.lastTriggeredAt);
-              if (triggeredDate.toDateString() === now.toDateString()) {
-                return true;
-              }
+              const tw = new Date(triggeredDate.getTime() - offset * 60000);
+              const sameDay =
+                tw.getUTCFullYear() === wall.getUTCFullYear() &&
+                tw.getUTCMonth() === wall.getUTCMonth() &&
+                tw.getUTCDate() === wall.getUTCDate();
+              if (sameDay) return true;
             }
 
             // 3. Reminder nextTriggerAt is past or due right now
@@ -221,7 +239,7 @@ export default function AlarmPopupModal() {
         title: 'Take Insulin',
         message: 'Time to take your insulin.',
         time: `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`,
-        icon: '💉',
+        icon: 'syringe',
         enabled: true,
         isCompletedToday: false,
       };
@@ -274,17 +292,22 @@ export default function AlarmPopupModal() {
         }).catch(() => {});
       }
 
-      if (activeAlarm.id && !activeAlarm.isFromNotification) {
+      if (activeAlarm.id && !String(activeAlarm.id).startsWith('test_')) {
         await fetch(`${API_URL}/reminders/${activeAlarm.id}/complete`, {
           method: 'PATCH',
-          headers,
+          headers: { ...headers, 'Content-Type': 'application/json' },
           credentials: 'include',
+          body: JSON.stringify({
+            completed: true,
+            tzOffset: getUserTzOffset(user),
+          }),
         });
       }
 
       markHandled(activeAlarm.id, activeAlarm.time);
       setActiveAlarm(null);
       window.dispatchEvent(new Event('diabuddy:notifs-refresh'));
+      window.dispatchEvent(new Event('diabuddy:reminders-refresh'));
     } catch (err) {
       console.error('Complete error:', err);
     } finally {
@@ -430,7 +453,9 @@ export default function AlarmPopupModal() {
             gap: 8,
           }}
         >
-          <span>{activeAlarm.icon || '🔔'}</span>
+          <span style={{ color: t.forest, display: 'inline-flex' }}>
+            {alarmIconEl(activeAlarm.icon, activeAlarm.title)}
+          </span>
           <span>
             {DEFAULT_TITLE_KEYS[activeAlarm.title]
               ? tr(DEFAULT_TITLE_KEYS[activeAlarm.title])

@@ -70,9 +70,9 @@ export const theme = {
   // cream flash (see index.css --page-fade-top).
   pageFadeTop: 'var(--page-fade-top, #EDE6DA)',
 
-  // Fonts
-  fontDisplay: "'Playfair Display', Georgia, serif",
-  fontBody: "'DM Sans', system-ui, -apple-system, sans-serif",
+  // Fonts — CSS vars so Urdu (data-lang=ur) can swap to Nastaliq app-wide
+  fontDisplay: "var(--font-display, 'Playfair Display', Georgia, serif)",
+  fontBody: "var(--font-body, 'DM Sans', system-ui, -apple-system, sans-serif)",
 
   // Shadows — soft paper in light; deeper forest lifts in dark (see --shadow-* in index.css)
   shadowCard: 'var(--shadow-card, 0 1px 2px rgba(43,42,40,0.04), 0 8px 24px rgba(43,42,40,0.06))',

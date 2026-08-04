@@ -43,7 +43,9 @@ export default function SearchSelect({
   const topPicks = normalized.slice(0, topCount);
   const q = query.trim().toLowerCase();
   const filtered = q
-    ? normalized.filter((o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q))
+    ? normalized.filter(
+        (o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)
+      )
     : normalized;
 
   useEffect(() => {
@@ -89,6 +91,23 @@ export default function SearchSelect({
     onChange?.(next);
     setOpen(false);
     setQuery('');
+  };
+
+  const renderOption = (opt) => {
+    const active = opt.value === value;
+    return (
+      <button
+        key={opt.value}
+        type="button"
+        role="option"
+        aria-selected={active}
+        className={`db-search-select-option${active ? ' is-active' : ''}`}
+        onClick={() => pick(opt)}
+      >
+        <span>{opt.label}</span>
+        {active ? <Check size={14} strokeWidth={2.5} aria-hidden /> : null}
+      </button>
+    );
   };
 
   return (
@@ -147,60 +166,30 @@ export default function SearchSelect({
           </div>
 
           {!q ? (
-            <>
+            <div className="db-search-select-body">
               <p className="db-search-select-section">{popularLabel}</p>
-              <div className="db-search-select-chips">
-                {topPicks.map((opt) => {
-                  const active = opt.value === value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      className={`db-search-select-chip${active ? ' is-active' : ''}`}
-                      onClick={() => pick(opt)}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <div className="db-search-select-options">{topPicks.map(renderOption)}</div>
               {normalized.length > topCount ? (
                 <p className="db-search-select-hint">
-                  {searchMoreLabel || `Search above for ${normalized.length - topCount} more`}
+                  {searchMoreLabel || 'Type above to search'}
                 </p>
               ) : null}
-            </>
+            </div>
           ) : (
-            <ul className="db-search-select-list">
+            <div className="db-search-select-body">
               {filtered.length === 0 ? (
-                <li className="db-search-select-empty">
-                  {emptyLabel}
+                <div className="db-search-select-empty">
+                  <span>{emptyLabel}</span>
                   {allowCustom && query.trim() ? (
                     <button type="button" className="db-search-select-custom" onClick={commitCustom}>
                       Use “{query.trim()}”
                     </button>
                   ) : null}
-                </li>
+                </div>
               ) : (
-                filtered.map((opt) => {
-                  const active = opt.value === value;
-                  return (
-                    <li key={opt.value}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={active}
-                        className={`db-search-select-option${active ? ' is-active' : ''}`}
-                        onClick={() => pick(opt)}
-                      >
-                        <span>{opt.label}</span>
-                        {active ? <Check size={14} strokeWidth={2.5} aria-hidden /> : null}
-                      </button>
-                    </li>
-                  );
-                })
+                <div className="db-search-select-options">{filtered.map(renderOption)}</div>
               )}
-            </ul>
+            </div>
           )}
         </div>
       ) : null}
@@ -258,14 +247,15 @@ export default function SearchSelect({
           left: 0;
           right: 0;
           top: calc(100% + 6px);
+          display: flex;
+          flex-direction: column;
           padding: 10px;
           border-radius: 14px;
           border: 1.5px solid ${t.lineStrong};
           background: ${t.surface};
           box-shadow: ${t.shadowLifted};
           max-height: min(360px, 60vh);
-          overflow: auto;
-          -webkit-overflow-scrolling: touch;
+          overflow: hidden;
         }
         .db-search-select-search {
           display: flex;
@@ -277,7 +267,8 @@ export default function SearchSelect({
           border: 1.5px solid ${t.lineStrong};
           background: ${t.surfaceSunken};
           color: ${t.inkFaint};
-          margin-bottom: 10px;
+          flex-shrink: 0;
+          margin-bottom: 8px;
         }
         .db-search-select-input {
           flex: 1;
@@ -290,47 +281,34 @@ export default function SearchSelect({
           color: ${t.ink};
           padding: 10px 0;
         }
+        .db-search-select-body {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          scrollbar-color: ${t.lineStrong} transparent;
+          padding-right: 2px;
+        }
+        .db-search-select-body::-webkit-scrollbar {
+          width: 4px;
+        }
+        .db-search-select-body::-webkit-scrollbar-thumb {
+          background: ${t.lineStrong};
+          border-radius: 999px;
+        }
         .db-search-select-section {
-          margin: 0 0 8px;
+          margin: 2px 4px 6px;
           font-size: 10px;
           font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
           color: ${t.inkFaint};
         }
-        .db-search-select-chips {
+        .db-search-select-options {
           display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .db-search-select-chip {
-          border: 1.5px solid ${t.lineStrong};
-          background: ${t.surfaceSunken};
-          color: ${t.ink};
-          border-radius: 999px;
-          padding: 8px 12px;
-          font-size: 13px;
-          font-weight: 650;
-          font-family: ${t.fontBody};
-          cursor: pointer;
-          min-height: 38px;
-        }
-        .db-search-select-chip.is-active,
-        .db-search-select-chip:hover {
-          border-color: ${t.forest};
-          background: ${t.sageTint};
-          color: ${t.forest};
-        }
-        .db-search-select-hint {
-          margin: 10px 0 0;
-          font-size: 12px;
-          color: ${t.inkFaint};
-          line-height: 1.4;
-        }
-        .db-search-select-list {
-          list-style: none;
-          margin: 0;
-          padding: 0;
+          flex-direction: column;
+          gap: 2px;
         }
         .db-search-select-option {
           width: 100%;
@@ -338,10 +316,10 @@ export default function SearchSelect({
           align-items: center;
           justify-content: space-between;
           gap: 10px;
-          min-height: 42px;
+          min-height: 44px;
           padding: 10px 12px;
           border: none;
-          border-radius: 8px;
+          border-radius: 10px;
           background: transparent;
           color: ${t.ink};
           font-size: 14px;
@@ -351,25 +329,38 @@ export default function SearchSelect({
           cursor: pointer;
         }
         .db-search-select-option:hover,
+        .db-search-select-option:focus-visible {
+          background: ${t.surfaceSunken};
+          outline: none;
+        }
         .db-search-select-option.is-active {
           background: ${t.sageTint};
           color: ${t.forest};
+          font-weight: 650;
+        }
+        .db-search-select-hint {
+          margin: 10px 4px 4px;
+          padding-top: 10px;
+          border-top: 1px solid ${t.line};
+          font-size: 12px;
+          color: ${t.inkFaint};
+          line-height: 1.4;
         }
         .db-search-select-empty {
-          padding: 12px;
+          padding: 16px 12px;
           font-size: 13px;
           color: ${t.inkFaint};
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          align-items: flex-start;
+          gap: 10px;
         }
         .db-search-select-custom {
-          align-self: flex-start;
-          border: 1.5px solid ${t.forest};
+          border: none;
           background: ${t.forest};
           color: #fff;
           border-radius: 8px;
-          padding: 8px 12px;
+          padding: 10px 14px;
           font-size: 13px;
           font-weight: 650;
           font-family: ${t.fontBody};
@@ -381,13 +372,12 @@ export default function SearchSelect({
             font-size: 16px;
           }
           .db-search-select-trigger { min-height: 46px; }
-          .db-search-select-chip {
-            min-height: 42px;
-            font-size: 14px;
-            padding: 10px 14px;
+          .db-search-select-option { min-height: 48px; font-size: 15px; }
+          .db-search-select-panel {
+            max-height: min(70vh, 440px);
+            left: 0;
+            right: 0;
           }
-          .db-search-select-option { min-height: 46px; font-size: 15px; }
-          .db-search-select-panel { max-height: min(420px, 65vh); }
         }
       `}</style>
     </div>

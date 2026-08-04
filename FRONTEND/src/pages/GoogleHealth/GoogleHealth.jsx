@@ -148,7 +148,7 @@ export default function GoogleHealth() {
             }}
           >
             <ArrowLeft size={16} />
-            {tr('googleHealth.backToActivity')}
+            {tr('common.back')}
           </button>
           <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkFaint }}>
             {tr('googleHealth.kicker')}

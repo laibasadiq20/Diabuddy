@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { theme } from '../../theme';
 import { useI18n } from '../../i18n/I18nContext';
 import AppSidebar from '../../components/AppSidebar';
@@ -83,8 +84,11 @@ const isMobileToolbox = () =>
 
 export default function Toolbox() {
   const { t: tr } = useI18n();
-  const [active, setActive] = useState(null);
-  const activeRef = useRef(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const toolFromUrl = searchParams.get('tool');
+  const initialTool = toolFromUrl && TOOL_VIEWS[toolFromUrl] ? toolFromUrl : null;
+  const [active, setActive] = useState(initialTool);
+  const activeRef = useRef(initialTool);
   const ActiveView = active ? TOOL_VIEWS[active] : null;
   const meta = TOOLS.find((x) => x.id === active);
 
@@ -93,20 +97,30 @@ export default function Toolbox() {
   }, [active]);
 
   useEffect(() => {
+    const next = searchParams.get('tool');
+    if (next && TOOL_VIEWS[next] && next !== activeRef.current) {
+      activeRef.current = next;
+      setActive(next);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (!isMobileToolbox()) return undefined;
     const onPopState = () => {
       if (activeRef.current) {
         activeRef.current = null;
         setActive(null);
+        setSearchParams({}, { replace: true });
       }
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, []);
+  }, [setSearchParams]);
 
   const openTool = (id) => {
     activeRef.current = id;
     setActive(id);
+    setSearchParams({ tool: id }, { replace: true });
     if (isMobileToolbox()) {
       window.history.pushState({ diabuddyTool: id }, '');
     }
@@ -115,6 +129,7 @@ export default function Toolbox() {
   const closeTool = () => {
     activeRef.current = null;
     setActive(null);
+    setSearchParams({}, { replace: true });
     if (isMobileToolbox() && window.history.state?.diabuddyTool) {
       window.history.replaceState({}, '');
     }
@@ -221,7 +236,7 @@ export default function Toolbox() {
                   fontFamily: t.fontBody,
                 }}
               >
-                <ArrowLeft size={14} /> {tr('toolbox.allTools')}
+                <ArrowLeft size={14} /> {tr('common.back')}
               </button>
 
               <section

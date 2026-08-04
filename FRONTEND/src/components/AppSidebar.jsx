@@ -67,7 +67,7 @@ export default function AppSidebar() {
     { label: tr('nav.home'), path: '/dashboard', icon: LayoutDashboard },
     { label: tr('nav.logs'), path: '/logs', icon: ClipboardList },
     { label: tr('nav.reports'), path: '/reports', icon: BarChart3 },
-    { label: tr('nav.messages'), path: '/messages', icon: MessageSquare },
+    { label: tr('nav.community'), path: '/community', icon: Users },
     { label: tr('nav.account'), path: '/account', icon: UserRound },
   ];
 
@@ -401,7 +401,10 @@ export default function AppSidebar() {
         </button>
       </div>
 
-      <nav style={{ flex: 1, padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
+      <nav
+        className="db-app-sidebar-nav"
+        style={{ flex: 1, padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}
+      >
         <p
           style={{
             margin: '0 10px 10px',

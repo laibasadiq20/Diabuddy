@@ -422,6 +422,8 @@ const login = async (req, res) => {
           reputationScore: user.reputationScore,
           theme: user.theme,
           language: user.language,
+          timezone: user.timezone || 'Asia/Karachi',
+          isVerified: user.isVerified,
         }
       }
     });
@@ -699,11 +701,21 @@ const updateProfile = async (req, res) => {
       'heightUnit',
       'theme',
       'language',
+      'timezone',
       'reminderAlertsEnabled',
+      'profileImageUrl',
     ];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    if (updates.profileImageUrl !== undefined) {
+      const url = String(updates.profileImageUrl || '').trim();
+      if (url && !/^https?:\/\/.+/i.test(url)) {
+        return res.status(400).json({ status: 'error', message: 'profileImageUrl must be a valid http(s) URL' });
+      }
+      updates.profileImageUrl = url;
     }
 
     if (updates.glucoseUnit && !['mg/dL', 'mmol/L'].includes(updates.glucoseUnit)) {
@@ -714,6 +726,12 @@ const updateProfile = async (req, res) => {
     }
     if (updates.heightUnit && !['cm', 'ft_in'].includes(updates.heightUnit)) {
       return res.status(400).json({ status: 'error', message: 'heightUnit must be cm or ft_in' });
+    }
+    if (updates.timezone !== undefined) {
+      const { ALLOWED_TIMEZONES } = require('../utils/timezone');
+      if (!ALLOWED_TIMEZONES.has(String(updates.timezone))) {
+        return res.status(400).json({ status: 'error', message: 'Invalid timezone' });
+      }
     }
 
     if (updates.name && String(updates.name).trim().length < 2) {
@@ -766,6 +784,30 @@ const updateProfile = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    // Keep reminder schedules aligned when timezone preference changes.
+    if (updates.timezone !== undefined) {
+      try {
+        const Reminder = require('../models/Reminder');
+        const { calculateNextTriggerAt } = require('../utils/reminderHelper');
+        const { getUserTzOffset } = require('../utils/timezone');
+        const deviceOffset = Number(req.body.tzOffset);
+        const offset = getUserTzOffset(
+          user,
+          Number.isFinite(deviceOffset) ? deviceOffset : null
+        );
+        const reminders = await Reminder.find({ userId: user._id });
+        await Promise.all(
+          reminders.map(async (r) => {
+            r.tzOffset = offset;
+            r.nextTriggerAt = calculateNextTriggerAt(r, new Date(), offset);
+            await r.save();
+          })
+        );
+      } catch (tzErr) {
+        console.error('Reminder timezone resync error:', tzErr);
+      }
     }
 
     const u = user.toJSON();

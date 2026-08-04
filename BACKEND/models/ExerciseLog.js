@@ -49,9 +49,9 @@ const exerciseLogSchema = new mongoose.Schema(
       enum: ['Manual', 'Fitbit', 'GoogleHealth'],
       default: 'Manual',
     },
+    // Only set for synced workouts — omit on manual logs so unique index works
     fitbitLogId: {
       type: String,
-      default: null,
     },
     timestamp: {
       type: Date,
@@ -64,13 +64,18 @@ const exerciseLogSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for efficient user-specific time-range queries
 exerciseLogSchema.index({ userId: 1, timestamp: -1 });
 
-// Sparse unique index to prevent duplicate Fitbit syncs
+// Unique only when an external sync id is present (not for manual null/missing)
 exerciseLogSchema.index(
   { userId: 1, fitbitLogId: 1 },
-  { unique: true, sparse: true }
+  {
+    unique: true,
+    name: 'userId_1_fitbitLogId_1_partial',
+    partialFilterExpression: {
+      fitbitLogId: { $exists: true, $type: 'string', $gt: '' },
+    },
+  }
 );
 
 module.exports = mongoose.model('ExerciseLog', exerciseLogSchema);

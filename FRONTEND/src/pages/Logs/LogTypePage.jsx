@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { useI18n } from '../../i18n/I18nContext';
-import { Annoyed, ArrowLeft, Frown, Laugh, Loader2, Meh, Smile, Trash2 } from 'lucide-react';
+import { Annoyed, ArrowLeft, CheckCircle2, Frown, Laugh, Loader2, Meh, Smile, Trash2 } from 'lucide-react';
 import api from '../../config/axios';
 import { getLogType } from './logsConfig';
 import { LogEntryForm } from './components/LogEntryForm';
@@ -284,7 +284,6 @@ export default function LogTypePage() {
           ) : isWater ? (
             <>
               <p style={{ margin: 0, fontWeight: 650, fontSize: 15, color: t.ink }}>
-                💧{' '}
                 {raw.amount != null
                   ? `${round1(mlToUsFlOz(raw.amount))} oz`
                   : item.title}
@@ -443,13 +442,13 @@ export default function LogTypePage() {
       }}
     >
       <AppSidebar />
-      <main className="db-logs-main" style={{ flex: 1, minWidth: 0, padding: '24px 20px 110px' }}>
-        <div className="db-logs-wrap" style={{ maxWidth: 1040, margin: '0 auto', width: '100%' }}>
+      <main className="db-logs-main" style={{ flex: 1, minWidth: 0, padding: '20px 20px 110px' }}>
+        <div className="db-logs-wrap" style={{ maxWidth: 1080, margin: '0 auto', width: '100%' }}>
           <button type="button" onClick={() => navigate('/logs')} style={backBtn}>
-            <ArrowLeft size={16} /> {tr('logTypePage.allLogs')}
+            <ArrowLeft size={16} /> {tr('common.back')}
           </button>
 
-          <div className="db-logs-title-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 14, margin: '18px 0 8px' }}>
+          <div className="db-logs-title-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 14, margin: '14px 0 0' }}>
             <span
               style={{
                 width: 48,
@@ -520,16 +519,19 @@ export default function LogTypePage() {
           )}
 
           <section className="db-log-guide-box" style={guideBox}>
-            <h2 style={guideTitle}>{tr('logTypePage.whyMatters')}</h2>
-            <p style={guideText}>{tr(`logs.types.${config.id}.why`, config.why)}</p>
-            <h2 style={{ ...guideTitle, marginTop: 16 }}>{tr('logTypePage.howToUse')}</h2>
-            <p style={guideText}>{tr(`logs.types.${config.id}.how`, config.how)}</p>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: 2, color: t.sageDeep }} aria-hidden />
+              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: t.inkSoft }}>
+                <span style={{ fontWeight: 700, color: t.sageDeep }}>{tr('logTypePage.quickTip', 'Quick tip')}: </span>
+                {tr(`logs.types.${config.id}.tip`, config.tip)}
+              </p>
+            </div>
           </section>
 
           <div className="db-log-split">
             <section id="db-log-form-anchor" className="db-log-split-form">
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
-                <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 18, fontWeight: 500, color: t.ink }}>
                   {editRaw ? tr('logTypePage.editEntry') : tr('logTypePage.newEntry')}
                 </h2>
                 {editRaw && (
@@ -560,11 +562,11 @@ export default function LogTypePage() {
                   alignItems: 'baseline',
                   justifyContent: 'space-between',
                   gap: 12,
-                  marginBottom: 14,
+                  marginBottom: 10,
                   flexWrap: 'wrap',
                 }}
               >
-                <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, fontWeight: 500, color: t.ink }}>
+                <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 18, fontWeight: 500, color: t.ink }}>
                   {tr('logTypePage.todaysEntries')}
                 </h2>
                 {!loading && entries.length > 0 ? (
@@ -646,6 +648,8 @@ export default function LogTypePage() {
           max-width: 100%;
         }
         .db-logs-wrap input[type='datetime-local'],
+        .db-logs-wrap input[type='date'],
+        .db-logs-wrap input[type='time'],
         .db-logs-wrap input[type='number'],
         .db-logs-wrap input[type='text'],
         .db-logs-wrap textarea,
@@ -654,10 +658,10 @@ export default function LogTypePage() {
         }
         .db-log-split {
           display: grid;
-          grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-          gap: 20px;
+          grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+          gap: 24px;
           align-items: start;
-          margin-top: 24px;
+          margin-top: 18px;
         }
         .db-log-split-entries {
           position: sticky;
@@ -672,10 +676,13 @@ export default function LogTypePage() {
           overflow-y: auto;
           box-shadow: 0 1px 2px rgba(43,42,40,0.04);
         }
+        .db-log-form-card {
+          overflow: hidden;
+        }
         @media (max-width: 900px) {
           .db-log-split {
             grid-template-columns: 1fr;
-            gap: 28px;
+            gap: 22px;
           }
           .db-log-split-entries {
             position: static;
@@ -691,7 +698,7 @@ export default function LogTypePage() {
         }
         @media (max-width: 640px) {
           .db-logs-main {
-            padding: 14px 12px 120px !important;
+            padding: 12px 12px 120px !important;
           }
           .db-logs-wrap {
             max-width: 100% !important;
@@ -702,7 +709,7 @@ export default function LogTypePage() {
           }
           .db-log-guide-box,
           .db-log-water-box {
-            padding: 14px 12px !important;
+            padding: 10px 12px !important;
           }
           .db-log-entry-row {
             flex-direction: column !important;
@@ -778,11 +785,11 @@ const linkBtn = {
 };
 
 const guideBox = {
-  marginTop: 20,
-  padding: '18px 18px',
-  borderRadius: 12,
-  border: `1px solid ${t.line}`,
-  background: t.surfaceRaised,
+  marginTop: 12,
+  padding: '10px 12px',
+  borderRadius: 10,
+  border: `1px solid ${t.sage}55`,
+  background: t.sageTint,
 };
 
 const waterProgressBox = {
@@ -814,7 +821,7 @@ const formCard = {
   background: t.surface,
   border: `1px solid ${t.lineStrong}`,
   borderRadius: 14,
-  padding: '20px 18px',
+  padding: '18px 16px',
   boxShadow: '0 1px 2px rgba(43,42,40,0.04)',
 };
 

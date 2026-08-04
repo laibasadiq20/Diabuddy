@@ -13,6 +13,8 @@ const MS_DAY = 24 * 60 * 60 * 1000;
 /** US fl oz — matches frontend waterUnits.js (storage stays ml). */
 const ML_PER_US_FLOZ = 29.5735295625;
 const WATER_GOAL_ML = 2000;
+/** Matches FRONTEND/src/utils/glucoseUnits.js */
+const MMOL_PER_MGDL = 18.0182;
 
 function mlToUsFlOz(ml) {
   const n = Number(ml);
@@ -24,10 +26,41 @@ function formatWaterOz(ml) {
   return `${mlToUsFlOz(ml)} oz`;
 }
 
+/** Normalize a stored reading to mg/dL (canonical for aggregation). */
 function toMgDl(level, unit) {
   const n = Number(level);
   if (!Number.isFinite(n)) return null;
-  return unit === 'mmol/L' ? n * 18 : n;
+  return unit === 'mmol/L' ? Math.round(n * MMOL_PER_MGDL) : Math.round(n);
+}
+
+/** Convert mg/dL → user's Settings glucose unit for display / narrative. */
+function fromMgDl(mg, preferredUnit) {
+  if (mg == null || !Number.isFinite(Number(mg))) return null;
+  if (preferredUnit === 'mmol/L') {
+    return Math.round((Number(mg) / MMOL_PER_MGDL) * 10) / 10;
+  }
+  return Math.round(Number(mg));
+}
+
+function glucoseUnitLabel(unit) {
+  return unit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
+}
+
+function resolveGlucoseUnit(user) {
+  return user?.glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
+}
+
+function fmtG(mg, unit) {
+  const v = fromMgDl(mg, unit);
+  if (v == null) return '—';
+  return `${v} ${glucoseUnitLabel(unit)}`;
+}
+
+function fmtGRange(low, high, unit) {
+  const a = fromMgDl(low, unit);
+  const b = fromMgDl(high, unit);
+  if (a == null || b == null) return '—';
+  return `${a}–${b} ${glucoseUnitLabel(unit)}`;
 }
 
 function parseTzOffset(raw) {
@@ -535,8 +568,9 @@ function variabilityLabel(stdDev) {
  * Story-first report block: headline, narrative, rating, feedback, goals.
  * Answers “How did my week go?” in one glance.
  */
-function buildStoryReport(period) {
+function buildStoryReport(period, glucoseUnit = 'mg/dL') {
   const m = period.metrics;
+  const unit = glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
   const phrase = periodPhrase(period.label);
   const hasData =
     m.glucoseReadings > 0 ||
@@ -633,7 +667,7 @@ function buildStoryReport(period) {
     }
     if (tir != null) {
       letterParts.push(
-        `Time in range was ${tir}%${m.avgGlucose != null ? ` with an average of ${m.avgGlucose} mg/dL` : ''}.`
+        `Time in range was ${tir}%${m.avgGlucose != null ? ` with an average of ${fmtG(m.avgGlucose, unit)}` : ''}.`
       );
     }
   }
@@ -717,17 +751,17 @@ function buildStoryReport(period) {
 
   if (tir != null && tir < 70) {
     recommendations.push(
-      `Raise time in range toward at least 70% (${TIR_LOW}–${TIR_HIGH} mg/dL); it was ${tir}% ${when} across ${m.glucoseReadings} reading${m.glucoseReadings === 1 ? '' : 's'}.`
+      `Raise time in range toward at least 70% (${fmtGRange(TIR_LOW, TIR_HIGH, unit)}); it was ${tir}% ${when} across ${m.glucoseReadings} reading${m.glucoseReadings === 1 ? '' : 's'}.`
     );
   }
   if (highs > 0) {
     recommendations.push(
-      `Review meal timing and carbohydrate portions on days with highs — ${highs} high reading${highs === 1 ? '' : 's'} ${when}${m.highestGlucose != null ? ` (peak ${m.highestGlucose} mg/dL)` : ''}.`
+      `Review meal timing and carbohydrate portions on days with highs — ${highs} high reading${highs === 1 ? '' : 's'} ${when}${m.highestGlucose != null ? ` (peak ${fmtG(m.highestGlucose, unit)})` : ''}.`
     );
   }
   if (lows > 0) {
     recommendations.push(
-      `Watch for lows relative to insulin, meals, and activity — ${lows} low reading${lows === 1 ? '' : 's'} ${when}${m.lowestGlucose != null ? ` (lowest ${m.lowestGlucose} mg/dL)` : ''}.`
+      `Watch for lows relative to insulin, meals, and activity — ${lows} low reading${lows === 1 ? '' : 's'} ${when}${m.lowestGlucose != null ? ` (lowest ${fmtG(m.lowestGlucose, unit)})` : ''}.`
     );
   }
   if (m.adherencePercent != null && m.adherencePercent < 90) {
@@ -738,7 +772,7 @@ function buildStoryReport(period) {
   }
   if (varLabel === 'High' && m.glucoseStdDev != null) {
     recommendations.push(
-      `Reduce glucose swings with steadier meal spacing — variability was high at ${m.glucoseStdDev} mg/dL std. deviation ${when}.`
+      `Reduce glucose swings with steadier meal spacing — variability was high at ${fmtG(m.glucoseStdDev, unit)} std. deviation ${when}.`
     );
   }
   if (m.avgWaterPerDay != null && m.avgWaterPerDay < 1500 && m.totalWaterMl > 0) {
@@ -783,7 +817,7 @@ function buildStoryReport(period) {
   const sections = {
     glucose:
       m.glucoseReadings > 0
-        ? `${m.glucoseReadings} reading${m.glucoseReadings === 1 ? '' : 's'}; avg ${m.avgGlucose ?? '—'} mg/dL; TIR ${tir ?? '—'}%; range ${m.lowestGlucose ?? '—'}–${m.highestGlucose ?? '—'}; ${highs} high / ${lows} low.`
+        ? `${m.glucoseReadings} reading${m.glucoseReadings === 1 ? '' : 's'}; avg ${m.avgGlucose != null ? fmtG(m.avgGlucose, unit) : '—'}; TIR ${tir ?? '—'}%; range ${m.lowestGlucose != null && m.highestGlucose != null ? fmtGRange(m.lowestGlucose, m.highestGlucose, unit) : '—'}; ${highs} high / ${lows} low.`
         : 'No glucose readings logged.',
     medication:
       m.medicationsLogged > 0
@@ -823,8 +857,9 @@ function buildStoryReport(period) {
   };
 }
 
-function buildInsights(period) {
+function buildInsights(period, glucoseUnit = 'mg/dL') {
   const m = period.metrics;
+  const unit = glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
   const insights = [];
 
   if (
@@ -848,7 +883,7 @@ function buildInsights(period) {
     if (m.timeInRangePercent >= 70) {
       insights.push({
         type: 'Achievement',
-        message: `Time in range was ${m.timeInRangePercent}% (${TIR_LOW}–${TIR_HIGH} mg/dL) across ${m.glucoseReadings} readings.`,
+        message: `Time in range was ${m.timeInRangePercent}% (${fmtGRange(TIR_LOW, TIR_HIGH, unit)}) across ${m.glucoseReadings} readings.`,
       });
     } else if (m.timeInRangePercent < 50) {
       insights.push({
@@ -858,7 +893,7 @@ function buildInsights(period) {
     } else {
       insights.push({
         type: 'Suggestion',
-        message: `Time in range was ${m.timeInRangePercent}%. A common goal is 70%+ in ${TIR_LOW}–${TIR_HIGH} mg/dL.`,
+        message: `Time in range was ${m.timeInRangePercent}%. A common goal is 70%+ in ${fmtGRange(TIR_LOW, TIR_HIGH, unit)}.`,
       });
     }
   }
@@ -866,7 +901,7 @@ function buildInsights(period) {
   if (m.avgGlucose != null) {
     insights.push({
       type: 'Suggestion',
-      message: `Average glucose was ${m.avgGlucose} mg/dL (range ${m.lowestGlucose}–${m.highestGlucose}).`,
+      message: `Average glucose was ${fmtG(m.avgGlucose, unit)} (range ${fmtGRange(m.lowestGlucose, m.highestGlucose, unit)}).`,
     });
   }
 
@@ -880,12 +915,12 @@ function buildInsights(period) {
   if (m.glucoseStdDev != null && m.glucoseStdDev >= 50) {
     insights.push({
       type: 'Warning',
-      message: `Glucose variability was high (std. dev. ${m.glucoseStdDev} mg/dL). Large swings may relate to meals, timing, or missed meds.`,
+      message: `Glucose variability was high (std. dev. ${fmtG(m.glucoseStdDev, unit)}). Large swings may relate to meals, timing, or missed meds.`,
     });
   } else if (m.glucoseStdDev != null && m.glucoseReadings >= 5) {
     insights.push({
       type: 'Suggestion',
-      message: `Glucose variability (std. dev.) was ${m.glucoseStdDev} mg/dL across ${m.glucoseReadings} readings.`,
+      message: `Glucose variability (std. dev.) was ${fmtG(m.glucoseStdDev, unit)} across ${m.glucoseReadings} readings.`,
     });
   }
 
@@ -897,7 +932,7 @@ function buildInsights(period) {
     if (diff >= 40) {
       insights.push({
         type: 'Suggestion',
-        message: `After-meal averages (${afterMeal.avgGlucose} mg/dL) ran about ${diff} mg/dL above fasting (${fasting.avgGlucose} mg/dL).`,
+        message: `After-meal averages (${fmtG(afterMeal.avgGlucose, unit)}) ran about ${fmtG(diff, unit)} above fasting (${fmtG(fasting.avgGlucose, unit)}).`,
       });
     }
   }
@@ -1043,8 +1078,9 @@ exports.getHealthReport = async (req, res) => {
       primary.label,
       primary.shortLabel
     );
-    const insights = buildInsights(period);
-    const story = buildStoryReport(period);
+    const glucoseUnit = resolveGlucoseUnit(req.user);
+    const insights = buildInsights(period, glucoseUnit);
+    const story = buildStoryReport(period, glucoseUnit);
     const summary = story.summary;
 
     let comparePeriod = null;
@@ -1088,7 +1124,10 @@ exports.getHealthReport = async (req, res) => {
       status: 'success',
       data: {
         generatedAt: new Date().toISOString(),
+        // Metrics/charts stay in mg/dL for stable aggregation; FE converts for display.
+        // Narrative (story/insights) already uses the user's Settings glucose unit.
         unitSystem: 'mg/dL',
+        displayGlucoseUnit: glucoseUnit,
         tirTarget: { low: TIR_LOW, high: TIR_HIGH },
         period,
         comparePeriod,
@@ -1232,7 +1271,7 @@ exports.getLoggingStreak = async (req, res) => {
           : loggedToday
             ? currentStreak > 1
               ? `${currentStreak}-day logging streak — keep it going.`
-              : 'Logged today — streak started.'
+              : 'Every day counts toward a healthier routine.'
             : 'Log anything today to start a streak.',
       },
     });

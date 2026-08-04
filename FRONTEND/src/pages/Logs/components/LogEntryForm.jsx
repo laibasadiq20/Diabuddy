@@ -4,11 +4,12 @@ import { theme } from '../../../theme';
 import { useAuth } from '../../../context/AuthContext';
 import { useI18n } from '../../../i18n/I18nContext';
 import { API_URL } from '../../../config/api';
-import { Annoyed, Frown, Laugh, Loader2, Meh, Smile } from 'lucide-react';
+import { Annoyed, AlertTriangle, Check, Frown, Laugh, Loader2, Meh, Smile, Upload } from 'lucide-react';
 import { mlToUsFlOz, usFlOzToMl, OZ_PER_GLASS, round1 } from '../../../utils/waterUnits';
-import { convertGlucose, glucoseInputBounds, glucoseUnitLabel } from '../../../utils/glucoseUnits';
+import { convertGlucose, fromMgdl, glucoseInputBounds, glucoseUnitLabel } from '../../../utils/glucoseUnits';
 import ThemedSelect from '../../../components/ThemedSelect';
 import SearchSelect from '../../../components/SearchSelect';
+import { peekMealNutritionPrefill, clearMealNutritionPrefill } from '../../../utils/mealNutritionPrefill';
 
 const t = theme;
 
@@ -40,7 +41,7 @@ const hint = {
   lineHeight: 1.45,
 };
 
-const row = { display: 'flex', flexDirection: 'column', gap: 14 };
+const row = { display: 'flex', flexDirection: 'column', gap: 12 };
 
 function toLocalInput(value) {
   const d = value ? new Date(value) : new Date();
@@ -49,12 +50,48 @@ function toLocalInput(value) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function splitLocal(ts) {
+  const raw = ts || toLocalInput();
+  const [datePart, timePart = '00:00'] = raw.split('T');
+  return { date: datePart || '', time: timePart.slice(0, 5) };
+}
+
+function joinLocal(date, time) {
+  return `${date}T${time || '00:00'}`;
+}
+
 function Field({ title, help, children }) {
   return (
     <div>
-      <label style={label}>{title}</label>
+      {title ? <label style={label}>{title}</label> : null}
       {children}
       {help ? <p style={hint}>{help}</p> : null}
+    </div>
+  );
+}
+
+function DateTimeFields({ value, onChange, tr }) {
+  const { date, time } = splitLocal(value);
+  return (
+    <div className="db-log-datetime">
+      <Field title={tr('logEntryForm.common.date')}>
+        <input
+          required
+          type="date"
+          value={date}
+          onChange={(e) => onChange(joinLocal(e.target.value, time))}
+          style={field}
+        />
+      </Field>
+      <Field title={tr('logEntryForm.common.time')}>
+        <input
+          required
+          type="time"
+          value={time}
+          onChange={(e) => onChange(joinLocal(date, e.target.value))}
+          style={field}
+        />
+      </Field>
     </div>
   );
 }
@@ -135,12 +172,25 @@ const GLUCOSE_CONTEXT_KEYS = {
 };
 
 function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { t: tr } = useI18n();
   // Always use Settings preference — change units in Settings, not per log.
   const preferredUnit = user?.glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
   const unitLabel = glucoseUnitLabel(preferredUnit);
   const bounds = glucoseInputBounds(preferredUnit);
+  const rangesMgdl = {
+    fastingMin: Number(user?.targetRanges?.fastingMin) || 70,
+    fastingMax: Number(user?.targetRanges?.fastingMax) || 100,
+    postMealMin: Number(user?.targetRanges?.postMealMin) || 70,
+    postMealMax: Number(user?.targetRanges?.postMealMax) || 140,
+  };
+  const ranges = {
+    fastingMin: fromMgdl(rangesMgdl.fastingMin, preferredUnit),
+    fastingMax: fromMgdl(rangesMgdl.fastingMax, preferredUnit),
+    postMealMin: fromMgdl(rangesMgdl.postMealMin, preferredUnit),
+    postMealMax: fromMgdl(rangesMgdl.postMealMax, preferredUnit),
+  };
   const [form, setForm] = useState({
     glucoseLevel: '',
     readingType: 'Before Breakfast',
@@ -162,10 +212,28 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
     });
   }, [initialRaw, preferredUnit]);
 
-  const glucoseHelp =
-    preferredUnit === 'mmol/L'
-      ? tr('logEntryForm.glucose.lowHighMmol')
-      : tr('logEntryForm.glucose.lowHighMgdl');
+  const afterMealContext = /after/i.test(form.readingType);
+  const lowCut = afterMealContext ? ranges.postMealMin : ranges.fastingMin;
+  const highCut = afterMealContext ? ranges.postMealMax : ranges.fastingMax;
+  const levelNum = form.glucoseLevel === '' ? null : Number(form.glucoseLevel);
+  const glucoseAlert =
+    levelNum != null && !Number.isNaN(levelNum)
+      ? levelNum < lowCut
+        ? 'low'
+        : levelNum > highCut
+          ? 'high'
+          : null
+      : null;
+
+  const formatRangeNum = (n) =>
+    preferredUnit === 'mmol/L' ? (Math.round(Number(n) * 10) / 10).toFixed(1).replace(/\.0$/, '') : String(Math.round(Number(n)));
+
+  const activeMin = afterMealContext ? ranges.postMealMin : ranges.fastingMin;
+  const activeMax = afterMealContext ? ranges.postMealMax : ranges.fastingMax;
+  const targetRangeText = tr('logEntryForm.glucose.targetRangeValue', '{min}–{max} {unit}')
+    .replace('{min}', formatRangeNum(activeMin))
+    .replace('{max}', formatRangeNum(activeMax))
+    .replace('{unit}', unitLabel);
 
   return (
     <form
@@ -182,37 +250,7 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
         onSubmit(body);
       }}
     >
-      <Field title={tr('logEntryForm.glucose.reading')} help={glucoseHelp}>
-        <input
-          required
-          type="number"
-          step={bounds.step}
-          min={bounds.min}
-          max={bounds.max}
-          value={form.glucoseLevel}
-          onChange={(e) => setForm({ ...form, glucoseLevel: e.target.value })}
-          style={field}
-          placeholder={
-            preferredUnit === 'mmol/L'
-              ? tr('logEntryForm.glucose.placeholderMmol')
-              : tr('logEntryForm.glucose.placeholderMgdl')
-          }
-        />
-      </Field>
-      <Field title={tr('logEntryForm.glucose.unit')} help={tr('logEntryForm.glucose.unitFromSettings')}>
-        <div
-          style={{
-            ...field,
-            display: 'flex',
-            alignItems: 'center',
-            color: t.inkSoft,
-            background: t.surfaceSunken,
-          }}
-        >
-          {unitLabel}
-        </div>
-      </Field>
-      <Field title={tr('logEntryForm.glucose.readingContext')}>
+      <Field title={tr('logEntryForm.glucose.contextLabel', 'Context')}>
         <ThemedSelect
           value={form.readingType}
           onChange={(v) => setForm({ ...form, readingType: v })}
@@ -235,30 +273,161 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
           }))}
         />
       </Field>
-      <Field title={tr('logEntryForm.common.dateTime')}>
-        <input required type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
-      </Field>
-      <Field title={tr('logEntryForm.common.notesOptional')}>
+
+      <div
+        style={{
+          display: 'flex',
+          gap: 10,
+          alignItems: 'center',
+          padding: '10px 12px',
+          borderRadius: 10,
+          border: `1px solid ${t.sage}55`,
+          background: t.sageTint,
+          color: t.inkSoft,
+        }}
+      >
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: t.sageDeep }}>
+            {tr('logEntryForm.glucose.targetTitle', 'Target range')}
+          </p>
+          <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 650, color: t.ink, lineHeight: 1.35 }}>
+            {targetRangeText}
+          </p>
+        </div>
+        <Check size={18} strokeWidth={2.5} style={{ flexShrink: 0, color: t.sageDeep }} aria-hidden />
+      </div>
+
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+          <label style={{ ...label, marginBottom: 0 }}>{tr('logEntryForm.glucose.value', 'Reading')}</label>
+          <button
+            type="button"
+            onClick={() => navigate('/settings')}
+            style={{
+              border: 'none',
+              background: 'none',
+              padding: 0,
+              fontSize: 12,
+              fontWeight: 650,
+              color: t.forest,
+              cursor: 'pointer',
+              fontFamily: t.fontBody,
+              textDecoration: 'underline',
+              textUnderlineOffset: 2,
+            }}
+          >
+            {tr('logEntryForm.glucose.changeUnitInSettings', 'Change unit in Settings')}
+          </button>
+        </div>
+        <div style={{ position: 'relative' }}>
+          <input
+            required
+            type="number"
+            step={bounds.step}
+            min={bounds.min}
+            max={bounds.max}
+            value={form.glucoseLevel}
+            onChange={(e) => setForm({ ...form, glucoseLevel: e.target.value })}
+            style={{ ...field, paddingRight: 72 }}
+            placeholder={
+              preferredUnit === 'mmol/L'
+                ? tr('logEntryForm.glucose.placeholderMmol', 'e.g. 7.1')
+                : tr('logEntryForm.glucose.placeholderMgdl', 'e.g. 128')
+            }
+          />
+          <span
+            style={{
+              position: 'absolute',
+              right: 14,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: 13,
+              fontWeight: 700,
+              color: t.inkSoft,
+              pointerEvents: 'none',
+            }}
+          >
+            {unitLabel}
+          </span>
+        </div>
+      </div>
+
+      {glucoseAlert === 'low' ? (
+        <div
+          role="status"
+          style={{
+            display: 'flex',
+            gap: 10,
+            alignItems: 'flex-start',
+            padding: '12px 14px',
+            borderRadius: 12,
+            border: `1px solid ${t.clay}55`,
+            background: t.claySoft,
+            color: t.clayDeep,
+          }}
+        >
+          <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{tr('logEntryForm.glucose.alertLowTitle', 'Low glucose')}</p>
+            <p style={{ margin: '4px 0 0', fontSize: 12, lineHeight: 1.45 }}>
+              {tr(
+                'logEntryForm.glucose.alertLowBody',
+                "This reading is below the recommended range. Consider following your clinician's advice."
+              )}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {glucoseAlert === 'high' ? (
+        <div
+          role="status"
+          style={{
+            display: 'flex',
+            gap: 10,
+            alignItems: 'flex-start',
+            padding: '12px 14px',
+            borderRadius: 12,
+            border: `1px solid ${t.clay}55`,
+            background: t.claySoft,
+            color: t.clayDeep,
+          }}
+        >
+          <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{tr('logEntryForm.glucose.alertHighTitle', 'High glucose')}</p>
+            <p style={{ margin: '4px 0 0', fontSize: 12, lineHeight: 1.45 }}>
+              {tr('logEntryForm.glucose.alertHighBody', 'Consider rechecking or following your treatment plan.')}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      <DateTimeFields value={form.timestamp} onChange={(timestamp) => setForm({ ...form, timestamp })} tr={tr} />
+      <Field title={tr('logEntryForm.common.notesOptional', 'Notes (optional)')}>
         <input
           type="text"
           value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
           style={field}
-          placeholder={tr('logEntryForm.glucose.notesPlaceholder')}
+          placeholder={tr('logEntryForm.glucose.notesPlaceholder', 'Optional context for this reading')}
         />
       </Field>
-      <Submit submitting={submitting} isEdit={isEdit} tr={tr} />
+      <Submit
+        submitting={submitting}
+        isEdit={isEdit}
+        tr={tr}
+        label={tr('logEntryForm.common.saveGlucose', 'Save glucose reading')}
+        editLabel={tr('logEntryForm.common.updateGlucose', 'Update glucose reading')}
+      />
     </form>
   );
 }
 
 const MEAL_TYPE_KEYS = { Breakfast: 'breakfast', Lunch: 'lunch', Dinner: 'dinner', Snack: 'snack' };
 
-function newIngredientRow() {
-  return { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: '', weightG: '' };
-}
-
 function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
+  const navigate = useNavigate();
   const { t: tr } = useI18n();
   const { authHeaders } = useAuth();
   const fileInputRef = useRef(null);
@@ -277,22 +446,44 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
   const [nutritionMode, setNutritionMode] = useState('manual');
   const [dishWeightG, setDishWeightG] = useState('');
   const [oilG, setOilG] = useState('');
-  const [ingredients, setIngredients] = useState([newIngredientRow()]);
   const [aiFile, setAiFile] = useState(null);
   const [aiPreview, setAiPreview] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
-  const [calculating, setCalculating] = useState(false);
   const [analyzeError, setAnalyzeError] = useState('');
   const [aiResultMeta, setAiResultMeta] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
+    const prefill = !isEdit && !initialRaw ? peekMealNutritionPrefill() : null;
     setForm({
       mealType: initialRaw?.mealType || 'Breakfast',
-      foodItems: initialRaw?.foodItems || '',
-      carbohydrates: initialRaw?.carbohydrates != null ? String(initialRaw.carbohydrates) : '',
-      protein: initialRaw?.protein != null ? String(initialRaw.protein) : '',
-      fat: initialRaw?.fat != null ? String(initialRaw.fat) : '',
-      calories: initialRaw?.calories != null ? String(initialRaw.calories) : '',
+      foodItems: prefill?.foodItems
+        ? String(prefill.foodItems)
+        : initialRaw?.foodItems || '',
+      carbohydrates:
+        prefill?.carbohydrates != null && prefill.carbohydrates !== ''
+          ? String(prefill.carbohydrates)
+          : initialRaw?.carbohydrates != null
+            ? String(initialRaw.carbohydrates)
+            : '',
+      protein:
+        prefill?.protein != null && prefill.protein !== ''
+          ? String(prefill.protein)
+          : initialRaw?.protein != null
+            ? String(initialRaw.protein)
+            : '',
+      fat:
+        prefill?.fat != null && prefill.fat !== ''
+          ? String(prefill.fat)
+          : initialRaw?.fat != null
+            ? String(initialRaw.fat)
+            : '',
+      calories:
+        prefill?.calories != null && prefill.calories !== ''
+          ? String(prefill.calories)
+          : initialRaw?.calories != null
+            ? String(initialRaw.calories)
+            : '',
       waterOz:
         initialRaw?.waterConsumed != null && Number(initialRaw.waterConsumed) > 0
           ? String(round1(mlToUsFlOz(initialRaw.waterConsumed)))
@@ -304,12 +495,16 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     setNutritionMode('manual');
     setDishWeightG('');
     setOilG('');
-    setIngredients([newIngredientRow()]);
     setAiFile(null);
     setAiPreview('');
     setAnalyzeError('');
     setAiResultMeta(null);
-  }, [initialRaw]);
+    if (prefill) {
+      const clearTimer = setTimeout(() => clearMealNutritionPrefill(), 5000);
+      return () => clearTimeout(clearTimer);
+    }
+    return undefined;
+  }, [initialRaw, isEdit]);
 
   useEffect(() => {
     return () => {
@@ -333,8 +528,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const onPickAiPhoto = (e) => {
-    const file = e.target.files?.[0];
+  const acceptAiFile = (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       setAnalyzeError(tr('logEntryForm.meal.aiInvalidImage'));
@@ -351,6 +545,10 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     setAiResultMeta(null);
   };
 
+  const onPickAiPhoto = (e) => {
+    acceptAiFile(e.target.files?.[0]);
+  };
+
   const applyNutrition = (n, foodName) => {
     setForm((prev) => ({
       ...prev,
@@ -360,53 +558,6 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
       fat: n.fat != null ? String(n.fat) : prev.fat,
       calories: n.calories != null ? String(n.calories) : prev.calories,
     }));
-  };
-
-  const calculateManualNutrition = async () => {
-    if (calculating) return;
-    setCalculating(true);
-    setAnalyzeError('');
-    try {
-      const rows = ingredients
-        .map((r) => ({ name: r.name.trim(), weightG: Number(r.weightG) }))
-        .filter((r) => r.name && Number.isFinite(r.weightG) && r.weightG > 0);
-
-      const body = {
-        dishWeightG: dishWeightG ? Number(dishWeightG) : undefined,
-        oilG: oilG ? Number(oilG) : 0,
-        foodItems: form.foodItems.trim() || undefined,
-        ingredients: rows,
-      };
-
-      const res = await fetch(`${API_URL}/meals/calculate`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || tr('logEntryForm.meal.calcFailed'));
-
-      const result = data.data;
-      const names = (result.lines || [])
-        .filter((l) => l.matched)
-        .map((l) => `${l.name} (${l.weightG}g)`)
-        .join(', ');
-      const oilNote = result.oilG ? `, oil ${result.oilG}g` : '';
-      applyNutrition(result.nutrition || {}, names || form.foodItems);
-      if (!form.foodItems.trim() && names) {
-        setForm((prev) => ({ ...prev, foodItems: names + oilNote }));
-      }
-      setAiResultMeta({
-        disclaimer: result.disclaimer,
-        formula: result.formula,
-        source: 'manual',
-      });
-    } catch (err) {
-      setAnalyzeError(err.message || tr('logEntryForm.meal.calcFailed'));
-    } finally {
-      setCalculating(false);
-    }
   };
 
   const analyzeMealPhoto = async () => {
@@ -449,10 +600,6 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     } finally {
       setAnalyzing(false);
     }
-  };
-
-  const updateIngredient = (id, patch) => {
-    setIngredients((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   };
 
   const macroInputs = (
@@ -509,32 +656,88 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     </div>
   );
 
-  const portionFields = (
-    <div className="db-log-macro-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-      <Field title={tr('logEntryForm.meal.dishWeightG')} help={tr('logEntryForm.meal.dishWeightHint')}>
-        <input
-          type="number"
-          min="1"
-          step="1"
-          inputMode="decimal"
-          value={dishWeightG}
-          onChange={(e) => setDishWeightG(e.target.value)}
-          style={field}
-          placeholder="350"
-        />
-      </Field>
-      <Field title={tr('logEntryForm.meal.oilG')} help={tr('logEntryForm.meal.oilHint')}>
-        <input
-          type="number"
-          min="0"
-          step="0.5"
-          inputMode="decimal"
-          value={oilG}
-          onChange={(e) => setOilG(e.target.value)}
-          style={field}
-          placeholder="10"
-        />
-      </Field>
+  const portionDetails = (
+    <div
+      style={{
+        padding: 14,
+        borderRadius: 12,
+        border: `1px solid ${t.lineStrong}`,
+        background: t.surfaceSunken,
+        marginBottom: 12,
+      }}
+    >
+      <p
+        style={{
+          margin: '0 0 12px',
+          fontSize: 12,
+          fontWeight: 700,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          color: t.inkSoft,
+        }}
+      >
+        {tr('logEntryForm.meal.portionDetails')}
+      </p>
+      <div className="db-log-macro-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div>
+          <label style={label}>{tr('logEntryForm.meal.portionEaten')}</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              inputMode="decimal"
+              value={dishWeightG}
+              onChange={(e) => setDishWeightG(e.target.value)}
+              style={{ ...field, paddingRight: 40 }}
+              placeholder="350"
+            />
+            <span
+              style={{
+                position: 'absolute',
+                right: 14,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: 13,
+                fontWeight: 700,
+                color: t.inkSoft,
+              }}
+            >
+              g
+            </span>
+          </div>
+          <p style={hint}>{tr('logEntryForm.meal.portionHint')}</p>
+        </div>
+        <div>
+          <label style={label}>{tr('logEntryForm.meal.addedOil')}</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              inputMode="decimal"
+              value={oilG}
+              onChange={(e) => setOilG(e.target.value)}
+              style={{ ...field, paddingRight: 40 }}
+              placeholder="10"
+            />
+            <span
+              style={{
+                position: 'absolute',
+                right: 14,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: 13,
+                fontWeight: 700,
+                color: t.inkSoft,
+              }}
+            >
+              g
+            </span>
+          </div>
+          <p style={hint}>{tr('logEntryForm.meal.oilHint')}</p>
+        </div>
+      </div>
     </div>
   );
 
@@ -570,17 +773,23 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
         />
       </Field>
 
-      <Field title={tr('logEntryForm.common.dateTime')}>
-        <input required type="datetime-local" value={form.timestamp} onChange={(e) => setForm({ ...form, timestamp: e.target.value })} style={field} />
-      </Field>
+      <DateTimeFields value={form.timestamp} onChange={(timestamp) => setForm({ ...form, timestamp })} tr={tr} />
 
       <Field title={tr('logEntryForm.meal.foodDescription')}>
         <textarea
           required={canSave}
-          rows={2}
+          rows={6}
+          maxLength={1800}
           value={form.foodItems}
           onChange={(e) => setForm({ ...form, foodItems: e.target.value })}
-          style={{ ...field, resize: 'vertical' }}
+          style={{
+            ...field,
+            resize: 'none',
+            minHeight: 132,
+            maxHeight: 132,
+            overflowY: 'auto',
+            lineHeight: 1.45,
+          }}
           placeholder={tr('logEntryForm.meal.foodPlaceholder')}
         />
       </Field>
@@ -644,108 +853,28 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
         {nutritionMode === 'manual' && (
           <>
             <p style={{ ...hint, marginTop: 0, marginBottom: 10 }}>{tr('logEntryForm.meal.manualCalcHint')}</p>
-            {portionFields}
-
-            <label style={{ ...label, marginBottom: 8 }}>{tr('logEntryForm.meal.ingredientWeights')}</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-              {ingredients.map((row, idx) => (
-                <div key={row.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px auto', gap: 8 }}>
-                  <input
-                    type="text"
-                    value={row.name}
-                    onChange={(e) => updateIngredient(row.id, { name: e.target.value })}
-                    style={field}
-                    placeholder={tr('logEntryForm.meal.ingredientNamePlaceholder')}
-                    aria-label={`${tr('logEntryForm.meal.ingredientName')} ${idx + 1}`}
-                  />
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    inputMode="decimal"
-                    value={row.weightG}
-                    onChange={(e) => updateIngredient(row.id, { weightG: e.target.value })}
-                    style={field}
-                    placeholder="g"
-                    aria-label={`${tr('logEntryForm.meal.ingredientWeightG')} ${idx + 1}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setIngredients((rows) => (rows.length <= 1 ? [newIngredientRow()] : rows.filter((r) => r.id !== row.id)))
-                    }
-                    style={{
-                      padding: '0 10px',
-                      borderRadius: 10,
-                      border: `1px solid ${t.lineStrong}`,
-                      background: t.surface,
-                      color: t.inkSoft,
-                      cursor: 'pointer',
-                      fontWeight: 650,
-                    }}
-                    aria-label={tr('logEntryForm.meal.removeIngredient')}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-              <button
-                type="button"
-                onClick={() => setIngredients((rows) => [...rows, newIngredientRow()])}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: `1px solid ${t.lineStrong}`,
-                  background: t.surface,
-                  color: t.ink,
-                  fontWeight: 650,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  fontFamily: t.fontBody,
-                }}
-              >
-                {tr('logEntryForm.meal.addIngredient')}
-              </button>
-              <button
-                type="button"
-                onClick={calculateManualNutrition}
-                disabled={calculating}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  border: `1.5px solid ${t.forest}`,
-                  background: t.forest,
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: calculating ? 'not-allowed' : 'pointer',
-                  fontFamily: t.fontBody,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  opacity: calculating ? 0.7 : 1,
-                }}
-              >
-                {calculating ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : null}
-                {calculating ? tr('logEntryForm.meal.calculating') : tr('logEntryForm.meal.calculateCarbs')}
-              </button>
-            </div>
-
-            {analyzeError && nutritionMode === 'manual' ? (
-              <p style={{ margin: '0 0 10px', fontSize: 13, color: '#b42318', lineHeight: 1.45 }}>{analyzeError}</p>
-            ) : null}
-
-            {form.carbohydrates !== '' ? (
-              <>
-                <p style={{ ...hint, marginTop: 0, marginBottom: 10 }}>{tr('logEntryForm.meal.reviewMacros')}</p>
-                {macroInputs}
-                {aiResultMeta?.disclaimer ? <p style={{ ...hint, marginTop: 10 }}>{aiResultMeta.disclaimer}</p> : null}
-              </>
-            ) : (
-              <p style={{ ...hint, marginTop: 0 }}>{tr('logEntryForm.meal.calcFirstHint')}</p>
-            )}
+            {macroInputs}
+            <button
+              type="button"
+              onClick={() => navigate('/toolbox?tool=carb')}
+              style={{
+                marginTop: 12,
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: 10,
+                border: `1px solid ${t.sage}66`,
+                background: t.sageTint,
+                color: t.sageDeep,
+                fontWeight: 650,
+                fontSize: 13,
+                cursor: 'pointer',
+                fontFamily: t.fontBody,
+                textAlign: 'left',
+                lineHeight: 1.4,
+              }}
+            >
+              {tr('logEntryForm.meal.openCarbToolbox')}
+            </button>
           </>
         )}
 
@@ -754,22 +883,23 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
             key="nutrition-ai"
             style={{
               padding: '16px',
-              borderRadius: 10,
-              border: `1px dashed ${t.lineStrong}`,
-              background: t.surfaceRaised,
+              borderRadius: 12,
+              border: `1px solid ${t.lineStrong}`,
+              background: t.surface,
+              boxShadow: '0 1px 2px rgba(43,42,40,0.04)',
             }}
           >
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 650, color: t.ink }}>{tr('logEntryForm.meal.aiTitle')}</p>
-            <p style={{ margin: '6px 0 12px', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: t.ink }}>{tr('logEntryForm.meal.aiTitle')}</p>
+            <p style={{ margin: '6px 0 14px', fontSize: 13, color: t.inkSoft, lineHeight: 1.5 }}>
               {tr('logEntryForm.meal.aiBody')}
             </p>
 
-            {portionFields}
+            {portionDetails}
 
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/jpg,image/heic,image/heif,image/webp"
               capture="environment"
               onChange={onPickAiPhoto}
               style={{ display: 'none' }}
@@ -846,36 +976,78 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
                       opacity: analyzing || !aiFile ? 0.7 : 1,
                     }}
                   >
-                    {analyzing ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : null}
+                    {analyzing ? <Loader2 size={16} className="db-spin" /> : null}
                     {analyzing ? tr('logEntryForm.meal.aiAnalyzing') : tr('logEntryForm.meal.aiAnalyze')}
                   </button>
                 </div>
               </div>
             ) : (
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  acceptAiFile(e.dataTransfer.files?.[0]);
+                }}
                 style={{
                   width: '100%',
-                  padding: '18px 14px',
-                  borderRadius: 10,
-                  border: `1.5px dashed ${t.lineStrong}`,
-                  background: t.surface,
-                  color: t.ink,
-                  fontWeight: 650,
-                  fontSize: 14,
+                  boxSizing: 'border-box',
+                  padding: '28px 18px',
+                  borderRadius: 12,
+                  border: `1.5px solid ${dragOver ? t.forest : t.lineStrong}`,
+                  background: dragOver ? t.sageTint : t.surfaceSunken,
                   cursor: 'pointer',
+                  textAlign: 'center',
                   fontFamily: t.fontBody,
+                  transition: 'border-color 0.15s ease, background 0.15s ease',
                 }}
               >
-                {tr('logEntryForm.meal.aiUploadPhoto')}
-              </button>
+                <Upload size={22} style={{ color: t.forest, marginBottom: 10 }} />
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.ink }}>
+                  {tr('logEntryForm.meal.aiDropTitle')}
+                </p>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: t.inkSoft }}>
+                  {tr('logEntryForm.meal.aiDropOr')}{' '}
+                  <span style={{ color: t.forest, fontWeight: 650, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                    {tr('logEntryForm.meal.aiBrowse')}
+                  </span>
+                </p>
+                <p
+                  style={{
+                    margin: '12px 0 0',
+                    fontSize: 11,
+                    fontWeight: 650,
+                    letterSpacing: '0.08em',
+                    color: t.inkFaint,
+                  }}
+                >
+                  {tr('logEntryForm.meal.aiFormats')}
+                </p>
+              </div>
             )}
 
             {analyzeError && nutritionMode === 'ai' ? (
-              <p style={{ margin: '10px 0 0', fontSize: 13, color: '#b42318', lineHeight: 1.45 }}>
-                {analyzeError}
-              </p>
+              <p style={{ margin: '10px 0 0', fontSize: 13, color: '#b42318', lineHeight: 1.45 }}>{analyzeError}</p>
             ) : null}
 
             {aiResultMeta?.source === 'ai' ? (
@@ -956,7 +1128,13 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
       </Field>
 
       {canSave ? (
-        <Submit submitting={submitting} isEdit={isEdit} tr={tr} />
+        <Submit
+          submitting={submitting}
+          isEdit={isEdit}
+          tr={tr}
+          label={tr('logEntryForm.common.saveMeal')}
+          editLabel={tr('logEntryForm.common.updateMeal')}
+        />
       ) : (
         <p style={{ ...hint, marginTop: 4 }}>
           {nutritionMode === 'ai' ? tr('logEntryForm.meal.savingAiHint') : tr('logEntryForm.meal.calcFirstHint')}
@@ -1106,15 +1284,7 @@ function InsulinFields({ initialRaw, submitting, isEdit, onSubmit }) {
         />
       </Field>
 
-      <Field title={tr('logEntryForm.insulin.injectionTime')}>
-        <input
-          required
-          type="datetime-local"
-          value={form.timestamp}
-          onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
-          style={field}
-        />
-      </Field>
+      <DateTimeFields value={form.timestamp} onChange={(timestamp) => setForm({ ...form, timestamp })} tr={tr} />
 
       <Field title={tr('logEntryForm.insulin.injectionSite')}>
         <ThemedSelect
@@ -1141,24 +1311,38 @@ function InsulinFields({ initialRaw, submitting, isEdit, onSubmit }) {
         />
       </Field>
 
-      <Submit submitting={submitting} isEdit={isEdit} tr={tr} />
+      <Submit
+        submitting={submitting}
+        isEdit={isEdit}
+        tr={tr}
+        label={tr('logEntryForm.common.saveInsulin')}
+        editLabel={tr('logEntryForm.common.updateInsulin')}
+      />
     </form>
   );
 }
 
 const MEDICATION_NAMES = [
+  // Popular among Pakistani diabetes patients (shown first)
   'Metformin',
   'Glimepiride',
   'Gliclazide',
   'Sitagliptin',
+  'Insulin',
+  // Also commonly prescribed — searchable
   'Vildagliptin',
   'Empagliflozin',
   'Dapagliflozin',
   'Pioglitazone',
-  'Acarbose',
   'Linagliptin',
-  'Canagliflozin',
+  'Acarbose',
   'Repaglinide',
+  'Canagliflozin',
+  'Insulin Glargine',
+  'Insulin Aspart',
+  'Mixtard',
+  'Janumet',
+  'Galvus Met',
 ];
 const DOSE_UNITS = ['mg', 'ml', 'Tablet(s)', 'Capsule(s)'];
 const DOSE_UNIT_KEYS = { mg: 'mg', ml: 'ml', 'Tablet(s)': 'tablets', 'Capsule(s)': 'capsules' };
@@ -1229,10 +1413,7 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
           placeholder={tr('logEntryForm.medication.namePlaceholder')}
           searchPlaceholder={tr('logEntryForm.medication.searchPlaceholder')}
           popularLabel={tr('logEntryForm.medication.popular')}
-          searchMoreLabel={tr('logEntryForm.medication.searchMore').replace(
-            '{n}',
-            String(Math.max(0, MEDICATION_NAMES.length - 5))
-          )}
+          searchMoreLabel={tr('logEntryForm.medication.searchMore')}
           emptyLabel={tr('logEntryForm.medication.noMatches')}
         />
       </Field>
@@ -1297,15 +1478,7 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
         </div>
       </div>
 
-      <Field title={tr('logEntryForm.common.dateTime')}>
-        <input
-          required
-          type="datetime-local"
-          value={form.timestamp}
-          onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
-          style={field}
-        />
-      </Field>
+      <DateTimeFields value={form.timestamp} onChange={(timestamp) => setForm({ ...form, timestamp })} tr={tr} />
 
       <Field title={tr('logEntryForm.medication.route')}>
         <ThemedSelect
@@ -1332,7 +1505,7 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
         />
       </Field>
 
-      <Submit submitting={submitting} isEdit={isEdit} tr={tr} />
+      <Submit submitting={submitting} isEdit={isEdit} tr={tr} label={tr('logEntryForm.common.saveMedication')} editLabel={tr('logEntryForm.common.updateMedication')} />
     </form>
   );
 }
@@ -1429,15 +1602,7 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
         })}
       </div>
 
-      <Field title={tr('logEntryForm.common.dateTime')}>
-        <input
-          required
-          type="datetime-local"
-          value={form.timestamp}
-          onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
-          style={field}
-        />
-      </Field>
+      <DateTimeFields value={form.timestamp} onChange={(timestamp) => setForm({ ...form, timestamp })} tr={tr} />
 
       <Field title={tr('logEntryForm.common.notesOptional')}>
         <textarea
@@ -1449,7 +1614,7 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
         />
       </Field>
 
-      <Submit submitting={submitting} isEdit={isEdit} tr={tr} />
+      <Submit submitting={submitting} isEdit={isEdit} tr={tr} label={tr('logEntryForm.common.saveWater')} editLabel={tr('logEntryForm.common.updateWater')} />
     </form>
   );
 }
@@ -1512,6 +1677,7 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
 
   return (
     <form
+      className="db-log-exercise-form"
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
@@ -1567,31 +1733,17 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
 
       <div>
         <label style={label}>{tr('logEntryForm.exercise.type')}</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {ACTIVITY_TYPES.map((type) => {
-            const active = form.exerciseType === type;
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setForm({ ...form, exerciseType: type })}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 999,
-                  border: `1.5px solid ${active ? t.forest : t.lineStrong}`,
-                  background: active ? t.surfaceSunken : t.surface,
-                  color: t.ink,
-                  fontWeight: 650,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  fontFamily: t.fontBody,
-                }}
-              >
-                {tr(`logEntryForm.exercise.types.${ACTIVITY_TYPE_KEYS[type]}`, type)}
-              </button>
-            );
-          })}
-        </div>
+        <ThemedSelect
+          value={form.exerciseType}
+          onChange={(v) => setForm({ ...form, exerciseType: v })}
+          options={ACTIVITY_TYPES.map((type) => ({
+            value: type,
+            label: tr(`logEntryForm.exercise.types.${ACTIVITY_TYPE_KEYS[type]}`, type),
+          }))}
+          placeholder={tr('logEntryForm.exercise.selectType')}
+          aria-label={tr('logEntryForm.exercise.type')}
+          required
+        />
         {form.exerciseType === 'Other' && (
           <input
             required
@@ -1605,7 +1757,7 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
       </div>
 
       <Field title={tr('logEntryForm.exercise.duration')}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="db-log-unit-row">
           <input
             required
             type="number"
@@ -1613,10 +1765,10 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
             inputMode="numeric"
             value={form.duration}
             onChange={(e) => setForm({ ...form, duration: e.target.value })}
-            style={{ ...field, flex: 1 }}
+            style={field}
             placeholder="30"
           />
-          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>{tr('logEntryForm.exercise.minutes')}</span>
+          <span className="db-log-unit-suffix">{tr('logEntryForm.exercise.minutes')}</span>
         </div>
       </Field>
 
@@ -1650,22 +1802,22 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
       </div>
 
       <Field title={tr('logEntryForm.exercise.caloriesBurned')}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="db-log-unit-row">
           <input
             type="number"
             min="0"
             inputMode="numeric"
             value={form.caloriesBurned}
             onChange={(e) => setForm({ ...form, caloriesBurned: e.target.value })}
-            style={{ ...field, flex: 1 }}
+            style={field}
             placeholder="250"
           />
-          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>{tr('logEntryForm.exercise.kcal')}</span>
+          <span className="db-log-unit-suffix">{tr('logEntryForm.exercise.kcal')}</span>
         </div>
       </Field>
 
       <Field title={tr('logEntryForm.exercise.distance')}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="db-log-unit-row">
           <input
             type="number"
             min="0"
@@ -1673,10 +1825,10 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
             inputMode="decimal"
             value={form.distance}
             onChange={(e) => setForm({ ...form, distance: e.target.value })}
-            style={{ ...field, flex: 1 }}
+            style={field}
             placeholder="2.5"
           />
-          <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>{tr('logEntryForm.exercise.km')}</span>
+          <span className="db-log-unit-suffix">{tr('logEntryForm.exercise.km')}</span>
         </div>
       </Field>
 
@@ -1693,15 +1845,7 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
         />
       </Field>
 
-      <Field title={tr('logEntryForm.common.dateTime')}>
-        <input
-          required
-          type="datetime-local"
-          value={form.timestamp}
-          onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
-          style={field}
-        />
-      </Field>
+      <DateTimeFields value={form.timestamp} onChange={(timestamp) => setForm({ ...form, timestamp })} tr={tr} />
 
       <Field title={tr('logEntryForm.common.notesOptional')}>
         <textarea
@@ -1713,7 +1857,7 @@ function ExerciseFields({ initialRaw, submitting, isEdit, onSubmit }) {
         />
       </Field>
 
-      <Submit submitting={submitting} isEdit={isEdit} tr={tr} />
+      <Submit submitting={submitting} isEdit={isEdit} tr={tr} label={tr('logEntryForm.common.saveExercise')} editLabel={tr('logEntryForm.common.updateExercise')} />
     </form>
   );
 }
@@ -1838,25 +1982,17 @@ function SleepFields({ initialRaw, submitting, isEdit, onSubmit }) {
         });
       }}
     >
-      <Field title={tr('logEntryForm.sleep.bedtime')} help={tr('logEntryForm.sleep.bedtimeHint')}>
-        <input
-          required
-          type="datetime-local"
-          value={form.sleepTime}
-          onChange={(e) => setSleepTime(e.target.value)}
-          style={field}
-        />
-      </Field>
+      <div>
+      <p style={{ ...label, marginBottom: 8 }}>{tr('logEntryForm.sleep.bedtime')}</p>
+      <DateTimeFields value={form.sleepTime} onChange={setSleepTime} tr={tr} />
+      <p style={hint}>{tr('logEntryForm.sleep.bedtimeHint')}</p>
+    </div>
 
-      <Field title={tr('logEntryForm.sleep.wakeTime')} help={tr('logEntryForm.sleep.wakeTimeHint')}>
-        <input
-          required
-          type="datetime-local"
-          value={form.wakeTime}
-          onChange={(e) => setWakeTime(e.target.value)}
-          style={field}
-        />
-      </Field>
+      <div>
+      <p style={{ ...label, marginBottom: 8 }}>{tr('logEntryForm.sleep.wakeTime')}</p>
+      <DateTimeFields value={form.wakeTime} onChange={setWakeTime} tr={tr} />
+      <p style={hint}>{tr('logEntryForm.sleep.wakeTimeHint')}</p>
+    </div>
 
       <div>
         <label style={label}>{tr('logEntryForm.sleep.duration')}</label>
@@ -2054,15 +2190,7 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
         </div>
       </div>
 
-      <Field title={tr('logEntryForm.common.dateTime')}>
-        <input
-          required
-          type="datetime-local"
-          value={form.timestamp}
-          onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
-          style={field}
-        />
-      </Field>
+      <DateTimeFields value={form.timestamp} onChange={(timestamp) => setForm({ ...form, timestamp })} tr={tr} />
 
       <Field title={tr('logEntryForm.common.notesOptional')}>
         <textarea
@@ -2075,7 +2203,7 @@ function MoodFields({ initialRaw, submitting, isEdit, onSubmit }) {
         />
       </Field>
 
-      <Submit submitting={submitting} isEdit={isEdit} tr={tr} />
+      <Submit submitting={submitting} isEdit={isEdit} tr={tr} label={tr('logEntryForm.common.saveMood')} editLabel={tr('logEntryForm.common.updateMood')} />
     </form>
   );
 }

@@ -5,6 +5,8 @@ const mealAnalyzeController = require('../controllers/mealAnalyzeController');
 
 router.use(protect);
 
+router.get('/foods', mealAnalyzeController.searchMealFoods);
+
 router.post(
   '/analyze',
   mealAnalyzeController.uploadMealImage,

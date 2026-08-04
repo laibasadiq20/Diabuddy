@@ -1,8 +1,25 @@
 /**
  * Helper utilities for Reminder nextTriggerAt calculation and notification messages.
+ * All wall-clock math uses UTC getters/setters on a tz-shifted Date so it is
+ * independent of the server's process timezone.
  */
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * @param {Date} fromTime
+ * @param {number} tzOffset getTimezoneOffset-style minutes
+ */
+function toUserWall(fromTime, tzOffset) {
+  return new Date(fromTime.getTime() - tzOffset * 60000);
+}
+
+/**
+ * Build an absolute Date from user wall-clock Y/M/D H:M and tzOffset.
+ */
+function fromUserWall(y, monthIndex, day, hours, minutes, tzOffset) {
+  return new Date(Date.UTC(y, monthIndex, day, hours, minutes, 0, 0) + tzOffset * 60000);
+}
 
 /**
  * Calculate the next trigger Date for a reminder based on schedule rules and user timezone.
@@ -16,18 +33,34 @@ function calculateNextTriggerAt(reminder, fromTime = new Date(), overrideTzOffse
     return null;
   }
 
-  const tzOffset = typeof overrideTzOffset === 'number'
-    ? overrideTzOffset
-    : (typeof reminder.tzOffset === 'number' ? reminder.tzOffset : 0);
+  const tzOffset =
+    typeof overrideTzOffset === 'number'
+      ? overrideTzOffset
+      : typeof reminder.tzOffset === 'number'
+        ? reminder.tzOffset
+        : 0;
+
+  const now = new Date(fromTime);
 
   // Doctor Appointment / Specific Date Reminder
   if (reminder.appointmentDate) {
-    const apptDate = new Date(reminder.appointmentDate);
+    const appt = new Date(reminder.appointmentDate);
+    if (Number.isNaN(appt.getTime())) return null;
+
+    let trigger = appt;
     if (reminder.time && /^([01]\d|2[0-3]):([0-5]\d)$/.test(reminder.time)) {
       const [h, m] = reminder.time.split(':').map(Number);
-      apptDate.setHours(h, m, 0, 0);
+      const wall = toUserWall(appt, tzOffset);
+      trigger = fromUserWall(
+        wall.getUTCFullYear(),
+        wall.getUTCMonth(),
+        wall.getUTCDate(),
+        h,
+        m,
+        tzOffset
+      );
     }
-    return apptDate > fromTime ? apptDate : null;
+    return trigger > now ? trigger : null;
   }
 
   if (!reminder.time || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(reminder.time)) {
@@ -35,21 +68,30 @@ function calculateNextTriggerAt(reminder, fromTime = new Date(), overrideTzOffse
   }
 
   const [hours, minutes] = reminder.time.split(':').map(Number);
-  const now = new Date(fromTime);
-
-  // Convert current UTC time to user's local wall-clock time representation
-  const userLocalNow = new Date(now.getTime() - tzOffset * 60000);
+  const userLocalNow = toUserWall(now, tzOffset);
 
   if (reminder.repeat === 'daily') {
-    const userLocalCandidate = new Date(userLocalNow);
-    userLocalCandidate.setHours(hours, minutes, 0, 0);
-
-    if (userLocalCandidate <= userLocalNow) {
-      userLocalCandidate.setDate(userLocalCandidate.getDate() + 1);
+    let candidate = fromUserWall(
+      userLocalNow.getUTCFullYear(),
+      userLocalNow.getUTCMonth(),
+      userLocalNow.getUTCDate(),
+      hours,
+      minutes,
+      tzOffset
+    );
+    if (candidate <= now) {
+      const nextDay = new Date(Date.UTC(
+        userLocalNow.getUTCFullYear(),
+        userLocalNow.getUTCMonth(),
+        userLocalNow.getUTCDate() + 1,
+        hours,
+        minutes,
+        0,
+        0
+      ) + tzOffset * 60000);
+      candidate = nextDay;
     }
-
-    // Convert back from user local wall-clock time to absolute UTC Date
-    return new Date(userLocalCandidate.getTime() + tzOffset * 60000);
+    return candidate;
   }
 
   if (reminder.repeat === 'weekly' || reminder.repeat === 'custom') {
@@ -59,13 +101,20 @@ function calculateNextTriggerAt(reminder, fromTime = new Date(), overrideTzOffse
     }
 
     for (let dayOffset = 0; dayOffset <= 8; dayOffset++) {
-      const userLocalCandidate = new Date(userLocalNow);
-      userLocalCandidate.setDate(userLocalCandidate.getDate() + dayOffset);
-      userLocalCandidate.setHours(hours, minutes, 0, 0);
-
-      const dayName = WEEKDAYS[userLocalCandidate.getDay()];
-      if (activeDays.includes(dayName) && userLocalCandidate > userLocalNow) {
-        return new Date(userLocalCandidate.getTime() + tzOffset * 60000);
+      const base = Date.UTC(
+        userLocalNow.getUTCFullYear(),
+        userLocalNow.getUTCMonth(),
+        userLocalNow.getUTCDate() + dayOffset,
+        hours,
+        minutes,
+        0,
+        0
+      );
+      const candidate = new Date(base + tzOffset * 60000);
+      const wall = toUserWall(candidate, tzOffset);
+      const dayName = WEEKDAYS[wall.getUTCDay()];
+      if (activeDays.includes(dayName) && candidate > now) {
+        return candidate;
       }
     }
   }

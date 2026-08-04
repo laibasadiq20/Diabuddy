@@ -74,6 +74,12 @@ const userSchema = new mongoose.Schema(
       enum: ['en', 'ur'],
       default: 'en',
     },
+    /** IANA timezone id, or 'device' to follow the client. Default Pakistan. */
+    timezone: {
+      type: String,
+      default: 'Asia/Karachi',
+      trim: true,
+    },
     targetRanges: {
       fastingMin: { type: Number, default: 70 },
       fastingMax: { type: Number, default: 100 },

@@ -4,10 +4,10 @@ import {
   Syringe,
   Pill,
   GlassWater,
-  Dumbbell,
   Moon,
   Smile,
 } from 'lucide-react';
+import WalkingPerson from '../../components/icons/WalkingPerson';
 
 export const LOG_TYPES = [
   {
@@ -16,9 +16,8 @@ export const LOG_TYPES = [
     apiPath: 'glucose',
     label: 'Blood glucose',
     icon: Droplets,
-    hubLine: 'Record readings with context and time.',
-    why: 'Regular glucose records help you and your clinician see patterns around meals, activity, and medication.',
-    how: 'Enter the reading and unit, choose context (before/after meal, etc.), then save.',
+    hubLine: 'Record your glucose readings.',
+    tip: 'Log your reading as soon as you measure it and choose the correct context for more accurate insights.',
   },
   {
     id: 'meal',
@@ -26,9 +25,8 @@ export const LOG_TYPES = [
     apiPath: 'meal',
     label: 'Meals & nutrition',
     icon: Utensils,
-    hubLine: 'Log meals with carbs, protein, fat, and calories.',
-    why: 'Meal logs link food intake to glucose changes and support carb awareness over time.',
-    how: 'Select meal type and time, describe the food, then enter carbs (required) plus protein, fat, and calories if you know them.',
+    hubLine: 'Record meals and track nutrition.',
+    tip: 'Need macros for a dish? Open Toolbox → Nutrition Calculator (search a food, weigh grams, optional oil), then enter the numbers here.',
   },
   {
     id: 'insulin',
@@ -36,9 +34,8 @@ export const LOG_TYPES = [
     apiPath: 'insulin',
     label: 'Insulin',
     icon: Syringe,
-    hubLine: 'Log insulin type, dose, reason, and site.',
-    why: 'An accurate insulin record reduces dosing errors and supports safer clinic reviews.',
-    how: 'Select insulin type, dose, reason, and injection time. Site and notes are optional. Do not change prescribed doses here.',
+    hubLine: 'Record insulin dose and injection details.',
+    tip: 'Log the dose you took, with type and reason. Do not change prescribed doses here.',
   },
   {
     id: 'medication',
@@ -46,9 +43,8 @@ export const LOG_TYPES = [
     apiPath: 'medication',
     label: 'Medications',
     icon: Pill,
-    hubLine: 'Track name, dose, route, and taken/missed/skipped.',
-    why: 'Tracking taken, missed, or skipped doses improves adherence review at follow-up visits.',
-    how: 'Select or type the medicine name, enter dosage, status, and optional route, then save with date and time.',
+    hubLine: 'Log medication name, dose, and status.',
+    tip: 'Mark taken, missed, or skipped so adherence is clear at your next visit.',
   },
   {
     id: 'water',
@@ -56,19 +52,17 @@ export const LOG_TYPES = [
     apiPath: 'water',
     label: 'Water intake',
     icon: GlassWater,
-    hubLine: 'Log fluid intake in oz (1 glass = 8 oz).',
-    why: 'Hydration support matters for energy and day-to-day diabetes management.',
-    how: 'Enter the amount in US fluid ounces, or use a quick-add glass button, then set the date and time.',
+    hubLine: 'Track your daily water intake.',
+    tip: 'Use a quick-add glass or enter ounces — small sips add up toward your daily goal.',
   },
   {
     id: 'exercise',
     path: 'exercise',
     apiPath: 'exercise',
-    label: 'Activity',
-    icon: Dumbbell,
-    hubLine: 'Log type, duration, intensity, distance, and calories.',
-    why: 'Activity records help you see how exercise relates to glucose and energy.',
-    how: 'Choose activity type, duration, and intensity. Add steps, distance, or calories if you have them.',
+    label: 'Exercise',
+    icon: WalkingPerson,
+    hubLine: 'Record workouts and daily activity.',
+    tip: 'Log duration and intensity soon after you finish — it helps link movement to glucose patterns.',
   },
   {
     id: 'sleep',
@@ -76,9 +70,8 @@ export const LOG_TYPES = [
     apiPath: 'sleep',
     label: 'Sleep',
     icon: Moon,
-    hubLine: 'Record bedtime, wake time, duration, and quality.',
-    why: 'Sleep duration and quality can affect next-day glucose and energy.',
-    how: 'Confirm bedtime and wake time (defaults: 10:00 PM to 6:00 AM). Duration is calculated automatically.',
+    hubLine: 'Track your sleep and sleep quality.',
+    tip: 'Confirm bedtime and wake time — duration is calculated for you. Quality helps spot rest trends.',
   },
   {
     id: 'mood',
@@ -86,9 +79,8 @@ export const LOG_TYPES = [
     apiPath: 'mood',
     label: 'Mood & stress',
     icon: Smile,
-    hubLine: 'Note mood, stress level, and optional journal.',
-    why: 'Mood and stress can influence glucose independently of meals.',
-    how: 'Choose a mood, rate your stress level, set the date and time, and add a journal note if useful.',
+    hubLine: 'Record your mood and stress level.',
+    tip: 'A quick mood and stress check can explain glucose swings that meals alone do not.',
   },
 ];
 

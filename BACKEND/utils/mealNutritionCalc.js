@@ -3,7 +3,7 @@
  * Storage/DB values: carbs_g etc. as per_100g or per_serving (~200 g bowl).
  */
 
-const { matchPakistaniFood } = require('./pakistaniFoodLookup');
+const { matchPakistaniFood, getFoodById } = require('./pakistaniFoodLookup');
 
 /** Assumed grams for rows marked per_serving (typical bowl / plate). */
 const ASSUMED_SERVING_G = 200;
@@ -95,8 +95,8 @@ function applyPortionToNutrition(baseNutrition, food, { dishWeightG, oilG } = {}
 }
 
 /**
- * Manual: sum ingredient weights (matched in DB) + oil.
- * @param {Array<{ name: string, weightG: number }>} ingredients
+ * Manual: sum ingredient weights (by foodId or name match) + oil.
+ * @param {Array<{ foodId?: string, name?: string, weightG: number }>} ingredients
  * @param {{ oilG?: number }} opts
  */
 function calculateFromIngredients(ingredients, { oilG } = {}) {
@@ -105,26 +105,39 @@ function calculateFromIngredients(ingredients, { oilG } = {}) {
   const unmatched = [];
 
   for (const row of ingredients || []) {
+    const foodId = row?.foodId != null ? String(row.foodId).trim() : '';
     const name = String(row?.name || '').trim();
     const weightG = Number(row?.weightG);
-    if (!name || !Number.isFinite(weightG) || weightG <= 0) continue;
+    if (!Number.isFinite(weightG) || weightG <= 0) continue;
+    if (!foodId && !name) continue;
 
-    const matches = matchPakistaniFood(name, { limit: 1 });
-    if (!matches.length) {
-      unmatched.push(name);
-      lines.push({ name, weightG, matched: false, nutrition: null });
+    let food = foodId ? getFoodById(foodId) : null;
+    let matchScore = food ? 1 : 0;
+
+    if (!food && name) {
+      const matches = matchPakistaniFood(name, { limit: 1 });
+      if (matches.length) {
+        food = matches[0].food;
+        matchScore = matches[0].score;
+      }
+    }
+
+    if (!food) {
+      unmatched.push(name || foodId);
+      lines.push({ name: name || foodId, weightG, matched: false, nutrition: null });
       continue;
     }
 
-    const food = matches[0].food;
     const nutrition = scaleFoodByWeight(food, weightG);
     total = addMacros(total, nutrition);
     lines.push({
+      foodId: food.id,
       name: food.name,
-      queriedAs: name,
+      kind: food.kind || 'dish',
+      queriedAs: name || food.name,
       weightG,
       matched: true,
-      matchScore: Number(matches[0].score.toFixed(3)),
+      matchScore: Number(matchScore.toFixed(3)),
       serving_basis: food.serving_basis || 'per_serving',
       nutrition,
     });

@@ -675,21 +675,35 @@ exports.deleteWater = async (req, res) => {
 exports.createExercise = async (req, res) => {
   try {
     const { exerciseType, duration, distance, steps, caloriesBurned, intensity, notes, source, timestamp } = req.body;
+    const activity = String(exerciseType || '').trim();
+    if (!activity) {
+      return res.status(400).json({ status: 'error', message: 'Exercise type is required' });
+    }
+    const durationNum = Number(duration);
+    if (!Number.isFinite(durationNum) || durationNum <= 0) {
+      return res.status(400).json({ status: 'error', message: 'Duration must be greater than 0' });
+    }
+
+    let sourceValue = 'Manual';
+    if (source === 'Fitbit') sourceValue = 'Fitbit';
+    else if (source === 'GoogleHealth' || source === 'Google Health') sourceValue = 'GoogleHealth';
+
     const log = new ExerciseLog({
       userId: req.user.id,
-      activity: exerciseType,
-      duration: Number(duration),
-      distance: Number(distance || 0),
-      steps: Number(steps || 0),
-      caloriesBurned: Number(caloriesBurned || 0),
-      intensity,
-      notes,
-      source: source === 'Fitbit' ? 'Fitbit' : 'Manual',
+      activity,
+      duration: durationNum,
+      distance: Number(distance || 0) || 0,
+      steps: Number(steps || 0) || 0,
+      caloriesBurned: Number(caloriesBurned || 0) || 0,
+      intensity: ['Low', 'Medium', 'High'].includes(intensity) ? intensity : 'Medium',
+      notes: notes || '',
+      source: sourceValue,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
     });
     await log.save();
     res.status(201).json({ status: 'success', data: log });
   } catch (err) {
+    console.error('createExercise error:', err);
     res.status(400).json({ status: 'error', message: 'Failed to create exercise log', error: err.message });
   }
 };

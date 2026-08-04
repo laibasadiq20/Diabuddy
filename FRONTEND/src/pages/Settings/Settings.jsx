@@ -19,6 +19,7 @@ import AppSidebar from '../../components/AppSidebar';
 import ThemedSelect from '../../components/ThemedSelect';
 import {
   CheckCircle2,
+  Clock,
   Droplet,
   Footprints,
   GlassWater,
@@ -27,6 +28,11 @@ import {
   Sun,
   Target,
 } from 'lucide-react';
+import {
+  DEFAULT_TIMEZONE,
+  TIMEZONE_OPTIONS,
+  resolveTimezone,
+} from '../../utils/timezone';
 
 const t = theme;
 
@@ -68,6 +74,7 @@ export default function Settings() {
   const [glucoseUnit, setGlucoseUnit] = useState('mg/dL');
   const [weightUnit, setWeightUnit] = useState('kg');
   const [heightUnit, setHeightUnit] = useState('cm');
+  const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
   const [ranges, setRanges] = useState(rangesToDisplay(DEFAULT_RANGES_MGDL, 'mg/dL'));
   const [waterLiters, setWaterLiters] = useState('2');
   const [waterOz, setWaterOz] = useState('68');
@@ -82,6 +89,7 @@ export default function Settings() {
     setGlucoseUnit(unit);
     setWeightUnit(resolveWeightUnit(user));
     setHeightUnit(resolveHeightUnit(user));
+    setTimezone(resolveTimezone(user));
     setRanges(rangesToDisplay(user.targetRanges, unit));
     const ml = user.dailyGoals?.waterMl ?? 2000;
     setWaterLiters(String(round1(mlToLiters(ml))));
@@ -89,13 +97,17 @@ export default function Settings() {
     setSteps(user.dailyGoals?.steps ?? 8000);
   }, [user]);
 
-  const saveProfile = async (payload, key) => {
+  const saveProfile = async (payload, key, successMessage) => {
     setMessage('');
     setError('');
     setSavingKey(key);
     // Apply immediately so toolbox / other pages switch units without waiting.
     if (user) setUser({ ...user, ...payload });
     try {
+      const body = { ...payload };
+      if (payload.timezone !== undefined) {
+        body.tzOffset = new Date().getTimezoneOffset();
+      }
       const res = await fetch(`${API_URL}/auth/me`, {
         method: 'PUT',
         credentials: 'include',
@@ -103,7 +115,7 @@ export default function Settings() {
           'Content-Type': 'application/json',
           ...authHeaders(),
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok || !data.data) {
@@ -112,7 +124,7 @@ export default function Settings() {
       }
       // Merge server user with the fields we just saved (never lose unit prefs).
       setUser({ ...user, ...data.data, ...payload });
-      setMessage(tr('settings.saved'));
+      setMessage(successMessage || tr('settings.saved'));
       return true;
     } catch (_) {
       setError(tr('settings.saveError'));
@@ -152,6 +164,16 @@ export default function Settings() {
     if (!ok) {
       setHeightUnit(prev);
       if (user) setUser({ ...user, heightUnit: prev });
+    }
+  };
+
+  const handleTimezoneChange = async (next) => {
+    const prev = timezone;
+    setTimezone(next);
+    const ok = await saveProfile({ timezone: next }, 'timezone', tr('settings.timezoneUpdated'));
+    if (!ok) {
+      setTimezone(prev);
+      if (user) setUser({ ...user, timezone: prev });
     }
   };
 
@@ -352,6 +374,22 @@ export default function Settings() {
                 {tr('settings.urdu')}
               </button>
             </div>
+          </div>
+
+          <div className="db-account-card" style={cardStyle}>
+            <p style={cardTitleStyle}>{tr('settings.timezone')}</p>
+            <label style={labelStyle}>
+              <Clock size={12} style={{ marginRight: 5 }} />
+              {tr('settings.timezone')}
+            </label>
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.timezoneHint')}</p>
+            <ThemedSelect
+              style={{ maxWidth: 420 }}
+              value={timezone}
+              onChange={handleTimezoneChange}
+              disabled={savingKey === 'timezone'}
+              options={TIMEZONE_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+            />
           </div>
 
           <div className="db-account-card" style={cardStyle}>

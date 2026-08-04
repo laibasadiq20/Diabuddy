@@ -5,7 +5,7 @@ import { useI18n } from '../../i18n/I18nContext';
 import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
-import { ChevronRight, ClipboardList, Check, Flame, AlertTriangle } from 'lucide-react';
+import { ChevronRight, ClipboardList, Check, Flame, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { LOG_TYPES } from './logsConfig';
 import { mlToUsFlOz, round0 } from '../../utils/waterUnits';
 import { fromMgdl, glucoseUnitLabel, resolveGlucoseUnit } from '../../utils/glucoseUnits';
@@ -26,14 +26,17 @@ function typeStatus(summary, typeId, tr, glucoseUnit) {
   if (!summary) return { done: false, detail: '' };
   switch (typeId) {
     case 'glucose': {
+      const count = summary.glucose?.count || 0;
       const display =
         summary.glucose?.valueMgDl != null
           ? `${fromMgdl(summary.glucose.valueMgDl, glucoseUnit)} ${glucoseUnitLabel(glucoseUnit)}`
           : summary.glucose?.value;
       return {
-        done: (summary.glucose?.count || 0) > 0,
+        done: count > 0,
         detail: display
-          ? tr('logs.typeStatus.glucoseTemplate').replace('{value}', display).replace('{count}', summary.glucose.count)
+          ? tr(count === 1 ? 'logs.typeStatus.glucoseOne' : 'logs.typeStatus.glucoseMany')
+              .replace('{value}', display)
+              .replace('{count}', String(count))
           : '',
       };
     }
@@ -90,6 +93,20 @@ function typeStatus(summary, typeId, tr, glucoseUnit) {
   }
 }
 
+function streakDetail(streak, tr) {
+  if (!streak) return '';
+  if (streak.atRisk) {
+    return tr('logs.streak.atRisk').replace('{n}', String(streak.currentStreak));
+  }
+  if (streak.loggedToday) {
+    if (streak.currentStreak > 1) {
+      return tr('logs.streak.keepGoing').replace('{n}', String(streak.currentStreak));
+    }
+    return tr('logs.streak.everyDayCounts');
+  }
+  return tr('logs.streak.startToday');
+}
+
 export default function Logs() {
   const navigate = useNavigate();
   const { user, authHeaders } = useAuth();
@@ -97,11 +114,13 @@ export default function Logs() {
   const glucoseUnit = resolveGlucoseUnit(user);
   const [summary, setSummary] = useState(null);
   const [streak, setStreak] = useState(null);
+  const [streakLoading, setStreakLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return undefined;
     let cancelled = false;
     const load = async () => {
+      setStreakLoading(true);
       try {
         const tzOffset = new Date().getTimezoneOffset();
         const headers = { ...authHeaders() };
@@ -126,6 +145,8 @@ export default function Logs() {
         }
       } catch {
         /* keep hub usable without summary */
+      } finally {
+        if (!cancelled) setStreakLoading(false);
       }
     };
     load();
@@ -177,6 +198,14 @@ export default function Logs() {
       <main className="db-logs-hub-main">
         <div className="db-logs-hub-inner">
           <header className="db-logs-hub-header">
+            <button
+              type="button"
+              className="db-logs-hub-back"
+              onClick={() => navigate('/dashboard')}
+            >
+              <ArrowLeft size={16} />
+              {tr('common.back')}
+            </button>
             <p className="db-logs-hub-eyebrow">{tr('logs.eyebrow')}</p>
             <h1 className="db-logs-hub-title">
               <ClipboardList size={26} color={t.forest} strokeWidth={1.75} />
@@ -187,43 +216,67 @@ export default function Logs() {
             </p>
           </header>
 
-          {streak && (
-            <div className={`db-logs-streak${streak.atRisk ? ' is-risk' : ''}`}>
-              <div className="db-logs-streak-main">
-                {streak.atRisk ? <AlertTriangle size={18} /> : <Flame size={18} />}
-                <div>
-                  <strong>
-                    {streak.currentStreak > 0
-                      ? tr('logs.streak.dayStreakTemplate').replace('{n}', streak.currentStreak)
-                      : tr('logs.streak.noStreak')}
-                  </strong>
-                  <p>{streak.message}</p>
-                </div>
-              </div>
-              {streak.last7?.length > 0 && (
-                  <div className="db-logs-week" aria-label={tr('logs.thisWeek')}>
-                    <span className="db-logs-week-label">{tr('logs.thisWeek')}</span>
-                  <div className="db-logs-week-days">
-                    {streak.last7.map((d) => {
-                      const weekday = new Date(`${d.date}T12:00:00`).toLocaleDateString(undefined, {
-                        weekday: 'narrow',
-                      });
-                      const status = d.logged ? tr('logs.dayStatus.logged') : d.isToday ? tr('logs.dayStatus.todayNotYet') : tr('logs.dayStatus.missed');
-                      return (
-                        <div
-                          key={d.date}
-                          className={`db-logs-day${d.logged ? ' is-on' : ''}${d.isToday ? ' is-today' : ''}`}
-                          title={status}
-                        >
-                          <span className="db-logs-day-mark" aria-hidden>
-                            {d.logged ? '✓' : d.isToday ? '·' : ''}
-                          </span>
-                          <span className="db-logs-day-name">{weekday}</span>
-                        </div>
-                      );
-                    })}
+          {(streakLoading || streak) && (
+            <div className={`db-logs-streak${streak?.atRisk ? ' is-risk' : ''}${streakLoading && !streak ? ' is-loading' : ''}`}>
+              {streak ? (
+                <>
+                  <div className="db-logs-streak-main">
+                    {streak.atRisk ? <AlertTriangle size={18} /> : <Flame size={18} />}
+                    <div>
+                      <strong>
+                        {streak.currentStreak > 0
+                          ? tr('logs.streak.dayStreakTemplate').replace('{n}', streak.currentStreak)
+                          : tr('logs.streak.noStreak')}
+                      </strong>
+                      <p>{streakDetail(streak, tr)}</p>
+                    </div>
                   </div>
-                </div>
+                  {streak.last7?.length > 0 && (
+                    <div className="db-logs-week" aria-label={tr('logs.thisWeek')}>
+                      <span className="db-logs-week-label">{tr('logs.thisWeek')}</span>
+                      <div className="db-logs-week-days">
+                        {streak.last7.map((d) => {
+                          const weekday = new Date(`${d.date}T12:00:00`).toLocaleDateString(undefined, {
+                            weekday: 'narrow',
+                          });
+                          const status = d.logged ? tr('logs.dayStatus.logged') : d.isToday ? tr('logs.dayStatus.todayNotYet') : tr('logs.dayStatus.missed');
+                          return (
+                            <div
+                              key={d.date}
+                              className={`db-logs-day${d.logged ? ' is-on' : ''}${d.isToday ? ' is-today' : ''}`}
+                              title={status}
+                            >
+                              <span className="db-logs-day-mark" aria-hidden>
+                                {d.logged ? '✓' : d.isToday ? '·' : ''}
+                              </span>
+                              <span className="db-logs-day-name">{weekday}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="db-logs-streak-main" aria-busy="true" aria-live="polite">
+                    <Flame size={18} className="db-logs-loading-icon" aria-hidden />
+                    <div>
+                      <strong>{tr('logs.streak.loading')}</strong>
+                    </div>
+                  </div>
+                  <div className="db-logs-week" aria-hidden>
+                    <span className="db-logs-week-label">{tr('logs.thisWeek')}</span>
+                    <div className="db-logs-week-days">
+                      {Array.from({ length: 7 }).map((_, i) => (
+                        <div key={i} className="db-logs-day">
+                          <span className="db-logs-skel db-logs-skel-day" />
+                          <span className="db-logs-skel db-logs-skel-day-name" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -237,10 +290,13 @@ export default function Logs() {
                 <strong>{summary.meals?.value || 0}</strong> {tr('logs.strip.meals')}
               </span>
               <span>
-                <strong>{summary.water?.value || 0}</strong> {tr('logs.strip.water')}
+                <strong>{round0(mlToUsFlOz(summary.water?.value || 0))}</strong> {tr('logs.strip.water')}
               </span>
               <span>
                 <strong>{summary.medications?.value || 0}</strong> {tr('logs.strip.meds')}
+              </span>
+              <span>
+                <strong>{summary.exercise?.value || 0}</strong> {tr('logs.strip.exercise')}
               </span>
             </div>
           )}
@@ -276,6 +332,23 @@ export default function Logs() {
           margin: 0 auto;
           width: 100%;
         }
+        .db-logs-hub-header {
+          margin-bottom: 4px;
+        }
+        .db-logs-hub-back {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin: 0 0 14px;
+          padding: 0;
+          border: none;
+          background: none;
+          color: ${t.inkSoft};
+          font-family: ${t.fontBody};
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+        }
         .db-logs-hub-eyebrow {
           margin: 0 0 6px;
           font-size: 11px;
@@ -299,7 +372,7 @@ export default function Logs() {
           font-size: 15px;
           color: ${t.inkSoft};
           line-height: 1.55;
-          max-width: 42ch;
+          max-width: none;
         }
         .db-logs-streak {
           margin: 16px 0 0;
@@ -334,6 +407,73 @@ export default function Logs() {
           line-height: 1.4;
         }
         .db-logs-streak.is-risk .db-logs-streak-main p { color: ${t.clayDeep}; }
+        .db-logs-streak.is-loading {
+          min-height: 148px;
+        }
+        .db-logs-loading-icon {
+          flex-shrink: 0;
+          margin-top: 2px;
+          color: ${t.forest};
+          animation: db-logs-loading-pulse 1s ease-in-out infinite;
+        }
+        @keyframes db-logs-loading-pulse {
+          0%, 100% { opacity: 0.45; }
+          50% { opacity: 1; }
+        }
+        .db-logs-skel {
+          display: block;
+          border-radius: 8px;
+          background: linear-gradient(
+            90deg,
+            ${t.surfaceSunken} 0%,
+            color-mix(in srgb, ${t.surfaceRaised} 70%, ${t.surfaceSunken}) 50%,
+            ${t.surfaceSunken} 100%
+          );
+          background-size: 200% 100%;
+          animation: db-logs-skel-shine 1.1s ease-in-out infinite;
+        }
+        .db-logs-skel-icon {
+          width: 18px;
+          height: 18px;
+          border-radius: 6px;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+        .db-logs-skel-copy {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .db-logs-skel-title {
+          width: 42%;
+          height: 14px;
+        }
+        .db-logs-skel-line {
+          width: 78%;
+          height: 12px;
+        }
+        .db-logs-skel-week-label {
+          width: 56px;
+          height: 10px;
+          margin-bottom: 8px;
+        }
+        .db-logs-skel-day {
+          width: 100%;
+          aspect-ratio: 1;
+          border-radius: 10px;
+          min-height: 28px;
+        }
+        .db-logs-skel-day-name {
+          width: 60%;
+          height: 8px;
+          margin: 4px auto 0;
+        }
+        @keyframes db-logs-skel-shine {
+          0% { background-position: 100% 0; }
+          100% { background-position: -100% 0; }
+        }
         .db-logs-week {
           display: flex;
           flex-direction: column;
@@ -427,11 +567,12 @@ export default function Logs() {
         }
         .db-logs-hub-section-title {
           margin: 0 0 4px;
-          font-size: 12px;
+          font-family: ${t.fontDisplay};
+          font-size: 18px;
           font-weight: 700;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: ${t.inkFaint};
+          letter-spacing: -0.02em;
+          text-transform: none;
+          color: ${t.ink};
         }
         .db-logs-hub-section-note {
           margin: 0 0 10px;
@@ -510,27 +651,103 @@ export default function Logs() {
           white-space: nowrap;
         }
         @media (hover: hover) and (pointer: fine) {
+          .db-logs-hub-back:hover {
+            color: ${t.forest};
+          }
           .db-logs-hub-card:hover {
             border-color: ${t.forest};
           }
         }
         @media (max-width: 640px) {
           .db-logs-hub-main {
-            padding: 14px 12px 120px !important;
+            padding: 14px 14px calc(112px + env(safe-area-inset-bottom, 0px));
+          }
+          .db-logs-hub-back {
+            margin-bottom: 12px;
+            min-height: 36px;
+          }
+          .db-logs-hub-title {
+            font-size: clamp(24px, 7vw, 30px);
+            gap: 10px;
+          }
+          .db-logs-hub-title svg {
+            width: 22px;
+            height: 22px;
           }
           .db-logs-hub-lead {
+            margin-top: 10px;
             font-size: 14px;
             max-width: none;
           }
+          .db-logs-streak {
+            margin-top: 14px;
+            padding: 12px;
+            border-radius: 12px;
+            gap: 12px;
+          }
+          .db-logs-streak.is-loading {
+            min-height: 132px;
+          }
+          .db-logs-week-days {
+            gap: 4px;
+          }
+          .db-logs-hub-strip {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin: 14px 0 18px;
+            padding: 12px;
+          }
+          .db-logs-hub-strip span {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            min-width: 0;
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: ${t.surfaceSunken};
+            line-height: 1.3;
+          }
+          .db-logs-hub-strip strong {
+            margin-right: 0;
+            font-size: 15px;
+          }
+          .db-logs-hub-section-title {
+            font-size: 17px;
+          }
+          .db-logs-hub-section-note {
+            font-size: 12px;
+            margin-bottom: 8px;
+          }
+          .db-logs-hub-card,
+          .db-logs-hub-card.is-featured {
+            padding: 12px;
+            gap: 10px;
+            border-radius: 12px;
+          }
+          .db-logs-hub-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+          }
+          .db-logs-hub-label {
+            font-size: 14px;
+          }
           .db-logs-hub-line {
+            font-size: 12px;
             white-space: normal;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
           }
+        }
+        @media (max-width: 380px) {
+          .db-logs-hub-main {
+            padding-left: 12px;
+            padding-right: 12px;
+          }
           .db-logs-hub-strip {
-            gap: 8px 12px;
-            margin: 14px 0 18px;
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

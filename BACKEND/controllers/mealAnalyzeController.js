@@ -1,6 +1,6 @@
 const multer = require('multer');
 const { analyzeMealImage } = require('../utils/geminiMealAnalyze');
-const { loadPakistaniFoods } = require('../utils/pakistaniFoodLookup');
+const { loadPakistaniFoods, searchFoods } = require('../utils/pakistaniFoodLookup');
 const { calculateFromIngredients } = require('../utils/mealNutritionCalc');
 
 const upload = multer({
@@ -30,6 +30,44 @@ function parsePositiveNumber(raw) {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
+
+/**
+ * GET /api/meals/foods?q=
+ * Typeahead search over Pakistani pantry + cooked dishes.
+ */
+exports.searchMealFoods = async (req, res) => {
+  try {
+    const foods = loadPakistaniFoods();
+    if (!foods.length) {
+      return res.status(503).json({
+        status: 'error',
+        message: 'Meal nutrition dataset is missing on the server',
+      });
+    }
+
+    const q = String(req.query?.q || '').trim();
+    if (!q) {
+      return res.json({
+        status: 'success',
+        data: { foods: [], query: '' },
+      });
+    }
+
+    const limit = Math.min(40, Math.max(1, Number(req.query?.limit) || 20));
+    const results = searchFoods(q, { limit });
+
+    return res.json({
+      status: 'success',
+      data: { foods: results, query: q },
+    });
+  } catch (err) {
+    console.error('searchMealFoods error:', err);
+    return res.status(500).json({
+      status: 'error',
+      message: err.message || 'Failed to search foods',
+    });
+  }
+};
 
 /**
  * POST /api/meals/analyze
@@ -100,8 +138,7 @@ exports.analyzeMeal = async (req, res) => {
 
 /**
  * POST /api/meals/calculate
- * JSON: { dishWeightG?, oilG?, ingredients: [{ name, weightG }] }
- * Manual path: weight per ingredient + oil → carbs/macros.
+ * JSON: { oilG?, ingredients: [{ foodId?, name?, weightG }] }
  */
 exports.calculateMealNutrition = async (req, res) => {
   try {
@@ -118,23 +155,26 @@ exports.calculateMealNutrition = async (req, res) => {
     const oilG = parsePositiveNumber(req.body?.oilG) || 0;
     const dishName = String(req.body?.dishName || req.body?.foodItems || '').trim();
 
-    // If no ingredient rows, treat whole dish as one ingredient using dish weight.
     if (!ingredients.length && dishName && dishWeightG) {
       ingredients = [{ name: dishName, weightG: dishWeightG }];
     }
 
     ingredients = ingredients
       .map((row) => ({
+        foodId: row?.foodId != null ? String(row.foodId).trim() : '',
         name: String(row?.name || '').trim(),
         weightG: Number(row?.weightG),
       }))
-      .filter((row) => row.name && Number.isFinite(row.weightG) && row.weightG > 0);
+      .filter(
+        (row) =>
+          (row.foodId || row.name) && Number.isFinite(row.weightG) && row.weightG > 0
+      );
 
     if (!ingredients.length) {
       return res.status(400).json({
         status: 'error',
         message:
-          'Add at least one ingredient with a weight in grams, or enter a dish name plus total dish weight.',
+          'Add at least one food with a weight in grams (search and select a food, then enter grams).',
       });
     }
 
@@ -143,7 +183,7 @@ exports.calculateMealNutrition = async (req, res) => {
     if (!result.lines.some((l) => l.matched)) {
       return res.status(422).json({
         status: 'error',
-        message: `No foods matched (${(result.unmatched || []).join(', ') || 'unknown'}). Check spelling or try a simpler name (e.g. White Chana, Biryani).`,
+        message: `No foods matched (${(result.unmatched || []).join(', ') || 'unknown'}). Search and select a food from the list.`,
         data: result,
       });
     }
@@ -155,7 +195,7 @@ exports.calculateMealNutrition = async (req, res) => {
         ...result,
         dishWeightG: dishWeightG || null,
         disclaimer:
-          'Calculated from your ingredient weights and oil using our food list. Estimates only — not medical advice.',
+          'Calculated from weighed foods and oil using our food list. Estimates only — not medical advice.',
       },
     });
   } catch (err) {

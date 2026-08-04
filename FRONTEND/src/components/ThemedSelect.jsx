@@ -178,10 +178,22 @@ export default function ThemedSelect({
           max-height: min(280px, 50vh);
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          scrollbar-color: ${t.lineStrong} transparent;
           border-radius: 12px;
           border: 1.5px solid ${t.lineStrong};
           background: ${t.surface};
           box-shadow: ${t.shadowLifted};
+        }
+        .db-themed-select-menu::-webkit-scrollbar {
+          width: 4px;
+        }
+        .db-themed-select-menu::-webkit-scrollbar-thumb {
+          background: ${t.lineStrong};
+          border-radius: 999px;
+        }
+        .db-themed-select-menu::-webkit-scrollbar-track {
+          background: transparent;
         }
         .db-themed-select-option {
           width: 100%;

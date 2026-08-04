@@ -6,7 +6,7 @@
 const DEFAULT_REMINDERS = [
   {
     title: 'Take Insulin',
-    icon: '💉',
+    icon: 'syringe',
     defaultTime: '08:00',
     repeat: 'daily',
     days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -14,7 +14,7 @@ const DEFAULT_REMINDERS = [
   },
   {
     title: 'Take Medicine',
-    icon: '💊',
+    icon: 'pill',
     defaultTime: '09:00',
     repeat: 'daily',
     days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -22,7 +22,7 @@ const DEFAULT_REMINDERS = [
   },
   {
     title: 'Check Blood Glucose',
-    icon: '🩸',
+    icon: 'droplets',
     defaultTime: '07:00',
     repeat: 'daily',
     days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -30,7 +30,7 @@ const DEFAULT_REMINDERS = [
   },
   {
     title: 'Bedtime',
-    icon: '🌙',
+    icon: 'moon',
     defaultTime: '22:00',
     repeat: 'daily',
     days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -38,7 +38,7 @@ const DEFAULT_REMINDERS = [
   },
   {
     title: 'Doctor Appointment',
-    icon: '📅',
+    icon: 'calendar',
     defaultTime: '',
     repeat: 'custom',
     days: [],

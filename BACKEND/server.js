@@ -21,6 +21,7 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const seedTopics = require('./seedTopics');
 const seedForumPosts = require('./seedForumPosts');
+const repairExerciseLogIndexes = require('./utils/repairExerciseLogIndexes');
 
 const app = express();
 
@@ -46,6 +47,7 @@ console.log(
 // Connect to MongoDB then seed defaults
 connectDB()
   .then(async () => {
+    await repairExerciseLogIndexes();
     await seedTopics();
     await seedForumPosts();
   })

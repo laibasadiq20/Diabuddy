@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Send,
   RefreshCw,
@@ -20,6 +21,33 @@ import { ConversationAvatar } from './ConversationList';
 
 const t = theme;
 
+function formatMessageClock(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function dayKey(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function formatDaySeparator(iso, tr) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startMsg = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((startToday - startMsg) / 86400000);
+  if (diffDays === 0) return tr('messages.today') !== 'messages.today' ? tr('messages.today') : 'Today';
+  if (diffDays === 1) return tr('messages.yesterday') !== 'messages.yesterday' ? tr('messages.yesterday') : 'Yesterday';
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+}
+
 export default function ChatThread({
   activeConv,
   messages,
@@ -35,10 +63,36 @@ export default function ChatThread({
   onSendMessage,
   onOpenNew,
 }) {
+  const navigate = useNavigate();
   const { t: tr } = useI18n();
   if (!activeConv) {
     return (
       <div className="db-msg-chat" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', background: t.surface, minWidth: 0 }}>
+        <div style={{ padding: '14px 16px', borderBottom: `1px solid ${t.line}`, flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate('/dashboard');
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              border: 'none',
+              background: 'none',
+              color: t.inkSoft,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: t.fontBody,
+              padding: 0,
+            }}
+          >
+            <ArrowLeft size={16} />
+            {tr('common.back')}
+          </button>
+        </div>
         <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', color: t.inkSoft, textAlign: 'center' }}>
           <Inbox size={48} color={t.inkFaint} style={{ marginBottom: '16px' }} />
           <h3 style={{ fontFamily: t.fontDisplay, fontSize: '20px', margin: '0 0 8px 0', color: t.ink }}>{tr('messages.yourChats')}</h3>
@@ -160,44 +214,84 @@ export default function ChatThread({
             {messages.map((msg, idx) => {
               const isMe = idOf(msg.senderId) === myId;
               const readByOthers = isMe && isMessageReadByOthers(msg, activeConv, myId);
+              const timeLabel = formatMessageClock(msg.createdAt);
+              const prev = idx > 0 ? messages[idx - 1] : null;
+              const showDaySep = !prev || dayKey(prev.createdAt) !== dayKey(msg.createdAt);
               return (
-                <div
-                  key={msg._id || idx}
-                  style={{
-                    display: 'flex',
-                    justifyContent: isMe ? 'flex-end' : 'flex-start',
-                    width: '100%'
-                  }}
-                >
-                  <div className="db-msg-bubble" style={{ display: 'flex', gap: '8px', maxWidth: 'min(78%, 420px)', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-                    {activeConv.isGroup && !isMe && (
-                      <span style={{ fontSize: '10px', fontWeight: '600', color: t.inkSoft, marginLeft: '4px' }}>
-                        {msg.senderId?.name}
+                <React.Fragment key={msg._id || idx}>
+                  {showDaySep ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        width: '100%',
+                        margin: '4px 0 2px',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: t.inkSoft,
+                          background: t.surfaceSunken,
+                          border: `1px solid ${t.line}`,
+                          borderRadius: 999,
+                          padding: '4px 12px',
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        {formatDaySeparator(msg.createdAt, tr)}
                       </span>
-                    )}
-
-                    <div style={{
-                      background: isMe ? t.sageDeep : t.surfaceSunken,
-                      color: isMe ? '#FFFFFF' : t.ink,
-                      borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                      padding: '10px 16px',
-                      fontSize: '14px',
-                      lineHeight: '1.5',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                    }}>
-                      {msg.content}
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: t.inkFaint }}>
-                      <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      {isMe && (
-                        readByOthers
-                          ? <CheckCheck size={12} color={t.sageDeep} title={tr('messages.read')} />
-                          : <Check size={12} color={t.inkFaint} title={tr('messages.sent')} />
+                  ) : null}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: isMe ? 'flex-end' : 'flex-start',
+                      width: '100%',
+                    }}
+                  >
+                    <div className="db-msg-bubble" style={{ display: 'flex', gap: '8px', maxWidth: 'min(78%, 420px)', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                      {activeConv.isGroup && !isMe && (
+                        <span style={{ fontSize: '10px', fontWeight: '600', color: t.inkSoft, marginLeft: '4px' }}>
+                          {msg.senderId?.name}
+                        </span>
                       )}
+
+                      <div style={{
+                        background: isMe ? t.sageDeep : t.surfaceSunken,
+                        color: isMe ? '#FFFFFF' : t.ink,
+                        borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                        padding: '10px 14px 8px',
+                        fontSize: '14px',
+                        lineHeight: '1.5',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                      }}>
+                        <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.content}</div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            gap: 5,
+                            marginTop: 6,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            opacity: isMe ? 0.85 : 1,
+                            color: isMe ? 'rgba(255,255,255,0.88)' : t.inkFaint,
+                          }}
+                        >
+                          {timeLabel ? <span>{timeLabel}</span> : null}
+                          {isMe && (
+                            readByOthers
+                              ? <CheckCheck size={13} color={isMe ? 'rgba(255,255,255,0.95)' : t.sageDeep} title={tr('messages.read')} />
+                              : <Check size={13} color={isMe ? 'rgba(255,255,255,0.75)' : t.inkFaint} title={tr('messages.sent')} />
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </React.Fragment>
               );
             })}
             <div ref={chatEndRef} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n/I18nContext';
@@ -6,7 +6,17 @@ import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
 import ThemedSelect from '../../components/ThemedSelect';
-import { Save, CheckCircle2, LogOut, Droplet, MapPin, Mail } from 'lucide-react';
+import {
+  Save,
+  CheckCircle2,
+  LogOut,
+  MapPin,
+  Mail,
+  Camera,
+  UserRound,
+  HeartPulse,
+  Users,
+} from 'lucide-react';
 
 const t = theme;
 
@@ -21,6 +31,7 @@ export default function Account() {
   const { user, setUser, logout, authHeaders } = useAuth();
   const { t: tr } = useI18n();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [form, setForm] = useState({
     name: '',
     bio: '',
@@ -30,6 +41,7 @@ export default function Account() {
     age: '',
   });
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -58,7 +70,7 @@ export default function Account() {
     setMessage('');
     setError('');
     try {
-    const payload = {
+      const payload = {
         name: form.name.trim(),
         bio: form.bio,
         location: form.location,
@@ -87,6 +99,52 @@ export default function Account() {
       setError(tr('account.connectionError'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveProfileImage = async (url) => {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+      },
+      body: JSON.stringify({ profileImageUrl: url }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || tr('account.photoUploadError'));
+    setUser(data.data);
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    setMessage('');
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('images', file);
+      const res = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...authHeaders() },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.urls?.[0]) {
+        setError(data.message || tr('account.photoUploadError'));
+        return;
+      }
+      await saveProfileImage(data.urls[0]);
+      setMessage(tr('account.photoUpdated'));
+    } catch (err) {
+      setError(err.message || tr('account.photoUploadError'));
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -137,17 +195,30 @@ export default function Account() {
     color: '#F4F0E8',
   };
 
-  const sectionLabelStyle = {
-    margin: '4px 0 -4px',
+  const sectionCardStyle = {
+    background: t.surface,
+    border: `1.5px solid ${t.lineStrong}`,
+    borderRadius: 20,
+    padding: '22px 24px',
+    boxShadow: t.shadowCard,
+    marginBottom: 16,
+  };
+
+  const sectionTitleStyle = {
+    margin: '0 0 16px',
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
-    fontSize: 11,
+    gap: 8,
+    fontSize: 13,
     fontWeight: 700,
-    letterSpacing: '0.08em',
+    letterSpacing: '0.06em',
     textTransform: 'uppercase',
-    color: t.inkFaint,
+    color: t.forest,
   };
+
+  const photoUrl = user?.profileImageUrl || '';
+  const hasPhoto = Boolean(photoUrl);
+  const emailVerified = user?.isVerified !== false;
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: t.bg, fontFamily: t.fontBody }}>
@@ -190,6 +261,7 @@ export default function Account() {
             </button>
           </div>
 
+          {/* Profile summary card */}
           <div
             className="db-account-card"
             style={{
@@ -204,42 +276,113 @@ export default function Account() {
               flexWrap: 'wrap',
             }}
           >
-            <div
-              style={{
-                width: 68,
-                height: 68,
-                borderRadius: '50%',
-                background: t.peach,
-                color: t.forestDeep,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 26,
-                fontWeight: 700,
-                flexShrink: 0,
-                border: '2px solid rgba(255,255,255,0.25)',
-              }}
-            >
-              {(form.name || user?.name || '?').charAt(0).toUpperCase()}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                aria-label={hasPhoto ? tr('account.changePhoto') : tr('account.uploadPhoto')}
+                style={{
+                  position: 'relative',
+                  width: 88,
+                  height: 88,
+                  borderRadius: '50%',
+                  border: '2px solid rgba(255,255,255,0.35)',
+                  background: t.peach,
+                  color: t.forestDeep,
+                  padding: 0,
+                  cursor: uploadingPhoto ? 'wait' : 'pointer',
+                  overflow: 'hidden',
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                {hasPhoto ? (
+                  <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <span style={{ fontSize: 32, fontWeight: 700 }}>
+                    {(form.name || user?.name || '?').charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(20, 40, 28, 0.45)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: uploadingPhoto ? 1 : undefined,
+                  }}
+                  className="db-account-photo-overlay"
+                >
+                  <Camera size={22} color="#FFF" />
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                style={{
+                  border: 'none',
+                  background: 'rgba(255,255,255,0.14)',
+                  color: '#F4F0E8',
+                  borderRadius: 999,
+                  padding: '5px 12px',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: uploadingPhoto ? 'wait' : 'pointer',
+                  fontFamily: t.fontBody,
+                }}
+              >
+                {uploadingPhoto
+                  ? tr('account.uploadingPhoto')
+                  : hasPhoto
+                    ? tr('account.changePhoto')
+                    : tr('account.uploadPhoto')}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handlePhotoChange}
+              />
             </div>
+
             <div style={{ minWidth: 0, flex: 1 }}>
-              {/* Primary identity: exactly one bold display name */}
-              <p style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#FFF', fontFamily: t.fontDisplay, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <p style={{ margin: 0, fontSize: 22, fontWeight: 600, color: '#FFF', fontFamily: t.fontDisplay, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {form.name || user?.name}
               </p>
-              {/* Secondary contact info — muted, icon-led so it never reads as another "name" */}
-              <p style={{ margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(244,240,232,0.72)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <Mail size={12} style={{ flexShrink: 0 }} />
-                {user?.email}
-              </p>
+
               {user?.username && (
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(244,240,232,0.5)' }}>
-                  <span style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginInlineEnd: 6 }}>
-                    {tr('account.username')}
-                  </span>
+                <p style={{ margin: '6px 0 0', fontSize: 14, color: 'rgba(244,240,232,0.78)', fontWeight: 600 }}>
                   @{user.username}
                 </p>
               )}
+
+              <p style={{ margin: '8px 0 0', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(244,240,232,0.72)', flexWrap: 'wrap' }}>
+                <Mail size={13} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</span>
+                {emailVerified && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      background: 'rgba(255,255,255,0.16)',
+                      borderRadius: 999,
+                      padding: '2px 8px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: '#E8F5E9',
+                    }}
+                  >
+                    <CheckCircle2 size={12} /> {tr('account.emailVerified')}
+                  </span>
+                )}
+              </p>
+
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
                 {form.diabetesType && (
                   <span style={pillStyle}>{diabetesTypeLabel(form.diabetesType, tr)}</span>
@@ -250,61 +393,96 @@ export default function Account() {
                     {form.location}
                   </span>
                 )}
+                {form.gender && (
+                  <span style={pillStyle}>
+                    {form.gender === 'Female'
+                      ? tr('account.genderFemale')
+                      : form.gender === 'Male'
+                        ? tr('account.genderMale')
+                        : tr('account.genderOther')}
+                  </span>
+                )}
+                {form.age !== '' && form.age != null && (
+                  <span style={pillStyle}>{form.age}</span>
+                )}
               </div>
             </div>
           </div>
 
-          {form.bio && (
-            <div
+          {(error || message) && (
+            <p
               style={{
-                background: t.peachSoft,
-                border: `1.5px solid ${t.claySoft}`,
-                borderRadius: 16,
-                padding: '16px 20px',
-                marginBottom: 20,
-                fontSize: 14,
-                color: t.inkSoft,
-                fontStyle: 'italic',
-                lineHeight: 1.5,
+                margin: '0 0 14px',
+                color: error ? t.clayDeep : t.sageDeep,
+                fontSize: 13,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
               }}
             >
-              “{form.bio}”
-            </div>
+              {!error && <CheckCircle2 size={15} />}
+              {error || message}
+            </p>
           )}
 
-          <div
-            className="db-account-card"
-            style={{
-              background: t.surface,
-              border: `1.5px solid ${t.lineStrong}`,
-              borderRadius: 20,
-              padding: '28px',
-              boxShadow: t.shadowCard,
-              marginBottom: 20,
-            }}
-          >
-            <p style={{ margin: '0 0 18px', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: t.forest }}>
-              {tr('account.editProfile')}
-            </p>
-
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <div>
-                <label style={labelStyle}>{tr('account.fullName')}</label>
-                <input style={fieldStyle} value={form.name} onChange={onChange('name')} required minLength={2} />
-              </div>
-
-              <div className="db-form-grid">
+          <form onSubmit={handleSave}>
+            {/* Personal Information */}
+            <div className="db-account-card" style={sectionCardStyle}>
+              <p style={sectionTitleStyle}>
+                <UserRound size={15} /> {tr('account.personalInfo')}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label style={labelStyle}>{tr('account.username')}</label>
-                  <input style={fieldStyleDisabled} value={user?.username ? `@${user.username}` : ''} disabled readOnly />
+                  <label style={labelStyle}>{tr('account.fullName')}</label>
+                  <input style={fieldStyle} value={form.name} onChange={onChange('name')} required minLength={2} />
                 </div>
-                <div>
-                  <label style={labelStyle}>{tr('account.email')}</label>
-                  <input style={fieldStyleDisabled} value={user?.email || ''} disabled readOnly />
+                <div className="db-form-grid">
+                  <div>
+                    <label style={labelStyle}>{tr('account.username')}</label>
+                    <input style={fieldStyleDisabled} value={user?.username ? `@${user.username}` : ''} disabled readOnly />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>{tr('account.email')}</label>
+                    <input style={fieldStyleDisabled} value={user?.email || ''} disabled readOnly />
+                  </div>
+                </div>
+                <div className="db-form-grid">
+                  <div>
+                    <label style={labelStyle}>{tr('account.gender')}</label>
+                    <ThemedSelect
+                      value={form.gender}
+                      onChange={onChange('gender')}
+                      placeholder={tr('common.preferNotToSay')}
+                      options={[
+                        { value: '', label: tr('common.preferNotToSay') },
+                        { value: 'Female', label: tr('account.genderFemale') },
+                        { value: 'Male', label: tr('account.genderMale') },
+                        { value: 'Other', label: tr('account.genderOther') },
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>{tr('account.age')}</label>
+                    <input
+                      style={fieldStyle}
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={form.age}
+                      onChange={onChange('age')}
+                      placeholder={tr('common.optional')}
+                    />
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <p style={sectionLabelStyle}><Droplet size={12} /> {tr('account.healthDetails')}</p>
+            {/* Health Information */}
+            <div className="db-account-card" style={sectionCardStyle}>
+              <p style={sectionTitleStyle}>
+                <HeartPulse size={15} /> {tr('account.healthInfo')}
+              </p>
               <div>
                 <label style={labelStyle}>{tr('account.diabetesType')}</label>
                 <ThemedSelect
@@ -320,94 +498,62 @@ export default function Account() {
                   ]}
                 />
               </div>
+            </div>
 
-              <p style={sectionLabelStyle}>{tr('account.aboutYou')}</p>
-              <div className="db-form-grid">
+            {/* Community Profile */}
+            <div className="db-account-card" style={sectionCardStyle}>
+              <p style={sectionTitleStyle}>
+                <Users size={15} /> {tr('account.communityProfile')}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label style={labelStyle}>{tr('account.gender')}</label>
-                  <ThemedSelect
-                    value={form.gender}
-                    onChange={onChange('gender')}
-                    placeholder={tr('common.preferNotToSay')}
-                    options={[
-                      { value: '', label: tr('common.preferNotToSay') },
-                      { value: 'Female', label: tr('account.genderFemale') },
-                      { value: 'Male', label: tr('account.genderMale') },
-                      { value: 'Other', label: tr('account.genderOther') },
-                    ]}
-                  />
-                </div>
-                <div>
-                  <label style={labelStyle}>{tr('account.age')}</label>
+                  <label style={labelStyle}>{tr('account.location')}</label>
                   <input
                     style={fieldStyle}
-                    type="number"
-                    min={1}
-                    max={120}
-                    value={form.age}
-                    onChange={onChange('age')}
-                    placeholder={tr('common.optional')}
+                    value={form.location}
+                    onChange={onChange('location')}
+                    placeholder={tr('account.locationPlaceholder')}
+                    maxLength={100}
                   />
                 </div>
+                <div>
+                  <label style={labelStyle}>{tr('account.bio')}</label>
+                  <textarea
+                    style={{ ...fieldStyle, minHeight: 110, resize: 'vertical', lineHeight: 1.5 }}
+                    value={form.bio}
+                    onChange={onChange('bio')}
+                    placeholder={tr('account.bioPlaceholder')}
+                    maxLength={300}
+                  />
+                  <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{form.bio.length}/300</p>
+                </div>
               </div>
+            </div>
 
-              <div>
-                <label style={labelStyle}>{tr('account.location')}</label>
-                <input
-                  style={fieldStyle}
-                  value={form.location}
-                  onChange={onChange('location')}
-                  placeholder={tr('account.locationPlaceholder')}
-                  maxLength={100}
-                />
-              </div>
-
-              <div>
-                <label style={labelStyle}>{tr('account.bio')}</label>
-                <textarea
-                  style={{ ...fieldStyle, minHeight: 110, resize: 'vertical', lineHeight: 1.5 }}
-                  value={form.bio}
-                  onChange={onChange('bio')}
-                  placeholder={tr('account.bioPlaceholder')}
-                  maxLength={300}
-                />
-                <p style={{ margin: '6px 0 0', fontSize: 11, color: t.inkFaint }}>{form.bio.length}/300</p>
-              </div>
-
-              {error && (
-                <p style={{ margin: 0, color: t.clayDeep, fontSize: 13, fontWeight: 500 }}>{error}</p>
-              )}
-              {message && (
-                <p style={{ margin: 0, color: t.sageDeep, fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <CheckCircle2 size={15} /> {message}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={saving}
-                style={{
-                  alignSelf: 'stretch',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  background: t.forest,
-                  color: '#FFF',
-                  border: 'none',
-                  borderRadius: 12,
-                  padding: '12px 22px',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: saving ? 'wait' : 'pointer',
-                  opacity: saving ? 0.7 : 1,
-                }}
-              >
-                <Save size={16} />
-                {saving ? tr('account.saving') : tr('account.saveProfile')}
-              </button>
-            </form>
-          </div>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                background: t.forest,
+                color: '#FFF',
+                border: 'none',
+                borderRadius: 12,
+                padding: '12px 22px',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: saving ? 'wait' : 'pointer',
+                opacity: saving ? 0.7 : 1,
+                marginBottom: 16,
+              }}
+            >
+              <Save size={16} />
+              {saving ? tr('account.saving') : tr('account.saveProfile')}
+            </button>
+          </form>
 
           <p style={{ fontSize: 12, color: t.inkFaint, margin: 0 }}>
             {tr('account.emailNote')}
@@ -416,11 +562,17 @@ export default function Account() {
       </main>
 
       <style>{`
+        .db-account-photo-overlay {
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+        button:hover .db-account-photo-overlay,
+        button:focus-visible .db-account-photo-overlay {
+          opacity: 1;
+        }
         @media (max-width: 640px) {
           .db-account-card { padding: 18px !important; border-radius: 18px !important; }
-        }
-        @media (min-width: 641px) {
-          .db-account-card button[type="submit"] { align-self: flex-start !important; }
+          .db-account-photo-overlay { opacity: 0.85; }
         }
       `}</style>
     </div>
