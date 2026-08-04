@@ -1,3 +1,4 @@
+import { LogOut } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
@@ -316,9 +317,11 @@ const Navbar = () => {
                 onClick={() => {
                   logout();
                   setOpen(false);
+                  navigate('/');
                 }}
-                className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C2724F] py-3 text-sm font-semibold text-white transition hover:bg-[#A65D3D] active:scale-[0.98]"
               >
+                <LogOut size={16} />
                 {tr('common.logout')}
               </button>
             ) : (
@@ -405,9 +408,14 @@ const Navbar = () => {
           <div className="absolute bottom-6 left-6 right-6">
             <button
               type="button"
-              onClick={logout}
-              className="w-full rounded-xl bg-black py-3 font-semibold text-white"
+              onClick={() => {
+                logout();
+                setProfileOpen(false);
+                navigate('/');
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C2724F] py-3 text-sm font-semibold text-white transition hover:bg-[#A65D3D] active:scale-[0.98]"
             >
+              <LogOut size={16} />
               {tr('common.logout')}
             </button>
           </div>

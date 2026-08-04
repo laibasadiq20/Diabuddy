@@ -413,7 +413,7 @@ export default function AppSidebar() {
             fontWeight: 700,
             letterSpacing: '0.14em',
             textTransform: 'uppercase',
-            color: 'rgba(244,240,232,0.4)',
+            color: 'rgba(244,240,232,0.65)',
           }}
         >
           {isAdmin ? tr('nav.admin') : tr('nav.navigate')}
@@ -427,24 +427,9 @@ export default function AppSidebar() {
               key={`${path}-${label}`}
               type="button"
               onClick={() => go(path)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 12,
-                border: active ? '1px solid rgba(232,184,154,0.35)' : '1px solid transparent',
-                background: active ? 'rgba(232,184,154,0.14)' : soft ? 'rgba(255,255,255,0.03)' : 'transparent',
-                color: active ? '#FFF' : soft ? 'rgba(244,240,232,0.58)' : 'rgba(244,240,232,0.78)',
-                cursor: 'pointer',
-                fontSize: soft ? 13 : 14,
-                fontWeight: active ? 600 : 500,
-                textAlign: 'left',
-                transition: 'background 0.15s, color 0.15s',
-                fontStyle: soft ? 'italic' : 'normal',
-              }}
+              className={`db-sidebar-item${active ? ' is-active' : ''}${soft ? ' is-soft' : ''}`}
             >
-              <Icon size={18} strokeWidth={active ? 2.25 : 1.75} />
+              <Icon size={19} strokeWidth={active ? 2.25 : 1.75} style={{ flexShrink: 0 }} />
               <span style={{ flex: 1 }}>{label}</span>
               {(showNotifBadge || showMsgBadge) && (
                 <span
@@ -460,6 +445,7 @@ export default function AppSidebar() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '0 6px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
                   }}
                 >
                   {showNotifBadge
@@ -477,19 +463,7 @@ export default function AppSidebar() {
           type="button"
           onClick={() => go('/account')}
           aria-label={tr('nav.account')}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: 6,
-            borderRadius: 14,
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: 'rgba(255,255,255,0.06)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            color: '#F4F0E8',
-          }}
+          className="db-sidebar-user-card"
         >
           <span
             style={{
