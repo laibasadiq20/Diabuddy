@@ -179,30 +179,31 @@ a:focus-visible {
 
 
 /* =========================
-   SCROLLBAR
+   SCROLLBAR (Hidden globally from screen)
 ========================= */
 
+html,
+body,
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
 ::-webkit-scrollbar {
-  width: 3px;
-  height: 3px;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #C4BBA8;
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #A39E92;
-}
-
-html {
-  scrollbar-width: thin;
-  scrollbar-color: #C4BBA8 transparent;
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 
@@ -678,21 +679,7 @@ button:active {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    scrollbar-width: thin;
-    scrollbar-color: #C4BBA8 transparent;
-  }
-
-  body.db-app-active:not(.db-app-messages) main::-webkit-scrollbar {
-    width: 3px;
-  }
-
-  body.db-app-active:not(.db-app-messages) main::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  body.db-app-active:not(.db-app-messages) main::-webkit-scrollbar-thumb {
-    background: #C4BBA8;
-    border-radius: 999px;
+    scrollbar-width: none !important;
   }
 
   body.db-app-messages {
@@ -1151,26 +1138,8 @@ html[data-theme='dark'] .db-app-tab.is-active svg {
   color: var(--sage-light);
 }
 
-html[data-theme='dark'] ::-webkit-scrollbar-thumb {
-  background: #2C3D34;
-}
-
-html[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
-  background: #3C5245;
-}
-
-html[data-theme='dark'] {
-  scrollbar-color: #2C3D34 transparent;
-}
-
-@media (max-width: 899px) {
-  html[data-theme='dark'] body.db-app-active:not(.db-app-messages) main {
-    scrollbar-color: #3C5245 transparent;
-  }
-
-  html[data-theme='dark'] body.db-app-active:not(.db-app-messages) main::-webkit-scrollbar-thumb {
-    background: #3C5245;
-  }
+html[data-theme='dark'] * {
+  scrollbar-width: none !important;
 }
 
 /* =========================

@@ -182,22 +182,13 @@ const Navbar = () => {
           {/* Right: auth + hamburger (opens right drawer) */}
           <div className="flex items-center gap-2 sm:gap-3">
             {!user ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigate('/login')}
-                  className="hidden text-sm font-medium text-[#5C524B] transition hover:text-black md:inline-flex"
-                >
-                  {tr('navbar.signIn')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/register')}
-                  className="rounded-full bg-[#27392E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a2820]"
-                >
-                  {tr('navbar.signUp')}
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => navigate('/register')}
+                className="rounded-full bg-[#27392E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a2820]"
+              >
+                {tr('navbar.signUp')}
+              </button>
             ) : (
               <button
                 type="button"
@@ -245,7 +236,7 @@ const Navbar = () => {
             </button>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-5 py-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-5 py-4 no-scrollbar">
             {user && (
               <div className="mb-3 flex items-center gap-3 rounded-2xl border border-black/10 bg-white/70 px-3 py-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#27392E] text-sm font-semibold text-white">

@@ -27,16 +27,19 @@ const Hero = () => {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center overflow-hidden bg-[#F7F3EC]"
+      style={{
+        backgroundImage: `url(${heroImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center center',
+        backgroundRepeat: 'no-repeat',
+        height: '100vh',
+        maxHeight: '100vh',
+      }}
+      className="relative w-full flex items-center overflow-hidden bg-[#F7F3EC]"
     >
-      <img
-        src={heroImage}
-        alt={tr('landing.hero.imageAlt')}
-        className="absolute inset-0 h-full w-full object-cover object-center"
-      />
-
+      {/* Gradient Overlay — original sage green tones preserved */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
           background:
             'linear-gradient(90deg, rgba(189, 202, 177, 0.63) 0%, rgba(189, 202, 177, 0.63) 0%, rgba(233, 204, 204, 0.45) 65%, rgba(231, 220, 203, 0.1) 100%)',

@@ -125,6 +125,12 @@ export default {
         body: 'Quick calculators for carbs, corrections, and glucose context — when you need a number, not a lecture.',
       },
     },
+    connectBanner: {
+      title: 'Ready to take control of your health?',
+      subtitle: 'Join a welcoming community to track logs, share experiences, and receive gentle guidance on your diabetes journey.',
+      getStarted: 'Get Started Free',
+      exploreFeatures: 'Explore Features',
+    },
     explore: {
       kicker: '— 03 / Go deeper',
       headingStart: 'Learn at your own pace,',
