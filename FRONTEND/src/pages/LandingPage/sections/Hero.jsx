@@ -77,6 +77,23 @@ const Hero = () => {
               {tr('landing.hero.explore')}
             </button>
           </div>
+
+          <p className="mt-3 text-[0.8rem] text-[#6B5645]">
+            {tr('landing.hero.freeNote')}
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-start gap-8 sm:gap-12">
+            {['stat1', 'stat2', 'stat3'].map((key) => (
+              <div key={key}>
+                <p className="font-display text-2xl sm:text-3xl font-semibold text-[#1E2A24]">
+                  {tr(`landing.hero.${key}Value`)}
+                </p>
+                <p className="mt-1 max-w-[9rem] text-[0.75rem] leading-snug text-[#6B5645]">
+                  {tr(`landing.hero.${key}Label`)}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

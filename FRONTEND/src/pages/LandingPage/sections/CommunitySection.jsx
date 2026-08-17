@@ -2,17 +2,17 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useI18n } from '../../../i18n/I18nContext';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sunrise, Salad, Activity } from 'lucide-react';
 
 const CommunitySection = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t: tr } = useI18n();
 
-  const snippets = [
-    { initial: 'M', name: 'Maya', text: tr('landing.community.snippet1') },
-    { initial: 'J', name: 'Jordan', text: tr('landing.community.snippet2') },
-    { initial: 'S', name: 'Sam', text: tr('landing.community.snippet3') },
+  const topics = [
+    { icon: Sunrise, text: tr('landing.community.topic1') },
+    { icon: Salad, text: tr('landing.community.topic2') },
+    { icon: Activity, text: tr('landing.community.topic3') },
   ];
 
   return (
@@ -55,28 +55,33 @@ const CommunitySection = () => {
               </button>
             </div>
 
-            {/* Conversation cards — aligned on mobile, subtle offset on desktop */}
+            {/* Sample discussion topics — not user quotes, just a preview of forum topics */}
             <div className="flex flex-col gap-2.5">
-              {snippets.map((s, i) => (
-                <div
-                  key={s.name}
-                  className={[
-                    'flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-3.5 py-3 backdrop-blur-sm',
-                    i === 1 ? 'lg:ml-5' : '',
-                    i === 2 ? 'lg:ml-2' : '',
-                  ].join(' ')}
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--sand)] text-sm font-bold text-[#1F3A2E]">
-                    {s.initial}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold text-white/90">{s.name}</p>
-                    <p className="truncate text-[12px] leading-snug text-white/65 sm:text-[13px]">
-                      {s.text}
-                    </p>
+              <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">
+                {tr('landing.community.topicsKicker')}
+              </p>
+              {topics.map((topic, i) => {
+                const Icon = topic.icon;
+                return (
+                  <div
+                    key={topic.text}
+                    className={[
+                      'flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-3.5 py-3 backdrop-blur-sm',
+                      i === 1 ? 'lg:ml-5' : '',
+                      i === 2 ? 'lg:ml-2' : '',
+                    ].join(' ')}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--sand)] text-[#1F3A2E]">
+                      <Icon size={16} strokeWidth={2.25} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12px] leading-snug text-white/80 sm:text-[13px]">
+                        {topic.text}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, AlertTriangle, Droplet, ClipboardCheck, BookOpen } from 'lucide-react';
 import { useI18n } from '../../../i18n/I18nContext';
 
 const ExploreSection = () => {
@@ -9,21 +9,25 @@ const ExploreSection = () => {
   const exploreItems = [
     {
       to: '/learn/warning-signs',
+      icon: AlertTriangle,
       title: tr('landing.explore.items.warningSigns.title'),
       description: tr('landing.explore.items.warningSigns.description'),
     },
     {
       to: '/learn/diabetes-types',
+      icon: Droplet,
       title: tr('landing.explore.items.diabetesTypes.title'),
       description: tr('landing.explore.items.diabetesTypes.description'),
     },
     {
       to: '/learn/risk-assessment',
+      icon: ClipboardCheck,
       title: tr('landing.explore.items.riskAssessment.title'),
       description: tr('landing.explore.items.riskAssessment.description'),
     },
     {
       to: '/learn/blog',
+      icon: BookOpen,
       title: tr('landing.explore.items.blog.title'),
       description: tr('landing.explore.items.blog.description'),
     },
@@ -51,28 +55,36 @@ const ExploreSection = () => {
         </div>
 
         <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
-          {exploreItems.map((item) => (
-            <li key={item.to}>
-              <Link
-                to={item.to}
-                className="group flex flex-col gap-2 py-7 sm:flex-row sm:items-center sm:justify-between sm:gap-8 transition-colors hover:bg-[var(--cream)]/60 -mx-2 px-2 sm:-mx-4 sm:px-4 rounded-lg"
-              >
-                <div className="min-w-0">
-                  <h3 className="font-serif text-[1.35rem] text-[var(--brown)] group-hover:text-[var(--sage-deep)] transition-colors">
-                    {item.title}
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--brown-soft)]">
-                    {item.description}
-                  </p>
-                </div>
+          {exploreItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <li key={item.to}>
+                <Link
+                  to={item.to}
+                  className="group flex flex-col gap-2 py-7 sm:flex-row sm:items-center sm:justify-between sm:gap-8 transition-colors hover:bg-[var(--cream)]/60 -mx-2 px-2 sm:-mx-4 sm:px-4 rounded-lg"
+                >
+                  <div className="flex min-w-0 items-start gap-4 sm:items-center">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--cream)] text-[var(--sage-deep)] transition-colors group-hover:bg-[var(--sage-deep)] group-hover:text-white">
+                      <Icon size={18} strokeWidth={2} />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="font-serif text-[1.35rem] text-[var(--brown)] group-hover:text-[var(--sage-deep)] transition-colors">
+                        {item.title}
+                      </h3>
+                      <p className="mt-1 text-sm leading-relaxed text-[var(--brown-soft)]">
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
 
-                <span className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-[var(--sage-deep)] transition-all duration-200 group-hover:gap-3">
-                  {tr('landing.explore.read')}
-                  <ArrowRight size={16} />
-                </span>
-              </Link>
-            </li>
-          ))}
+                  <span className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-[var(--sage-deep)] transition-all duration-200 group-hover:gap-3 sm:ml-[3.5rem]">
+                    {tr('landing.explore.read')}
+                    <ArrowRight size={16} />
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </section>
