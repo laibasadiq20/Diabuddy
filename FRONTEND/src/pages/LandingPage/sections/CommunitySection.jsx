@@ -18,15 +18,6 @@ const CommunitySection = () => {
   const { t: tr } = useI18n();
   const [isHovered, setIsHovered] = useState(false);
 
-  const handleBadgeClick = () => {
-    const el = document.getElementById('about') || document.getElementById('features') || document.getElementById('learn');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      navigate('/learn/warning-signs');
-    }
-  };
-
   const handleExplore = () => {
     const el = document.getElementById('features') || document.getElementById('about');
     if (el) {
@@ -212,7 +203,7 @@ const CommunitySection = () => {
                                   <stop
                                     offset="0%"
                                     stopColor="#356E46"
-                                    stopOpacity="0.32"
+                                    stopOpacity="0.25"
                                   />
                                   <stop
                                     offset="100%"
@@ -222,59 +213,52 @@ const CommunitySection = () => {
                                 </linearGradient>
                               </defs>
                               <path
-                                d="M 0,30 C 30,33 55,16 85,18 C 115,20 135,34 165,31 C 182,29 192,21 200,23 L 200,46 L 0,46 Z"
+                                d="M0,32 C35,28 65,12 100,16 C135,20 165,8 200,14 L200,46 L0,46 Z"
                                 fill="url(#slenderChartGradient)"
                               />
                               <path
-                                d="M 0,30 C 30,33 55,16 85,18 C 115,20 135,34 165,31 C 182,29 192,21 200,23"
+                                d="M0,32 C35,28 65,12 100,16 C135,20 165,8 200,14"
                                 fill="none"
                                 stroke="#356E46"
                                 strokeWidth="2.2"
                                 strokeLinecap="round"
+                              />
+                              <circle
+                                cx="165"
+                                cy="10"
+                                r="3.5"
+                                fill="#356E46"
                                 className="animate-glow-soft"
                               />
-                              <circle cx="85" cy="18" r="2.5" fill="#356E46" />
-                              <circle cx="165" cy="31" r="2.5" fill="#356E46" />
                             </svg>
-
-                            <div className="mt-1 flex justify-between px-0.5 text-[7.5px] font-medium text-[#A09990]">
-                              <span>8 AM</span>
-                              <span>12 PM</span>
-                              <span>4 PM</span>
-                              <span>8 PM</span>
-                            </div>
                           </div>
                         </div>
 
-                        {/* 3. 2-Column Stats Grid (Meals & Water Reminder) */}
-                        <div className="mb-2 grid grid-cols-2 gap-1.5">
-                          {/* Meals Card */}
-                          <div className="rounded-xl border border-[#ECE5DB] bg-white p-2.5 shadow-sm">
-                            <div className="flex items-center justify-between text-[8.5px] font-semibold text-[#7A746B]">
-                              <span>Meals</span>
-                              <Utensils size={10} className="text-[#356E46]" />
+                        {/* 3. Quick Metrics 2-Column Grid */}
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <div className="rounded-xl border border-[#ECE5DB] bg-white p-2 shadow-sm">
+                            <div className="flex items-center gap-1 text-[8.5px] font-semibold text-[#7A746B]">
+                              <Droplets size={10} className="text-[#3E7B99]" />
+                              <span>Insulin</span>
                             </div>
-                            <p className="mt-1 text-[13px] font-bold text-[#1E2A24] leading-tight">
-                              2 / 4
+                            <p className="mt-0.5 text-xs font-bold text-[#1E2A24]">
+                              4.5 <span className="text-[7.5px] font-normal text-[#7A746B]">units</span>
                             </p>
-                            <p className="text-[8px] text-[#7A746B]">Logged</p>
                           </div>
 
-                          {/* Water Reminder Card */}
-                          <div className="rounded-xl border border-[#ECE5DB] bg-white p-2.5 shadow-sm">
-                            <div className="flex items-center justify-between text-[8.5px] font-semibold text-[#7A746B]">
-                              <span>Water</span>
-                              <Droplets size={10} className="text-[#5E87A0]" />
+                          <div className="rounded-xl border border-[#ECE5DB] bg-white p-2 shadow-sm">
+                            <div className="flex items-center gap-1 text-[8.5px] font-semibold text-[#7A746B]">
+                              <Utensils size={10} className="text-[#C2724F]" />
+                              <span>Carbs</span>
                             </div>
-                            <p className="mt-1 text-[13px] font-bold text-[#1E2A24] leading-tight">
-                              6 / 8 cups
+                            <p className="mt-0.5 text-xs font-bold text-[#1E2A24]">
+                              42 <span className="text-[7.5px] font-normal text-[#7A746B]">grams</span>
                             </p>
-                            <p className="text-[8px] font-medium text-[#2E6B3E]">Excellent</p>
                           </div>
                         </div>
 
-                        {/* 4. Activity Score Bottom Card */}
-                        <div className="rounded-xl border border-[#ECE5DB] bg-white p-2.5 shadow-sm">
+                        {/* 4. Activity / Routine Summary Card */}
+                        <div className="mt-1.5 rounded-xl border border-[#ECE5DB] bg-white p-2.5 shadow-sm">
                           <div className="flex items-center justify-between text-[8.5px] font-semibold text-[#7A746B]">
                             <div className="flex items-center gap-1">
                               <Activity size={10} className="text-[#356E46]" />
