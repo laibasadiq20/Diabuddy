@@ -44,8 +44,15 @@ const SecuritySection = () => {
             className="absolute inset-0 h-full w-full object-cover"
           />
 
-          {/* Optional subtle overlay for readability */}
-          <div className="absolute inset-0 bg-[#F8F5EE]/20" />
+          {/* Overlay for readability — stronger over the text/content area, lighter toward the decorative leaves */}
+          <div className="absolute inset-0 bg-[#F8F5EE]/85" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(248,245,238,0.96) 0%, rgba(248,245,238,0.92) 55%, rgba(248,245,238,0.55) 100%)',
+            }}
+          />
 
           {/* Content */}
           <div className="relative z-10 grid grid-cols-1 items-center gap-5 px-6 py-5 sm:px-10 sm:py-6 lg:grid-cols-[1.1fr_2fr] lg:gap-8 lg:px-12 lg:py-7">

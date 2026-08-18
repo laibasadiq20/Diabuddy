@@ -39,7 +39,7 @@ const Hero = () => {
         backgroundPosition: 'center center',
         backgroundRepeat: 'no-repeat',
       }}
-      className="relative w-full min-h-[38vh] lg:min-h-[44vh] flex items-center overflow-hidden bg-[#F7F3EC] pt-5 sm:pt-8 pb-4 sm:pb-6"
+      className="relative w-full min-h-[62vh] sm:min-h-[64vh] lg:min-h-[70vh] flex items-center overflow-hidden bg-[#F7F3EC] pt-16 sm:pt-20 pb-10 sm:pb-14"
     >
       {/* Gradient Overlay — authentic sage green tones preserved */}
       <div
