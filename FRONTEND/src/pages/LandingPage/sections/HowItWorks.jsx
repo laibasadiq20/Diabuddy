@@ -268,8 +268,8 @@ const HowItWorks = ({ videoSrc }) => {
         <div className="flex flex-col items-center justify-between border-r border-[#E6E0D2] bg-[#EBE7DC]/60 py-3.5 px-2 sm:px-3">
           <div className="flex flex-col items-center gap-4">
             {/* DiaBuddy Heart Logo */}
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#243B2C] text-[#BDCAA1] shadow-xs">
-              <Heart size={14} fill="currentColor" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-black text-white shadow-xs">
+              <Heart size={12} fill="#FFFFFF" color="#FFFFFF" />
             </div>
 
             {/* Sidebar Icons */}

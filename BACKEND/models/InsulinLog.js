@@ -65,11 +65,6 @@ const insulinLogSchema = new mongoose.Schema(
       default: Date.now,
       index: true,
     },
-    relatedGlucoseLogId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'GlucoseLog',
-      default: null,
-    },
     relatedMealLogId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'MealLog',

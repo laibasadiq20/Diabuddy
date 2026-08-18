@@ -1927,7 +1927,7 @@ export default {
     privacyPolicy: 'پرائیویسی پالیسی',
     login: {
       title: 'خوش آمدید',
-      subtitle: 'اپنی صحت کا انتظام جاری رکھنے کے لیے سائن اِن کریں',
+      subtitle: 'اپنا صحت کا سفر جاری رکھنے کے لیے لاگ اِن کریں۔',
       emailLabel: 'ای میل ایڈریس',
       passwordLabel: 'پاسورڈ',
       rememberMe: 'مجھے یاد رکھیں',

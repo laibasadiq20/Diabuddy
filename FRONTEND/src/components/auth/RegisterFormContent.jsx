@@ -1,34 +1,7 @@
-import { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, ArrowRight, ArrowLeft, Check } from 'lucide-react';
-import { theme } from '../../theme';
+import React, { useState } from 'react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nContext';
 import { API_URL } from '../../config/api';
-
-const t = theme;
-
-const inputStyle = {
-  width: '100%', boxSizing: 'border-box',
-  paddingLeft: '32px', paddingRight: '12px', paddingTop: '7px', paddingBottom: '7px',
-  background: t.surfaceSunken, border: `1.5px solid ${t.line}`,
-  borderRadius: '8px', color: t.ink, fontSize: '12px', outline: 'none',
-  transition: 'border-color 0.2s, background 0.2s', fontFamily: t.fontBody,
-};
-const focus = (e) => { e.target.style.borderColor = t.sageDeep; e.target.style.background = t.surface; };
-const blur = (e) => { e.target.style.borderColor = t.line; e.target.style.background = t.surfaceSunken; };
-
-function Field({ label, icon: Icon, children }) {
-  return (
-    <div style={{ marginBottom: '6px' }}>
-      <label style={{ display: 'block', color: t.inkSoft, fontSize: '10px', fontWeight: '600', marginBottom: '2px' }}>
-        {label}
-      </label>
-      <div style={{ position: 'relative' }}>
-        <Icon size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: t.inkFaint, pointerEvents: 'none' }} />
-        {children}
-      </div>
-    </div>
-  );
-}
 
 export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
   const { t: tr } = useI18n();
@@ -40,25 +13,25 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
 
   const handleChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  const pwStrength = (() => {
-    const p = formData.password;
-    if (!p) return 0;
-    let s = 0;
-    if (p.length >= 8) s++;
-    if (/[A-Z]/.test(p)) s++;
-    if (/[0-9]/.test(p)) s++;
-    if (/[^a-zA-Z0-9]/.test(p)) s++;
-    return s;
-  })();
-
-  const strengthLabel = ['', tr('auth.register.strengthWeak'), tr('auth.register.strengthFair'), tr('auth.register.strengthGood'), tr('auth.register.strengthStrong')][pwStrength];
-  const strengthColor = ['', t.clay, t.gold, t.sage, t.sageDeep][pwStrength];
+  const neutralGlassInputStyle = {
+    background: 'rgba(255, 255, 255, 0.45)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    border: '1.5px solid rgba(255, 255, 255, 0.7)',
+    boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.03)',
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (formData.password !== formData.confirmPassword) { setError(tr('auth.register.passwordsNoMatch')); return; }
-    if (formData.password.length < 8) { setError(tr('auth.register.passwordMinLength')); return; }
+    if (formData.password !== formData.confirmPassword) {
+      setError(tr('auth.register.passwordsNoMatch') || 'Passwords do not match');
+      return;
+    }
+    if (formData.password.length < 8) {
+      setError(tr('auth.register.passwordMinLength') || 'Password must be at least 8 characters long');
+      return;
+    }
     setLoading(true);
     try {
       const controller = new AbortController();
@@ -75,7 +48,7 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
       if (response.ok) {
         navigate('/verify-otp', { state: { email: formData.email } });
       } else {
-        setError(data.message || tr('auth.register.registrationFailed'));
+        setError(data.message || tr('auth.register.registrationFailed') || 'Registration failed');
       }
     } catch (err) {
       console.error('Register connection error:', err);
@@ -86,105 +59,166 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
   };
 
   return (
-    <div className="db-register-form" style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
-      <button
-        type="button"
-        onClick={onSwitchToLogin}
-        aria-label={tr('auth.register.backToSignIn')}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '5px',
-          marginBottom: '8px',
-          padding: 0,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: t.inkSoft,
-          fontSize: '11px',
-          fontWeight: 500,
-          fontFamily: t.fontBody,
-        }}
-      >
-        <ArrowLeft size={14} />
-        {tr('auth.login.signIn')}
-      </button>
+    <div className="w-full select-none font-sans">
+      {/* Brand Header */}
+      <div className="mb-4 text-center">
+        <h1 className="font-serif text-2xl sm:text-[1.85rem] font-bold text-[#1A1A1A] tracking-tight">
+          Register
+        </h1>
+        <p className="mt-0.5 text-xs text-[#444444] font-semibold">
+          Join DiaBuddy to manage your health
+        </p>
+      </div>
 
-      <h1 style={{ color: t.ink, fontSize: '18px', fontWeight: '500', margin: '0 0 2px', letterSpacing: '-0.2px', fontFamily: t.fontDisplay }}>
-        {tr('auth.register.title')}
-      </h1>
-      <p style={{ color: t.inkSoft, fontSize: '11px', margin: '0 0 10px' }}>
-        {tr('auth.register.subtitle')}
-      </p>
-
-      {error ? (
-        <div style={{ background: t.clayTint, border: `1px solid ${t.clay}35`, borderRadius: '8px', padding: '5px 10px', marginBottom: '8px', color: t.clayDeep, fontSize: '11px' }}>
+      {/* Error banner */}
+      {error && (
+        <div className="mb-3 rounded-xl border border-red-300 bg-red-50 px-3 py-1.5 text-xs text-red-800 animate-in fade-in duration-200">
           {error}
         </div>
-      ) : null}
+      )}
 
-      <form onSubmit={handleSubmit}>
-        <Field label={tr('auth.register.fullNameLabel')} icon={User}>
-          <input name="fullName" type="text" value={formData.fullName} onChange={handleChange} placeholder="Jane Doe" required style={inputStyle} onFocus={focus} onBlur={blur} />
-        </Field>
-
-        <Field label={tr('auth.login.emailLabel')} icon={Mail}>
-          <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="you@example.com" required style={inputStyle} onFocus={focus} onBlur={blur} />
-        </Field>
-
-        <Field label={tr('auth.login.passwordLabel')} icon={Lock}>
-          <input name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleChange} placeholder={tr('auth.register.minCharsPlaceholder')} required style={{ ...inputStyle, paddingRight: '36px' }} onFocus={focus} onBlur={blur} />
-          <button type="button" tabIndex={-1} onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: t.inkFaint, padding: 0 }}>
-            {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
-          </button>
-        </Field>
-
-        {formData.password ? (
-          <div style={{ marginTop: '-2px', marginBottom: '6px' }}>
-            <div style={{ display: 'flex', gap: '2px', marginBottom: '1px' }}>
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} style={{ flex: 1, height: '2px', borderRadius: '2px', background: i <= pwStrength ? strengthColor : t.line, transition: 'background 0.3s' }} />
-              ))}
+      <form onSubmit={handleSubmit} className="space-y-2.5">
+        {/* Full Name */}
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#222222] mb-0.5">
+            Full Name
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#555555]">
+              <User size={15} />
             </div>
-            <span style={{ fontSize: '9px', color: strengthColor, fontWeight: 500 }}>{strengthLabel}</span>
+            <input
+              name="fullName"
+              type="text"
+              value={formData.fullName}
+              onChange={handleChange}
+              placeholder="Jane Doe"
+              required
+              className="w-full rounded-2xl pl-9 pr-3 py-2.5 text-xs sm:text-[13px] font-semibold text-[#1A1A1A] outline-none transition-all focus:bg-white/80 focus:border-[#1A1A1A]"
+              style={neutralGlassInputStyle}
+            />
           </div>
-        ) : null}
+        </div>
 
-        <Field label={tr('auth.register.confirmPasswordLabel')} icon={Lock}>
-          <input name="confirmPassword" type={showConfirm ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" required style={{ ...inputStyle, paddingRight: '36px' }} onFocus={focus} onBlur={blur} />
-          <button type="button" tabIndex={-1} onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: t.inkFaint, padding: 0 }}>
-            {showConfirm ? <EyeOff size={12} /> : <Eye size={12} />}
-          </button>
-          {formData.confirmPassword && formData.password === formData.confirmPassword && (
-            <Check size={12} style={{ position: 'absolute', right: '30px', top: '50%', transform: 'translateY(-50%)', color: t.sageDeep }} />
-          )}
-        </Field>
+        {/* Email */}
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#222222] mb-0.5">
+            Email
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#555555]">
+              <Mail size={15} />
+            </div>
+            <input
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="you@example.com"
+              required
+              className="w-full rounded-2xl pl-9 pr-3 py-2.5 text-xs sm:text-[13px] font-semibold text-[#1A1A1A] outline-none transition-all focus:bg-white/80 focus:border-[#1A1A1A]"
+              style={neutralGlassInputStyle}
+            />
+          </div>
+        </div>
 
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', cursor: 'pointer', marginBottom: '10px' }}>
-          <input type="checkbox" required style={{ accentColor: t.sageDeep, marginTop: '1px', width: '11px', height: '11px' }} />
-          <span style={{ color: t.inkSoft, fontSize: '10px', lineHeight: '1.35' }}>
-            {tr('auth.register.agreeTo')} <a href="#" style={{ color: t.sageDeep, textDecoration: 'none' }}>{tr('auth.terms')}</a> {tr('auth.and')} <a href="#" style={{ color: t.sageDeep, textDecoration: 'none' }}>{tr('auth.register.privacy')}</a>
+        {/* Password */}
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#222222] mb-0.5">
+            Password
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#555555]">
+              <Lock size={15} />
+            </div>
+            <input
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Min 8 chars"
+              required
+              className="w-full rounded-2xl pl-9 pr-9 py-2.5 text-xs sm:text-[13px] font-semibold text-[#1A1A1A] outline-none transition-all focus:bg-white/80 focus:border-[#1A1A1A]"
+              style={neutralGlassInputStyle}
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#555555] hover:text-[#1A1A1A] p-1 cursor-pointer"
+            >
+              {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#222222] mb-0.5">
+            Confirm Password
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#555555]">
+              <Lock size={15} />
+            </div>
+            <input
+              name="confirmPassword"
+              type={showConfirm ? 'text' : 'password'}
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Re-enter password"
+              required
+              className="w-full rounded-2xl pl-9 pr-9 py-2.5 text-xs sm:text-[13px] font-semibold text-[#1A1A1A] outline-none transition-all focus:bg-white/80 focus:border-[#1A1A1A]"
+              style={neutralGlassInputStyle}
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShowConfirm(!showConfirm)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#555555] hover:text-[#1A1A1A] p-1 cursor-pointer"
+            >
+              {showConfirm ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Terms */}
+        <label className="flex items-start gap-1.5 pt-0.5 text-[11px] text-[#222222] font-semibold cursor-pointer">
+          <input type="checkbox" required className="mt-0.5 rounded accent-[#1A1A1A]" />
+          <span>
+            I agree to the <a href="#" className="underline font-bold text-[#1A1A1A]">Terms</a> & <a href="#" className="underline font-bold text-[#1A1A1A]">Privacy Policy</a>
           </span>
         </label>
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
-          style={{
-            width: '100%', padding: '9px',
-            background: loading ? t.surfaceSunken : t.sageDeep,
-            border: 'none', borderRadius: '8px',
-            color: loading ? t.inkFaint : '#FFFFFF',
-            fontSize: '12px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
-            transition: 'all 0.2s', letterSpacing: '0.1px', fontFamily: t.fontBody,
-          }}
-          onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = t.olive; }}
-          onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = t.sageDeep; }}
+          className="w-full rounded-2xl bg-[#1A1A1A] hover:bg-black text-white py-3 text-xs sm:text-[13.5px] font-bold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer mt-1"
         >
-          {loading ? tr('auth.register.creating') : <>{tr('auth.register.createAccount')} <ArrowRight size={12} /></>}
+          {loading ? (
+            <span>Creating account...</span>
+          ) : (
+            <>
+              <span>Create Account</span>
+              <ArrowRight size={14} />
+            </>
+          )}
         </button>
       </form>
+
+      {/* Switch to login */}
+      <div className="mt-4 text-center text-xs text-[#222222] font-semibold">
+        <span>Already have an account?</span>
+        <button
+          type="button"
+          onClick={onSwitchToLogin}
+          className="ml-1.5 font-bold text-[#1A1A1A] underline hover:text-black cursor-pointer"
+        >
+          Login
+        </button>
+      </div>
+
     </div>
   );
 }

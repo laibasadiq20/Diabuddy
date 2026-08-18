@@ -1,49 +1,30 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Logo from '../../components/Logo';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Heart, ArrowLeft } from 'lucide-react';
 import LoginFormContent from '../../components/auth/LoginFormContent';
 import RegisterFormContent from '../../components/auth/RegisterFormContent';
-import loginImage from '../../assets/login.png';
+import loginScenery from '../../assets/login-scenery.jpg';
 import { useAuth } from '../../context/AuthContext';
-import { theme as t } from '../../theme';
 import { homePathFor } from '../../utils/homePath';
 
 /**
- * Shared auth screen for /login and /register.
- * Viewport is locked (no page scroll). On small screens the card
- * scales down to fit so Create account never needs scrolling.
+ * Pure Neutral Frosted Glassmorphism 3D Book Flip Auth Modal:
+ * - Crystal clear neutral frosted glass with zero color tint
+ * - Deep optical refraction blur and specular light highlights
+ * - 3D Book Flip animation with forward-facing readable text
  */
 export default function AuthFlipCard({ startFlipped = false }) {
   const [isFlipped, setIsFlipped] = useState(startFlipped);
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [cardHeight, setCardHeight] = useState('auto');
-  const [fitScale, setFitScale] = useState(1);
   const frontRef = useRef(null);
   const backRef = useRef(null);
-  const panelRef = useRef(null);
-  const fitRef = useRef(null);
   const navigate = useNavigate();
   const { user, loading } = useAuth();
 
-  const syncCardHeight = () => {
+  const syncHeight = () => {
     const el = isFlipped ? backRef.current : frontRef.current;
-    if (el) setCardHeight(`${el.offsetHeight}px`);
-  };
-
-  const fitToViewport = () => {
-    const panel = panelRef.current;
-    const fit = fitRef.current;
-    if (!panel || !fit) return;
-
-    fit.style.transform = 'scale(1)';
-    const available = panel.clientHeight - 12;
-    const needed = fit.scrollHeight;
-    if (needed > available && available > 0) {
-      // Only shrink a little — anything shorter scrolls inside the panel instead
-      // of squashing text/inputs to the point the register form is unusable.
-      setFitScale(Math.max(0.88, available / needed));
-    } else {
-      setFitScale(1);
+    if (el) {
+      setCardHeight(`${el.offsetHeight}px`);
     }
   };
 
@@ -52,146 +33,164 @@ export default function AuthFlipCard({ startFlipped = false }) {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    const prevHtml = document.documentElement.style.overflow;
-    const prevBody = document.body.style.overflow;
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.documentElement.style.overflow = prevHtml;
-      document.body.style.overflow = prevBody;
-    };
-  }, []);
-
-  useEffect(() => {
-    syncCardHeight();
-    const front = frontRef.current;
-    const back = backRef.current;
-    if (!front || !back || typeof ResizeObserver === 'undefined') return undefined;
-
-    const observer = new ResizeObserver(() => {
-      syncCardHeight();
-    });
-    observer.observe(front);
-    observer.observe(back);
-    return () => observer.disconnect();
+    syncHeight();
+    const handleResize = () => syncHeight();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [isFlipped]);
 
-  useLayoutEffect(() => {
-    fitToViewport();
-  }, [isFlipped, cardHeight]);
-
-  useEffect(() => {
-    const onResize = () => fitToViewport();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [isFlipped, cardHeight]);
-
   const goToRegister = () => {
-    setHasInteracted(true);
     setIsFlipped(true);
     window.history.replaceState(null, '', '/register');
   };
 
   const goToLogin = () => {
-    setHasInteracted(true);
     setIsFlipped(false);
     window.history.replaceState(null, '', '/login');
   };
 
+  // Pure Neutral Frosted Glass (Zero Color Tint)
+  const neutralGlassStyle = {
+    background: 'rgba(255, 255, 255, 0.32)',
+    backdropFilter: 'blur(30px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(30px) saturate(160%)',
+    border: '1.5px solid rgba(255, 255, 255, 0.65)',
+    boxShadow: `
+      0 30px 80px -10px rgba(0, 0, 0, 0.22),
+      0 12px 30px -5px rgba(0, 0, 0, 0.10),
+      inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.85),
+      inset 0 -1px 1px 0 rgba(255, 255, 255, 0.25)
+    `,
+  };
+
   return (
     <div
-      className="db-auth-shell"
+      className="relative flex min-h-screen w-full flex-col justify-between overflow-x-hidden font-sans select-none px-4 py-4 sm:py-6"
       style={{
-        height: '100dvh',
-        maxHeight: '100dvh',
-        overflow: 'hidden',
-        background: t.bg,
-        display: 'flex',
-        fontFamily: t.fontBody,
+        backgroundImage: `url(${loginScenery})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
-      <div className="hidden lg:flex relative w-[38%] overflow-hidden flex-col justify-between p-12">
-        <img
-          src={loginImage}
-          alt="DiaBuddy"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0" style={{ background: `${t.forestDeep}99` }} />
-      </div>
+      {/* Subtle Atmospheric Dimming */}
+      <div className="absolute inset-0 bg-black/10 pointer-events-none" />
 
-      <div
-        ref={panelRef}
-        className="db-auth-panel flex-1 flex items-center justify-center"
-        style={{
-          height: '100%',
-          minHeight: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          WebkitOverflowScrolling: 'touch',
-          padding: '12px 14px',
-          background: t.surfaceRaised,
-          alignItems: 'safe center',
-        }}
-      >
-        <div
-          ref={fitRef}
-          className="db-auth-fit w-full max-w-[400px]"
+      {/* =========================================================
+          TOP NAVBAR
+      ========================================================== */}
+      <header className="relative z-20 flex items-center justify-between px-2 sm:px-6">
+        
+        {/* Brand Logo Glass Pill */}
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 rounded-full px-4 py-2 transition-transform hover:scale-105 shadow-[0_4px_16px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.8)]"
           style={{
-            transform: `scale(${fitScale})`,
-            transformOrigin: 'center center',
-            willChange: 'transform',
+            background: 'rgba(255, 255, 255, 0.55)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1.5px solid rgba(255, 255, 255, 0.75)',
           }}
         >
-          <div className="mb-3 lg:hidden">
-            <Logo size={28} textSize={16} />
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1A1A1A] text-white shadow-xs">
+            <Heart size={13} fill="#FFFFFF" color="#FFFFFF" />
           </div>
+          <span className="font-serif text-lg font-bold tracking-tight text-[#1A1A1A]">
+            DiaBuddy
+          </span>
+        </Link>
 
-          <div className="flip-perspective w-full">
+        {/* Back to Home Glass Link */}
+        <Link
+          to="/"
+          className="hidden sm:flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-[#1A1A1A] transition-all hover:scale-105 shadow-[0_4px_16px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.8)]"
+          style={{
+            background: 'rgba(255, 255, 255, 0.5)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1.5px solid rgba(255, 255, 255, 0.7)',
+          }}
+        >
+          <ArrowLeft size={14} />
+          <span>Back to Home</span>
+        </Link>
+
+      </header>
+
+      {/* =========================================================
+          CENTER: 3D BOOK FLIP NEUTRAL GLASS MODAL
+      ========================================================== */}
+      <main className="relative z-20 flex flex-1 items-center justify-center py-6">
+        
+        {/* 3D Perspective Viewport */}
+        <div
+          className="relative w-full max-w-[430px]"
+          style={{
+            perspective: '1600px',
+            height: cardHeight,
+            transition: 'height 0.4s ease-in-out',
+          }}
+        >
+          
+          {/* Flipping 3D Book Container */}
+          <div
+            className="relative w-full transition-transform duration-700 ease-in-out"
+            style={{
+              transformStyle: 'preserve-3d',
+              WebkitTransformStyle: 'preserve-3d',
+              transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+              transformOrigin: 'center center',
+            }}
+          >
+            
+            {/* FRONT PAGE: LOGIN (Pure Neutral Glass) */}
             <div
-              className={`flip-card-inner${isFlipped ? ' is-flipped' : ''}${!hasInteracted ? ' flip-no-transition' : ''}`}
+              ref={frontRef}
+              className="w-full rounded-[32px] sm:rounded-[38px] p-7 sm:p-9"
               style={{
-                height: cardHeight === 'auto' ? undefined : cardHeight,
-                minHeight: cardHeight === 'auto' ? '380px' : undefined,
+                ...neutralGlassStyle,
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+                transform: 'rotateY(0deg)',
               }}
             >
-              <div
-                ref={frontRef}
-                className="flip-face flip-face-front"
-                style={{
-                  background: t.surface,
-                  border: `1.5px solid ${t.lineStrong}`,
-                  borderRadius: 16,
-                  boxShadow: t.shadowLifted,
-                  padding: '20px 18px',
-                }}
-              >
-                <LoginFormContent
-                  navigate={navigate}
-                  onForgotPassword={() => navigate('/forgot-password')}
-                  onSwitchToRegister={goToRegister}
-                />
-              </div>
-
-              <div
-                ref={backRef}
-                className="flip-face flip-face-back"
-                style={{
-                  background: t.surface,
-                  border: `1.5px solid ${t.lineStrong}`,
-                  borderRadius: 16,
-                  boxShadow: t.shadowLifted,
-                  padding: '16px 16px',
-                }}
-              >
-                <RegisterFormContent
-                  navigate={navigate}
-                  onSwitchToLogin={goToLogin}
-                />
-              </div>
+              <LoginFormContent
+                navigate={navigate}
+                onForgotPassword={() => navigate('/forgot-password')}
+                onSwitchToRegister={goToRegister}
+              />
             </div>
+
+            {/* BACK PAGE: REGISTER (Pure Neutral Glass) */}
+            <div
+              ref={backRef}
+              className="absolute inset-0 w-full rounded-[32px] sm:rounded-[38px] p-7 sm:p-9 flex flex-col justify-center"
+              style={{
+                ...neutralGlassStyle,
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+                transform: 'rotateY(180deg)',
+              }}
+            >
+              <RegisterFormContent
+                navigate={navigate}
+                onSwitchToLogin={goToLogin}
+              />
+            </div>
+
           </div>
+
         </div>
-      </div>
+
+      </main>
+
+      {/* =========================================================
+          BOTTOM FOOTER BAR
+      ========================================================== */}
+      <footer className="relative z-20 pb-2 text-center text-xs font-bold text-[#1A1A1A] drop-shadow-xs">
+        <span>© {new Date().getFullYear()} DiaBuddy · Your Daily Diabetes Care Companion</span>
+      </footer>
+
     </div>
   );
 }

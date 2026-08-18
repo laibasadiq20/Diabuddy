@@ -5,7 +5,7 @@ import { useI18n } from '../i18n/I18nContext';
 import { theme } from '../theme';
 import { API_URL } from '../config/api';
 import { formatClock12, getUserTzOffset } from '../utils/timezone';
-import { CheckCircle2, X, BellRing, AlarmClock, Bell, Pill, Syringe, Droplets, Moon, Calendar } from 'lucide-react';
+import { CheckCircle2, X, BellRing, AlarmClock, Bell, Pill, Syringe, Droplets, Moon, Calendar, Heart } from 'lucide-react';
 
 /** How long after the scheduled minute the in-app alarm may still open. */
 const DUE_GRACE_MS = 90 * 1000;
@@ -497,17 +497,42 @@ export default function AlarmPopupModal() {
           <X size={18} />
         </button>
 
+        {/* DiaBuddy Brand Logo Header */}
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: 14,
-            color: t.clayDeep,
-            position: 'relative',
+            gap: 10,
+            marginBottom: 16,
           }}
         >
-          <AlarmClock size={56} style={{ filter: 'drop-shadow(0 6px 14px rgba(224, 122, 95, 0.4))' }} />
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: '#000000',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.16)',
+            }}
+          >
+            <Heart size={15} color="#FFFFFF" fill="#FFFFFF" />
+          </div>
+          <span
+            style={{
+              fontFamily: t.fontDisplay,
+              fontSize: 22,
+              fontWeight: 600,
+              color: t.ink,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            DiaBuddy
+          </span>
         </div>
 
         <div

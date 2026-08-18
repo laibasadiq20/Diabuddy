@@ -1851,7 +1851,7 @@ export default {
     privacyPolicy: 'Privacy Policy',
     login: {
       title: 'Welcome back',
-      subtitle: 'Sign in to continue managing your health',
+      subtitle: 'Log in to continue your health journey.',
       emailLabel: 'Email address',
       passwordLabel: 'Password',
       rememberMe: 'Remember me',

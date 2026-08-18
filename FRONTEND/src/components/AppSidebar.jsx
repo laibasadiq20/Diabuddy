@@ -379,17 +379,19 @@ export default function AppSidebar() {
         >
           <span
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              background: 'rgba(232,184,154,0.2)',
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: '#000000',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '1px solid rgba(232,184,154,0.35)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              flexShrink: 0,
             }}
           >
-            <Heart size={18} color={t.peach} fill={t.peach} />
+            <Heart size={16} color="#FFFFFF" fill="#FFFFFF" />
           </span>
           <div style={{ textAlign: 'left' }}>
             <p style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 20, letterSpacing: '0.02em' }}>

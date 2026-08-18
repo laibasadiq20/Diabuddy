@@ -110,13 +110,6 @@ const userSchema = new mongoose.Schema(
       lastCalories: { type: Number, default: 0 },
       lastDistanceKm: { type: Number, default: 0 },
     },
-    // Legacy field kept empty; tokens live under googleHealth
-    fitbit: {
-      connected: { type: Boolean, default: false },
-      accessToken: { type: String, default: '' },
-      refreshToken: { type: String, default: '' },
-      tokenExpiresAt: { type: Date },
-    },
     isActive: {
       type: Boolean,
       default: true,
@@ -227,10 +220,6 @@ userSchema.methods.toJSON = function () {
   delete user.verificationCodeExpires;
   delete user.resetPasswordCode;
   delete user.resetPasswordExpires;
-  if (user.fitbit) {
-    delete user.fitbit.accessToken;
-    delete user.fitbit.refreshToken;
-  }
   if (user.googleHealth) {
     delete user.googleHealth.accessToken;
     delete user.googleHealth.refreshToken;
