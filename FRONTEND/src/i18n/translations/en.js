@@ -436,31 +436,56 @@ export default {
       },
     },
     howItWorks: {
-      kicker: '— How it works',
+      kicker: 'HOW IT WORKS',
       headingStart: 'A simple way to',
       headingEmphasis: 'better health.',
-      subtitle: 'From your first login to your weekly report — here\u2019s the whole flow.',
+      subtitle: 'From logging your day to connecting with peers — here is how DiaBuddy supports you at every step.',
       sampleDataLabel: 'Sample data',
+      watchVideo: 'Watch Video Walkthrough',
+      watchVideoDesc: 'See how easy it is to use DiaBuddy in 2 minutes',
+      videoTutorial: 'Video Tutorial',
+      duration: '2 mins',
       steps: {
+        step1: {
+          number: '01',
+          title: 'Track your health',
+          description: 'Log your glucose, meals, medication and how you feel.',
+        },
+        step2: {
+          number: '02',
+          title: 'Understand your patterns',
+          description: 'DiaBuddy turns your data into easy to understand insights.',
+        },
+        step3: {
+          number: '03',
+          title: 'Learn and grow',
+          description: 'Explore expert-approved articles and tips at your own pace.',
+        },
+        step4: {
+          number: '04',
+          title: 'Connect and stay motivated',
+          description: 'Join conversations and support others on the same journey.',
+        },
+        // Backward compatibility keys
         login: {
-          title: 'Log in securely',
-          description: 'Sign in to your account and pick up right where you left off.',
+          title: 'Create Your Account',
+          description: 'Sign up and set up your basic health profile.',
         },
         dashboard: {
-          title: 'See your dashboard',
-          description: 'Your day at a glance — glucose, carbs, and steps in one view.',
+          title: 'Log Your Health Data',
+          description: 'Record blood glucose, meals, medication, activity, and other daily information.',
         },
         logs: {
-          title: 'Enter your logs',
-          description: 'Log glucose, meals, insulin, and more in just a few taps.',
+          title: 'Track Your Progress',
+          description: 'View your logs, trends, and health reports in one place.',
         },
         reports: {
-          title: 'Check your reports',
-          description: 'Track trends over time with clear, exportable charts.',
+          title: 'Stay on Top of Your Health',
+          description: 'Get reminders, monitor changes, and use your reports to make informed decisions.',
         },
         reminders: {
-          title: 'Set reminders',
-          description: 'Never miss a dose or check-in with gentle nudges.',
+          title: 'Stay on Top of Your Health',
+          description: 'Get reminders, monitor changes, and use your reports to make informed decisions.',
         },
       },
       mockDashboard: {

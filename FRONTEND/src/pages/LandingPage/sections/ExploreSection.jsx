@@ -43,7 +43,7 @@ const ExploreSection = () => {
   ];
 
   return (
-    <section id="learn" className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-4 sm:py-8 lg:py-10">
+    <section id="learn" className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-10 sm:py-14 lg:py-16">
       <div className="mx-auto w-full max-w-[1400px]">
         
         {/* Main Beige/Parchment Card matching the Reference Design */}

@@ -6,7 +6,7 @@ import { useI18n } from '../../../i18n/I18nContext';
 const FeaturesSection = () => {
   const { t: tr } = useI18n();
   return (
-    <section id="features" className="bg-[var(--cream-soft)] px-6 py-5">
+    <section id="features" className="bg-[var(--cream-soft)] px-6 py-14 sm:py-20">
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
