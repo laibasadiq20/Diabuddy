@@ -6,15 +6,15 @@ import { useI18n } from '../../../i18n/I18nContext';
 const FeaturesSection = () => {
   const { t: tr } = useI18n();
   return (
-    <section id="features" className="bg-[var(--cream-soft)] px-6 py-24">
+    <section id="features" className="bg-[var(--cream-soft)] px-6 py-5">
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
           {tr('landing.features.kicker')}
         </p>
 
-        <div className="mb-14 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+        <div className="mb-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <h2 className="max-w-2xl font-serif text-4xl leading-[1.05] tracking-tight text-[var(--brown)] md:text-6xl">
             {tr('landing.features.headingLine1')}
             <br />
@@ -30,7 +30,7 @@ const FeaturesSection = () => {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
 
           {/* CARD 1 — HERO */}
-          <article className="md:col-span-7 group rounded-[1.5rem] border border-[var(--line)] bg-[var(--cream)] p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(58,46,36,0.25)]">
+          <article className="md:col-span-7 group rounded-[1.5rem] border border-[var(--line)] bg-[var(--cream)] p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(58,46,36,0.25)]">
 
             <p className="mb-6 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
               {tr('landing.features.card1.kicker')}
@@ -45,7 +45,7 @@ const FeaturesSection = () => {
               {tr('landing.features.card1.body')}
             </p>
 
-            <div className="mt-8 grid grid-cols-2 gap-3">
+            <div className="mt-5 grid grid-cols-2 gap-3">
               {[
                 { k: tr('landing.features.card1.statGlucose'), v: '112', u: 'mg/dL' },
                 { k: tr('landing.features.card1.statCarbs'), v: '42g', u: tr('landing.features.card1.unitLunch') },
@@ -73,14 +73,14 @@ const FeaturesSection = () => {
           </article>
 
           {/* CARD 2 — GRAPH */}
-          <article className="md:col-span-5 group flex flex-col justify-between rounded-[1.5rem] border border-[var(--line)] bg-[var(--sage)]/35 p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(58,46,36,0.25)]">
+          <article className="md:col-span-5 group flex flex-col justify-between rounded-[1.5rem] border border-[var(--line)] bg-[var(--sage)]/35 p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(58,46,36,0.25)]">
 
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
                 {tr('landing.features.card2.kicker')}
               </p>
 
-              <div className="mt-6 h-40 w-full">
+              <div className="mt-6 h-28 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={[
@@ -115,7 +115,7 @@ const FeaturesSection = () => {
               </div>
             </div>
 
-            <div className="mt-10">
+            <div className="mt-6">
               <h3 className="font-serif text-3xl leading-tight text-[var(--brown)]">
                 {tr('landing.features.card2.titleStart')}{' '}
                 <span className="italic text-[var(--sage-deep)]">{tr('landing.features.card2.titleEmphasis')}</span>
@@ -128,7 +128,7 @@ const FeaturesSection = () => {
           </article>
 
           {/* CARD 3 — COMMUNITY */}
-          <article className="md:col-span-8 group flex flex-col justify-between rounded-[1.5rem] border border-[var(--line)] bg-[var(--cream)] p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(58,46,36,0.25)]">
+          <article className="md:col-span-8 group flex flex-col justify-between rounded-[1.5rem] border border-[var(--line)] bg-[var(--cream)] p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(58,46,36,0.25)]">
 
             <div className="flex items-start justify-between">
               <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
@@ -137,7 +137,7 @@ const FeaturesSection = () => {
             </div>
 
             {/* Community Values & Safety Principles Strip */}
-            <div className="mt-8 space-y-2.5">
+            <div className="mt-5 space-y-2">
               <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--cream-soft)] p-3.5 transition-colors hover:bg-white">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#DFE7DC] text-[#2E6B3E]">
                   <ShieldCheck size={16} strokeWidth={2.2} />
@@ -166,7 +166,7 @@ const FeaturesSection = () => {
               </div>
             </div>
 
-            <div className="mt-8">
+            <div className="mt-5">
               <h3 className="font-serif text-3xl text-[var(--brown)]">
                 {tr('landing.features.card3.titleStart')}{' '}
                 <span className="italic text-[var(--sage-deep)]">{tr('landing.features.card3.titleEmphasis')}</span>
@@ -179,7 +179,7 @@ const FeaturesSection = () => {
           </article>
 
           {/* CARD 4 — TOOLBOX */}
-          <article className="md:col-span-4 group flex flex-col justify-between rounded-[1.5rem] border border-[var(--line)] bg-[var(--butter)]/35 p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(58,46,36,0.25)]">
+          <article className="md:col-span-4 group flex flex-col justify-between rounded-[1.5rem] border border-[var(--line)] bg-[var(--butter)]/35 p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(58,46,36,0.25)]">
 
             <div className="flex items-start justify-between">
               <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brown-soft)]">
@@ -188,7 +188,7 @@ const FeaturesSection = () => {
 
             </div>
 
-            <div className="mt-8 space-y-3">
+            <div className="mt-5 space-y-3">
               <div className="rounded-xl border border-[var(--line)] bg-[var(--cream-soft)] px-4 py-3 text-sm text-[var(--brown)]">
                 {tr('toolbox.tools.carb.title')}
               </div>
@@ -198,7 +198,7 @@ const FeaturesSection = () => {
               </div>
             </div>
 
-            <div className="mt-10">
+            <div className="mt-6">
               <h3 className="font-serif text-3xl text-[var(--brown)]">
                 {tr('landing.features.card4.titleStart')} <span className="italic text-[var(--sage-deep)]">{tr('landing.features.card4.titleEmphasis')}</span>
               </h3>

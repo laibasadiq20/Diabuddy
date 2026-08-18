@@ -31,7 +31,7 @@ const SecuritySection = () => {
   ];
 
   return (
-    <section className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-6 sm:py-8">
+    <section className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-4 sm:py-5">
       <div className="mx-auto w-full max-w-[1400px]">
 
         {/* Main Security Card */}
@@ -48,7 +48,7 @@ const SecuritySection = () => {
           <div className="absolute inset-0 bg-[#F8F5EE]/20" />
 
           {/* Content */}
-          <div className="relative z-10 grid grid-cols-1 items-center gap-8 px-6 py-10 sm:px-10 sm:py-12 lg:grid-cols-[1.1fr_2fr] lg:gap-10 lg:px-12 lg:py-12">
+          <div className="relative z-10 grid grid-cols-1 items-center gap-5 px-6 py-5 sm:px-10 sm:py-6 lg:grid-cols-[1.1fr_2fr] lg:gap-8 lg:px-12 lg:py-7">
 
             {/* Heading */}
             <div className="max-w-[360px]">

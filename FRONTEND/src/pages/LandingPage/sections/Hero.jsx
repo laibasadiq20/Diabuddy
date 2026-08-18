@@ -39,7 +39,7 @@ const Hero = () => {
         backgroundPosition: 'center center',
         backgroundRepeat: 'no-repeat',
       }}
-      className="relative w-full min-h-[88vh] lg:min-h-[94vh] flex items-center overflow-hidden bg-[#F7F3EC] pt-20 sm:pt-24 pb-12 sm:pb-16"
+      className="relative w-full min-h-[38vh] lg:min-h-[44vh] flex items-center overflow-hidden bg-[#F7F3EC] pt-5 sm:pt-8 pb-4 sm:pb-6"
     >
       {/* Gradient Overlay — authentic sage green tones preserved */}
       <div
@@ -73,7 +73,7 @@ const Hero = () => {
           </p>
 
           {/* Action Buttons */}
-          <div className="mt-8 sm:mt-9 flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-4 w-full sm:w-auto">
+          <div className="mt-6 sm:mt-7 flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-4 w-full sm:w-auto">
             <button
               type="button"
               onClick={goStart}
@@ -93,7 +93,7 @@ const Hero = () => {
           </div>
 
           {/* Bottom Trust Badges Strip */}
-          <div className="mt-8 sm:mt-10 flex flex-wrap items-center gap-4 sm:gap-7">
+          <div className="mt-6 sm:mt-7 flex flex-wrap items-center gap-4 sm:gap-7">
             <div className="flex items-center gap-2 text-xs sm:text-[13px] font-semibold text-[#4A4237]">
               <ShieldCheck size={16} className="text-[#3D5A45]" strokeWidth={2.2} />
               <span>{tr('landing.hero.badgePrivate') || 'Private & Secure'}</span>

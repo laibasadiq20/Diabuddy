@@ -43,13 +43,13 @@ const ExploreSection = () => {
   ];
 
   return (
-    <section id="learn" className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-16 sm:py-20 lg:py-24">
+    <section id="learn" className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-4 sm:py-8 lg:py-10">
       <div className="mx-auto w-full max-w-[1400px]">
         
         {/* Main Beige/Parchment Card matching the Reference Design */}
-        <div className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] lg:rounded-[42px] border border-[#E7DFCE] bg-[#F8F5EE] px-6 py-10 sm:px-10 sm:py-12 lg:px-14 lg:py-14 shadow-[0_12px_40px_rgba(30,42,36,0.06)]">
+        <div className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] lg:rounded-[42px] border border-[#E7DFCE] bg-[#F8F5EE] px-5 py-4 sm:px-10 sm:py-6 lg:px-14 lg:py-7 shadow-[0_12px_40px_rgba(30,42,36,0.06)]">
           
-          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1fr_1.3fr] lg:gap-14">
+          <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1.3fr] lg:gap-10">
             
             {/* Left Column: Heading & Illustration */}
             <div className="flex flex-col justify-between h-full">
@@ -72,22 +72,22 @@ const ExploreSection = () => {
               </div>
 
               {/* Bottom Illustration (Books + Mug + Leaves) */}
-              <div className="mt-8 sm:mt-10 max-w-[320px] sm:max-w-[360px]">
+              <div className="mt-5 sm:mt-6 max-w-[220px] sm:max-w-[260px]">
                 <img
                   src={learnIllustration}
                   alt="Knowledge and learning illustration"
-                  className="w-full h-auto object-contain pointer-events-none select-none drop-shadow-sm"
+                  className="w-full h-auto max-h-[160px] sm:max-h-[190px] object-contain pointer-events-none select-none drop-shadow-sm"
                 />
               </div>
             </div>
 
             {/* Right Column: 4 Clean White Stacked Cards */}
-            <div className="flex flex-col gap-3.5 sm:gap-4">
+            <div className="flex flex-col gap-2.5 sm:gap-3">
               {learnTopics.map((topic) => (
                 <Link
                   key={topic.num}
                   to={topic.to}
-                  className="group relative flex items-center justify-between rounded-2xl border border-black/5 bg-white px-5 py-4 sm:px-7 sm:py-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[#3D5A45]/30 hover:shadow-[0_8px_24px_rgba(46,107,62,0.08)] hover:-translate-y-0.5"
+                  className="group relative flex items-center justify-between rounded-2xl border border-black/5 bg-white px-5 py-3 sm:px-6 sm:py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[#3D5A45]/30 hover:shadow-[0_8px_24px_rgba(46,107,62,0.08)] hover:-translate-y-0.5"
                 >
                   {/* Left: Number + Content */}
                   <div className="flex items-start gap-4 sm:gap-6 min-w-0 pr-3">

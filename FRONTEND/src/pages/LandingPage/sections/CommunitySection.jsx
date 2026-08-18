@@ -32,7 +32,7 @@ const CommunitySection = () => {
   return (
     <section
       id="community"
-      className="relative w-full overflow-visible bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 pt-16 pb-24 sm:pt-20 sm:pb-28 lg:pt-24 lg:pb-32"
+      className="relative w-full overflow-visible bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-12 lg:pb-16"
     >
       {/* Inline styles for custom phone floating animations */}
       <style>{`
@@ -68,7 +68,7 @@ const CommunitySection = () => {
 
         {/* Main Banner Card (Fitted to screen, using contact.png background) */}
         <div
-          className="relative w-full overflow-visible rounded-[28px] sm:rounded-[36px] lg:rounded-[42px] shadow-[0_16px_50px_rgba(25,38,28,0.11)] px-6 py-9 sm:px-10 sm:py-12 lg:px-16 lg:py-14 min-h-[290px] lg:min-h-[330px] flex items-center bg-cover bg-center"
+          className="relative w-full overflow-visible rounded-[28px] sm:rounded-[36px] lg:rounded-[42px] shadow-[0_16px_50px_rgba(25,38,28,0.11)] px-6 py-5 sm:px-10 sm:py-6 lg:px-16 lg:py-7 min-h-[200px] lg:min-h-[220px] flex items-center bg-cover bg-center"
           style={{
             backgroundImage: `url(${contactBg})`,
             backgroundColor: '#C5D8BE',
@@ -119,13 +119,13 @@ const CommunitySection = () => {
             {/* Right Column: Thin & Long Mobile Mockup Centered Directly on the Image Circle (Desktop only, hidden on mobile) */}
             <div className="relative hidden lg:flex items-center justify-center">
               <div
-                className="relative z-20 flex items-center justify-center lg:-mt-28 xl:-mt-32 lg:-mb-14 -translate-x-6 lg:-translate-x-15 xl:-translate-x-8 pointer-events-auto"
+                className="relative z-20 flex items-center justify-center lg:-mt-16 xl:-mt-20 lg:-mb-8 -translate-x-6 lg:-translate-x-15 xl:-translate-x-8 pointer-events-auto"
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
               >
                 {/* Thin & Long Flagship Aspect Ratio Smartphone (Slender 240px - 260px width) */}
                 <div
-                  className={`relative w-[238px] sm:w-[250px] lg:w-[258px] transition-all duration-500 ${
+                  className={`relative w-[210px] sm:w-[222px] lg:w-[230px] transition-all duration-500 ${
                     isHovered
                       ? 'scale-[1.03] rotate-[5.5deg] -translate-y-2'
                       : 'animate-phone-float-slender'
@@ -136,7 +136,7 @@ const CommunitySection = () => {
                     {/* Inner Black OLED Bezel */}
                     <div className="rounded-[35px] bg-[#121214] p-[5px]">
                       {/* App Screen Canvas (Elongated Vertical Aspect Ratio) */}
-                      <div className="overflow-hidden rounded-[30px] bg-[#FAF8F5] px-3.5 py-4 text-[#1E2A24] shadow-inner select-none flex flex-col justify-between min-h-[500px]">
+                      <div className="overflow-hidden rounded-[30px] bg-[#FAF8F5] px-3.5 py-3 text-[#1E2A24] shadow-inner select-none flex flex-col justify-between min-h-[420px]">
                         
                         {/* 1. Top Header */}
                         <div>

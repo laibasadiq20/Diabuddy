@@ -20,9 +20,9 @@ const LandingPage = () => {
       <Suspense fallback={<div style={{ minHeight: 320 }} aria-hidden />}>
         <FeaturesSection />
       </Suspense>
-      <SecuritySection />
       <HowItWorks />
       <ExploreSection />
+      <SecuritySection />
       <CommunitySection />
       <Footer />
     </div>
