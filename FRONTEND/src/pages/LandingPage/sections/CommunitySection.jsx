@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useI18n } from '../../../i18n/I18nContext';
@@ -21,6 +21,38 @@ const CommunitySection = () => {
   const { t: tr } = useI18n();
 
   const [isHovered, setIsHovered] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0, rx: 0, ry: 0, glareX: 50, glareY: 50 });
+  const phoneRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    if (!phoneRef.current) return;
+    const rect = phoneRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Normalized coordinates from -1 to 1
+    const normX = (x / rect.width) * 2 - 1;
+    const normY = (y / rect.height) * 2 - 1;
+
+    // 3D Tilt angles (subtle & elegant, max 10 degrees)
+    const ry = normX * 9.5;
+    const rx = -normY * 9.5;
+
+    // Specular light position in percentage
+    const glareX = Math.round((x / rect.width) * 100);
+    const glareY = Math.round((y / rect.height) * 100);
+
+    setMousePos({ x: normX, y: normY, rx, ry, glareX, glareY });
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setMousePos({ x: 0, y: 0, rx: 0, ry: 0, glareX: 50, glareY: 50 });
+  };
 
   const handleExplore = () => {
     const el =
@@ -44,15 +76,14 @@ const CommunitySection = () => {
       id="community"
       className="relative w-full overflow-visible bg-[var(--cream-soft)] px-4 pt-8 pb-12 sm:px-6 sm:pt-10 sm:pb-14 lg:px-10 lg:pt-12 lg:pb-16"
     >
-      {/* Phone animations */}
+      {/* Phone animations & 3D Glass Specular Effects */}
       <style>{`
         @keyframes floatPhoneSlender {
           0%, 100% {
-            transform: rotate(6.5deg) translateY(0px);
+            transform: rotate(6deg) translateY(0px);
           }
-
           50% {
-            transform: rotate(7.8deg) translateY(-14px);
+            transform: rotate(7.5deg) translateY(-12px);
           }
         }
 
@@ -61,10 +92,27 @@ const CommunitySection = () => {
             opacity: 0.85;
             filter: drop-shadow(0 0 2px rgba(53,110,70,0.35));
           }
-
           50% {
             opacity: 1;
-            filter: drop-shadow(0 0 5px rgba(53,110,70,0.75));
+            filter: drop-shadow(0 0 6px rgba(53,110,70,0.85));
+          }
+        }
+
+        @keyframes glassShimmerSweep {
+          0% {
+            transform: translateX(-160%) translateY(-160%) rotate(38deg);
+            opacity: 0;
+          }
+          20% {
+            opacity: 0.55;
+          }
+          45% {
+            transform: translateX(160%) translateY(160%) rotate(38deg);
+            opacity: 0;
+          }
+          100% {
+            transform: translateX(160%) translateY(160%) rotate(38deg);
+            opacity: 0;
           }
         }
 
@@ -74,6 +122,10 @@ const CommunitySection = () => {
 
         .animate-glow-soft {
           animation: pulseGlowSoft 3s ease-in-out infinite;
+        }
+
+        .animate-glass-sweep {
+          animation: glassShimmerSweep 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
       `}</style>
 
@@ -305,44 +357,83 @@ const CommunitySection = () => {
               </div>
 
               {/* =================================================
-                  RIGHT SIDE PHONE
+                  RIGHT SIDE PHONE (With 3D Parallax & Glass Glare)
               ================================================== */}
               <div className="relative hidden items-center justify-center lg:flex">
 
+                {/* 3D Perspective Wrapper */}
                 <div
+                  ref={phoneRef}
+                  onMouseMove={handleMouseMove}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
                   className="
                     relative
                     z-20
                     flex
-                    -translate-x-6
+                    -translate-x-7
                     items-center
                     justify-center
                     pointer-events-auto
+                    cursor-pointer
+                    lg:-translate-x-8
                     lg:-mt-10
                     lg:-mb-5
-                    xl:-translate-x-8
+                    xl:-translate-x-10
                     xl:-mt-12
                     xl:-mb-5
                   "
-                  onMouseEnter={() => setIsHovered(true)}
-                  onMouseLeave={() => setIsHovered(false)}
+                  style={{ perspective: '1200px' }}
                 >
 
-                  {/* Phone */}
+                  {/* Ambient Dynamic Backlight Glow */}
+                  <div
+                    className="
+                      pointer-events-none
+                      absolute
+                      -inset-10
+                      -z-10
+                      rounded-full
+                      bg-gradient-to-tr
+                      from-[#3D5A45]/35
+                      via-[#BDCAA1]/20
+                      to-[#EBDCC7]/30
+                      blur-[36px]
+                      transition-all
+                      duration-500
+                    "
+                    style={
+                      isHovered
+                        ? {
+                            transform: `translate3d(${mousePos.x * 16}px, ${mousePos.y * 16}px, 0) scale(1.15)`,
+                            opacity: 0.95,
+                          }
+                        : { opacity: 0.6 }
+                    }
+                  />
+
+                  {/* Phone Body with 3D Tilt */}
                   <div
                     className={`
                       relative
                       w-[210px]
-                      transition-all
-                      duration-500
                       sm:w-[222px]
                       lg:w-[230px]
+                      transition-transform
                       ${
                         isHovered
-                          ? 'scale-[1.03] -translate-y-2 rotate-[5.5deg]'
-                          : 'animate-phone-float-slender'
+                          ? 'duration-150 ease-out'
+                          : 'duration-700 ease-out animate-phone-float-slender'
                       }
                     `}
+                    style={
+                      isHovered
+                        ? {
+                            transform: `rotateX(${mousePos.rx}deg) rotateY(${mousePos.ry}deg) rotateZ(5.5deg) scale3d(1.04, 1.04, 1.04) translateY(-8px)`,
+                            transformStyle: 'preserve-3d',
+                          }
+                        : { transformStyle: 'preserve-3d' }
+                    }
                   >
 
                     {/* Champagne gold outer frame */}
@@ -354,16 +445,54 @@ const CommunitySection = () => {
                         via-[#D5C0A3]
                         to-[#B39371]
                         p-[3px]
-                        shadow-[0_25px_55px_-10px_rgba(15,28,20,0.42)]
+                        shadow-[0_28px_60px_-10px_rgba(15,28,20,0.48)]
                       "
                     >
 
                       {/* Black OLED bezel */}
-                      <div className="rounded-[35px] bg-[#121214] p-[5px]">
+                      <div className="relative rounded-[35px] bg-[#121214] p-[5px] overflow-hidden">
+
+                        {/* ==============================================
+                            DYNAMIC SPECULAR GLASS GLARE OVERLAY
+                        =============================================== */}
+                        <div
+                          className="
+                            pointer-events-none
+                            absolute
+                            inset-0
+                            z-30
+                            overflow-hidden
+                            rounded-[30px]
+                          "
+                          style={{
+                            background: isHovered
+                              ? `radial-gradient(circle at ${mousePos.glareX}% ${mousePos.glareY}%, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.12) 35%, rgba(255,255,255,0) 68%)`
+                              : 'none',
+                            mixBlendMode: 'overlay',
+                            transition: 'background 0.1s ease-out',
+                          }}
+                        >
+                          {/* Ambient diagonal shimmer sweep */}
+                          <div
+                            className="
+                              pointer-events-none
+                              absolute
+                              -inset-full
+                              h-[260%]
+                              w-[260%]
+                              bg-gradient-to-b
+                              from-transparent
+                              via-white/20
+                              to-transparent
+                              animate-glass-sweep
+                            "
+                          />
+                        </div>
 
                         {/* Screen */}
                         <div
                           className="
+                            relative
                             flex
                             min-h-[420px]
                             flex-col

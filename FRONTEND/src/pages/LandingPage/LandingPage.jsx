@@ -17,13 +17,23 @@ const LandingPage = () => {
     <div className="landing-page-view min-h-screen bg-[var(--cream-soft)]">
       <Navbar />
       <Hero />
-      <Suspense fallback={<div style={{ minHeight: 320 }} aria-hidden />}>
-        <FeaturesSection />
-      </Suspense>
-      <HowItWorks />
-      <ExploreSection />
-      <SecuritySection />
-      <CommunitySection />
+      <div className="mt-6 sm:mt-8">
+        <Suspense fallback={<div style={{ minHeight: 320 }} aria-hidden />}>
+          <FeaturesSection />
+        </Suspense>
+      </div>
+      <div className="mt-6 sm:mt-8">
+        <HowItWorks />
+      </div>
+      <div className="mt-6 sm:mt-8">
+        <ExploreSection />
+      </div>
+      <div className="mt-6 sm:mt-8">
+        <SecuritySection />
+      </div>
+      <div className="mt-6 sm:mt-8">
+        <CommunitySection />
+      </div>
       <Footer />
     </div>
   );
