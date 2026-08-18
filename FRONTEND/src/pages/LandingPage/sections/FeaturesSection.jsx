@@ -1,5 +1,6 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { ShieldCheck, Leaf, Lock } from 'lucide-react';
 import { useI18n } from '../../../i18n/I18nContext';
 
 const FeaturesSection = () => {
@@ -135,45 +136,43 @@ const FeaturesSection = () => {
               </p>
             </div>
 
-            <div className="mt-10 rounded-2xl border border-[var(--line)] bg-[var(--cream-soft)] p-5">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--sage-deep)]">
-                  {tr('landing.features.card3.topicBadge')}
+            {/* Community Values & Safety Principles Strip */}
+            <div className="mt-8 space-y-2.5">
+              <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--cream-soft)] p-3.5 transition-colors hover:bg-white">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#DFE7DC] text-[#2E6B3E]">
+                  <ShieldCheck size={16} strokeWidth={2.2} />
                 </span>
-
-                <span className="whitespace-nowrap text-[10px] font-semibold text-[var(--sage-deep)]">
-                  {tr('landing.features.card3.bestAnswer')}
+                <span className="text-xs sm:text-[13px] font-medium text-[var(--brown)]">
+                  {tr('landing.features.card3.value1') || 'Peer support, never medical advice'}
                 </span>
               </div>
 
-              <p className="mt-3 text-xs font-semibold text-[var(--brown)]">
-                {tr('landing.features.card3.quote')}
-              </p>
-
-              <p className="mt-2 text-[11px] leading-relaxed text-[var(--brown-soft)]">
-                {tr('landing.features.card3.reply')}
-              </p>
-
-              <div className="mt-4 flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-[10px] text-[var(--brown-soft)]">
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--sage)]/60 text-[9px] font-semibold text-[var(--brown)]">
-                    A
-                  </span>
-                  {tr('landing.features.card3.authorName')}
+              <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--cream-soft)] p-3.5 transition-colors hover:bg-white">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#DFE7DC] text-[#2E6B3E]">
+                  <Leaf size={16} strokeWidth={2.2} />
                 </span>
+                <span className="text-xs sm:text-[13px] font-medium text-[var(--brown)]">
+                  {tr('landing.features.card3.value2') || '8 moderated health topics'}
+                </span>
+              </div>
 
-                <span className="text-[10px] text-[var(--brown-soft)]">
-                  {tr('landing.features.card3.repliesCount')}
+              <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--cream-soft)] p-3.5 transition-colors hover:bg-white">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#DFE7DC] text-[#2E6B3E]">
+                  <Lock size={16} strokeWidth={2.2} />
+                </span>
+                <span className="text-xs sm:text-[13px] font-medium text-[var(--brown)]">
+                  {tr('landing.features.card3.value3') || 'Anonymous or named posting — your choice'}
                 </span>
               </div>
             </div>
 
-            <div className="mt-10">
+            <div className="mt-8">
               <h3 className="font-serif text-3xl text-[var(--brown)]">
-                {tr('landing.features.card3.titleStart')} <span className="italic text-[var(--sage-deep)]">{tr('landing.features.card3.titleEmphasis')}</span>
+                {tr('landing.features.card3.titleStart')}{' '}
+                <span className="italic text-[var(--sage-deep)]">{tr('landing.features.card3.titleEmphasis')}</span>
               </h3>
 
-              <p className="mt-4 text-sm text-[var(--brown-soft)]">
+              <p className="mt-3 text-sm text-[var(--brown-soft)] leading-relaxed">
                 {tr('landing.features.card3.body')}
               </p>
             </div>

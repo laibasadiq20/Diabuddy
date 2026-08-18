@@ -5,6 +5,7 @@ import Navbar from '../../components/Navbar.jsx';
 import Hero from './sections/Hero.jsx';
 import HowItWorks from './sections/HowItWorks.jsx';
 import ExploreSection from './sections/ExploreSection.jsx';
+import SecuritySection from './sections/SecuritySection.jsx';
 import CommunitySection from './sections/CommunitySection.jsx';
 import Footer from '../../components/Footer.jsx';
 
@@ -21,6 +22,7 @@ const LandingPage = () => {
       </Suspense>
       <HowItWorks />
       <ExploreSection />
+      <SecuritySection />
       <CommunitySection />
       <Footer />
     </div>
