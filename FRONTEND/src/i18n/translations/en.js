@@ -49,6 +49,7 @@ export default {
   navbar: {
     features: 'Features',
     howItWorks: 'How it works',
+    faq: 'FAQ',
     community: 'Community',
     learn: 'Learn',
     learnWarningSigns: 'Warning Signs',

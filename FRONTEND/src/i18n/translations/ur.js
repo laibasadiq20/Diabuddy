@@ -49,6 +49,7 @@ export default {
   navbar: {
     features: 'خصوصیات',
     howItWorks: 'یہ کیسے کام کرتا ہے',
+    faq: 'عمومی سوالات',
     community: 'کمیونٹی',
     learn: 'سیکھیں',
     learnWarningSigns: 'خبردار کرنے والی علامات',

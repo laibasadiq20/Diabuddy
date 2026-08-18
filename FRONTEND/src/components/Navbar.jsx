@@ -16,6 +16,7 @@ const Navbar = () => {
   const links = [
     { label: tr('navbar.features'), id: 'features' },
     { label: tr('navbar.howItWorks'), id: 'about' },
+    { label: tr('navbar.faq') || 'FAQ', id: 'faq' },
     { label: tr('navbar.community'), id: 'community' },
   ];
 

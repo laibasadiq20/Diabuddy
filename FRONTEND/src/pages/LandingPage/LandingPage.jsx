@@ -6,6 +6,7 @@ import Hero from './sections/Hero.jsx';
 import HowItWorks from './sections/HowItWorks.jsx';
 import ExploreSection from './sections/ExploreSection.jsx';
 import SecuritySection from './sections/SecuritySection.jsx';
+import FAQSection from './sections/FAQSection.jsx';
 import CommunitySection from './sections/CommunitySection.jsx';
 import Footer from '../../components/Footer.jsx';
 
@@ -30,6 +31,9 @@ const LandingPage = () => {
       </div>
       <div className="mt-6 sm:mt-8">
         <SecuritySection />
+      </div>
+      <div className="mt-6 sm:mt-8">
+        <FAQSection />
       </div>
       <div className="mt-6 sm:mt-8">
         <CommunitySection />
