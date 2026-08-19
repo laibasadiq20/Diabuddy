@@ -36,9 +36,9 @@ const SecuritySection = () => {
         {/* Reassuring Card with Botanical Leaf Background & Protected Readability */}
         <div className="relative overflow-hidden rounded-[32px] sm:rounded-[40px] lg:rounded-[44px] border border-[#E7DFCE] bg-[#F8F5EE] shadow-[0_12px_40px_rgba(30,42,36,0.06)] min-h-[280px] flex items-center">
           
-          {/* Subtle Botanical Leaf Artwork - delicate watermark on mobile, elegant right accent on desktop */}
+          {/* Natural Botanical Leaf Artwork - soft, light, and airy sage green */}
           <div
-            className="pointer-events-none absolute inset-y-0 right-0 w-full sm:w-[60%] lg:w-[45%] select-none bg-no-repeat bg-right bg-cover lg:bg-contain opacity-15 sm:opacity-30 lg:opacity-75 mix-blend-multiply transition-opacity duration-300"
+            className="pointer-events-none absolute inset-y-0 right-0 w-full sm:w-[60%] lg:w-[40%] select-none bg-no-repeat bg-right bg-cover lg:bg-contain opacity-45 sm:opacity-60 lg:opacity-75 transition-opacity duration-300"
             style={{
               backgroundImage: `url(${secureBg})`,
               backgroundPosition: 'right center',
@@ -46,14 +46,14 @@ const SecuritySection = () => {
             aria-hidden="true"
           />
 
-          {/* Soft Cream Gradient Overlay to guarantee high text contrast and legibility */}
+          {/* Gentle Left-to-Right Fade (ensures heading area stays clean while leaving leaves bright on right) */}
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-b sm:bg-gradient-to-r from-[#F8F5EE] via-[#F8F5EE]/95 sm:via-[#F8F5EE]/80 to-transparent z-[1]"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#F8F5EE] via-[#F8F5EE]/70 to-transparent sm:w-2/3 z-[1]"
             aria-hidden="true"
           />
 
           {/* Content container */}
-          <div className="relative z-10 w-full flex flex-col gap-8 px-7 py-9 sm:px-10 sm:py-12 lg:flex-row lg:items-center lg:gap-12 lg:px-14 lg:py-14 lg:max-w-[84%]">
+          <div className="relative z-10 w-full flex flex-col gap-8 px-6 py-8 sm:px-10 sm:py-12 lg:flex-row lg:items-center lg:gap-12 lg:px-14 lg:py-14 lg:max-w-[82%]">
             
             {/* Left: Reassuring Human-Centered Heading */}
             <div className="shrink-0 max-w-[340px] lg:max-w-[290px]">
@@ -69,12 +69,12 @@ const SecuritySection = () => {
             {/* Subtle vertical divider on desktop */}
             <div className="hidden lg:block w-px self-stretch bg-[#1E2A24]/15 my-2" />
 
-            {/* Right: 3 Clean, Strengthened Value Principles */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-6 lg:gap-8 flex-1">
+            {/* Right: 3 Clean Value Principles (soft card backdrops on mobile for flawless readability, airy columns on desktop) */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6 lg:gap-8 flex-1">
               {humanValues.map((item, index) => (
                 <div
                   key={index}
-                  className={`flex flex-col items-start ${
+                  className={`flex flex-col items-start rounded-2xl p-4.5 sm:p-0 bg-white/80 sm:bg-transparent border border-[#E7DFCE]/90 sm:border-0 shadow-2xs sm:shadow-none backdrop-blur-[2px] sm:backdrop-blur-none ${
                     index !== 0
                       ? 'sm:border-l sm:border-[#1E2A24]/15 sm:pl-6 lg:pl-8'
                       : ''

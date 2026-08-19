@@ -607,9 +607,9 @@ const HowItWorks = ({ videoSrc }) => {
             </div>
 
             {/* =====================================================
-                RIGHT COLUMN: Tablet Mockup Frame with Dashboard & Video Toggle
+                RIGHT COLUMN: Tablet Mockup Frame with Dashboard & Video Toggle (Hidden on Mobile)
             ====================================================== */}
-            <div className="lg:col-span-7 flex flex-col justify-center">
+            <div className="hidden lg:flex lg:col-span-7 flex-col justify-center">
               
               {/* Outer Tablet / Device Screen Frame */}
               <div className="relative w-full rounded-2xl sm:rounded-3xl border border-white/15 bg-[#142219] p-2.5 sm:p-3.5 shadow-2xl backdrop-blur-md">

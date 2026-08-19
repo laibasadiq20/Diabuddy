@@ -126,7 +126,7 @@ export default function FAQSection() {
   return (
     <section
       id="faq"
-      className="w-full px-4 sm:px-6 lg:px-10 py-16 sm:py-24"
+      className="w-full px-5 sm:px-8 lg:px-12 py-14 sm:py-20 scroll-mt-24"
       style={{
         background: 'linear-gradient(180deg, var(--cream-soft) 0%, rgba(216, 226, 220, 0.38) 50%, var(--cream-soft) 100%)',
       }}
@@ -134,17 +134,17 @@ export default function FAQSection() {
       <div className="mx-auto max-w-6xl">
 
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-14">
-          <p className="text-[10.5px] font-bold uppercase tracking-[0.24em] text-[var(--sage-deep)]">
+        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
+          <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-[0.24em] text-[var(--sage-deep)]">
             HELP &amp; ANSWERS
           </p>
-          <h2 className="mt-2 font-serif text-3xl sm:text-4xl lg:text-[2.65rem] text-[var(--brown)] tracking-tight leading-tight">
+          <h2 className="mt-2 font-serif text-[1.65rem] sm:text-3xl lg:text-[2.65rem] text-[var(--brown)] tracking-tight leading-tight">
             Got questions?{' '}
             <span className="italic text-[var(--sage-deep)] font-medium">
               We got answers.
             </span>
           </h2>
-          <p className="mt-3 text-sm sm:text-[15px] text-[var(--brown-soft)] font-medium leading-relaxed">
+          <p className="mt-2.5 text-xs sm:text-sm text-[var(--brown-soft)] font-medium leading-relaxed max-w-lg mx-auto">
             Everything you need to know about logging, doctor reports, privacy, and getting started.
           </p>
         </div>
@@ -153,7 +153,7 @@ export default function FAQSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
 
           {/* Category Selector: 2x2 Grid on Mobile, 4 across on Tablet, Vertical Sidebar on Desktop */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 lg:flex lg:flex-col gap-2.5 sm:gap-3 lg:col-span-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 lg:flex lg:flex-col gap-2 sm:gap-3 lg:col-span-4">
             {categories.map((cat, idx) => {
               const Icon = cat.icon;
               const isActive = activeCategory === idx;
@@ -170,19 +170,19 @@ export default function FAQSection() {
                 >
                   <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 w-full">
                     <span
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                      className={`flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
                         isActive
                           ? 'bg-[#182C1E] text-white shadow-xs'
                           : 'bg-[var(--cream-soft)] text-[var(--brown-soft)]'
                       }`}
                     >
-                      <Icon size={16} />
+                      <Icon size={15} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <span className={`text-xs sm:text-sm font-bold block leading-tight ${isActive ? 'text-[var(--brown)]' : 'text-[var(--brown-soft)]'}`}>
+                      <span className={`text-[11.5px] sm:text-sm font-bold block leading-tight truncate ${isActive ? 'text-[var(--brown)]' : 'text-[var(--brown-soft)]'}`}>
                         {cat.name}
                       </span>
-                      <span className="text-[10px] sm:text-[11px] text-[var(--brown-soft)]/80 font-medium block mt-0.5">
+                      <span className="text-[9.5px] sm:text-[11px] text-[var(--brown-soft)]/80 font-medium block mt-0.5">
                         {cat.faqs.length} questions
                       </span>
                     </div>
@@ -200,7 +200,7 @@ export default function FAQSection() {
           </div>
 
           {/* RIGHT: Questions & Answers Accordion (8 cols) */}
-          <div className="lg:col-span-8 space-y-3.5">
+          <div className="lg:col-span-8 space-y-3">
             {/* Mobile/Tablet active topic indicator */}
             <div className="lg:hidden flex items-center justify-between px-1 py-1 text-xs text-[var(--brown-soft)]">
               <div className="flex items-center gap-2">
@@ -209,7 +209,7 @@ export default function FAQSection() {
                   {categories[activeCategory]?.name}
                 </span>
               </div>
-              <span className="font-medium">
+              <span className="font-medium text-[11px]">
                 {activeCategory + 1} of {categories.length} topics
               </span>
             </div>
@@ -228,29 +228,29 @@ export default function FAQSection() {
                   <button
                     type="button"
                     onClick={() => toggleQuestion(index)}
-                    className="w-full text-left p-5 sm:p-5.5 flex items-center justify-between gap-4 cursor-pointer select-none"
+                    className="w-full text-left p-4 sm:p-5.5 flex items-center justify-between gap-3 sm:gap-4 cursor-pointer select-none"
                     aria-expanded={isOpen}
                   >
-                    <span className="font-serif text-base sm:text-lg font-bold text-[var(--brown)] flex-1 leading-snug">
+                    <span className="font-serif text-sm sm:text-base lg:text-lg font-bold text-[var(--brown)] flex-1 leading-snug">
                       {faq.q}
                     </span>
 
                     {/* Plus / Close Icon */}
                     <span
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
+                      className={`flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
                         isOpen
                           ? 'bg-[#182C1E] text-white rotate-90'
                           : 'bg-[var(--cream-soft)] text-[var(--brown-soft)] hover:bg-[#EAE5D8]'
                       }`}
                     >
-                      {isOpen ? <X size={15} /> : <Plus size={16} />}
+                      {isOpen ? <X size={14} /> : <Plus size={15} />}
                     </span>
                   </button>
 
                   {/* Answer Content */}
                   {isOpen && (
-                    <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-0 text-sm sm:text-[14.5px] leading-relaxed text-[var(--brown-soft)] font-medium animate-in fade-in duration-200">
-                      <div className="border-t border-[var(--line)]/60 pt-4">
+                    <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 text-xs sm:text-sm lg:text-[14.5px] leading-relaxed text-[var(--brown-soft)] font-medium animate-in fade-in duration-200">
+                      <div className="border-t border-[var(--line)]/60 pt-3 sm:pt-4">
                         {faq.a}
                       </div>
                     </div>
@@ -263,20 +263,20 @@ export default function FAQSection() {
         </div>
 
         {/* Bottom Support Card */}
-        <div className="mt-12 sm:mt-14 rounded-3xl border border-[var(--line)] bg-white/90 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-5 shadow-2xs">
-          <div className="text-left">
-            <h3 className="font-serif text-lg sm:text-xl font-bold text-[var(--brown)]">
+        <div className="mt-10 sm:mt-14 rounded-3xl border border-[var(--line)] bg-white/90 p-5 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-5 shadow-2xs">
+          <div className="text-center sm:text-left">
+            <h3 className="font-serif text-base sm:text-xl font-bold text-[var(--brown)]">
               Still have a question?
             </h3>
-            <p className="text-xs sm:text-sm text-[var(--brown-soft)] mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-[var(--brown-soft)] mt-0.5 sm:mt-1 font-medium">
               Can't find what you're looking for? Email our team or join our community discussions.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
             <a
               href="mailto:hello@diabuddy.com?subject=Question%20about%20DiaBuddy"
-              className="inline-flex items-center gap-2 rounded-xl bg-white hover:bg-white/80 border border-[var(--line)] text-[var(--brown)] px-4 py-2.5 text-xs sm:text-sm font-bold shadow-2xs transition-colors"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-white hover:bg-white/80 border border-[var(--line)] text-[var(--brown)] px-4 py-2.5 text-xs sm:text-sm font-bold shadow-2xs transition-colors"
             >
               <Mail size={15} className="text-[var(--sage-deep)]" />
               <span>Email Support</span>
@@ -284,7 +284,7 @@ export default function FAQSection() {
 
             <a
               href="/community"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#182C1E] hover:bg-[#0E1B12] text-white px-4.5 py-2.5 text-xs sm:text-sm font-bold shadow-xs transition-colors"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#182C1E] hover:bg-[#0E1B12] text-white px-4.5 py-2.5 text-xs sm:text-sm font-bold shadow-xs transition-colors"
             >
               <Users size={15} />
               <span>Ask Community</span>

@@ -40,27 +40,27 @@ export default function FeaturesSection() {
   ];
 
   return (
-    <section id="features" className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-14 sm:py-20">
+    <section id="features" className="w-full bg-[var(--cream-soft)] px-5 sm:px-8 lg:px-12 py-14 sm:py-20 scroll-mt-24">
       <div className="mx-auto max-w-6xl">
 
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-9">
-          <p className="text-[10.5px] font-bold uppercase tracking-[0.22em] text-[var(--sage-deep)]">
+        <div className="text-center max-w-3xl mx-auto mb-7 sm:mb-9">
+          <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-[0.24em] text-[var(--sage-deep)]">
             WHY CHOOSE DIABUDDY
           </p>
-          <h2 className="mt-2 font-serif text-2xl sm:text-3xl lg:text-[2.25rem] text-[var(--brown)] tracking-tight leading-snug">
+          <h2 className="mt-2 font-serif text-[1.65rem] sm:text-3xl lg:text-[2.35rem] text-[var(--brown)] tracking-tight leading-snug">
             Simple tools for{' '}
             <span className="italic text-[var(--sage-deep)] font-medium">
               everyday diabetes care.
             </span>
           </h2>
-          <p className="mt-2 text-sm text-[var(--brown-soft)] font-medium">
+          <p className="mt-2 text-xs sm:text-sm text-[var(--brown-soft)] font-medium max-w-lg mx-auto">
             Explore the 4 core tools built to make your daily routine simple and stress-free.
           </p>
         </div>
 
         {/* Pill Switcher */}
-        <div className="flex items-center justify-start sm:justify-center gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-none mb-7">
+        <div className="flex items-center justify-start sm:justify-center gap-2 sm:gap-3 overflow-x-auto pb-3 pt-1 px-1 sm:px-0 scrollbar-none mb-6 sm:mb-8 -mx-1 sm:mx-0">
           {pillars.map((pill, idx) => {
             const Icon = pill.icon;
             const isActive = activePill === idx;
@@ -69,13 +69,13 @@ export default function FeaturesSection() {
                 key={pill.id}
                 type="button"
                 onClick={() => setActivePill(idx)}
-                className={`inline-flex items-center gap-2 shrink-0 rounded-full px-5 py-2.5 text-sm font-bold transition-all duration-200 cursor-pointer ${
+                className={`inline-flex items-center gap-2 shrink-0 rounded-full px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
                   isActive
                     ? 'bg-[#182C1E] text-white shadow-md scale-[1.02]'
                     : 'bg-white/85 hover:bg-white text-[var(--brown)] border border-[var(--line)] shadow-2xs hover:scale-[1.01]'
                 }`}
               >
-                <Icon size={15} className={isActive ? 'text-[#8DB496]' : 'text-[var(--brown-soft)]'} />
+                <Icon size={14} className={isActive ? 'text-[#8DB496]' : 'text-[var(--brown-soft)]'} />
                 <span>{pill.label}</span>
               </button>
             );
@@ -83,7 +83,7 @@ export default function FeaturesSection() {
         </div>
 
         {/* Focus Deck — wide, airy, product-forward */}
-        <div className="rounded-[32px] border border-[var(--line)] bg-white shadow-[0_20px_60px_-20px_rgba(30,45,35,0.10)] overflow-hidden">
+        <div className="rounded-[28px] sm:rounded-[36px] lg:rounded-[40px] border border-[var(--line)] bg-white shadow-[0_20px_60px_-20px_rgba(30,45,35,0.10)] overflow-hidden">
 
           {/* -------------------------------------------------------
               1. DAILY LOGGING
