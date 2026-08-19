@@ -351,7 +351,7 @@ const CommunitySection = () => {
                       sm:w-auto
                     "
                   >
-                    <span>{user ? 'My Dashboard' : 'Member Sign In'}</span>
+                    <span>{user ? 'My Dashboard' : 'Sign In'}</span>
                   </button>
                 </div>
               </div>

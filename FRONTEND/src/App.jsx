@@ -103,9 +103,9 @@ function App() {
           <Route path="/login" element={<AuthFlipCard />} />
 
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/community" element={<ProtectedRoute><CommunityFeed /></ProtectedRoute>} />
+          <Route path="/community" element={<CommunityFeed />} />
           <Route path="/community/new-post" element={<ProtectedRoute><NewPost /></ProtectedRoute>} />
-          <Route path="/community/posts/:id" element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
+          <Route path="/community/posts/:id" element={<PostDetails />} />
           <Route path="/users/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />

@@ -64,7 +64,7 @@ const HowItWorks = ({ videoSrc }) => {
       title: tr('landing.howItWorks.steps.step3.title') || 'Learn and grow',
       description:
         tr('landing.howItWorks.steps.step3.description') ||
-        'Explore expert-approved articles and tips at your own pace.',
+        'Explore clear, evidence-informed articles and tips at your own pace.',
       timestamp: '1:10',
     },
     {

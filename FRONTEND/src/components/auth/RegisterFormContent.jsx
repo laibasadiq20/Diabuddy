@@ -63,7 +63,7 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
       {/* Brand Header */}
       <div className="mb-4 text-center">
         <h1 className="font-serif text-2xl sm:text-[1.85rem] font-bold text-[#1A1A1A] tracking-tight">
-          Register
+          Sign Up
         </h1>
         <p className="mt-0.5 text-xs text-[#444444] font-semibold">
           Join DiaBuddy to manage your health
@@ -200,7 +200,7 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
             <span>Creating account...</span>
           ) : (
             <>
-              <span>Create Account</span>
+              <span>Sign Up</span>
               <ArrowRight size={14} />
             </>
           )}
@@ -215,7 +215,7 @@ export default function RegisterFormContent({ navigate, onSwitchToLogin }) {
           onClick={onSwitchToLogin}
           className="ml-1.5 font-bold text-[#1A1A1A] underline hover:text-black cursor-pointer"
         >
-          Login
+          Sign In
         </button>
       </div>
 

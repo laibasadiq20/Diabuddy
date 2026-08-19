@@ -91,7 +91,7 @@ export default function LoginFormContent({
       {/* Brand Header */}
       <div className="mb-6 text-center">
         <h1 className="font-serif text-3xl font-bold text-[#1A1A1A] tracking-tight">
-          Login
+          Sign In
         </h1>
         <p className="mt-1.5 text-xs text-[#444444] font-semibold">
           Welcome back to DiaBuddy
@@ -195,7 +195,7 @@ export default function LoginFormContent({
             <span>Signing in...</span>
           ) : (
             <>
-              <span>Login</span>
+              <span>Sign In</span>
               <ArrowRight size={15} />
             </>
           )}
@@ -261,7 +261,7 @@ export default function LoginFormContent({
           onClick={onSwitchToRegister}
           className="ml-1.5 font-bold text-[#1A1A1A] underline hover:text-black cursor-pointer"
         >
-          Register
+          Sign Up
         </button>
       </div>
 
