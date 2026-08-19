@@ -29,10 +29,10 @@ const LandingPage = () => {
       <div className="mt-10 sm:mt-16 lg:mt-20">
         <ExploreSection />
       </div>
-      <div className="mt-10 sm:mt-16 lg:mt-20">
+      <div className="mt-4 sm:mt-6 lg:mt-8">
         <SecuritySection />
       </div>
-      <div className="mt-10 sm:mt-16 lg:mt-20">
+      <div className="mt-4 sm:mt-6 lg:mt-8">
         <FAQSection />
       </div>
       <div className="mt-10 sm:mt-16 lg:mt-20">

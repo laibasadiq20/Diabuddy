@@ -30,7 +30,7 @@ const SecuritySection = () => {
   ];
 
   return (
-    <section className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 scroll-mt-24">
+    <section className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-2 sm:py-3 lg:py-4 scroll-mt-24">
       <div className="mx-auto w-full max-w-[1360px]">
 
         {/* Sleek, Horizontal Panoramic Card with Integrated Botanical Leaf Background */}
