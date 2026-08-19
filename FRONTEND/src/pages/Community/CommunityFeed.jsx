@@ -140,11 +140,12 @@ export default function CommunityFeed() {
                   }
                   f.navigate(`/users/${author._id}`, { state: { preview: author } });
                 }}
-                onStartDm={(authorId) => {
+                onStartDm={(author) => {
                   if (!user) {
-                    handleRequireAuth('send private direct messages');
+                    navigate('/register');
                     return;
                   }
+                  const authorId = author?._id || author;
                   f.startDm(authorId);
                 }}
               />

@@ -221,7 +221,10 @@ export default function PostCard({
           <button
             type="button"
             className="db-post-dm"
-            onClick={(e) => onStartDm(post.authorId, e)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onStartDm(post.authorId, e);
+            }}
             disabled={dmLoadingId === authorId}
             aria-label={tr('postCard.messageUserTemplate').replace('{name}', post.authorId?.name || tr('postCard.fallbackUser'))}
           >
