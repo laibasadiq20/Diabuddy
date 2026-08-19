@@ -30,11 +30,11 @@ const SecuritySection = () => {
   ];
 
   return (
-    <section className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-12 sm:py-16 lg:py-20">
+    <section className="w-full bg-[var(--cream-soft)] px-5 sm:px-8 lg:px-12 py-14 sm:py-20 scroll-mt-24">
       <div className="mx-auto w-full max-w-[1400px]">
 
         {/* Reassuring Card with Botanical Leaf Background & Protected Readability */}
-        <div className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] lg:rounded-[42px] border border-[#E7DFCE] bg-[#F8F5EE] shadow-[0_12px_40px_rgba(30,42,36,0.06)] min-h-[280px] flex items-center">
+        <div className="relative overflow-hidden rounded-[32px] sm:rounded-[40px] lg:rounded-[44px] border border-[#E7DFCE] bg-[#F8F5EE] shadow-[0_12px_40px_rgba(30,42,36,0.06)] min-h-[280px] flex items-center">
           
           {/* Subtle Botanical Leaf Artwork - delicate watermark on mobile, elegant right accent on desktop */}
           <div
@@ -53,7 +53,7 @@ const SecuritySection = () => {
           />
 
           {/* Content container */}
-          <div className="relative z-10 w-full flex flex-col gap-8 px-6 py-8 sm:px-10 sm:py-12 lg:flex-row lg:items-center lg:gap-12 lg:px-14 lg:py-14 lg:max-w-[84%]">
+          <div className="relative z-10 w-full flex flex-col gap-8 px-7 py-9 sm:px-10 sm:py-12 lg:flex-row lg:items-center lg:gap-12 lg:px-14 lg:py-14 lg:max-w-[84%]">
             
             {/* Left: Reassuring Human-Centered Heading */}
             <div className="shrink-0 max-w-[340px] lg:max-w-[290px]">

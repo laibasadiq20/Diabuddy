@@ -311,8 +311,8 @@ const HowItWorks = ({ videoSrc }) => {
             
             {/* Left Area (8 Cols): Top 3 Metric Cards + Bottom Trends Chart */}
             <div className="col-span-12 sm:col-span-8 flex flex-col gap-2.5">
-              {/* 3 Metric Cards Row */}
-              <div className="grid grid-cols-3 gap-2">
+              {/* 2 Metric Cards on Mobile / 3 on Desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 
                 {/* Glucose Card */}
                 <div className="rounded-xl border border-[#E8E2D4] bg-white p-2.5 shadow-xs">
@@ -355,8 +355,8 @@ const HowItWorks = ({ videoSrc }) => {
                   </div>
                 </div>
 
-                {/* Steps Card */}
-                <div className="rounded-xl border border-[#E8E2D4] bg-white p-2.5 shadow-xs flex flex-col justify-between">
+                {/* Steps Card (hidden on narrow mobile to prevent squishing) */}
+                <div className="hidden sm:flex rounded-xl border border-[#E8E2D4] bg-white p-2.5 shadow-xs flex-col justify-between">
                   <span className="text-[8.5px] font-semibold text-[#7A746B]">Steps</span>
                   <div className="flex items-center justify-between mt-1">
                     <span className="font-serif text-lg sm:text-xl font-extrabold text-[#1E2A24]">
@@ -503,7 +503,7 @@ const HowItWorks = ({ videoSrc }) => {
   return (
     <section
       id="about"
-      className="relative w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-10 sm:py-16"
+      className="relative w-full bg-[var(--cream-soft)] px-5 sm:px-8 lg:px-12 py-14 sm:py-20 scroll-mt-24 sm:scroll-mt-28"
     >
       <div className="mx-auto w-full max-w-[1400px]">
         
@@ -511,7 +511,7 @@ const HowItWorks = ({ videoSrc }) => {
             MAIN HOW IT WORKS CARD (Matching Reference Image)
             Dark forest green container with rounded corners and carousel arrows
         ========================================================== */}
-        <div className="relative overflow-hidden rounded-[28px] sm:rounded-[38px] lg:rounded-[48px] border border-[#2B4434] bg-[#1B2C21] p-6 sm:p-10 lg:p-12 shadow-[0_20px_60px_rgba(15,28,20,0.3)]">
+        <div className="relative overflow-hidden rounded-[32px] sm:rounded-[42px] lg:rounded-[48px] border border-[#2B4434] bg-[#1B2C21] p-6 sm:p-10 lg:p-14 shadow-[0_20px_60px_rgba(15,28,20,0.3)]">
           
           {/* Subtle background ambient light */}
           <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-[#BDCAA1]/10 blur-[100px]" />
@@ -656,7 +656,7 @@ const HowItWorks = ({ videoSrc }) => {
                 </div>
 
                 {/* Display Screen */}
-                <div className="relative aspect-[16/10] sm:aspect-[16/9.5] w-full overflow-hidden rounded-xl bg-[#F6F4EE]">
+                <div className="relative min-h-[250px] sm:min-h-[320px] sm:aspect-[16/9.5] w-full overflow-hidden rounded-xl bg-[#F6F4EE]">
                   {viewMode === 'dashboard' ? renderDashboardScreen() : renderVideoPlayer(false)}
                 </div>
 

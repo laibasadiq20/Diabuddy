@@ -142,7 +142,7 @@ export default function CommunityFeed() {
                 }}
                 onStartDm={(author) => {
                   if (!user) {
-                    navigate('/register');
+                    handleRequireAuth('send private direct messages');
                     return;
                   }
                   const authorId = author?._id || author;

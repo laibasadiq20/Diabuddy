@@ -43,11 +43,11 @@ const ExploreSection = () => {
   ];
 
   return (
-    <section id="learn" className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-10 sm:py-14 lg:py-16">
+    <section id="learn" className="w-full bg-[var(--cream-soft)] px-5 sm:px-8 lg:px-12 py-14 sm:py-20 scroll-mt-24">
       <div className="mx-auto w-full max-w-[1400px]">
         
         {/* Main Beige/Parchment Card matching the Reference Design */}
-        <div className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] lg:rounded-[42px] border border-[#E7DFCE] bg-[#F8F5EE] px-5 py-4 sm:px-10 sm:py-6 lg:px-14 lg:py-7 shadow-[0_12px_40px_rgba(30,42,36,0.06)]">
+        <div className="relative overflow-hidden rounded-[32px] sm:rounded-[40px] lg:rounded-[44px] border border-[#E7DFCE] bg-[#F8F5EE] px-6 py-8 sm:px-10 sm:py-10 lg:px-14 lg:py-12 shadow-[0_12px_40px_rgba(30,42,36,0.06)]">
           
           <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1.3fr] lg:gap-10">
             

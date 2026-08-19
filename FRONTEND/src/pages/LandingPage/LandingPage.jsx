@@ -15,27 +15,27 @@ const FeaturesSection = lazy(() => import('./sections/FeaturesSection.jsx'));
 
 const LandingPage = () => {
   return (
-    <div className="landing-page-view min-h-screen bg-[var(--cream-soft)]">
+    <div className="landing-page-view min-h-screen bg-[var(--cream-soft)] overflow-x-hidden">
       <Navbar />
       <Hero />
-      <div className="mt-6 sm:mt-8">
+      <div className="mt-10 sm:mt-16 lg:mt-20">
         <Suspense fallback={<div style={{ minHeight: 320 }} aria-hidden />}>
           <FeaturesSection />
         </Suspense>
       </div>
-      <div className="mt-6 sm:mt-8">
+      <div className="mt-10 sm:mt-16 lg:mt-20">
         <HowItWorks />
       </div>
-      <div className="mt-6 sm:mt-8">
+      <div className="mt-10 sm:mt-16 lg:mt-20">
         <ExploreSection />
       </div>
-      <div className="mt-6 sm:mt-8">
+      <div className="mt-10 sm:mt-16 lg:mt-20">
         <SecuritySection />
       </div>
-      <div className="mt-6 sm:mt-8">
+      <div className="mt-10 sm:mt-16 lg:mt-20">
         <FAQSection />
       </div>
-      <div className="mt-6 sm:mt-8">
+      <div className="mt-10 sm:mt-16 lg:mt-20">
         <CommunitySection />
       </div>
       <Footer />
