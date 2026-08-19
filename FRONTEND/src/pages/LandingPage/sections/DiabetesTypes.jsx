@@ -1,6 +1,7 @@
 import React from 'react';
 import { Droplet, Activity, HeartPulse, AlertCircle, ArrowUpRight } from 'lucide-react';
 import { useI18n } from '../../../i18n/I18nContext';
+import LearnFooter from './Learn/LearnFooter';
 
 const getArcValue = (stat) => {
   if (stat === '1 in 3') return 33;
@@ -152,6 +153,8 @@ const DiabetesTypes = ({ showHeader = true }) => {
             );
           })}
         </div>
+
+        <LearnFooter className="mt-14" />
       </div>
     </section>
   );

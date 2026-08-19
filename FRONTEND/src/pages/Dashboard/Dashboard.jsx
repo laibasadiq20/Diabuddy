@@ -24,7 +24,9 @@ import {
   ArrowRight,
   Bell,
   Calendar,
+  Check,
   CheckCircle2,
+  ChevronRight,
   Circle,
   ClipboardList,
   Droplets,
@@ -45,6 +47,8 @@ import {
   Watch,
 } from 'lucide-react';
 import WalkingPerson from '../../components/icons/WalkingPerson';
+import dayBg from '../../assets/day.png';
+import nightBg from '../../assets/night.png';
 
 const t = theme;
 // Backend always reports glucose in mg/dL; these are the mg/dL thresholds
@@ -229,6 +233,8 @@ export default function Dashboard() {
   const dayOfMonth = new Date().getDate();
   const weekday = new Date().getDay(); // 0 Sun … 6 Sat
   const timeBucket = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+  const isNight = hour >= 18 || hour < 6;
+  const heroSceneryBg = isNight ? nightBg : dayBg;
   const today = new Date().toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'short',
@@ -249,6 +255,51 @@ export default function Dashboard() {
   const exerciseToday = summary?.exercise?.value || 0;
   const stepsToday = summary?.steps?.value || 0;
   const stepsGoal = summary?.steps?.goal || 8000;
+
+  const todayPlanItems = useMemo(() => [
+    {
+      id: 'glucose',
+      title: 'Log glucose',
+      subtitle: 'Track your blood sugar',
+      completed: glucoseCount > 0 || latestGlucose != null,
+      value: latestGlucose != null ? `${latestGlucose} ${unitLabel}` : null,
+      route: '/logs/glucose',
+    },
+    {
+      id: 'breakfast',
+      title: 'Log breakfast',
+      subtitle: 'What did you eat?',
+      completed: mealsToday > 0,
+      value: mealsToday > 0 ? (mealsToday === 1 ? '1 meal' : `${mealsToday} meals`) : null,
+      route: '/logs/meal',
+    },
+    {
+      id: 'activity',
+      title: 'Move your body',
+      subtitle: 'Daily activity',
+      completed: stepsToday > 0 || exerciseToday > 0,
+      value: stepsToday > 0 ? `${formatSteps(stepsToday)} steps` : (exerciseToday > 0 ? `${exerciseToday} mins` : null),
+      route: '/logs/exercise',
+    },
+    {
+      id: 'medication',
+      title: 'Take medication',
+      subtitle: 'Stay on track',
+      completed: medsToday > 0 || insulinToday > 0,
+      value: medsToday > 0 ? `${medsToday} taken` : (insulinToday > 0 ? `${insulinToday} units` : null),
+      route: '/logs/medication',
+    },
+    {
+      id: 'water',
+      title: 'Drink water',
+      subtitle: null,
+      completed: waterToday >= 2000,
+      value: `${round1(waterToday / 1000)} / 2 L`,
+      route: '/logs/water',
+    },
+  ], [glucoseCount, latestGlucose, unitLabel, mealsToday, stepsToday, exerciseToday, medsToday, insulinToday, waterToday]);
+
+  const planCompletedCount = todayPlanItems.filter((i) => i.completed).length;
 
   const weekMetrics = weekReport?.period?.metrics;
   const tir = weekMetrics?.timeInRangePercent;
@@ -380,11 +431,18 @@ export default function Dashboard() {
     () => (todayReminders ?? []).filter((r) => !r.isCompletedToday),
     [todayReminders]
   );
+  const featuredReminder = pendingReminders[0] || (todayReminders && todayReminders[0]) || null;
+  const tomorrowPreview = (tomorrowReminders ?? []).slice(0, 3);
+  const laterReminders = useMemo(() => {
+    if (pendingReminders.length > 1) {
+      return pendingReminders.slice(1);
+    }
+    return tomorrowPreview.map((r) => ({ ...r, isTomorrow: true }));
+  }, [pendingReminders, tomorrowPreview]);
   const visibleReminders = pendingReminders.slice(0, 4);
   const moreRemindersCount = Math.max(0, pendingReminders.length - 4);
   const remindersEmpty = pendingReminders.length === 0;
   const remindersAllDone = remindersEmpty && (todayReminders ?? []).length > 0;
-  const tomorrowPreview = tomorrowReminders.slice(0, 3);
   const ghConnected = Boolean(googleHealth?.connected);
   const ghSteps = Number(googleHealth?.lastSteps) || stepsToday || 0;
   const ghDistanceKm = Number(googleHealth?.lastDistanceKm) || 0;
@@ -472,12 +530,29 @@ export default function Dashboard() {
 
       <main className="db-home-main">
         <div className="db-home-inner">
-          <header className="db-home-hero">
-            <p className="db-home-kicker db-home-hero-date">{today}</p>
-            <h1 className="db-home-hero-title">
-              {heroCopy.greeting}, <em>{firstName}</em>
-            </h1>
-            <p className="db-home-lead">{heroCopy.lead}</p>
+          <header
+            className="db-home-hero"
+            style={{
+              backgroundImage: `url(${heroSceneryBg})`,
+            }}
+          >
+            {/* Ambient Contrast Gradient Overlay */}
+            <div
+              className={`pointer-events-none absolute inset-0 z-0 ${
+                isNight
+                  ? 'bg-gradient-to-r from-[#0C1510]/92 via-[#0C1510]/70 to-transparent'
+                  : 'bg-gradient-to-r from-[#182C1E]/88 via-[#182C1E]/60 to-transparent'
+              }`}
+              aria-hidden="true"
+            />
+
+            <div className="relative z-10">
+              <p className="db-home-kicker db-home-hero-date">{today}</p>
+              <h1 className="db-home-hero-title">
+                {heroCopy.greeting}, <em>{firstName}</em>
+              </h1>
+              <p className="db-home-lead">{heroCopy.lead}</p>
+            </div>
           </header>
 
           {streak?.atRisk && (
@@ -703,187 +778,243 @@ export default function Dashboard() {
           </button>
 
           <div className="db-home-mid">
-            <section className="db-home-today-panel" aria-label={tr('dashboard.todayPanel.title')}>
-              <header className="db-home-card-head">
-                <div>
-                  <p className="db-home-kicker">{tr('dashboard.todayPanel.kicker')}</p>
-                  <h2>{tr('dashboard.todayPanel.title')}</h2>
-                </div>
+            <section className="db-home-today-panel" aria-label="Today's Plan">
+              <header className="db-home-plan-head">
+                <span className="db-home-plan-kicker">
+                  TODAY'S PLAN
+                </span>
+                <span className="db-home-plan-completed">
+                  {planCompletedCount} / 5 completed
+                </span>
               </header>
-              <div className="db-home-today-grid">
-                <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/meal')}>
-                  <Utensils size={16} />
-                  <span className="db-home-today-cat">{tr('dashboard.todayPanel.meals')}</span>
-                  <strong>{mealsToday}</strong>
-                  <span className="db-home-today-meta">{tr('dashboard.todayPanel.logged')}</span>
-                  <ArrowRight size={14} className="db-home-today-arrow" aria-hidden />
-                </button>
-                <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/insulin')}>
-                  <Syringe size={16} />
-                  <span className="db-home-today-cat">{tr('dashboard.todayPanel.insulin')}</span>
-                  <strong>{insulinToday > 0 ? insulinToday : 0}</strong>
-                  <span className="db-home-today-meta">{tr('dashboard.todayPanel.units')}</span>
-                  <ArrowRight size={14} className="db-home-today-arrow" aria-hidden />
-                </button>
-                <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/medication')}>
-                  <Pill size={16} />
-                  <span className="db-home-today-cat">{tr('dashboard.todayPanel.medication')}</span>
-                  <strong>{medsToday > 0 ? medsToday : 0}</strong>
-                  <span className="db-home-today-meta">{tr('dashboard.todayPanel.taken')}</span>
-                  <ArrowRight size={14} className="db-home-today-arrow" aria-hidden />
-                </button>
-                <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/water')}>
-                  <GlassWater size={16} />
-                  <span className="db-home-today-cat">{tr('dashboard.todayPanel.water')}</span>
-                  <strong>{waterToday > 0 ? waterLabel : 0}</strong>
-                  <span className="db-home-today-meta">{tr('dashboard.todayPanel.logged')}</span>
-                  <ArrowRight size={14} className="db-home-today-arrow" aria-hidden />
-                </button>
-                <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs/exercise')}>
-                  <WalkingPerson size={16} />
-                  <span className="db-home-today-cat">{tr('dashboard.todayPanel.exercise')}</span>
-                  <strong>
-                    {exerciseToday > 0 || stepsToday > 0
-                      ? [
-                          exerciseToday > 0
-                            ? tr('dashboard.todayPanel.minValue').replace('{n}', String(exerciseToday))
-                            : null,
-                          stepsToday > 0
-                            ? tr('dashboard.todayPanel.stepsValue').replace(
-                                '{n}',
-                                formatSteps(stepsToday)
-                              )
-                            : null,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')
-                      : 0}
-                  </strong>
-                  <span className="db-home-today-meta">
-                    {exerciseToday > 0 && stepsToday > 0
-                      ? tr('dashboard.todayPanel.activity')
-                      : stepsToday > 0
-                        ? tr('dashboard.todayPanel.steps')
-                        : tr('dashboard.todayPanel.minutes')}
-                  </span>
-                  <ArrowRight size={14} className="db-home-today-arrow" aria-hidden />
-                </button>
-                <button type="button" className="db-home-today-cell" onClick={() => navigate('/logs')}>
-                  <ClipboardList size={16} />
-                  <span className="db-home-today-cat">{tr('dashboard.todayPanel.all')}</span>
-                  <strong className="db-home-today-open">{tr('dashboard.todayPanel.openLogs')}</strong>
-                  <ArrowRight size={14} className="db-home-today-arrow" aria-hidden />
-                </button>
+
+              <div className="db-home-plan-list">
+                {/* Vertical connecting line */}
+                <div className="db-home-plan-line" aria-hidden="true" />
+
+                {todayPlanItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => navigate(item.route)}
+                    className="db-home-plan-item"
+                  >
+                    <div className="db-home-plan-item-left">
+                      {/* Step Circle */}
+                      {item.completed ? (
+                        <span className="db-home-plan-circle is-done">
+                          <Check size={13} strokeWidth={3} />
+                        </span>
+                      ) : (
+                        <span className="db-home-plan-circle" />
+                      )}
+
+                      {/* Text block */}
+                      <div className="db-home-plan-item-copy">
+                        <p className="db-home-plan-item-title">{item.title}</p>
+                        {item.subtitle && (
+                          <p className="db-home-plan-item-sub">{item.subtitle}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right Value or Chevron */}
+                    {item.completed && item.value ? (
+                      <span className="db-home-plan-item-val is-done">
+                        {item.value}
+                      </span>
+                    ) : item.id === 'water' && item.value ? (
+                      <span className="db-home-plan-item-val">
+                        {item.value}
+                      </span>
+                    ) : (
+                      <ChevronRight size={17} className="db-home-plan-item-arrow" />
+                    )}
+                  </button>
+                ))}
               </div>
             </section>
 
             <section
-              className={`db-home-panel db-home-reminders${remindersEmpty ? ' is-empty' : ''}`}
+              className="db-home-panel db-home-reminders-panel"
               aria-label={tr('reminders.dashboard.title')}
             >
-              <header className="db-home-card-head">
-                <div>
-                  <p className="db-home-kicker">{tr('reminders.dashboard.kicker')}</p>
-                  <h2>{tr('reminders.dashboard.title')}</h2>
-                </div>
-                <button type="button" className="db-home-text-link" onClick={() => navigate('/reminders')}>
-                  {tr('reminders.dashboard.manage')}
-                  <ArrowRight size={14} />
+              <header className="db-home-plan-head">
+                <span className="db-home-plan-kicker">
+                  NEXT UP
+                </span>
+                <button
+                  type="button"
+                  className="db-home-reminders-viewall"
+                  onClick={() => navigate('/reminders')}
+                >
+                  View all
                 </button>
               </header>
 
               {todayReminders === null ? (
-                <div className="db-home-reminder-list" style={{ gap: 10 }}>
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="db-home-reminder-row" style={{ alignItems: 'center', gap: 10 }}>
-                      <span className="db-skeleton" style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0 }} />
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                        <span className="db-skeleton" style={{ width: '65%', height: 13 }} />
-                        <span className="db-skeleton" style={{ width: '40%', height: 10 }} />
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex flex-col gap-3 py-2">
+                  <span className="db-skeleton" style={{ width: '100%', height: 80, borderRadius: 16 }} />
+                  <span className="db-skeleton" style={{ width: '40%', height: 14, borderRadius: 6, marginTop: 6 }} />
+                  <span className="db-skeleton" style={{ width: '100%', height: 32, borderRadius: 8 }} />
+                  <span className="db-skeleton" style={{ width: '100%', height: 32, borderRadius: 8 }} />
                 </div>
-              ) : !remindersEmpty ? (
-                <div className="db-home-reminder-list">
-                  {visibleReminders.map((r) => {
-                    const displayTitle = REMINDER_TITLE_KEYS[r.title]
-                      ? tr(REMINDER_TITLE_KEYS[r.title])
-                      : r.title;
-                    const timeStr = formatReminderTime(r.time, tr('reminders.notSet'));
+              ) : featuredReminder ? (
+                (() => {
+                  const tLower = (featuredReminder.title || '').toLowerCase();
+                  const catLower = (featuredReminder.category || '').toLowerCase();
+                  let IconCmp = Stethoscope;
+                  let bg = '#F5EEF8';
+                  let color = '#8B5BA5';
+                  let dosage = featuredReminder.notes || 'Health check';
 
-                    return (
-                      <div key={r.id || r._id} className="db-home-reminder-row">
-                        <span className="db-home-reminder-icon">{reminderIconEl(r)}</span>
-                        <div className="db-home-reminder-copy">
-                          <p className="db-home-reminder-title">{displayTitle}</p>
-                          <p className="db-home-reminder-time">{timeStr}</p>
-                        </div>
-                        <button
-                          type="button"
-                          className="db-home-reminder-check"
-                          onClick={() => toggleReminderComplete(r.id || r._id)}
-                          title={tr('reminders.dashboard.markCompleted')}
-                          aria-label={tr('reminders.dashboard.markCompleted')}
+                  if (tLower.includes('insulin') || catLower === 'insulin') {
+                    IconCmp = Syringe;
+                    bg = '#FCE8E2';
+                    color = '#D9534F';
+                    dosage = featuredReminder.dosage || featuredReminder.units ? `${featuredReminder.dosage || featuredReminder.units} units` : (featuredReminder.notes || '0 units');
+                  } else if (tLower.includes('med') || tLower.includes('pill') || catLower === 'medication') {
+                    IconCmp = Pill;
+                    bg = '#FDF4E7';
+                    color = '#D98E2E';
+                    dosage = featuredReminder.dosage || featuredReminder.notes || 'Take with water';
+                  } else if (tLower.includes('glucose') || tLower.includes('sugar') || tLower.includes('check') || catLower === 'glucose') {
+                    IconCmp = Droplets;
+                    bg = '#E8F0E6';
+                    color = '#2E6B3E';
+                    dosage = featuredReminder.notes || 'Fasting / Target check';
+                  } else if (tLower.includes('bed') || tLower.includes('sleep') || catLower === 'sleep') {
+                    IconCmp = Moon;
+                    bg = '#F0EEF8';
+                    color = '#6B5BA5';
+                    dosage = featuredReminder.notes || 'Night routine';
+                  }
+
+                  const timeParts = (() => {
+                    const formatted = formatReminderTime(featuredReminder.time, '8:05 AM');
+                    const match = formatted.match(/^([\d:]+)\s*(AM|PM)?$/i);
+                    if (match) return { time: match[1], period: match[2] || '' };
+                    return { time: formatted, period: '' };
+                  })();
+
+                  const displayTitle = REMINDER_TITLE_KEYS[featuredReminder.title]
+                    ? tr(REMINDER_TITLE_KEYS[featuredReminder.title])
+                    : featuredReminder.title;
+
+                  return (
+                    <div className="db-home-nextup-card">
+                      <div className="db-home-nextup-left">
+                        <span
+                          className="db-home-nextup-icon"
+                          style={{ background: bg, color }}
                         >
-                          <Circle size={22} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                  {moreRemindersCount > 0 ? (
-                    <button
-                      type="button"
-                      className="db-home-reminder-more"
-                      onClick={() => navigate('/reminders')}
-                    >
-                      {tr('reminders.dashboard.viewMore').replace('{n}', String(moreRemindersCount))}
-                      <ArrowRight size={14} />
-                    </button>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="db-home-reminder-done">
-                  <span className="db-home-reminder-done-badge" aria-hidden>
-                    <CheckCircle2 size={28} strokeWidth={2} />
-                  </span>
-                  <p className="db-home-reminder-done-title">
-                    {remindersAllDone
-                      ? tr('reminders.dashboard.allDoneTitle')
-                      : tr('reminders.dashboard.emptyTitle')}
-                  </p>
-                  <p className="db-home-reminder-done-sub">
-                    {remindersAllDone
-                      ? tr('reminders.dashboard.allDoneSub')
-                      : tr('reminders.dashboard.emptySub')}
-                    {remindersAllDone ? (
-                      <Leaf size={14} className="db-home-reminder-done-leaf" aria-hidden />
-                    ) : null}
-                  </p>
-
-                  {tomorrowPreview.length > 0 ? (
-                    <div className="db-home-reminder-tomorrow">
-                      <p className="db-home-reminder-tomorrow-kicker">
-                        {tr('reminders.dashboard.tomorrow')}
-                      </p>
-                      {tomorrowPreview.map((r) => {
-                        const displayTitle = REMINDER_TITLE_KEYS[r.title]
-                          ? tr(REMINDER_TITLE_KEYS[r.title])
-                          : r.title;
-                        return (
-                          <div key={r.id || r._id} className="db-home-reminder-row is-tomorrow">
-                            <span className="db-home-reminder-icon">{reminderIconEl(r)}</span>
-                            <div className="db-home-reminder-copy">
-                              <p className="db-home-reminder-title">{displayTitle}</p>
-                              <p className="db-home-reminder-time">
-                                {formatReminderTime(r.time, tr('reminders.notSet'))}
-                              </p>
-                            </div>
+                          <IconCmp size={22} />
+                        </span>
+                        <div className="db-home-nextup-copy">
+                          <p className="db-home-nextup-title">{displayTitle}</p>
+                          <div className="db-home-nextup-time">
+                            <span>{timeParts.time}</span>
+                            {timeParts.period && <small>{timeParts.period}</small>}
                           </div>
-                        );
-                      })}
+                          <p className="db-home-nextup-dosage">{dosage}</p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleReminderComplete(featuredReminder.id || featuredReminder._id)}
+                        className="db-home-nextup-btn"
+                      >
+                        {featuredReminder.isCompletedToday ? 'Taken ✓' : 'Mark as taken'}
+                      </button>
                     </div>
-                  ) : null}
+                  );
+                })()
+              ) : (
+                <div className="db-home-nextup-card">
+                  <div className="db-home-nextup-left">
+                    <span className="db-home-nextup-icon" style={{ background: '#E8F0E6', color: '#2E6B3E' }}>
+                      <CheckCircle2 size={22} />
+                    </span>
+                    <div className="db-home-nextup-copy">
+                      <p className="db-home-nextup-title">
+                        {remindersAllDone ? tr('reminders.dashboard.allDoneTitle') : 'All caught up'}
+                      </p>
+                      <div className="db-home-nextup-time"><span>--:--</span></div>
+                      <p className="db-home-nextup-dosage">
+                        {remindersAllDone ? tr('reminders.dashboard.allDoneSub') : 'No pending reminders'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/reminders')}
+                    className="db-home-nextup-btn"
+                  >
+                    Manage
+                  </button>
+                </div>
+              )}
+
+              {/* Later today / Upcoming List */}
+              {todayReminders !== null && laterReminders.length > 0 && (
+                <div className="db-home-later-section">
+                  <p className="db-home-later-kicker">Later today</p>
+                  <div className="db-home-later-list">
+                    {laterReminders.map((r) => {
+                      const tLower = (r.title || '').toLowerCase();
+                      const catLower = (r.category || '').toLowerCase();
+                      let IconCmp = Stethoscope;
+                      let bg = '#F5EEF8';
+                      let color = '#8B5BA5';
+
+                      if (tLower.includes('insulin') || catLower === 'insulin') {
+                        IconCmp = Syringe;
+                        bg = '#FCE8E2';
+                        color = '#D9534F';
+                      } else if (tLower.includes('med') || tLower.includes('pill') || catLower === 'medication') {
+                        IconCmp = Pill;
+                        bg = '#FDF4E7';
+                        color = '#D98E2E';
+                      } else if (tLower.includes('glucose') || tLower.includes('sugar') || tLower.includes('check') || catLower === 'glucose') {
+                        IconCmp = Droplets;
+                        bg = '#E8F0E6';
+                        color = '#2E6B3E';
+                      } else if (tLower.includes('bed') || tLower.includes('sleep') || catLower === 'sleep') {
+                        IconCmp = Moon;
+                        bg = '#F0EEF8';
+                        color = '#6B5BA5';
+                      }
+
+                      const displayTitle = REMINDER_TITLE_KEYS[r.title]
+                        ? tr(REMINDER_TITLE_KEYS[r.title])
+                        : r.title;
+                      const timeStr = formatReminderTime(r.time, tr('reminders.notSet'));
+
+                      return (
+                        <button
+                          key={r.id || r._id}
+                          type="button"
+                          onClick={() => toggleReminderComplete(r.id || r._id)}
+                          className="db-home-later-row"
+                          title="Click to toggle completed"
+                        >
+                          <div className="db-home-later-left">
+                            <span
+                              className="db-home-later-icon"
+                              style={{ background: bg, color }}
+                            >
+                              <IconCmp size={15} />
+                            </span>
+                            <span className="db-home-later-title">{displayTitle}</span>
+                          </div>
+                          <span className="db-home-later-time">
+                            {r.isTomorrow ? `Tomorrow, ${timeStr}` : timeStr}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </section>
@@ -1005,6 +1136,47 @@ export default function Dashboard() {
                 navigate(latestPost?._id ? `/community/posts/${latestPost._id}` : '/community')
               }
             >
+              {/* Community avatars & speech bubbles illustration (matching reference) */}
+              <div className="db-home-community-art" aria-hidden="true">
+                <svg viewBox="0 0 170 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="db-home-community-svg">
+                  {/* Top Left Speech Bubble */}
+                  <g opacity="0.30">
+                    <rect x="22" y="8" width="58" height="34" rx="10" fill="#BDCAA1" />
+                    <path d="M46 42 L52 52 L58 42 Z" fill="#BDCAA1" />
+                    <circle cx="41" cy="25" r="3.2" fill="#14231A" />
+                    <circle cx="51" cy="25" r="3.2" fill="#14231A" />
+                    <circle cx="61" cy="25" r="3.2" fill="#14231A" />
+                  </g>
+
+                  {/* Top Right Speech Bubble */}
+                  <g opacity="0.38">
+                    <rect x="76" y="34" width="60" height="34" rx="10" fill="#BDCAA1" />
+                    <path d="M102 68 L106 78 L112 68 Z" fill="#BDCAA1" />
+                    <circle cx="95" cy="51" r="3.2" fill="#14231A" />
+                    <circle cx="106" cy="51" r="3.2" fill="#14231A" />
+                    <circle cx="117" cy="51" r="3.2" fill="#14231A" />
+                  </g>
+
+                  {/* Left Person Silhouette */}
+                  <g opacity="0.32">
+                    <circle cx="42" cy="80" r="16" fill="#8DB496" />
+                    <path d="M12 140 C12 108, 24 104, 42 104 C60 104, 72 108, 72 140 Z" fill="#8DB496" />
+                  </g>
+
+                  {/* Right Person Silhouette */}
+                  <g opacity="0.32">
+                    <circle cx="132" cy="82" r="15" fill="#8DB496" />
+                    <path d="M104 140 C104 110, 116 106, 132 106 C148 106, 160 110, 160 140 Z" fill="#8DB496" />
+                  </g>
+
+                  {/* Center Silhouette */}
+                  <g opacity="0.42">
+                    <circle cx="86" cy="84" r="18" fill="#BDCAA1" />
+                    <path d="M50 140 C50 110, 64 104, 86 104 C108 104, 122 110, 122 140 Z" fill="#BDCAA1" />
+                  </g>
+                </svg>
+              </div>
+
               <div className="db-home-community-fill-top">
                 <p className="db-home-kicker">{tr('dashboard.community.kicker')}</p>
                 <span className="db-home-community-badge">
@@ -1056,16 +1228,18 @@ export default function Dashboard() {
           color: ${t.inkFaint};
         }
         .db-home-hero {
+          position: relative;
+          overflow: hidden;
           display: block;
           margin: 0 0 22px;
-          padding: 18px 20px 20px;
-          border-radius: 18px;
-          border: 1px solid ${t.sage}66;
-          background:
-            radial-gradient(ellipse 80% 70% at 100% 0%, rgba(232, 184, 154, 0.22), transparent 55%),
-            linear-gradient(155deg, ${t.forest} 0%, #314a39 48%, ${t.forestDeep} 100%);
+          padding: 22px 24px 24px;
+          border-radius: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          background-size: cover;
+          background-position: center right;
+          background-repeat: no-repeat;
           color: #F4F0E8;
-          box-shadow: 0 12px 32px rgba(39, 57, 46, 0.22);
+          box-shadow: 0 12px 32px rgba(24, 44, 30, 0.18);
         }
         .db-home-hero-date {
           margin: 0 0 8px;
@@ -1613,65 +1787,304 @@ export default function Dashboard() {
           display: flex;
           flex-direction: column;
           min-height: 100%;
+          background: #FFFFFF;
+          border: 1.5px solid #EAE5D8;
+          border-radius: 20px;
+          padding: 20px 22px;
+          box-shadow: 0 4px 20px rgba(30, 42, 36, 0.04);
         }
-        .db-home-today-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 8px;
-          flex: 1;
+        .db-home-plan-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-bottom: 12px;
+          margin-bottom: 4px;
         }
-        .db-home-today-cell {
+        .db-home-plan-kicker {
+          font-size: 11.5px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #4A4339;
+        }
+        .db-home-plan-completed {
+          font-size: 12.5px;
+          font-weight: 700;
+          color: #2E6B3E;
+        }
+        .db-home-plan-list {
           position: relative;
           display: flex;
           flex-direction: column;
-          align-items: flex-start;
-          gap: 4px;
-          text-align: left;
-          padding: 14px 28px 14px 14px;
-          border-radius: 14px;
-          border: 1px solid ${t.line};
-          background: ${t.surfaceSunken};
-          cursor: pointer;
-          font-family: ${t.fontBody};
-          color: ${t.inkFaint};
-          min-height: 92px;
-          transition:
-            border-color 0.15s ease,
-            background 0.15s ease;
+          flex: 1;
         }
-        .db-home-today-arrow {
+        .db-home-plan-line {
           position: absolute;
-          top: 14px;
-          right: 12px;
-          color: ${t.inkFaint};
-          opacity: 0.55;
-          transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
+          left: 10px;
+          top: 22px;
+          bottom: 24px;
+          width: 1.5px;
+          background: #E5DFD2;
+          z-index: 0;
+          pointer-events: none;
         }
-        .db-home-today-cat {
+        .db-home-plan-item {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 13px 0;
+          border: none;
+          background: transparent;
+          border-bottom: 1px solid #F2EDE2;
+          cursor: pointer;
+          font-family: inherit;
+          text-align: left;
+          transition: background 0.15s ease;
+        }
+        .db-home-plan-item:last-child {
+          border-bottom: none;
+          padding-bottom: 4px;
+        }
+        .db-home-plan-item-left {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          min-width: 0;
+        }
+        .db-home-plan-circle {
+          width: 21px;
+          height: 21px;
+          border-radius: 999px;
+          border: 1.8px solid #D9D1C2;
+          background: #FFFFFF;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: all 0.2s ease;
+        }
+        .db-home-plan-circle.is-done {
+          border-color: #2E6B3E;
+          background: #2E6B3E;
+          color: #FFFFFF;
+        }
+        .db-home-plan-item-copy {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        .db-home-plan-item-title {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 700;
+          color: #1E2A24;
+          line-height: 1.25;
+          transition: color 0.15s ease;
+        }
+        .db-home-plan-item:hover .db-home-plan-item-title {
+          color: #2E6B3E;
+        }
+        .db-home-plan-item-sub {
+          margin: 0;
           font-size: 12px;
-          font-weight: 700;
-          color: ${t.inkSoft};
-          letter-spacing: 0.01em;
+          color: #7A746B;
+          line-height: 1.3;
+          font-weight: 450;
         }
-        .db-home-today-cell strong {
-          font-size: 22px;
+        .db-home-plan-item-val {
+          font-size: 13px;
+          font-weight: 600;
+          color: #4A4339;
+          flex-shrink: 0;
+          margin-left: auto;
+          white-space: nowrap;
+        }
+        .db-home-plan-item-val.is-done {
+          color: #2E6B3E;
           font-weight: 700;
-          color: ${t.ink};
-          letter-spacing: -0.02em;
+        }
+        .db-home-plan-item-arrow {
+          color: #B3AA9C;
+          flex-shrink: 0;
+          margin-left: auto;
+          transition: transform 0.15s ease, color 0.15s ease;
+        }
+        .db-home-plan-item:hover .db-home-plan-arrow {
+          color: #1E2A24;
+          transform: translateX(2px);
+        }
+
+        .db-home-reminders-panel {
+          display: flex;
+          flex-direction: column;
+          min-height: 100%;
+          background: #FFFFFF;
+          border: 1.5px solid #EAE5D8;
+          border-radius: 20px;
+          padding: 20px 22px;
+          box-shadow: 0 4px 20px rgba(30, 42, 36, 0.04);
+        }
+        .db-home-reminders-viewall {
+          border: none;
+          background: transparent;
+          color: #2E6B3E;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: inherit;
+          padding: 0;
+          transition: opacity 0.15s ease;
+        }
+        .db-home-reminders-viewall:hover {
+          opacity: 0.8;
+          text-decoration: underline;
+        }
+        .db-home-nextup-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 16px 18px;
+          border-radius: 16px;
+          background: #FAF6EF;
+          border: 1px solid #EBE3D3;
+          margin-top: 4px;
+          margin-bottom: 14px;
+        }
+        .db-home-nextup-left {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          min-width: 0;
+        }
+        .db-home-nextup-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+        .db-home-nextup-copy {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+        .db-home-nextup-title {
+          margin: 0;
+          font-size: 13px;
+          font-weight: 600;
+          color: #4A4339;
+          line-height: 1.25;
+        }
+        .db-home-nextup-time {
+          display: flex;
+          align-items: baseline;
+          font-family: var(--font-display, Georgia, serif);
+          font-size: 26px;
+          font-weight: 700;
+          color: #1E2A24;
           line-height: 1.1;
+          margin: 2px 0 1px;
+        }
+        .db-home-nextup-time small {
+          font-family: var(--font-body, system-ui, sans-serif);
+          font-size: 13px;
+          font-weight: 700;
+          margin-left: 4px;
+          color: #1E2A24;
+        }
+        .db-home-nextup-dosage {
+          margin: 0;
+          font-size: 12px;
+          color: #7A746B;
+          font-weight: 500;
+        }
+        .db-home-nextup-btn {
+          border: none;
+          background: #142C1E;
+          color: #FFFFFF;
+          padding: 10px 18px;
+          border-radius: 12px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: inherit;
+          white-space: nowrap;
+          transition: background 0.15s ease, transform 0.15s ease;
+          box-shadow: 0 2px 6px rgba(20, 44, 30, 0.12);
+        }
+        .db-home-nextup-btn:hover {
+          background: #203D2B;
+        }
+        .db-home-nextup-btn:active {
+          transform: scale(0.98);
+        }
+        .db-home-later-section {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
           margin-top: 2px;
         }
-        .db-home-today-cell strong.db-home-today-open {
-          font-size: 15px;
-          font-weight: 650;
-          letter-spacing: -0.01em;
-          color: ${t.forest};
-          margin-top: 6px;
+        .db-home-later-kicker {
+          margin: 0 0 4px;
+          font-size: 13px;
+          font-weight: 700;
+          color: #1E2A24;
         }
-        .db-home-today-meta {
-          font-size: 12px;
+        .db-home-later-list {
+          display: flex;
+          flex-direction: column;
+        }
+        .db-home-later-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 0;
+          border-bottom: 1px solid #F2EDE2;
+        }
+        .db-home-later-row:last-child {
+          border-bottom: none;
+          padding-bottom: 2px;
+        }
+        .db-home-later-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+        .db-home-later-icon {
+          width: 28px;
+          height: 28px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .db-home-later-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: #1E2A24;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .db-home-later-time {
+          font-size: 13px;
           font-weight: 600;
-          color: ${t.inkFaint};
+          color: #4A4339;
+          flex-shrink: 0;
+          margin-left: auto;
+          white-space: nowrap;
         }
 
         .db-home-duo {
@@ -1726,6 +2139,8 @@ export default function Dashboard() {
         }
 
         .db-home-community-fill {
+          position: relative;
+          overflow: hidden;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
@@ -1734,16 +2149,38 @@ export default function Dashboard() {
           min-height: 220px;
           width: 100%;
           text-align: left;
-          padding: 20px;
-          border-radius: 18px;
+          padding: 22px;
+          border-radius: 20px;
           border: 1px solid ${t.sage}66;
           background:
-            radial-gradient(ellipse 80% 70% at 100% 0%, rgba(232, 184, 154, 0.22), transparent 55%),
-            linear-gradient(155deg, ${t.forest} 0%, #314a39 48%, ${t.forestDeep} 100%);
+            radial-gradient(ellipse 80% 70% at 100% 0%, rgba(232, 184, 154, 0.18), transparent 55%),
+            linear-gradient(155deg, ${t.forest} 0%, #27402F 48%, ${t.forestDeep} 100%);
           color: #F4F0E8;
           cursor: pointer;
           font-family: ${t.fontBody};
           box-shadow: 0 12px 32px rgba(39, 57, 46, 0.22);
+        }
+        .db-home-community-art {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          width: 155px;
+          height: 135px;
+          pointer-events: none;
+          user-select: none;
+          z-index: 1;
+        }
+        .db-home-community-svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+        .db-home-community-fill-top,
+        .db-home-community-fill h2,
+        .db-home-community-fill > p,
+        .db-home-community-cta {
+          position: relative;
+          z-index: 2;
         }
         .db-home-community-fill-top {
           width: 100%;
@@ -1802,14 +2239,8 @@ export default function Dashboard() {
           }
           .db-home-watch:hover { border-color: ${t.forest}; }
           .db-home-watch.is-connected:hover { border-color: ${t.sageDeep}; }
-          .db-home-today-cell:hover {
+          .db-home-plan-item:hover .db-home-plan-circle:not(.is-done) {
             border-color: ${t.forest};
-            background: color-mix(in srgb, ${t.sageTint} 45%, ${t.surfaceSunken});
-          }
-          .db-home-today-cell:hover .db-home-today-arrow {
-            opacity: 1;
-            color: ${t.forest};
-            transform: translateX(2px);
           }
           .db-home-alert:hover { border-color: ${t.clay}; }
           .db-home-reminder-more:hover { border-color: ${t.forest}; background: ${t.sageTint}; }

@@ -302,7 +302,7 @@ const Navbar = () => {
             )}
           </div>
 
-          <div className="shrink-0 border-t border-black/10 px-5 py-4">
+          <div className="shrink-0 border-t border-black/10 px-5 py-4 bg-[#F6F3EE]">
             {user ? (
               <button
                 type="button"
@@ -311,22 +311,22 @@ const Navbar = () => {
                   setOpen(false);
                   navigate('/');
                 }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C2724F] py-3 text-sm font-semibold text-white transition hover:bg-[#A65D3D] active:scale-[0.98]"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-[#182C1E] py-3 text-sm font-semibold text-white transition hover:bg-[#27392E] active:scale-[0.98] shadow-xs cursor-pointer"
               >
                 <LogOut size={16} />
-                {tr('common.logout')}
+                <span>{tr('common.logout') || 'Log Out'}</span>
               </button>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5">
                 <button
                   type="button"
                   onClick={() => {
                     navigate('/register');
                     setOpen(false);
                   }}
-                  className="w-full rounded-xl bg-[#27392E] py-3 text-sm font-semibold text-white"
+                  className="flex w-full items-center justify-center rounded-full bg-[#182C1E] py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-[#27392E] cursor-pointer"
                 >
-                  {tr('navbar.signUp')}
+                  {tr('navbar.signUp') || 'Sign Up'}
                 </button>
                 <button
                   type="button"
@@ -334,9 +334,9 @@ const Navbar = () => {
                     navigate('/login');
                     setOpen(false);
                   }}
-                  className="w-full rounded-xl border border-black/15 bg-white py-3 text-sm font-semibold text-[#2F2A25]"
+                  className="flex w-full items-center justify-center rounded-full border border-black/15 bg-white py-3 text-sm font-semibold text-[#2F2A25] transition hover:bg-black/5 shadow-2xs cursor-pointer text-center"
                 >
-                  {tr('navbar.alreadyHaveAccount')}
+                  {tr('navbar.alreadyHaveAccount') || 'Already have an account? Sign In'}
                 </button>
               </div>
             )}
@@ -352,35 +352,44 @@ const Navbar = () => {
       >
         <div
           onClick={() => setProfileOpen(false)}
-          className="absolute inset-0 bg-black/30"
+          className="absolute inset-0 bg-black/30 backdrop-blur-xs"
         />
         <div
-          className={`absolute right-0 top-0 h-full w-[82%] max-w-sm bg-white shadow-2xl transition-transform duration-300 ${
+          className={`absolute right-0 top-0 flex h-full w-[85%] max-w-sm flex-col bg-white shadow-2xl transition-transform duration-300 ${
             profileOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          <div className="flex items-center justify-between border-b p-6">
+          {/* Header */}
+          <div className="flex shrink-0 items-center justify-between border-b border-black/10 px-6 py-5">
             <div>
-              <p className="font-semibold">{tr('navbar.myProfile')}</p>
-              <p className="text-xs text-gray-500">{tr('navbar.accountAndSettings')}</p>
+              <p className="font-serif text-lg font-bold text-[#1E2A24]">{tr('navbar.myProfile') || 'My Profile'}</p>
+              <p className="text-xs text-[#7A746B]">{tr('navbar.accountAndSettings') || 'Account & settings'}</p>
             </div>
-            <button type="button" onClick={() => setProfileOpen(false)} className="text-2xl">
+            <button
+              type="button"
+              onClick={() => setProfileOpen(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-lg text-gray-500 hover:bg-black/5 hover:text-black cursor-pointer"
+              aria-label={tr('nav.closeMenu')}
+            >
               ✕
             </button>
           </div>
 
-          <div className="p-6">
-            <div className="flex items-center gap-4 rounded-2xl border p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black text-white">
+          {/* Scrollable Body */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5 no-scrollbar">
+            {/* User Card */}
+            <div className="flex items-center gap-3.5 rounded-2xl border border-[#E7DFCE] bg-[#F8F5EE] p-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#182C1E] text-base font-bold text-white shadow-xs">
                 {user?.name?.charAt(0).toUpperCase()}
               </div>
-              <div>
-                <p className="font-semibold text-black">{user?.name}</p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-[#1E2A24]">{user?.name}</p>
+                <p className="truncate text-xs text-[#7A746B]">{user?.email}</p>
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col gap-1">
+            {/* Links List */}
+            <div className="mt-4 flex flex-col gap-0.5">
               {profileLinks.map((item) => (
                 <button
                   key={item.path}
@@ -389,7 +398,7 @@ const Navbar = () => {
                     navigate(item.path);
                     setProfileOpen(false);
                   }}
-                  className="rounded-xl px-4 py-3 text-left transition hover:bg-black/5"
+                  className="rounded-xl px-3.5 py-2.5 text-left text-sm font-medium text-[#4A4339] transition hover:bg-[#F8F5EE] hover:text-[#1E2A24] cursor-pointer"
                 >
                   {item.label}
                 </button>
@@ -397,7 +406,8 @@ const Navbar = () => {
             </div>
           </div>
 
-          <div className="absolute bottom-6 left-6 right-6">
+          {/* Footer with Theme-Aligned Logout Button */}
+          <div className="shrink-0 border-t border-black/10 px-6 py-4 bg-[#FBF9F5]">
             <button
               type="button"
               onClick={() => {
@@ -405,10 +415,10 @@ const Navbar = () => {
                 setProfileOpen(false);
                 navigate('/');
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C2724F] py-3 text-sm font-semibold text-white transition hover:bg-[#A65D3D] active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#182C1E] py-3 text-sm font-semibold text-white transition hover:bg-[#27392E] active:scale-[0.98] shadow-xs cursor-pointer"
             >
               <LogOut size={16} />
-              {tr('common.logout')}
+              <span>{tr('common.logout') || 'Log Out'}</span>
             </button>
           </div>
         </div>

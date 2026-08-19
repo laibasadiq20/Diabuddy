@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { ArrowRight, ArrowLeft, Info, Activity } from 'lucide-react';
 import { useI18n } from '../../../i18n/I18nContext';
+import LearnFooter from './Learn/LearnFooter';
 
 /**
  * Symptoms page — restyled to match the DiaBuddy design tokens
@@ -317,6 +318,8 @@ const Symptoms = ({
               </div>
             </div>
           </div>
+
+          <LearnFooter className="mt-14" />
         </div>
 
         <style>{`

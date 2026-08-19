@@ -3,10 +3,28 @@ import Navbar from "../../../components/Navbar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { useI18n } from "../../../i18n/I18nContext";
+import secureBg from "../../../assets/secure.png";
+import LearnFooter from "./Learn/LearnFooter";
+import {
+  Users,
+  TrendingUp,
+  ShieldCheck,
+  Activity,
+  ArrowRight,
+  ChevronLeft,
+  Lock,
+  RotateCcw,
+  CheckCircle2,
+  Printer,
+  Info,
+  Stethoscope,
+  ChevronDown,
+} from "lucide-react";
 
 const questions = [
   {
     id: 'age',
+    helper: 'Age is a primary factor because insulin sensitivity naturally shifts over time.',
     options: [
       { value: 'under40', points: 0 },
       { value: 'from40to49', points: 1 },
@@ -16,6 +34,7 @@ const questions = [
   },
   {
     id: 'sex',
+    helper: 'Men are statistically diagnosed at slightly lower BMI thresholds due to fat distribution.',
     options: [
       { value: 'man', points: 1 },
       { value: 'woman', points: 0 },
@@ -24,6 +43,7 @@ const questions = [
   {
     id: 'gestational',
     onlyIfSex: 'woman',
+    helper: 'Gestational diabetes signals temporary insulin resistance during pregnancy that may recur later.',
     options: [
       { value: 'yes', points: 1 },
       { value: 'no', points: 0 },
@@ -31,6 +51,7 @@ const questions = [
   },
   {
     id: 'family',
+    helper: 'First-degree genetics (parents/siblings) significantly influence inherited metabolic traits.',
     options: [
       { value: 'yes', points: 1 },
       { value: 'no', points: 0 },
@@ -38,6 +59,7 @@ const questions = [
   },
   {
     id: 'bp',
+    helper: 'High blood pressure and insulin resistance frequently co-occur in metabolic health.',
     options: [
       { value: 'yes', points: 1 },
       { value: 'no', points: 0 },
@@ -45,6 +67,7 @@ const questions = [
   },
   {
     id: 'activity',
+    helper: 'Physical activity stimulates muscle glucose uptake without requiring extra insulin.',
     options: [
       { value: 'yes', points: 0 },
       { value: 'no', points: 1 },
@@ -52,6 +75,7 @@ const questions = [
   },
   {
     id: 'weight',
+    helper: 'Higher body mass index (BMI) is strongly correlated with increased insulin resistance.',
     options: [
       { value: 'normal', points: 0 },
       { value: 'overweight', points: 1 },
@@ -68,199 +92,79 @@ function buildQuizFlow(sexValue) {
   });
 }
 
-/* ── icon components ── */
-const ShieldIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" style={{ width: 32, height: 32 }}>
-    <path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    <path d="M9 12l2 2 4-4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const WarningIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" style={{ width: 32, height: 32 }}>
-    <path d="M12 4l9 15H3l9-15z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    <path d="M12 10v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    <circle cx="12" cy="17" r="0.9" fill="currentColor" />
-  </svg>
-);
-
-const AlertIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" style={{ width: 32, height: 32 }}>
-    <path d="M8 3h8l5 5v8l-5 5H8l-5-5V8l5-5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    <path d="M12 8v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    <circle cx="12" cy="16" r="0.9" fill="currentColor" />
-  </svg>
-);
-
-const HeartIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" style={{ width: 32, height: 32 }}>
-    <path d="M12 21C12 21 3 13.5 3 8a4 4 0 018-1.5A4 4 0 0121 8c0 5.5-9 13-9 13z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-  </svg>
-);
-
-/* ── presentational config per risk level (copy comes from i18n) ── */
 const RESULT_META = {
   low: {
-    color: "#2D6A4F",
-    bgColor: "#D8F3DC",
-    Icon: ShieldIcon,
+    color: "#2E6B3E",
+    bgColor: "#E8F2E6",
+    badgeLabel: "Lower Risk",
     adviceKeys: ['diet', 'activity', 'checkups', 'sleep'],
   },
   moderate: {
-    color: "#B45309",
-    bgColor: "#FEF3C7",
-    Icon: WarningIcon,
+    color: "#A87132",
+    bgColor: "#FDF4E7",
+    badgeLabel: "Moderate / Borderline Risk",
     adviceKeys: ['test', 'diet', 'exercise', 'weight'],
   },
   high: {
-    color: "#B91C1C",
-    bgColor: "#FEE2E2",
-    Icon: AlertIcon,
+    color: "#B44C3D",
+    bgColor: "#FDF0EE",
+    badgeLabel: "Higher Risk Indicated",
     adviceKeys: ['appointment', 'smoking', 'diet', 'medication'],
   },
   diagnosed: {
-    color: "#1D4ED8",
-    bgColor: "#DBEAFE",
-    Icon: HeartIcon,
+    color: "#2E6B3E",
+    bgColor: "#E8F2E6",
+    badgeLabel: "Living with Diabetes",
     adviceKeys: ['monitor', 'medication', 'diet', 'community'],
   },
 };
 
-/* ── subcomponents ── */
 const AdviceCard = ({ title, body, accentColor }) => (
-  <div style={{
-    background: "#fff",
-    borderRadius: "16px",
-    padding: "20px",
-    border: "1.5px solid #E5E7EB",
-    display: "flex",
-    gap: "16px",
-    alignItems: "flex-start",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-    transition: "transform 0.2s, box-shadow 0.2s",
-  }}
-    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
-    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; }}
-  >
-    <div style={{
-      width: "10px", height: "10px", borderRadius: "50%",
-      background: accentColor,
-      marginTop: "6px", flexShrink: 0,
-    }} />
+  <div className="flex gap-3.5 items-start p-4 sm:p-5 rounded-2xl bg-white border border-[#E2DCD0] shadow-2xs hover:shadow-sm hover:-translate-y-0.5 transition-all">
+    <div
+      className="w-2.5 h-2.5 rounded-full shrink-0 mt-1.5"
+      style={{ background: accentColor }}
+    />
     <div>
-      <p style={{ margin: "0 0 6px 0", fontWeight: "600", fontSize: "15px", color: "#1F2937", fontFamily: "'Playfair Display', serif" }}>{title}</p>
-      <p style={{ margin: 0, fontSize: "13px", color: "#6B7280", lineHeight: "1.7", fontFamily: "'DM Sans', sans-serif" }}>{body}</p>
+      <p className="font-serif text-sm sm:text-base font-bold text-[#1E2A24] leading-snug">
+        {title}
+      </p>
+      <p className="text-xs sm:text-[13px] text-[var(--brown-soft)] leading-relaxed mt-1 font-normal">
+        {body}
+      </p>
     </div>
   </div>
 );
 
-const ResultPanel = ({ resultKey, score, onRetake, navigate, isLoggedIn, tr }) => {
-  const meta = RESULT_META[resultKey];
-  const { color, bgColor, Icon, adviceKeys } = meta;
-  const base = `landing.learn.riskAssessment.results.${resultKey}`;
-  const title = tr(`${base}.title`);
-  const subtitle = tr(`${base}.subtitle`);
-
-  return (
-    <div style={{ animation: "fadeUp 0.5s ease both" }}>
-      <style>{`@keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }`}</style>
-
-      {/* Result hero banner */}
-      <div className="ra-result-banner" style={{
-        position: "relative",
-        overflow: "hidden",
-        background: "linear-gradient(145deg, #1F3A2E 0%, #32493B 60%, #3d5c4a 100%)",
-        borderRadius: "24px",
-        padding: "40px",
-        marginBottom: "32px",
-        textAlign: "center",
-        color: "#F7F3EC",
-        boxShadow: "0 16px 40px rgba(22,33,25,0.22)",
-      }}>
-        <div aria-hidden style={{ position: "absolute", right: -30, top: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(232,184,154,0.16)" }} />
-        <div aria-hidden style={{ position: "absolute", left: -20, bottom: -40, width: 130, height: 130, borderRadius: "50%", background: "rgba(168,184,154,0.18)" }} />
-        <div style={{ position: "relative", color: "#BDCAA1", marginBottom: "16px" }}><Icon /></div>
-        <div style={{ position: "relative", display: "inline-block", background: "rgba(247,243,236,0.12)", color: "#E8CF7A", border: "1px solid rgba(232,207,122,0.35)", borderRadius: "20px", padding: "4px 16px", fontSize: "12px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "16px" }}>
-          {tr('landing.learn.riskAssessment.scorePillTemplate').replace('{n}', score)}
-        </div>
-        <h2 style={{ position: "relative", fontFamily: "'Playfair Display', serif", fontSize: "clamp(24px, 4vw, 36px)", fontWeight: "700", color: "#F7F3EC", margin: "0 0 12px 0", lineHeight: "1.2" }}>{title}</h2>
-        <p style={{ position: "relative", fontFamily: "'DM Sans', sans-serif", fontSize: "16px", color: "rgba(247,243,236,0.72)", maxWidth: "540px", margin: "0 auto", lineHeight: "1.7" }}>{subtitle}</p>
-      </div>
-
-      {/* Advice heading */}
-      <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: "22px", fontWeight: "600", color: "#1F2937", margin: "0 0 20px 0" }}>
-        {tr('landing.learn.riskAssessment.whatYouShouldDo')}
-      </h3>
-
-      {/* Advice cards grid */}
-      <div className="ra-advice-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "32px" }}>
-        {adviceKeys.map((key) => {
-          const advice = tr(`${base}.advice.${key}`);
-          return (
-            <AdviceCard key={key} title={`${advice.emoji} ${advice.title}`} body={advice.body} accentColor={color} />
-          );
-        })}
-      </div>
-
-      {/* CTA row */}
-      <div className="ra-cta-row" style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-        <button
-          onClick={() => navigate(isLoggedIn ? "/community" : "/register")}
-          className="ra-cta-primary"
-          style={{
-            background: "#022D20", color: "#fff", border: "none",
-            borderRadius: "50px", padding: "14px 32px", fontSize: "15px", fontWeight: "600",
-            cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-            transition: "background 0.2s, transform 0.2s",
-            boxShadow: "0 4px 16px rgba(2,45,32,0.25)",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#C56A3E"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#022D20"; e.currentTarget.style.transform = "translateY(0)"; }}
-        >
-          {isLoggedIn ? tr('landing.learn.riskAssessment.openCommunity') : tr('landing.learn.riskAssessment.joinCommunity')}
-        </button>
-        <button
-          onClick={onRetake}
-          className="ra-cta-secondary"
-          style={{
-            background: "transparent", color: "#6B7280",
-            border: "1.5px solid #D1D5DB", borderRadius: "50px", padding: "14px 28px",
-            fontSize: "15px", fontWeight: "500", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-            transition: "all 0.2s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "#9CA3AF"; e.currentTarget.style.color = "#374151"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "#D1D5DB"; e.currentTarget.style.color = "#6B7280"; }}
-        >
-          {tr('landing.learn.riskAssessment.takeAgain')}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-/* ── main component ── */
 const RiskAssessment = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t: tr } = useI18n();
+
   const [currentQuestion, setCurrentQuestion] = useState(-1); // -1 = intro screen
   const [answers, setAnswers] = useState([]); // { id, value, points }
+  const [selectedOptionValue, setSelectedOptionValue] = useState(null); // tactile feedback
   const [showAlreadyDiagnosed, setShowAlreadyDiagnosed] = useState(false);
+  const [showClinicalDisclaimer, setShowClinicalDisclaimer] = useState(false);
+  const [showHelper, setShowHelper] = useState(false);
   const [quizFlow, setQuizFlow] = useState(() => buildQuizFlow(null));
 
+  // Animated counters on mount
   const [stats, setStats] = useState({ diabetes: 0, undiagnosed: 0, prevented: 0 });
 
   useEffect(() => {
-    const duration = 2000;
+    const duration = 1600;
     const interval = 20;
     const targets = { diabetes: 537, undiagnosed: 50, prevented: 80 };
     let current = { diabetes: 0, undiagnosed: 0, prevented: 0 };
 
     const timer = setInterval(() => {
       let done = true;
-      Object.keys(targets).forEach(key => {
+      Object.keys(targets).forEach((key) => {
         current[key] += targets[key] / (duration / interval);
-        if (current[key] < targets[key]) done = false;
+        if (current[key] < targets[key]) {
+          done = false;
+        }
       });
 
       setStats({
@@ -276,6 +180,7 @@ const RiskAssessment = () => {
   }, []);
 
   const handleSelect = (option) => {
+    setSelectedOptionValue(option.value);
     const q = quizFlow[currentQuestion];
     const nextAnswers = [...answers, { id: q.id, value: option.value, points: option.points }];
 
@@ -287,10 +192,27 @@ const RiskAssessment = () => {
 
     setAnswers(nextAnswers);
 
-    if (currentQuestion < nextFlow.length - 1) {
-      setTimeout(() => setCurrentQuestion((prev) => prev + 1), 280);
-    } else {
-      setCurrentQuestion(nextFlow.length);
+    // Tactile delay so user sees selected state
+    setTimeout(() => {
+      setSelectedOptionValue(null);
+      setShowHelper(false);
+      if (currentQuestion < nextFlow.length - 1) {
+        setCurrentQuestion((prev) => prev + 1);
+      } else {
+        setCurrentQuestion(nextFlow.length);
+      }
+    }, 240);
+  };
+
+  const handleBack = () => {
+    setSelectedOptionValue(null);
+    setShowHelper(false);
+    if (currentQuestion > 0) {
+      setCurrentQuestion((prev) => prev - 1);
+      setAnswers((prev) => prev.slice(0, -1));
+    } else if (currentQuestion === 0) {
+      setCurrentQuestion(-1);
+      setAnswers([]);
     }
   };
 
@@ -298,410 +220,400 @@ const RiskAssessment = () => {
 
   const getResultKey = () => {
     if (showAlreadyDiagnosed) return "diagnosed";
-    // ADA high-risk threshold is 5+
     if (score >= 5) return "high";
     if (score >= 3) return "moderate";
     return "low";
   };
 
-  const progress = quizFlow.length
-    ? (Math.min(currentQuestion + 1, quizFlow.length) / quizFlow.length) * 100
-    : 0;
-
   const resetAssessment = () => {
     setAnswers([]);
     setCurrentQuestion(-1);
+    setSelectedOptionValue(null);
+    setShowHelper(false);
     setShowAlreadyDiagnosed(false);
     setQuizFlow(buildQuizFlow(null));
   };
 
-  const quizComplete = currentQuestion >= quizFlow.length && currentQuestion >= 0 && answers.length > 0;
+  const handlePrint = () => {
+    window.print();
+  };
 
-  const riskLabel = score >= 5
-    ? tr('landing.learn.riskAssessment.riskHigher')
-    : score >= 3
-      ? tr('landing.learn.riskAssessment.riskBorderline')
-      : tr('landing.learn.riskAssessment.riskLower');
+  const quizComplete = currentQuestion >= quizFlow.length && currentQuestion >= 0 && answers.length > 0;
+  const isFinished = quizComplete || showAlreadyDiagnosed;
+  const resultKey = getResultKey();
+  const meta = RESULT_META[resultKey];
+  const base = `landing.learn.riskAssessment.results.${resultKey}`;
+  const resultTitle = tr(`${base}.title`);
+  const resultSubtitle = tr(`${base}.subtitle`);
 
   return (
-    <>
+    <div
+      className="min-h-screen bg-[#EDEAD9] relative overflow-x-hidden flex flex-col justify-between bg-no-repeat bg-right-top bg-cover sm:bg-[length:auto_650px] lg:bg-cover"
+      style={{
+        backgroundImage: `url(${secureBg})`,
+      }}
+    >
       <Navbar />
 
-      <section className="ra-page" style={{ background: "var(--cream-soft, #F6EFDD)", minHeight: "100vh", paddingTop: "88px", paddingBottom: "64px" }}>
-        <div className="ra-wrap" style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
+      {/* Gentle gradient fade on the left to ensure crisp text legibility */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#EDEAD9] via-[#EDEAD9]/95 sm:via-[#EDEAD9]/70 to-transparent z-[1]"
+        aria-hidden="true"
+      />
 
-          {/* Page header */}
-          <div className="ra-header" style={{ textAlign: "center", marginBottom: "48px" }}>
-            <span className="ra-pill" style={{ display: "inline-block", background: "#022D20", color: "#64E3C0", borderRadius: "20px", padding: "6px 18px", fontSize: "12px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "16px", fontFamily: "'DM Sans', sans-serif" }}>
-              {tr('landing.learn.riskAssessment.pageTag')}
-            </span>
-            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px, 6vw, 52px)", fontWeight: "700", color: "#022D20", margin: "0 0 16px 0", lineHeight: "1.15" }}>
-              {tr('landing.learn.riskAssessment.title')}
-            </h1>
-            <p className="ra-header-lead" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", color: "#374151", maxWidth: "560px", margin: "0 auto", lineHeight: "1.7" }}>
-              {tr('landing.learn.riskAssessment.lead')}
-            </p>
-          </div>
+      {/* Subtle Bottom-Left Dotted Grid Pattern */}
+      <div
+        className="pointer-events-none absolute bottom-8 left-8 z-[2] w-28 sm:w-36 h-28 sm:h-36 opacity-30 hidden sm:block select-none"
+        style={{
+          backgroundImage: 'radial-gradient(#BDCAA1 1.5px, transparent 1.5px)',
+          backgroundSize: '14px 14px',
+        }}
+        aria-hidden="true"
+      />
 
-          <div className="ra-layout" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.1fr) minmax(0,0.9fr)", gap: "40px", alignItems: "start" }}>
+      {/* Main Content Area */}
+      <main className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-36 pb-12 sm:pb-16 lg:pb-20">
 
-            {/* ── LEFT: Stats + Result panel ── */}
-            <div className={`ra-col-info${(quizComplete || showAlreadyDiagnosed) ? ' ra-col-info--open' : ''}`}>
-              {/* Stats banner */}
-              <div className="ra-stats" style={{
-                background: "linear-gradient(135deg, #022D20 0%, #013B2A 60%, #024030 100%)",
-                borderRadius: "24px", padding: "32px", marginBottom: "32px",
-                boxShadow: "0 12px 40px rgba(2,45,32,0.3)",
-              }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", textTransform: "uppercase", letterSpacing: "3px", color: "#67E7C5", fontSize: "11px", margin: "0 0 12px 0", fontWeight: "600" }}>{tr('landing.learn.riskAssessment.statsKicker')}</p>
-                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(20px, 4vw, 24px)", fontWeight: "700", color: "#fff", margin: "0 0 8px 0", lineHeight: "1.3" }}>{tr('landing.learn.riskAssessment.statsHeading')}</h2>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#86EFAC", margin: "0 0 24px 0", lineHeight: "1.6" }}>{tr('landing.learn.riskAssessment.statsLead')}</p>
+        {/* -------------------------------------------------------------------------
+            VIEW A: ASSESSMENT & NUMBERS CARD
+        -------------------------------------------------------------------------- */}
+        {!isFinished ? (
+          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-6 sm:gap-10 lg:gap-16 items-start">
+            
+            {/* Left Column: Heading & Numbers Card */}
+            <div className="flex flex-col gap-6 sm:gap-8 lg:gap-10 pt-1">
+              <div>
+                <h1 className="font-serif text-2xl sm:text-4xl lg:text-[3.25rem] font-bold text-[#1E2A24] tracking-tight leading-[1.14]">
+                  Know Your <br className="hidden sm:inline" />
+                  <span className="italic text-[#2E6B3E] font-medium">
+                    Diabetes Risk
+                  </span>
+                </h1>
 
-                <div className="ra-stats-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                  {[
-                    { val: `${stats.diabetes}M`, label: tr('landing.learn.riskAssessment.statAdults') },
-                    { val: `${stats.undiagnosed}%`, label: tr('landing.learn.riskAssessment.statUndiagnosed') },
-                    { val: `${stats.prevented}%`, label: tr('landing.learn.riskAssessment.statPreventable') },
-                  ].map(s => (
-                    <div key={s.label} className="ra-stat-cell" style={{
-                      background: "rgba(255,255,255,0.06)",
-                      borderRadius: "16px", padding: "16px 12px",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      textAlign: "center",
-                    }}>
-                      <p style={{ margin: "0 0 6px 0", fontSize: "26px", fontWeight: "700", color: "#3CE6C1", fontFamily: "'Playfair Display', serif" }}>{s.val}</p>
-                      <p style={{ margin: 0, fontSize: "11px", color: "#A7F3D0", lineHeight: "1.5", fontFamily: "'DM Sans', sans-serif" }}>{s.label}</p>
-                    </div>
-                  ))}
-                </div>
+                <p className="mt-3 sm:mt-4 text-xs sm:text-sm lg:text-[15px] text-[var(--brown-soft)] leading-relaxed max-w-xl font-medium">
+                  Inspired by the ADA Type 2 Diabetes Risk Test. Answer a few questions — a score of 5+ means talk to your doctor about screening.
+                </p>
               </div>
 
-              {/* Result panel — shown after quiz */}
-              {quizComplete && (
-                <ResultPanel
-                  resultKey={getResultKey()}
-                  score={score}
-                  onRetake={resetAssessment}
-                  navigate={navigate}
-                  isLoggedIn={!!user}
-                  tr={tr}
-                />
-              )}
+              {/* "Diabetes by the Numbers" Card */}
+              <div className="rounded-[24px] sm:rounded-[32px] bg-[#FAF8F3]/90 backdrop-blur-[2px] p-5 sm:p-6 border border-[#DDD5C5] shadow-xs relative overflow-hidden text-[#1E2A24]">
+                <div className="min-w-0">
+                  <p className="text-[9.5px] sm:text-[10.5px] font-bold uppercase tracking-[0.2em] text-[#2E6B3E]">
+                    DIABETES BY THE NUMBERS
+                  </p>
+                  <h2 className="font-serif text-base sm:text-lg lg:text-xl font-bold text-[#1E2A24] mt-0.5 leading-snug">
+                    Knowledge today, healthier tomorrow.
+                  </h2>
+                  <div className="w-8 h-0.5 bg-[#B8AFA0] my-2.5 rounded-full" />
 
-              {/* Already diagnosed path */}
-              {showAlreadyDiagnosed && !quizComplete && (
-                <ResultPanel
-                  resultKey="diagnosed"
-                  score={0}
-                  onRetake={resetAssessment}
-                  navigate={navigate}
-                  isLoggedIn={!!user}
-                  tr={tr}
-                />
-              )}
+                  {/* 3 Animated Stats Columns */}
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-2">
+                    {/* Stat 1 */}
+                    <div className="flex flex-col items-start">
+                      <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[#EAE5D8] text-[#2E6B3E] shadow-2xs mb-1.5 border border-[#DDD5C5]">
+                        <Users size={13} className="sm:w-4 sm:h-4" />
+                      </span>
+                      <p className="font-serif text-base sm:text-lg lg:text-xl font-bold text-[#1E2A24] leading-none tabular-nums">
+                        {stats.diabetes}M+
+                      </p>
+                      <p className="text-[9.5px] sm:text-[11px] text-[#4A4339] mt-1 leading-tight font-medium">
+                        Adults living with diabetes
+                      </p>
+                    </div>
+
+                    {/* Stat 2 */}
+                    <div className="flex flex-col items-start">
+                      <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[#EAE5D8] text-[#2E6B3E] shadow-2xs mb-1.5 border border-[#DDD5C5]">
+                        <TrendingUp size={13} className="sm:w-4 sm:h-4" />
+                      </span>
+                      <p className="font-serif text-base sm:text-lg lg:text-xl font-bold text-[#1E2A24] leading-none tabular-nums">
+                        {stats.undiagnosed}%
+                      </p>
+                      <p className="text-[9.5px] sm:text-[11px] text-[#4A4339] mt-1 leading-tight font-medium">
+                        Cases undiagnosed today
+                      </p>
+                    </div>
+
+                    {/* Stat 3 */}
+                    <div className="flex flex-col items-start">
+                      <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[#EAE5D8] text-[#2E6B3E] shadow-2xs mb-1.5 border border-[#DDD5C5]">
+                        <ShieldCheck size={13} className="sm:w-4 sm:h-4" />
+                      </span>
+                      <p className="font-serif text-base sm:text-lg lg:text-xl font-bold text-[#2E6B3E] leading-none tabular-nums">
+                        {stats.prevented}%
+                      </p>
+                      <p className="text-[9.5px] sm:text-[11px] text-[#4A4339] mt-1 leading-tight font-medium">
+                        Type 2 cases preventable
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* ── RIGHT: Quiz card ── */}
-            <div className="ra-col-quiz" style={{ position: "sticky", top: "108px" }}>
-              <div className="ra-quiz-card" style={{
-                background: "#fff",
-                borderRadius: "28px",
-                padding: "36px 32px",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.1)",
-                minHeight: "460px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-              }}>
+            {/* Right Column: Quiz Card */}
+            <div className="w-full flex justify-center lg:justify-end">
+              <div className="w-full max-w-[440px] min-h-[460px] sm:min-h-[520px] rounded-[28px] sm:rounded-[36px] bg-white p-5 sm:p-9 lg:p-10 shadow-[0_20px_50px_-15px_rgba(30,42,36,0.10)] border border-[#E2D8C7] flex flex-col justify-between">
+                
+                {/* Intro Screen */}
+                {currentQuestion === -1 && (
+                  <div className="flex flex-col w-full text-left">
+                    <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#E8F0E6] text-[#2E6B3E] mb-5 sm:mb-6 shadow-2xs">
+                      <Activity size={20} className="sm:w-5.5 sm:h-5.5 stroke-[2.2]" />
+                    </div>
 
-                {/* Intro screen */}
-                {currentQuestion === -1 && !showAlreadyDiagnosed && (
-                  <div style={{ textAlign: "center" }}>
-                    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "26px", fontWeight: "700", color: "#022D20", margin: "0 0 12px 0" }}>{tr('landing.learn.riskAssessment.introHeading')}</h2>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 28px 0", lineHeight: "1.7" }}>{tr('landing.learn.riskAssessment.introLead')}</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    <h2 className="font-serif text-xl sm:text-3xl font-bold text-[#1E2A24] tracking-tight">
+                      Let's check in.
+                    </h2>
+                    <p className="mt-2 text-xs sm:text-[14px] text-[var(--brown-soft)] leading-relaxed font-medium">
+                      A few simple questions can help you understand your risk. It takes about a minute.
+                    </p>
+
+                    <div className="mt-6 sm:mt-8 flex flex-col gap-2.5 sm:gap-3 w-full">
+                      {/* Primary Button */}
                       <button
+                        type="button"
                         onClick={() => setCurrentQuestion(0)}
-                        style={{
-                          background: "#022D20", color: "#fff", border: "none",
-                          borderRadius: "50px", padding: "14px 32px", fontSize: "16px", fontWeight: "600",
-                          cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-                          transition: "background 0.2s",
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#C56A3E"}
-                        onMouseLeave={e => e.currentTarget.style.background = "#022D20"}
+                        className="w-full flex items-center justify-between rounded-full bg-[#182C1E] hover:bg-[#27392E] text-white py-3.5 sm:py-4 px-5 sm:px-6 font-bold text-xs sm:text-sm shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.99]"
                       >
-                        {tr('landing.learn.riskAssessment.startButton')}
+                        <span>Start assessment</span>
+                        <ArrowRight size={16} />
                       </button>
+
+                      {/* Secondary Centered Outlined Button */}
                       <button
+                        type="button"
                         onClick={() => setShowAlreadyDiagnosed(true)}
-                        style={{
-                          background: "transparent", color: "#4B5563",
-                          border: "1.5px solid #E5E7EB", borderRadius: "50px", padding: "12px 28px",
-                          fontSize: "15px", fontWeight: "500", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-                          transition: "all 0.2s",
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = "#022D20"; e.currentTarget.style.color = "#022D20"; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#4B5563"; }}
+                        className="w-full flex items-center justify-center text-center rounded-full border border-[#D9D1C2] bg-white hover:bg-[#F8F5EE] text-[#4A4339] py-3 sm:py-3.5 px-5 text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer shadow-2xs"
                       >
-                        {tr('landing.learn.riskAssessment.alreadyDiagnosedButton')}
+                        <span>I already live with diabetes</span>
                       </button>
+                    </div>
+
+                    <div className="mt-6 sm:mt-7 flex items-center justify-center gap-1.5 w-full text-center text-[10px] sm:text-[11.5px] text-[#7A746B] font-medium">
+                      <Lock size={12} className="shrink-0 text-[#2E6B3E]" />
+                      <span>Anonymous. Private. Secure. Your answers are never shared.</span>
                     </div>
                   </div>
                 )}
 
-                {/* Quiz questions */}
-                {currentQuestion >= 0 && !quizComplete && !showAlreadyDiagnosed && quizFlow[currentQuestion] && (
-                  <>
-                    {/* Progress */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
-                      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#9CA3AF", whiteSpace: "nowrap" }}>
-                        {tr('landing.learn.riskAssessment.progressTemplate').replace('{current}', currentQuestion + 1).replace('{total}', quizFlow.length)}
-                      </span>
-                      <div style={{ flexGrow: 1, height: "6px", background: "#F3F4F6", borderRadius: "10px", overflow: "hidden" }}>
-                        <div style={{
-                          height: "100%", background: "linear-gradient(90deg, #022D20, #2D6A4F)",
-                          borderRadius: "10px", width: `${progress}%`,
-                          transition: "width 0.5s ease",
-                        }} />
+                {/* Active Question Screen */}
+                {currentQuestion >= 0 && quizFlow[currentQuestion] && (
+                  <div className="flex flex-col text-left h-full justify-between animate-in fade-in duration-200">
+                    <div>
+                      {/* Step Header */}
+                      <div className="flex items-center justify-between gap-3 mb-3 sm:mb-4">
+                        <button
+                          type="button"
+                          onClick={handleBack}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brown-soft)] hover:text-[#1E2A24] cursor-pointer py-1"
+                        >
+                          <ChevronLeft size={15} />
+                          <span>Back</span>
+                        </button>
+                        <span className="text-[10.5px] sm:text-[11px] font-bold text-[#2E6B3E] bg-[#E8F0E6] px-2.5 sm:px-3 py-0.5 rounded-full border border-[#C5D8C3]">
+                          Step {currentQuestion + 1} of {quizFlow.length}
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full h-1.5 bg-[#EAE5D8] rounded-full overflow-hidden mb-4 sm:mb-5">
+                        <div
+                          className="h-full bg-[#2E6B3E] transition-all duration-300 rounded-full"
+                          style={{ width: `${((currentQuestion + 1) / quizFlow.length) * 100}%` }}
+                        />
+                      </div>
+
+                      {/* Question Text */}
+                      <h2 className="font-serif text-base sm:text-xl font-bold text-[#1E2A24] mb-3 leading-snug">
+                        {tr(`landing.learn.riskAssessment.questions.${quizFlow[currentQuestion].id}.question`)}
+                      </h2>
+
+                      {/* Contextual Clinical Helper Note Toggle */}
+                      {quizFlow[currentQuestion].helper && (
+                        <div className="mb-4">
+                          <button
+                            type="button"
+                            onClick={() => setShowHelper(!showHelper)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2E6B3E] hover:underline cursor-pointer"
+                          >
+                            <Info size={12} />
+                            <span>{showHelper ? 'Hide clinical context' : 'Why we ask this?'}</span>
+                          </button>
+                          {showHelper && (
+                            <p className="mt-1.5 text-[11.5px] text-[#554D43] bg-[#F7F4EE] p-2.5 rounded-xl border border-[#E0D8CA] leading-relaxed">
+                              {quizFlow[currentQuestion].helper}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Selectable Options List with Tactile Selection State */}
+                      <div className="flex flex-col gap-2 sm:gap-2.5">
+                        {quizFlow[currentQuestion].options.map((option) => {
+                          const isSelected = selectedOptionValue === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => handleSelect(option)}
+                              className={`w-full text-left rounded-2xl border p-3 sm:p-3.5 text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer shadow-2xs flex items-center justify-between select-none ${
+                                isSelected
+                                  ? 'bg-[#182C1E] text-white border-[#182C1E] scale-[1.01]'
+                                  : 'bg-[#FAF8F3] hover:bg-[#E8F0E6] hover:border-[#BDCAA1] hover:text-[#182C1E] border-[#E0D8CA] text-[#1E2A24]'
+                              }`}
+                            >
+                              <span>
+                                {tr(`landing.learn.riskAssessment.questions.${quizFlow[currentQuestion].id}.options.${option.value}`)}
+                              </span>
+                              {isSelected ? (
+                                <CheckCircle2 size={15} className="text-[#BDCAA1]" />
+                              ) : (
+                                <ArrowRight size={14} className="opacity-40" />
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    <h2 className="ra-question" style={{ fontFamily: "'Playfair Display', serif", fontSize: "22px", fontWeight: "600", color: "#1F2937", margin: "0 0 24px 0", minHeight: "80px", lineHeight: "1.4" }}>
-                      {tr(`landing.learn.riskAssessment.questions.${quizFlow[currentQuestion].id}.question`)}
-                    </h2>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                      {quizFlow[currentQuestion].options.map(option => (
-                        <button
-                          key={option.value}
-                          onClick={() => handleSelect(option)}
-                          style={{
-                            width: "100%", padding: "14px 20px",
-                            borderRadius: "14px", textAlign: "left",
-                            fontSize: "15px", fontWeight: "500",
-                            fontFamily: "'DM Sans', sans-serif",
-                            background: "#F9FAFB", color: "#374151",
-                            border: "2px solid #E5E7EB", cursor: "pointer",
-                            transition: "all 0.2s",
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.background = "#ECFDF5"; e.currentTarget.style.borderColor = "#6EE7B7"; e.currentTarget.style.color = "#022D20"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "#F9FAFB"; e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#374151"; }}
-                        >
-                          {tr(`landing.learn.riskAssessment.questions.${quizFlow[currentQuestion].id}.options.${option.value}`)}
-                        </button>
-                      ))}
+                    <div className="mt-5 flex items-center justify-center gap-1.5 text-center text-[10.5px] text-[#7A746B] font-medium">
+                      <Lock size={11} className="shrink-0 text-[#2E6B3E]" />
+                      <span>Private &amp; anonymous screening</span>
                     </div>
-                  </>
-                )}
-
-                {/* Quiz complete — score summary inside the card */}
-                {quizComplete && (
-                  <div
-                    style={{
-                      position: "relative",
-                      overflow: "hidden",
-                      borderRadius: "24px",
-                      padding: "40px 28px",
-                      textAlign: "center",
-                      background: "linear-gradient(145deg, #1F3A2E 0%, #32493B 55%, #3d5c4a 100%)",
-                      color: "#F7F3EC",
-                      boxShadow: "0 16px 40px rgba(22,33,25,0.25)",
-                    }}
-                  >
-                    <div
-                      aria-hidden
-                      style={{
-                        position: "absolute",
-                        right: -36,
-                        top: -40,
-                        width: 140,
-                        height: 140,
-                        borderRadius: "50%",
-                        background: "rgba(232,184,154,0.18)",
-                      }}
-                    />
-                    <div
-                      aria-hidden
-                      style={{
-                        position: "absolute",
-                        left: -30,
-                        bottom: -50,
-                        width: 120,
-                        height: 120,
-                        borderRadius: "50%",
-                        background: "rgba(168,184,154,0.2)",
-                      }}
-                    />
-
-                    <p
-                      style={{
-                        position: "relative",
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontSize: "12px",
-                        fontWeight: "700",
-                        letterSpacing: "0.22em",
-                        textTransform: "uppercase",
-                        color: "#BDCAA1",
-                        margin: "0 0 12px",
-                      }}
-                    >
-                      {tr('landing.learn.riskAssessment.scoreLabel')}
-                    </p>
-                    <p
-                      style={{
-                        position: "relative",
-                        fontFamily: "'Playfair Display', serif",
-                        fontSize: "72px",
-                        fontWeight: "600",
-                        color: score >= 5 ? "#E8CF7A" : "#F7F3EC",
-                        margin: "0 0 8px",
-                        lineHeight: 1,
-                        letterSpacing: "-0.03em",
-                      }}
-                    >
-                      {score}
-                    </p>
-                    <p
-                      style={{
-                        position: "relative",
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontSize: "13px",
-                        color: "rgba(247,243,236,0.65)",
-                        margin: "0 0 28px",
-                      }}
-                    >
-                      {riskLabel}
-                    </p>
-                    <button
-                      onClick={resetAssessment}
-                      style={{
-                        position: "relative",
-                        background: "#F7F3EC",
-                        color: "#1F3A2E",
-                        border: "none",
-                        borderRadius: "50px",
-                        padding: "12px 28px",
-                        fontSize: "14px",
-                        fontWeight: "700",
-                        cursor: "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                      }}
-                    >
-                      {tr('landing.learn.riskAssessment.takeAgain')}
-                    </button>
                   </div>
                 )}
 
-                {/* Already diagnosed path in card */}
-                {showAlreadyDiagnosed && !quizComplete && (
-                  <div style={{ textAlign: "center" }}>
-                    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "24px", fontWeight: "700", color: "#1D4ED8", margin: "0 0 8px 0" }}>{tr('landing.learn.riskAssessment.livingWithDiabetesTitle')}</h2>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "#6B7280", margin: "0 0 20px 0", lineHeight: "1.7" }}>{tr('landing.learn.riskAssessment.livingWithDiabetesLead')}</p>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "#9CA3AF" }}>
-                      <span className="ra-hint-desktop">{tr('landing.learn.riskAssessment.seeGuideDesktop')}</span>
-                      <span className="ra-hint-mobile">{tr('landing.learn.riskAssessment.seeGuideMobile')}</span>
-                    </p>
-                    <button
-                      onClick={resetAssessment}
-                      style={{
-                        marginTop: "24px", background: "transparent", color: "#6B7280",
-                        border: "1.5px solid #E5E7EB", borderRadius: "50px", padding: "10px 24px",
-                        fontSize: "14px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-                      }}
-                    >
-                      {tr('landing.learn.riskAssessment.goBack')}
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 
           </div>
+        ) : (
+          /* -------------------------------------------------------------------------
+              VIEW B: COMPREHENSIVE OVERVIEW AFTER THE TEST
+          -------------------------------------------------------------------------- */
+          <div className="max-w-4xl mx-auto animate-in fade-in duration-300">
+            
+            {/* Top Result Banner */}
+            <div className="relative overflow-hidden rounded-[28px] sm:rounded-[40px] bg-gradient-to-br from-[#182C1E] via-[#213828] to-[#122216] p-6 sm:p-10 text-white shadow-xl mb-6 sm:mb-8 border border-[#3D5A45]">
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                <div>
+                  <span
+                    className="inline-block text-[10.5px] sm:text-[11px] font-bold uppercase tracking-wider px-3.5 py-1 rounded-full mb-2.5"
+                    style={{ background: meta.bgColor, color: meta.color }}
+                  >
+                    {showAlreadyDiagnosed ? 'Living With Diabetes' : `Score: ${score} Points · ${meta.badgeLabel}`}
+                  </span>
+                  <h2 className="font-serif text-xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white leading-snug">
+                    {resultTitle}
+                  </h2>
+                  <p className="mt-2 text-xs sm:text-sm text-white/80 max-w-xl leading-relaxed">
+                    {resultSubtitle}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={resetAssessment}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white border border-white/20 px-4 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer"
+                  >
+                    <RotateCcw size={13} />
+                    <span>Retake</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePrint}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white text-[#182C1E] px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all hover:bg-[#F8F5EE] cursor-pointer"
+                    title="Print or Save PDF for Doctor Visit"
+                  >
+                    <Printer size={13} />
+                    <span className="hidden sm:inline">Print Summary</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* "What You Should Do" Header */}
+            <div className="mb-3.5 sm:mb-4 flex items-center justify-between">
+              <h3 className="font-serif text-lg sm:text-2xl font-bold text-[#1E2A24]">
+                {tr('landing.learn.riskAssessment.whatYouShouldDo') || 'What you should do next'}
+              </h3>
+              <span className="text-[11px] sm:text-xs text-[#2E6B3E] bg-[#E8F2E6] px-2.5 py-0.5 rounded-full font-bold">
+                Clinical Steps
+              </span>
+            </div>
+
+            {/* 4 Clinical Advice Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+              {meta.adviceKeys.map((key) => {
+                const advice = tr(`${base}.advice.${key}`);
+                return (
+                  <AdviceCard
+                    key={key}
+                    title={`${advice.emoji} ${advice.title}`}
+                    body={advice.body}
+                    accentColor={meta.color}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Action Buttons Row */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => navigate(user ? '/dashboard' : '/register')}
+                className="w-full sm:w-auto rounded-full bg-[#182C1E] hover:bg-[#27392E] text-white py-3.5 px-8 text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>{user ? 'Go to Dashboard' : (tr('landing.learn.riskAssessment.joinCommunity') || 'Get Started Free on DiaBuddy')}</span>
+                <ArrowRight size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('/community')}
+                className="w-full sm:w-auto rounded-full border border-[#D9D1C2] bg-white hover:bg-[#F8F5EE] text-[#4A4339] py-3.5 px-7 text-xs sm:text-sm font-semibold transition-all cursor-pointer text-center"
+              >
+                {tr('landing.learn.riskAssessment.openCommunity') || 'Explore Community'}
+              </button>
+            </div>
+
+            {/* Clinical Evidence Accordion at Bottom */}
+            <div className="mt-8 pt-6 border-t border-[#E0D8CA]">
+              <button
+                type="button"
+                onClick={() => setShowClinicalDisclaimer(!showClinicalDisclaimer)}
+                className="flex items-center justify-between w-full text-left text-xs text-[var(--brown-soft)] hover:text-[#1E2A24] font-semibold cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Stethoscope size={14} className="text-[#2E6B3E]" />
+                  <span>Clinical References &amp; Scientific Methodology</span>
+                </span>
+                <ChevronDown size={14} className={`transition-transform duration-200 ${showClinicalDisclaimer ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showClinicalDisclaimer && (
+                <div className="mt-3 p-4 rounded-2xl bg-[#F8F5EE] border border-[#E3DACE] text-xs text-[var(--brown-soft)] leading-relaxed space-y-2 animate-in fade-in duration-200">
+                  <p>
+                    <strong>American Diabetes Association (ADA) 7-Point Screening:</strong> The risk scoring algorithm is based on clinical guidelines from the American Diabetes Association (ADA) and CDC Diabetes Prevention Program (DPP).
+                  </p>
+                  <p>
+                    <strong>Educational Screener Notice:</strong> This assessment evaluates statistical risk indicators and does not constitute a clinical medical diagnosis. Please consult a qualified endocrinologist or healthcare provider for diagnostic laboratory tests (Fasting Plasma Glucose or HbA1c).
+                  </p>
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        <div className="mt-12 w-full">
+          <LearnFooter />
         </div>
-      </section>
 
-      <style>{`
-        .ra-hint-mobile { display: none; }
-        .ra-hint-desktop { display: inline; }
-
-        @media (max-width: 900px) {
-          .ra-page {
-            min-height: auto !important;
-            padding-top: 96px !important;
-            padding-bottom: 32px !important;
-          }
-          .ra-wrap {
-            padding: 0 16px !important;
-          }
-          .ra-header {
-            margin-bottom: 20px !important;
-            padding-top: 8px !important;
-            text-align: center !important;
-          }
-          .ra-header h1 {
-            font-size: clamp(1.55rem, 7vw, 2rem) !important;
-            margin-bottom: 10px !important;
-          }
-          .ra-header-lead {
-            font-size: 13.5px !important;
-            line-height: 1.55 !important;
-            margin: 0 auto !important;
-            max-width: 34ch !important;
-            color: #4B5563 !important;
-          }
-          .ra-pill {
-            letter-spacing: 0.08em !important;
-            padding: 5px 12px !important;
-            font-size: 10px !important;
-            margin-bottom: 14px !important;
-          }
-          .ra-layout {
-            grid-template-columns: 1fr !important;
-            gap: 18px !important;
-          }
-          .ra-col-quiz { order: 1; position: static !important; top: auto !important; }
-          .ra-col-info { order: 2; }
-          .ra-col-info:not(.ra-col-info--open) { display: none !important; }
-          .ra-quiz-card {
-            padding: 24px 18px !important;
-            border-radius: 20px !important;
-            min-height: 0 !important;
-            justify-content: flex-start !important;
-            box-shadow: 0 10px 32px rgba(0,0,0,0.08) !important;
-          }
-          .ra-quiz-card h2 {
-            font-size: 1.25rem !important;
-          }
-          .ra-stats {
-            display: none !important;
-          }
-          .ra-question {
-            font-size: 17px !important;
-            min-height: 0 !important;
-            margin-bottom: 16px !important;
-          }
-          .ra-result-banner {
-            padding: 24px 16px !important;
-            border-radius: 18px !important;
-          }
-          .ra-advice-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .ra-cta-row {
-            flex-direction: column !important;
-          }
-          .ra-cta-primary,
-          .ra-cta-secondary {
-            width: 100% !important;
-            text-align: center !important;
-            justify-content: center;
-          }
-          .ra-hint-mobile { display: inline; }
-          .ra-hint-desktop { display: none; }
-        }
-      `}</style>
-    </>
+      </main>
+    </div>
   );
 };
 
