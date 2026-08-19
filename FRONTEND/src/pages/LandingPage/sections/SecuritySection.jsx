@@ -30,68 +30,62 @@ const SecuritySection = () => {
   ];
 
   return (
-    <section className="w-full bg-[var(--cream-soft)] px-5 sm:px-8 lg:px-12 py-14 sm:py-20 scroll-mt-24">
-      <div className="mx-auto w-full max-w-[1400px]">
+    <section className="w-full bg-[var(--cream-soft)] px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 scroll-mt-24">
+      <div className="mx-auto w-full max-w-[1360px]">
 
-        {/* Reassuring Card with Botanical Leaf Background & Protected Readability */}
-        <div className="relative overflow-hidden rounded-[32px] sm:rounded-[40px] lg:rounded-[44px] border border-[#E7DFCE] bg-[#F8F5EE] shadow-[0_12px_40px_rgba(30,42,36,0.06)] min-h-[280px] flex items-center">
-          
-          {/* Natural Botanical Leaf Artwork - soft, light, and airy sage green */}
+        {/* Sleek, Horizontal Panoramic Card with Integrated Botanical Leaf Background */}
+        <div
+          className="relative overflow-hidden rounded-[24px] sm:rounded-[32px] lg:rounded-[36px] border border-[#E7DFCE] shadow-[0_8px_32px_rgba(30,42,36,0.05)] flex items-center bg-[#EDEAD9] bg-no-repeat bg-cover bg-[position:95%_center] sm:bg-right"
+          style={{
+            backgroundImage: `url(${secureBg})`,
+          }}
+        >
+          {/* Gentle soft gradient fade on the left to keep text ultra crisp */}
           <div
-            className="pointer-events-none absolute inset-y-0 right-0 w-full sm:w-[60%] lg:w-[40%] select-none bg-no-repeat bg-right bg-cover lg:bg-contain opacity-45 sm:opacity-60 lg:opacity-75 transition-opacity duration-300"
-            style={{
-              backgroundImage: `url(${secureBg})`,
-              backgroundPosition: 'right center',
-            }}
+            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#EDEAD9] via-[#EDEAD9]/90 sm:via-[#EDEAD9]/60 to-transparent sm:w-3/4 z-[1]"
             aria-hidden="true"
           />
 
-          {/* Gentle Left-to-Right Fade (ensures heading area stays clean while leaving leaves bright on right) */}
-          <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#F8F5EE] via-[#F8F5EE]/70 to-transparent sm:w-2/3 z-[1]"
-            aria-hidden="true"
-          />
-
-          {/* Content container */}
-          <div className="relative z-10 w-full flex flex-col gap-8 px-6 py-8 sm:px-10 sm:py-12 lg:flex-row lg:items-center lg:gap-12 lg:px-14 lg:py-14 lg:max-w-[82%]">
+          {/* Content container - compact vertical padding, wide horizontal spread */}
+          <div className="relative z-10 w-full flex flex-col gap-5 px-5 py-5 sm:px-8 sm:py-6 lg:flex-row lg:items-center lg:gap-8 lg:px-10 lg:py-6 lg:max-w-[80%]">
             
-            {/* Left: Reassuring Human-Centered Heading */}
-            <div className="shrink-0 max-w-[340px] lg:max-w-[290px]">
-              <h2 className="font-serif text-2xl sm:text-3xl lg:text-[2.25rem] font-normal leading-[1.18] tracking-tight text-[#1E2A24]">
-                {tr('landing.trust.headingLine1') || 'Your health journey,'}{' '}
+            {/* Left: Heading */}
+            <div className="shrink-0 max-w-[280px] lg:max-w-[230px]">
+              <h2 className="font-serif text-xl sm:text-2xl lg:text-[1.75rem] font-normal leading-[1.16] tracking-tight text-[#1E2A24]">
+                {tr('landing.trust.headingLine1') || 'Your health data'}{' '}
                 <br />
                 <span className="italic font-medium text-[#2E6B3E]">
-                  {tr('landing.trust.headingLine2') || 'on your terms.'}
+                  {tr('landing.trust.headingLine2') || 'deserves to stay yours.'}
                 </span>
               </h2>
             </div>
 
-            {/* Subtle vertical divider on desktop */}
-            <div className="hidden lg:block w-px self-stretch bg-[#1E2A24]/15 my-2" />
+            {/* Subtle vertical divider between heading and values */}
+            <div className="hidden lg:block w-px self-stretch bg-[#1E2A24]/15 my-0.5" />
 
-            {/* Right: 3 Clean Value Principles (soft card backdrops on mobile for flawless readability, airy columns on desktop) */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6 lg:gap-8 flex-1">
+            {/* Right: 3 Clean, Compact Value Principles */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 lg:gap-5 flex-1">
               {humanValues.map((item, index) => (
                 <div
                   key={index}
-                  className={`flex flex-col items-start rounded-2xl p-4.5 sm:p-0 bg-white/80 sm:bg-transparent border border-[#E7DFCE]/90 sm:border-0 shadow-2xs sm:shadow-none backdrop-blur-[2px] sm:backdrop-blur-none ${
+                  className={`flex flex-col items-start ${
                     index !== 0
-                      ? 'sm:border-l sm:border-[#1E2A24]/15 sm:pl-6 lg:pl-8'
+                      ? 'sm:border-l sm:border-[#1E2A24]/15 sm:pl-4 lg:pl-5'
                       : ''
                   }`}
                 >
                   {/* Clean Number Badge */}
-                  <span className="font-serif text-sm sm:text-base font-bold text-[#2E6B3E] mb-1.5 block">
+                  <span className="font-serif text-xs font-bold text-[#2E6B3E] mb-0.5 block">
                     {item.num}
                   </span>
 
-                  {/* Stronger Title */}
-                  <h3 className="font-serif text-base sm:text-lg lg:text-[1.12rem] font-bold text-[#1E2A24] leading-snug">
+                  {/* Title */}
+                  <h3 className="font-serif text-sm sm:text-[15px] font-bold text-[#1E2A24] leading-snug">
                     {item.title}
                   </h3>
 
-                  {/* Description with high-contrast text */}
-                  <p className="mt-2 text-xs sm:text-[13.5px] leading-relaxed text-[#4A4339] font-normal">
+                  {/* Description */}
+                  <p className="mt-1 text-xs sm:text-[12.5px] leading-relaxed text-[#4A4339] font-normal">
                     {item.desc}
                   </p>
                 </div>

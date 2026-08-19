@@ -27,7 +27,7 @@ const Hero = () => {
   };
 
   const goStart = () => {
-    navigate(user ? '/dashboard' : '/login');
+    navigate(user ? '/dashboard' : '/register');
   };
 
   return (
@@ -39,7 +39,7 @@ const Hero = () => {
         backgroundPosition: 'center center',
         backgroundRepeat: 'no-repeat',
       }}
-      className="relative w-full min-h-[90vh] flex items-center overflow-hidden bg-[#F7F3EC] pt-28 sm:pt-36 pb-20 sm:pb-28"
+      className="relative w-full min-h-[96vh] lg:min-h-[100vh] flex items-center overflow-hidden bg-[#F7F3EC] pt-32 sm:pt-40 lg:pt-44 pb-24 sm:pb-32 lg:pb-36"
     >
       {/* Gradient Overlay — authentic sage green tones preserved */}
       <div

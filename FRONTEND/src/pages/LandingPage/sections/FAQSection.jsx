@@ -126,7 +126,7 @@ export default function FAQSection() {
   return (
     <section
       id="faq"
-      className="w-full px-5 sm:px-8 lg:px-12 py-14 sm:py-20 scroll-mt-24"
+      className="w-full px-6 sm:px-8 lg:px-12 py-14 sm:py-20 scroll-mt-24"
       style={{
         background: 'linear-gradient(180deg, var(--cream-soft) 0%, rgba(216, 226, 220, 0.38) 50%, var(--cream-soft) 100%)',
       }}
@@ -134,26 +134,49 @@ export default function FAQSection() {
       <div className="mx-auto max-w-6xl">
 
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
+        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
           <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-[0.24em] text-[var(--sage-deep)]">
             HELP &amp; ANSWERS
           </p>
-          <h2 className="mt-2 font-serif text-[1.65rem] sm:text-3xl lg:text-[2.65rem] text-[var(--brown)] tracking-tight leading-tight">
+          <h2 className="mt-2 font-serif text-2xl sm:text-3xl lg:text-[2.65rem] text-[var(--brown)] tracking-tight leading-tight">
             Got questions?{' '}
             <span className="italic text-[var(--sage-deep)] font-medium">
               We got answers.
             </span>
           </h2>
-          <p className="mt-2.5 text-xs sm:text-sm text-[var(--brown-soft)] font-medium leading-relaxed max-w-lg mx-auto">
+          <p className="mt-2 text-xs sm:text-sm text-[var(--brown-soft)] font-medium leading-relaxed max-w-lg mx-auto">
             Everything you need to know about logging, doctor reports, privacy, and getting started.
           </p>
         </div>
 
-        {/* FAQ Layout: Responsive Category Grid / Sidebar + Accordion */}
+        {/* Mobile/Tablet Horizontal Pill Switcher (Full Text with Zero Truncation) */}
+        <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-3 pt-1 px-1 scrollbar-none -mx-1 mb-5">
+          {categories.map((cat, idx) => {
+            const Icon = cat.icon;
+            const isActive = activeCategory === idx;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleCategoryChange(idx)}
+                className={`inline-flex items-center gap-2 shrink-0 rounded-full px-4 py-2.5 text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  isActive
+                    ? 'bg-[#182C1E] text-white shadow-md scale-[1.02]'
+                    : 'bg-white text-[var(--brown)] border border-[var(--line)] shadow-2xs hover:bg-white/80'
+                }`}
+              >
+                <Icon size={14} className={isActive ? 'text-[#8DB496]' : 'text-[var(--brown-soft)]'} />
+                <span>{cat.name}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* FAQ Layout: Desktop Sidebar (4 cols) + Accordion (8 cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
 
-          {/* Category Selector: 2x2 Grid on Mobile, 4 across on Tablet, Vertical Sidebar on Desktop */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 lg:flex lg:flex-col gap-2 sm:gap-3 lg:col-span-4">
+          {/* Desktop Left Sidebar Tabs */}
+          <div className="hidden lg:flex lg:flex-col gap-2.5 lg:col-span-4">
             {categories.map((cat, idx) => {
               const Icon = cat.icon;
               const isActive = activeCategory === idx;
@@ -162,27 +185,27 @@ export default function FAQSection() {
                   key={cat.id}
                   type="button"
                   onClick={() => handleCategoryChange(idx)}
-                  className={`w-full text-left rounded-2xl p-3 sm:p-4 lg:p-4.5 transition-all duration-200 border flex items-center justify-between gap-3 cursor-pointer ${
+                  className={`w-full text-left rounded-2xl p-4 lg:p-4.5 transition-all duration-200 border flex items-center justify-between gap-3 cursor-pointer ${
                     isActive
                       ? 'bg-white border-[#2E6B3E] shadow-sm ring-2 ring-[#2E6B3E]/20 lg:translate-x-1'
                       : 'bg-white/75 hover:bg-white border-[var(--line)] text-[var(--brown-soft)] hover:text-[var(--brown)] shadow-2xs hover:border-[#2E6B3E]/30'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 w-full">
+                  <div className="flex items-center gap-3 min-w-0 w-full">
                     <span
-                      className={`flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
                         isActive
                           ? 'bg-[#182C1E] text-white shadow-xs'
                           : 'bg-[var(--cream-soft)] text-[var(--brown-soft)]'
                       }`}
                     >
-                      <Icon size={15} />
+                      <Icon size={16} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <span className={`text-[11.5px] sm:text-sm font-bold block leading-tight truncate ${isActive ? 'text-[var(--brown)]' : 'text-[var(--brown-soft)]'}`}>
+                      <span className={`text-sm font-bold block leading-tight ${isActive ? 'text-[var(--brown)]' : 'text-[var(--brown-soft)]'}`}>
                         {cat.name}
                       </span>
-                      <span className="text-[9.5px] sm:text-[11px] text-[var(--brown-soft)]/80 font-medium block mt-0.5">
+                      <span className="text-[11px] text-[var(--brown-soft)]/80 font-medium block mt-0.5">
                         {cat.faqs.length} questions
                       </span>
                     </div>
@@ -190,7 +213,7 @@ export default function FAQSection() {
 
                   <ChevronRight
                     size={16}
-                    className={`hidden lg:block shrink-0 transition-transform ${
+                    className={`shrink-0 transition-transform ${
                       isActive ? 'text-[#2E6B3E] translate-x-0.5' : 'text-[var(--line)]'
                     }`}
                   />
@@ -200,19 +223,7 @@ export default function FAQSection() {
           </div>
 
           {/* RIGHT: Questions & Answers Accordion (8 cols) */}
-          <div className="lg:col-span-8 space-y-3">
-            {/* Mobile/Tablet active topic indicator */}
-            <div className="lg:hidden flex items-center justify-between px-1 py-1 text-xs text-[var(--brown-soft)]">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#2E6B3E]" />
-                <span className="font-bold text-[var(--brown)]">
-                  {categories[activeCategory]?.name}
-                </span>
-              </div>
-              <span className="font-medium text-[11px]">
-                {activeCategory + 1} of {categories.length} topics
-              </span>
-            </div>
+          <div className="lg:col-span-8 space-y-3.5">
             {currentFaqs.map((faq, index) => {
               const isOpen = openIndex === index;
               return (
@@ -228,7 +239,7 @@ export default function FAQSection() {
                   <button
                     type="button"
                     onClick={() => toggleQuestion(index)}
-                    className="w-full text-left p-4 sm:p-5.5 flex items-center justify-between gap-3 sm:gap-4 cursor-pointer select-none"
+                    className="w-full text-left p-4.5 sm:p-5.5 flex items-center justify-between gap-3 sm:gap-4 cursor-pointer select-none"
                     aria-expanded={isOpen}
                   >
                     <span className="font-serif text-sm sm:text-base lg:text-lg font-bold text-[var(--brown)] flex-1 leading-snug">
@@ -249,8 +260,8 @@ export default function FAQSection() {
 
                   {/* Answer Content */}
                   {isOpen && (
-                    <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 text-xs sm:text-sm lg:text-[14.5px] leading-relaxed text-[var(--brown-soft)] font-medium animate-in fade-in duration-200">
-                      <div className="border-t border-[var(--line)]/60 pt-3 sm:pt-4">
+                    <div className="px-4.5 sm:px-6 pb-4.5 sm:pb-6 pt-0 text-xs sm:text-sm lg:text-[14.5px] leading-relaxed text-[var(--brown-soft)] font-medium animate-in fade-in duration-200">
+                      <div className="border-t border-[var(--line)]/60 pt-3.5 sm:pt-4">
                         {faq.a}
                       </div>
                     </div>
