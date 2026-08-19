@@ -149,11 +149,11 @@ export default function FAQSection() {
           </p>
         </div>
 
-        {/* 2-Column FAQ Layout (Category Tabs on Left + Accordion on Right) */}
+        {/* FAQ Layout: Responsive Category Grid / Sidebar + Accordion */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
 
-          {/* LEFT: Category Selector Tabs (4 cols) */}
-          <div className="lg:col-span-4 flex flex-row lg:flex-col gap-2.5 overflow-x-auto pb-2 lg:pb-0 scrollbar-none">
+          {/* Category Selector: 2x2 Grid on Mobile, 4 across on Tablet, Vertical Sidebar on Desktop */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 lg:flex lg:flex-col gap-2.5 sm:gap-3 lg:col-span-4">
             {categories.map((cat, idx) => {
               const Icon = cat.icon;
               const isActive = activeCategory === idx;
@@ -162,27 +162,27 @@ export default function FAQSection() {
                   key={cat.id}
                   type="button"
                   onClick={() => handleCategoryChange(idx)}
-                  className={`w-full text-left rounded-2xl p-4 sm:p-4.5 transition-all duration-200 border flex items-center justify-between gap-3 cursor-pointer shrink-0 sm:shrink ${
+                  className={`w-full text-left rounded-2xl p-3 sm:p-4 lg:p-4.5 transition-all duration-200 border flex items-center justify-between gap-3 cursor-pointer ${
                     isActive
-                      ? 'bg-white border-[var(--sage-deep)]/50 shadow-sm translate-x-0 lg:translate-x-1'
-                      : 'bg-white/70 hover:bg-white border-[var(--line)] text-[var(--brown-soft)] hover:text-[var(--brown)] shadow-2xs'
+                      ? 'bg-white border-[#2E6B3E] shadow-sm ring-2 ring-[#2E6B3E]/20 lg:translate-x-1'
+                      : 'bg-white/75 hover:bg-white border-[var(--line)] text-[var(--brown-soft)] hover:text-[var(--brown)] shadow-2xs hover:border-[#2E6B3E]/30'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 w-full">
                     <span
-                      className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
                         isActive
-                          ? 'bg-[#182C1E] text-white'
+                          ? 'bg-[#182C1E] text-white shadow-xs'
                           : 'bg-[var(--cream-soft)] text-[var(--brown-soft)]'
                       }`}
                     >
                       <Icon size={16} />
                     </span>
-                    <div>
-                      <span className={`text-sm font-bold block leading-tight ${isActive ? 'text-[var(--brown)]' : 'text-[var(--brown-soft)]'}`}>
+                    <div className="min-w-0 flex-1">
+                      <span className={`text-xs sm:text-sm font-bold block leading-tight ${isActive ? 'text-[var(--brown)]' : 'text-[var(--brown-soft)]'}`}>
                         {cat.name}
                       </span>
-                      <span className="text-[10px] text-[var(--brown-soft)] font-normal">
+                      <span className="text-[10px] sm:text-[11px] text-[var(--brown-soft)]/80 font-medium block mt-0.5">
                         {cat.faqs.length} questions
                       </span>
                     </div>
@@ -190,8 +190,8 @@ export default function FAQSection() {
 
                   <ChevronRight
                     size={16}
-                    className={`shrink-0 transition-transform ${
-                      isActive ? 'text-[var(--sage-deep)] translate-x-0.5' : 'text-transparent lg:text-[var(--line)]'
+                    className={`hidden lg:block shrink-0 transition-transform ${
+                      isActive ? 'text-[#2E6B3E] translate-x-0.5' : 'text-[var(--line)]'
                     }`}
                   />
                 </button>
@@ -201,6 +201,18 @@ export default function FAQSection() {
 
           {/* RIGHT: Questions & Answers Accordion (8 cols) */}
           <div className="lg:col-span-8 space-y-3.5">
+            {/* Mobile/Tablet active topic indicator */}
+            <div className="lg:hidden flex items-center justify-between px-1 py-1 text-xs text-[var(--brown-soft)]">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#2E6B3E]" />
+                <span className="font-bold text-[var(--brown)]">
+                  {categories[activeCategory]?.name}
+                </span>
+              </div>
+              <span className="font-medium">
+                {activeCategory + 1} of {categories.length} topics
+              </span>
+            </div>
             {currentFaqs.map((faq, index) => {
               const isOpen = openIndex === index;
               return (

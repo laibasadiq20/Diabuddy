@@ -284,10 +284,11 @@ const CommunitySection = () => {
                   "
                 >
                   {/* Join Community CTA */}
+                  {/* Primary CTA Button */}
                   <button
                     type="button"
                     onClick={() =>
-                      navigate(user ? '/community' : '/login')
+                      navigate('/community')
                     }
                     className="
                       inline-flex
@@ -310,22 +311,23 @@ const CommunitySection = () => {
                       hover:shadow-lg
                       active:scale-[0.98]
                       sm:w-auto
+                      cursor-pointer
                     "
                   >
                     <Users size={16} />
                     <span>
                       {user
                         ? 'Open Community Feed'
-                        : 'Join the Community'}
+                        : 'Explore Community Preview'}
                     </span>
                     <ArrowRight size={16} />
                   </button>
 
-                  {/* Explore / Feed Preview */}
+                  {/* Secondary Auth Button */}
                   <button
                     type="button"
                     onClick={() =>
-                      navigate(user ? '/dashboard' : '/login')
+                      navigate(user ? '/dashboard' : '/register')
                     }
                     className="
                       inline-flex
@@ -349,9 +351,10 @@ const CommunitySection = () => {
                       hover:bg-white/90
                       active:scale-[0.98]
                       sm:w-auto
+                      cursor-pointer
                     "
                   >
-                    <span>{user ? 'My Dashboard' : 'Sign In'}</span>
+                    <span>{user ? 'My Dashboard' : 'Sign Up Free'}</span>
                   </button>
                 </div>
               </div>
