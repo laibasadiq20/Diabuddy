@@ -265,15 +265,16 @@ const DiabetesTypes = ({ showHeader = true }) => {
         </div>
 
         {/* =========================================================================
-            SECTION 3: BANNER — learn.png as full background, text on right
+            SECTION 3: BANNER — full book and leaves completely visible
         ========================================================================== */}
         <div
-          className="my-8 sm:my-14 rounded-[20px] sm:rounded-[32px] overflow-hidden shadow-sm relative"
+          className="my-8 sm:my-14 rounded-[20px] sm:rounded-[32px] overflow-hidden shadow-sm relative w-full sm:aspect-[1712/578] flex items-center justify-end"
           style={{
             backgroundImage: `url(${learnIllustration})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
+            backgroundColor: '#F2ECE3',
             minHeight: '260px',
           }}
         >
@@ -281,15 +282,15 @@ const DiabetesTypes = ({ showHeader = true }) => {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'linear-gradient(to right, transparent 30%, rgba(240,237,228,0.85) 55%, rgba(240,237,228,0.95) 100%)',
+              background: 'linear-gradient(to right, transparent 35%, rgba(242,236,227,0.7) 58%, rgba(242,236,227,0.92) 100%)',
             }}
             aria-hidden="true"
           />
 
           {/* Text floats on the right open space */}
-          <div className="relative z-10 flex items-center justify-end h-full min-h-[260px] px-8 sm:px-14 lg:px-20 py-10">
-            <div className="max-w-[52%] sm:max-w-[46%]">
-              <h2 className="font-serif text-xl sm:text-2xl lg:text-[2.1rem] font-bold text-[#1E2A24] leading-[1.2] tracking-tight">
+          <div className="relative z-10 flex items-center justify-end h-full w-full px-6 sm:px-12 lg:px-20 py-8 sm:py-6">
+            <div className="w-full max-w-[55%] sm:max-w-[48%] lg:max-w-[44%]">
+              <h2 className="font-serif text-lg sm:text-2xl lg:text-[2.2rem] font-bold text-[#1E2A24] leading-[1.18] tracking-tight">
                 Understanding the type
                 <br />
                 <em className="italic font-semibold text-[#2F6A4F]">
@@ -297,16 +298,16 @@ const DiabetesTypes = ({ showHeader = true }) => {
                 </em>
               </h2>
 
-              <p className="mt-3 text-xs sm:text-[13.5px] text-[#554D43] leading-relaxed font-normal">
+              <p className="mt-2.5 sm:mt-3.5 text-xs sm:text-sm lg:text-[14px] text-[#554D43] leading-relaxed font-normal">
                 Knowing the type of diabetes is the first step towards smarter choices and healthier tomorrows.
               </p>
 
-              <div className="mt-4 sm:mt-5">
+              <div className="mt-4 sm:mt-6">
                 <Link
                   to="/learn/risk-assessment"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#182C1E] hover:bg-[#27392E] text-white px-5 sm:px-7 py-2.5 sm:py-3 text-xs sm:text-sm font-bold shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#182C1E] hover:bg-[#27392E] text-white px-5 sm:px-7 py-2.5 sm:py-3.5 text-xs sm:text-sm font-bold shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.98]"
                 >
-                  <span>Explore Diabetes Basics</span>
+                  <span>Take Risk Assessment</span>
                   <ArrowRight size={14} />
                 </Link>
               </div>
@@ -327,7 +328,7 @@ const DiabetesTypes = ({ showHeader = true }) => {
               <span className="h-px w-6 sm:w-8 bg-[#8B9D8B]" />
             </div>
 
-            <h2 className="font-serif text-xl sm:text-3xl lg:text-4xl font-bold text-[#1E2A24] tracking-tight text-center">
+            <h2 className="font-serif text-xl sm:text-3xl lg:text-4xl font-bold text-[#1E2A24] tracking-tight text-center sm:translate-x-2.5">
               Small knowledge.{' '}
               <span className="italic font-medium text-[#2F6A4F]">
                 Big difference.
