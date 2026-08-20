@@ -5,7 +5,7 @@ import { API_URL } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n/I18nContext';
 import AppSidebar from '../../components/AppSidebar';
-import { ArrowLeft, Link2Off, RefreshCw, Watch } from 'lucide-react';
+import { ArrowLeft, Link2Off, Loader2, RefreshCw, Watch } from 'lucide-react';
 import { formatClock12 } from '../../utils/timezone';
 
 const t = theme;
@@ -91,7 +91,15 @@ export default function GoogleHealth() {
       setMessage(
         `${tr('googleHealth.syncedForToday')}${when ? ` ${tr('googleHealth.syncedAt').replace('{time}', when)}` : ''}: ${parts.join(' · ')}. ${tr('googleHealth.savedInActivityLogs')}`
       );
-      await loadStatus();
+      setStatus((prev) => ({
+        ...prev,
+        connected: true,
+        lastSyncAt: data.data?.lastSyncAt || new Date().toISOString(),
+        todaySteps: data.data?.steps,
+        todayCalories: data.data?.calories,
+        todayDistanceKm: data.data?.distanceKm,
+        todayDurationMinutes: data.data?.durationMinutes,
+      }));
     } catch (err) {
       setError(err.message || tr('googleHealth.syncFailed'));
     } finally {
@@ -264,11 +272,16 @@ export default function GoogleHealth() {
                           fontSize: 14,
                           cursor: busy ? 'wait' : 'pointer',
                           fontFamily: t.fontBody,
-                          opacity: busy ? 0.7 : 1,
+                          opacity: busy ? 0.75 : 1,
+                          transition: 'all 0.15s ease',
                         }}
                       >
-                        <RefreshCw size={16} />
-                        {tr('googleHealth.syncSteps')}
+                        {busy ? (
+                          <Loader2 size={16} style={{ animation: 'dbSpin 0.8s linear infinite' }} />
+                        ) : (
+                          <RefreshCw size={16} />
+                        )}
+                        {busy ? tr('googleHealth.syncing') || 'Syncing...' : tr('googleHealth.syncSteps')}
                       </button>
                       <button
                         type="button"
@@ -317,6 +330,12 @@ export default function GoogleHealth() {
           </div>
         </div>
       </main>
+      <style>{`
+        @keyframes dbSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

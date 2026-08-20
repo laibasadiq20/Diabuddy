@@ -229,11 +229,30 @@ exports.getTodaySummary = async (req, res) => {
       timestamp: { $gte: startOfToday, $lte: endOfToday },
     };
 
+    // Run all 8 summary queries concurrently in parallel with lean() for blazing speed
+    const [
+      glucoseLogs,
+      mealLogs,
+      insulinLogs,
+      medicationLogs,
+      waterLogs,
+      exerciseLogs,
+      sleepLogs,
+      moodLogs,
+    ] = await Promise.all([
+      GlucoseLog.find(todayQuery).sort({ timestamp: -1 }).lean(),
+      MealLog.find(todayQuery).lean(),
+      InsulinLog.find(todayQuery).lean(),
+      MedicationLog.find(todayQuery).lean(),
+      WaterLog.find(todayQuery).lean(),
+      ExerciseLog.find(todayQuery).lean(),
+      SleepLog.find(todayQuery).sort({ timestamp: -1 }).lean(),
+      MoodLog.find(todayQuery).sort({ timestamp: -1 }).lean(),
+    ]);
+
     // 1. Blood sugar count & latest
-    const glucoseLogs = await GlucoseLog.find(todayQuery).sort({ timestamp: -1 });
     const latestGlucoseLog = glucoseLogs[0] || null;
     const latestGlucose = latestGlucoseLog ? `${latestGlucoseLog.glucoseLevel} ${latestGlucoseLog.unit}` : null;
-    // mg/dL-normalized value so the frontend can convert to the user's preferred unit
     const latestGlucoseMgDl = latestGlucoseLog
       ? latestGlucoseLog.unit === 'mmol/L'
         ? latestGlucoseLog.glucoseLevel * 18
@@ -242,37 +261,25 @@ exports.getTodaySummary = async (req, res) => {
     const glucoseCount = glucoseLogs.length;
 
     // 2. Meals logged
-    const mealLogs = await MealLog.find(todayQuery);
     const mealsCount = mealLogs.length;
 
     // 3. Insulin Doses total
-    const insulinLogs = await InsulinLog.find(todayQuery);
-    const insulinUnits = insulinLogs.reduce((sum, log) => sum + log.units, 0);
+    const insulinUnits = insulinLogs.reduce((sum, log) => sum + (Number(log.units) || 0), 0);
 
     // 4. Medications Taken vs Missed
-    const medicationLogs = await MedicationLog.find(todayQuery);
     const medsTaken = medicationLogs.filter((log) => log.status === 'Taken').length;
 
     // 5. Water intake total
-    const waterLogs = await WaterLog.find(todayQuery);
-    const waterTotal = waterLogs.reduce((sum, log) => sum + log.amount, 0);
+    const waterTotal = waterLogs.reduce((sum, log) => sum + (Number(log.amount) || 0), 0);
 
     // 6. Exercise Minutes + steps
-    // NOTE: for GoogleHealth-sourced logs, the sync writes a `gh-day-*` daily rollup
-    // (steps for the whole day) plus one row per `gh-ex-*` workout. To avoid double
-    // counting, googleHealthController zeroes out the overlapping field on one side
-    // (rollup duration when workouts exist, workout steps always) — so a plain sum
-    // here is already de-duplicated. Manual logs have no such overlap and just add up.
-    const exerciseLogs = await ExerciseLog.find(todayQuery);
     const exerciseTotal = exerciseLogs.reduce((sum, log) => sum + (Number(log.duration) || 0), 0);
     const stepsTotal = exerciseLogs.reduce((sum, log) => sum + (Number(log.steps) || 0), 0);
 
     // 7. Sleep Hours
-    const sleepLogs = await SleepLog.find(todayQuery).sort({ timestamp: -1 });
     const sleepHours = sleepLogs[0] ? sleepLogs[0].totalHours : 0;
 
     // 8. Mood today
-    const moodLogs = await MoodLog.find(todayQuery).sort({ timestamp: -1 });
     const moodToday = moodLogs[0] ? moodLogs[0].mood : null;
 
     const waterGoal = Number(req.user?.dailyGoals?.waterMl) || 2000;

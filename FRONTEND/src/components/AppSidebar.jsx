@@ -48,8 +48,6 @@ export default function AppSidebar() {
     { label: tr('nav.community'), path: '/community', icon: Users },
     { label: tr('nav.messages'), path: '/messages', icon: MessageSquare },
     { label: tr('nav.toolbox'), path: '/toolbox', icon: Wrench },
-    { label: tr('nav.notifications'), path: '/notifications', icon: BellRing },
-    { label: tr('nav.account'), path: '/account', icon: UserRound },
     { label: tr('nav.settings'), path: '/settings', icon: SettingsIcon },
   ];
 
@@ -58,9 +56,7 @@ export default function AppSidebar() {
     { label: tr('nav.users'), path: '/admin?tab=users', icon: Users, tab: 'users' },
     { label: tr('nav.reports'), path: '/admin?tab=reports', icon: BellRing, tab: 'reports' },
     { label: tr('nav.topics'), path: '/admin?tab=topics', icon: ClipboardList, tab: 'topics' },
-    { label: tr('nav.notifications'), path: '/admin?tab=notifications', icon: Bell, tab: 'notifications' },
     { label: tr('nav.viewCommunity'), path: '/community', icon: MessageSquare, soft: true },
-    { label: tr('nav.account'), path: '/account', icon: UserRound },
     { label: tr('nav.settings'), path: '/settings', icon: SettingsIcon },
   ];
 

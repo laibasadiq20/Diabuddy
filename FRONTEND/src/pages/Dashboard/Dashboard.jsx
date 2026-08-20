@@ -172,14 +172,14 @@ export default function Dashboard() {
   const { user, authHeaders } = useAuth();
   const { t: tr } = useI18n();
   const navigate = useNavigate();
-  const [summary, setSummary] = useState(null);
-  const [weekReport, setWeekReport] = useState(null);
-  const [streak, setStreak] = useState(null);
+  const [summary, setSummary] = useState(() => getCachedData('dashboard_summary') || null);
+  const [weekReport, setWeekReport] = useState(() => getCachedData('dashboard_report') || null);
+  const [streak, setStreak] = useState(() => getCachedData('dashboard_streak') || null);
   const [latestPost, setLatestPost] = useState(null);
-  const [todayReminders, setTodayReminders] = useState(null);
+  const [todayReminders, setTodayReminders] = useState(() => getCachedData('dashboard_reminders') || null);
   const [tomorrowReminders, setTomorrowReminders] = useState([]);
   const [googleHealth, setGoogleHealth] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !getCachedData('dashboard_summary'));
 
   const toggleReminderComplete = async (id) => {
     const remId = String(id);
@@ -341,7 +341,7 @@ export default function Dashboard() {
         const results = await Promise.allSettled([
           fetch(`${API_URL}/health-logs/summary?tzOffset=${tzOffset}`, { credentials: 'include', headers }),
           fetch(`${API_URL}/health-logs/report?preset=7d&tzOffset=${tzOffset}`, { credentials: 'include', headers }),
-          fetch(`${API_URL}/health-logs/streak?tzOffset=${tzOffset}`, { credentials: 'include', headers }),
+          fetch(`${API_URL}/health-logs/streak?tzOffset=${tzOffset}&days=45`, { credentials: 'include', headers }),
           fetch(`${API_URL}/posts?sort=latest&page=1&limit=1`, { credentials: 'include', headers }),
           fetch(`${API_URL}/google-health/status`, { credentials: 'include', headers }),
           fetch(`${API_URL}/reminders?tzOffset=${tzOffset}`, { credentials: 'include', headers }),
@@ -536,12 +536,12 @@ export default function Dashboard() {
               backgroundImage: `url(${heroSceneryBg})`,
             }}
           >
-            {/* Ambient Contrast Gradient Overlay */}
+            {/* Ambient Contrast Gradient Overlay - Soft & Luminous */}
             <div
               className={`pointer-events-none absolute inset-0 z-0 ${
                 isNight
-                  ? 'bg-gradient-to-r from-[#0C1510]/92 via-[#0C1510]/70 to-transparent'
-                  : 'bg-gradient-to-r from-[#182C1E]/88 via-[#182C1E]/60 to-transparent'
+                  ? 'bg-gradient-to-r from-[#18261F]/78 via-[#18261F]/40 to-transparent'
+                  : 'bg-gradient-to-r from-[#203628]/72 via-[#203628]/35 to-transparent'
               }`}
               aria-hidden="true"
             />
@@ -703,16 +703,22 @@ export default function Dashboard() {
               </div>
 
               <div className="db-home-glance-card db-home-glance-card--report">
-                <span className="db-home-glance-icon" style={{ background: t.sageSoft, color: t.sageDeep }}>
-                  <Target size={16} />
-                </span>
-                <span className="db-home-glance-label">{tr('dashboard.glance.timeInRange')}</span>
-                {tir != null ? (
-                  <strong>{tir}%</strong>
-                ) : (
-                  <strong className="is-empty">{tr('dashboard.glance.noTir')}</strong>
-                )}
-                <span className="db-home-glance-sub">{tirLow}–{tirHigh} {unitLabel} · {tr('dashboard.glance.days7')}</span>
+                <div className="db-home-glance-report-main">
+                  <span className="db-home-glance-icon" style={{ background: t.sageSoft, color: t.sageDeep }}>
+                    <Target size={16} />
+                  </span>
+                  <div className="db-home-glance-report-text">
+                    <span className="db-home-glance-label">{tr('dashboard.glance.timeInRange')}</span>
+                    <span className="db-home-glance-sub">{tirLow}–{tirHigh} {unitLabel} · {tr('dashboard.glance.days7')}</span>
+                  </div>
+                </div>
+                <div className="db-home-glance-report-val">
+                  {tir != null ? (
+                    <strong>{tir}%</strong>
+                  ) : (
+                    <strong className="is-empty">{tr('dashboard.glance.noTir')}</strong>
+                  )}
+                </div>
               </div>
             </div>
           </section>
@@ -1230,28 +1236,32 @@ export default function Dashboard() {
         .db-home-hero {
           position: relative;
           overflow: hidden;
-          display: block;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-height: 160px;
           margin: 0 0 22px;
-          padding: 22px 24px 24px;
+          padding: 26px 32px;
           border-radius: 20px;
           border: 1px solid rgba(255, 255, 255, 0.16);
           background-size: cover;
-          background-position: center right;
+          background-position: right 30%;
           background-repeat: no-repeat;
-          color: #F4F0E8;
-          box-shadow: 0 12px 32px rgba(24, 44, 30, 0.18);
+          background-color: #22372A;
+          color: #F8F6F0;
+          box-shadow: 0 10px 28px rgba(36, 56, 44, 0.12);
         }
         .db-home-hero-date {
           margin: 0 0 8px;
-          color: rgba(244, 240, 232, 0.62);
+          color: rgba(248, 246, 240, 0.78);
         }
         .db-home-hero .db-home-kicker {
-          color: rgba(244, 240, 232, 0.62);
+          color: rgba(248, 246, 240, 0.78);
         }
         .db-home-hero-title {
           margin: 0;
           font-family: ${t.fontDisplay};
-          font-size: clamp(32px, 5.5vw, 44px);
+          font-size: clamp(30px, 5vw, 42px);
           font-weight: 500;
           letter-spacing: -0.035em;
           line-height: 1.08;
@@ -1264,9 +1274,9 @@ export default function Dashboard() {
         .db-home-lead {
           margin: 10px 0 0;
           font-size: 15px;
-          color: rgba(244, 240, 232, 0.78);
+          color: rgba(248, 246, 240, 0.9);
           line-height: 1.45;
-          max-width: 42ch;
+          max-width: 45ch;
         }
 
         .db-home-alert {
@@ -1380,6 +1390,21 @@ export default function Dashboard() {
           font-size: 11px;
           color: ${t.inkSoft};
           line-height: 1.35;
+        }
+        .db-home-glance-report-main {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+        }
+        .db-home-glance-report-text {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .db-home-glance-report-val {
+          display: flex;
+          align-items: center;
         }
 
         .db-home-watch {
@@ -2296,33 +2321,167 @@ export default function Dashboard() {
             padding: 16px 14px calc(112px + env(safe-area-inset-bottom, 0px));
           }
           .db-home-hero {
+            min-height: auto;
             margin-bottom: 16px;
             padding: 14px 14px 16px;
+            background-size: cover;
+            background-position: center right;
           }
           .db-home-hero-title { font-size: clamp(28px, 8vw, 36px); }
           .db-home-lead { max-width: none; font-size: 14px; }
-          .db-home-glance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-          .db-home-glance-grid .db-home-glance-card--report { grid-column: 1 / -1; }
-          .db-home-glance-card { padding: 12px 12px 14px; }
-          .db-home-glance-card strong { font-size: 20px; }
-          .db-home-alert { padding: 12px; }
-          .db-home-watch {
-            gap: 12px;
-            padding: 16px;
+          /* 4 glance boxes in one horizontal row on mobile */
+          .db-home-glance-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 5px;
           }
-          .db-home-watch-icon {
-            width: 44px;
-            height: 44px;
+          .db-home-glance-card {
+            padding: 8px 5px 9px;
+            border-radius: 12px;
+            gap: 2px;
+            align-items: flex-start;
           }
-          .db-home-watch-stats {
-            grid-template-columns: 1fr;
-          }
-          .db-home-watch-today-label {
+          .db-home-glance-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
             margin-bottom: 2px;
           }
+          .db-home-glance-icon svg {
+            width: 12px;
+            height: 12px;
+          }
+          .db-home-glance-ring {
+            width: 22px;
+            height: 22px;
+          }
+          .db-home-glance-label {
+            font-size: 8.5px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            line-height: 1.1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+          }
+          .db-home-glance-card strong {
+            font-size: 13px;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+          }
+          .db-home-glance-card strong small {
+            font-size: 8px;
+            margin-left: 1px;
+          }
+          .db-home-glance-card strong.is-empty {
+            font-size: 10px;
+            line-height: 1.15;
+            font-weight: 600;
+          }
+          .db-home-glance-sub {
+            display: none;
+          }
+
+          /* 5th Report Card (Time In Range) - Increased size & prominence on mobile */
+          .db-home-glance-grid .db-home-glance-card--report {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-radius: 14px;
+            gap: 10px;
+            margin-top: 2px;
+          }
+          .db-home-glance-card--report .db-home-glance-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            margin-bottom: 0;
+            flex-shrink: 0;
+          }
+          .db-home-glance-report-main {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+          }
+          .db-home-glance-report-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+          }
+          .db-home-glance-report-text .db-home-glance-label {
+            font-size: 11.5px;
+            font-weight: 750;
+            color: ${t.ink};
+          }
+          .db-home-glance-report-text .db-home-glance-sub {
+            display: block;
+            font-size: 10.5px;
+            color: ${t.inkSoft};
+          }
+          .db-home-glance-report-val strong {
+            font-size: 19px;
+            font-weight: 750;
+            color: ${t.ink};
+          }
+          .db-home-glance-report-val strong.is-empty {
+            font-size: 12px;
+          }
+          .db-home-alert { padding: 12px; }
+
+          /* Exercise Synced Watch Card - Reduced & Streamlined on mobile */
+          .db-home-watch {
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 14px;
+          }
+          .db-home-watch-top {
+            gap: 10px;
+          }
+          .db-home-watch-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+          }
+          .db-home-watch-icon svg {
+            width: 17px;
+            height: 17px;
+          }
+          .db-home-watch-copy strong {
+            font-size: 14px;
+          }
+          .db-home-watch-copy em {
+            font-size: 11.5px;
+          }
+          .db-home-watch-stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 5px;
+          }
+          .db-home-watch-today-label {
+            font-size: 9px;
+            margin-bottom: 2px;
+          }
+          .db-home-watch-stat {
+            padding: 6px 7px;
+            border-radius: 9px;
+            font-size: 11px;
+            gap: 4px;
+          }
+          .db-home-watch-stat svg {
+            width: 12px;
+            height: 12px;
+          }
           .db-home-watch-cta {
-            align-self: stretch;
-            width: 100%;
+            align-self: flex-end;
+            width: auto;
+            padding: 5px 12px;
+            font-size: 11.5px;
+            min-height: auto;
+            border-radius: 8px;
           }
           .db-home-watch-top--connect {
             flex-wrap: wrap;
@@ -2350,7 +2509,9 @@ export default function Dashboard() {
         }
         @media (max-width: 380px) {
           .db-home-main { padding-left: 12px; padding-right: 12px; }
-          .db-home-glance-card strong { font-size: 18px; }
+          .db-home-glance-card { padding: 7px 4px 8px; }
+          .db-home-glance-card strong { font-size: 12px; }
+          .db-home-glance-card strong.is-empty { font-size: 9.5px; }
           .db-home-today-grid { gap: 6px; }
           .db-home-today-cell { min-height: 78px; padding: 10px; }
           .db-home-today-cell strong { font-size: 18px; }

@@ -283,51 +283,39 @@ async function listDataPoints(accessToken, dataType, filter) {
 
 async function dailyRollUpSum(accessToken, dataType, civilStart, civilEndExclusive, extractFn) {
   const url = `${GOOGLE_HEALTH_BASE}/users/me/dataTypes/${dataType}/dataPoints:dailyRollUp`;
-  const bodies = [
-    {
-      timeFilter: {
-        civilDateRange: {
-          start: civilStart,
-          endExclusive: civilEndExclusive,
-        },
+  const body = {
+    timeFilter: {
+      civilDateRange: {
+        start: civilStart,
+        endExclusive: civilEndExclusive,
       },
     },
-    {
-      civilDateFilter: {
-        startDate: civilStart,
-        endDate: civilEndExclusive,
-      },
-    },
-  ];
+  };
 
-  for (const body of bodies) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: authHeaders(accessToken),
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) continue;
-      const buckets =
-        data.dailyRollUps ||
-        data.rollUps ||
-        data.dataPoints ||
-        data.buckets ||
-        [];
-      if (!Array.isArray(buckets) || buckets.length === 0) {
-        // Some responses nest under result
-        const nested = data.result || data.dailyRollUp || null;
-        if (nested) return Math.round(extractFn(nested));
-        continue;
-      }
-      const total = buckets.reduce((sum, b) => sum + extractFn(b), 0);
-      return Math.round(total);
-    } catch {
-      /* try next body shape */
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return null;
+    const buckets =
+      data.dailyRollUps ||
+      data.rollUps ||
+      data.dataPoints ||
+      data.buckets ||
+      [];
+    if (!Array.isArray(buckets) || buckets.length === 0) {
+      const nested = data.result || data.dailyRollUp || null;
+      if (nested) return Math.round(extractFn(nested));
+      return null;
     }
+    const total = buckets.reduce((sum, b) => sum + extractFn(b), 0);
+    return Math.round(total);
+  } catch {
+    return null;
   }
-  return null;
 }
 
 async function fetchTodayActivity(accessToken, dayCtx) {
@@ -335,108 +323,133 @@ async function fetchTodayActivity(accessToken, dayCtx) {
   const civilFilter = (prefix) =>
     `${prefix}.interval.civil_start_time >= "${dayKey}T00:00:00"`;
 
-  let steps = 0;
-  let calories = 0;
-  let distanceKm = 0;
-  const workouts = [];
-
-  let lastActivityAt = null;
-
-  try {
-    const stepPoints = await listDataPoints(accessToken, 'steps', civilFilter('steps'));
-    steps = Math.round(stepPoints.reduce((s, p) => s + extractStepCount(p), 0));
-    for (const p of stepPoints) {
-      const t = extractPointTime(p);
-      if (!lastActivityAt || t > lastActivityAt) lastActivityAt = t;
-    }
-  } catch (err) {
-    console.warn('Google Health steps fetch:', err.message);
-  }
-
-  // Prefer active energy; fall back to total-calories
-  let cal =
-    (await dailyRollUpSum(
-      accessToken,
-      'active-energy-burned',
-      civilStart,
-      civilEndExclusive,
-      extractCalories
-    )) ??
-    (await dailyRollUpSum(
-      accessToken,
-      'total-calories',
-      civilStart,
-      civilEndExclusive,
-      extractCalories
-    ));
-
-  if (cal == null) {
+  // 1. Parallel Fetch: Steps
+  const fetchSteps = async () => {
     try {
-      const points = await listDataPoints(
-        accessToken,
-        'active-energy-burned',
-        civilFilter('active_energy_burned')
-      );
-      cal = Math.round(points.reduce((s, p) => s + extractCalories(p), 0));
+      const stepPoints = await listDataPoints(accessToken, 'steps', civilFilter('steps'));
+      const steps = Math.round(stepPoints.reduce((s, p) => s + extractStepCount(p), 0));
+      let lastAt = null;
+      for (const p of stepPoints) {
+        const t = extractPointTime(p);
+        if (!lastAt || t > lastAt) lastAt = t;
+      }
+      return { steps, lastAt };
+    } catch (err) {
+      console.warn('Google Health steps fetch:', err.message);
+      return { steps: 0, lastAt: null };
+    }
+  };
+
+  // 2. Parallel Fetch: Calories (Active Energy & Total simultaneously)
+  const fetchCalories = async () => {
+    try {
+      const [activeCal, totalCal] = await Promise.all([
+        dailyRollUpSum(
+          accessToken,
+          'active-energy-burned',
+          civilStart,
+          civilEndExclusive,
+          extractCalories
+        ),
+        dailyRollUpSum(
+          accessToken,
+          'total-calories',
+          civilStart,
+          civilEndExclusive,
+          extractCalories
+        ),
+      ]);
+      if (activeCal != null && activeCal > 0) return activeCal;
+      if (totalCal != null && totalCal > 0) return totalCal;
+      return 0;
     } catch {
-      cal = 0;
+      return 0;
     }
-  }
-  calories = cal || 0;
+  };
 
-  try {
-    const distPoints = await listDataPoints(accessToken, 'distance', civilFilter('distance'));
-    distanceKm =
-      Math.round(distPoints.reduce((s, p) => s + extractDistanceKm(p), 0) * 100) / 100;
-  } catch (err) {
-    console.warn('Google Health distance fetch:', err.message);
-  }
-
-  // Active minutes from Google (not estimated from steps)
-  let activeMinutes =
-    (await dailyRollUpSum(
-      accessToken,
-      'active-minutes',
-      civilStart,
-      civilEndExclusive,
-      extractActiveMinutes
-    )) || 0;
-
-  try {
-    const exPoints = await listDataPoints(
-      accessToken,
-      'exercise',
-      civilFilter('exercise')
-    );
-    for (const p of exPoints) {
-      const minutes = parseDurationMinutes(p);
-      // Only store workouts that have a real Google duration
-      if (!(minutes > 0)) continue;
-      const name = String(exerciseActivityName(p)).slice(0, 100);
-      const id =
-        p.name ||
-        p.dataPointName ||
-        p.id ||
-        `ex-${dayKey}-${workouts.length + 1}`;
-      const shortId = String(id).split('/').pop();
-      const at = extractPointTime(p, dayCtx.midOfToday);
-      if (!lastActivityAt || at > lastActivityAt) lastActivityAt = at;
-      workouts.push({
-        externalId: `gh-ex-${shortId}`,
-        activity: name,
-        duration: minutes,
-        caloriesBurned: Math.round(extractCalories(p)),
-        distance: extractDistanceKm(p),
-        steps: Math.round(extractStepCount(p)),
-        timestamp: at,
-      });
+  // 3. Parallel Fetch: Distance
+  const fetchDistance = async () => {
+    try {
+      const distPoints = await listDataPoints(accessToken, 'distance', civilFilter('distance'));
+      return Math.round(distPoints.reduce((s, p) => s + extractDistanceKm(p), 0) * 100) / 100;
+    } catch (err) {
+      console.warn('Google Health distance fetch:', err.message);
+      return 0;
     }
-  } catch (err) {
-    console.warn('Google Health exercise fetch:', err.message);
-  }
+  };
+
+  // 4. Parallel Fetch: Active Minutes
+  const fetchActiveMinutes = async () => {
+    try {
+      return (
+        (await dailyRollUpSum(
+          accessToken,
+          'active-minutes',
+          civilStart,
+          civilEndExclusive,
+          extractActiveMinutes
+        )) || 0
+      );
+    } catch {
+      return 0;
+    }
+  };
+
+  // 5. Parallel Fetch: Workouts & Exercises
+  const fetchWorkouts = async () => {
+    const workouts = [];
+    let lastAt = null;
+    try {
+      const exPoints = await listDataPoints(
+        accessToken,
+        'exercise',
+        civilFilter('exercise')
+      );
+      for (const p of exPoints) {
+        const minutes = parseDurationMinutes(p);
+        if (!(minutes > 0)) continue;
+        const name = String(exerciseActivityName(p)).slice(0, 100);
+        const id =
+          p.name ||
+          p.dataPointName ||
+          p.id ||
+          `ex-${dayKey}-${workouts.length + 1}`;
+        const shortId = String(id).split('/').pop();
+        const at = extractPointTime(p, dayCtx.midOfToday);
+        if (!lastAt || at > lastAt) lastAt = at;
+        workouts.push({
+          externalId: `gh-ex-${shortId}`,
+          activity: name,
+          duration: minutes,
+          caloriesBurned: Math.round(extractCalories(p)),
+          distance: extractDistanceKm(p),
+          steps: Math.round(extractStepCount(p)),
+          timestamp: at,
+        });
+      }
+    } catch (err) {
+      console.warn('Google Health exercise fetch:', err.message);
+    }
+    return { workouts, lastAt };
+  };
+
+  // Concurrently execute all 5 Google Health API queries in parallel
+  const [stepsRes, calories, distanceKm, activeMinutes, workoutsRes] = await Promise.all([
+    fetchSteps(),
+    fetchCalories(),
+    fetchDistance(),
+    fetchActiveMinutes(),
+    fetchWorkouts(),
+  ]);
+
+  const steps = stepsRes.steps || 0;
+  const workouts = workoutsRes.workouts || [];
+  const timestamps = [stepsRes.lastAt, workoutsRes.lastAt].filter(Boolean);
+  const lastActivityAt = timestamps.length
+    ? new Date(Math.max(...timestamps.map((t) => new Date(t).getTime())))
+    : null;
 
   const workoutMinutes = workouts.reduce((s, w) => s + (w.duration || 0), 0);
-  // Duration must come from Google: workouts or active-minutes — never steps÷100
   const summaryDuration = Math.max(workoutMinutes, activeMinutes, 0);
 
   return {
@@ -446,7 +459,6 @@ async function fetchTodayActivity(accessToken, dayCtx) {
     workouts,
     summaryDuration,
     activeMinutes,
-    // Prefer latest activity time from Google; else "now" so Today • time reflects this sync
     summaryTimestamp: lastActivityAt || new Date(),
   };
 }
@@ -603,34 +615,35 @@ exports.sync = async (req, res) => {
     //     workouts, the summary row keeps Google's active-minutes as the only source.
     //   - caloriesBurned/distance are kept per-workout for detail views; they are not
     //     summed by getTodaySummary today, so they can't double-count that total.
-    const summaryLog = await upsertExerciseLog(user._id, {
-      fitbitLogId: summaryId,
-      activity: 'Google Health sync',
-      duration: hasWorkouts ? 0 : durationMinutes,
-      steps: activity.steps,
-      caloriesBurned: activity.calories,
-      distance: activity.distanceKm,
-      intensity: durationMinutes >= 30 ? 'Medium' : 'Low',
-      notes: 'Synced',
-      timestamp: activity.summaryTimestamp || new Date(),
-    });
-
-    const workoutLogs = [];
-    for (const w of activity.workouts) {
-      const log = await upsertExerciseLog(user._id, {
-        fitbitLogId: w.externalId,
-        activity: w.activity,
-        duration: w.duration,
-        // Steps already counted in the daily summary row above — don't double-count
-        steps: 0,
-        caloriesBurned: w.caloriesBurned || 0,
-        distance: w.distance || 0,
-        intensity: w.duration >= 45 ? 'High' : w.duration >= 20 ? 'Medium' : 'Low',
+    const [summaryLog, workoutLogs] = await Promise.all([
+      upsertExerciseLog(user._id, {
+        fitbitLogId: summaryId,
+        activity: 'Google Health sync',
+        duration: hasWorkouts ? 0 : durationMinutes,
+        steps: activity.steps,
+        caloriesBurned: activity.calories,
+        distance: activity.distanceKm,
+        intensity: durationMinutes >= 30 ? 'Medium' : 'Low',
         notes: 'Synced',
-        timestamp: w.timestamp || activity.summaryTimestamp || new Date(),
-      });
-      workoutLogs.push(log._id);
-    }
+        timestamp: activity.summaryTimestamp || new Date(),
+      }),
+      Promise.all(
+        activity.workouts.map(async (w) => {
+          const log = await upsertExerciseLog(user._id, {
+            fitbitLogId: w.externalId,
+            activity: w.activity,
+            duration: w.duration,
+            steps: 0,
+            caloriesBurned: w.caloriesBurned || 0,
+            distance: w.distance || 0,
+            intensity: w.duration >= 45 ? 'High' : w.duration >= 20 ? 'Medium' : 'Low',
+            notes: 'Synced',
+            timestamp: w.timestamp || activity.summaryTimestamp || new Date(),
+          });
+          return log._id;
+        })
+      ),
+    ]);
 
     user.googleHealth.lastSyncAt = new Date();
     user.googleHealth.lastSteps = activity.steps;

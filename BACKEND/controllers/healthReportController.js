@@ -1069,26 +1069,7 @@ exports.getHealthReport = async (req, res) => {
     });
     primary = clampRangeToAccountStart(primary, accountCreatedAt, tzOffset);
 
-    const primaryLogs = await fetchLogs(userId, primary.start, primary.end);
-    const period = aggregatePeriod(
-      primaryLogs,
-      primary.start,
-      primary.end,
-      tzOffset,
-      primary.label,
-      primary.shortLabel
-    );
-    const glucoseUnit = resolveGlucoseUnit(req.user);
-    const insights = buildInsights(period, glucoseUnit);
-    const story = buildStoryReport(period, glucoseUnit);
-    const summary = story.summary;
-
-    let comparePeriod = null;
-    let deltas = null;
-    const compareAgainst = previousPeriodPhrase(preset, primary.label);
-
-    // Always compute previous equal-length window so PDF/UI can show “↓ 6 from last week”.
-    // Explicit compare=true can override with custom dates / preset.
+    // Compute preceding range for comparisons
     let compareRange = buildPrecedingRange(primary, tzOffset);
     if (compare) {
       if (req.query.compareStartDate && req.query.compareEndDate) {
@@ -1107,8 +1088,34 @@ exports.getHealthReport = async (req, res) => {
     }
     compareRange = clampRangeToAccountStart(compareRange, accountCreatedAt, tzOffset);
 
-    if (compareRange.start <= compareRange.end) {
-      const compareLogs = await fetchLogs(userId, compareRange.start, compareRange.end);
+    const shouldCompare = compareRange.start <= compareRange.end;
+
+    // Fetch primary logs and comparison logs concurrently in parallel
+    const [primaryLogs, compareLogs] = await Promise.all([
+      fetchLogs(userId, primary.start, primary.end),
+      shouldCompare
+        ? fetchLogs(userId, compareRange.start, compareRange.end)
+        : Promise.resolve({ glucose: [], meals: [], insulin: [], medications: [], water: [], exercise: [], sleep: [], mood: [] }),
+    ]);
+
+    const period = aggregatePeriod(
+      primaryLogs,
+      primary.start,
+      primary.end,
+      tzOffset,
+      primary.label,
+      primary.shortLabel
+    );
+    const glucoseUnit = resolveGlucoseUnit(req.user);
+    const insights = buildInsights(period, glucoseUnit);
+    const story = buildStoryReport(period, glucoseUnit);
+    const summary = story.summary;
+
+    let comparePeriod = null;
+    let deltas = null;
+    const compareAgainst = previousPeriodPhrase(preset, primary.label);
+
+    if (shouldCompare && (compareLogs.glucose.length > 0 || compareLogs.meals.length > 0 || compareLogs.insulin.length > 0)) {
       comparePeriod = aggregatePeriod(
         compareLogs,
         compareRange.start,
@@ -1163,7 +1170,7 @@ exports.getLoggingStreak = async (req, res) => {
   try {
     const userId = req.user.id;
     const tzOffset = parseTzOffset(req.query.tzOffset);
-    const lookbackDays = Math.min(Math.max(parseInt(req.query.days, 10) || 120, 14), 400);
+    const lookbackDays = Math.min(Math.max(parseInt(req.query.days, 10) || 45, 7), 120);
 
     const now = new Date();
     const todayParts = toLocalParts(now, tzOffset);

@@ -990,7 +990,7 @@ export default {
   logs: {
     eyebrow: 'اپنا دن ٹریک کریں',
     title: 'صحت کے لاگز',
-    backToDashboard: 'ڈیش بورڈ پر واپس',
+    backToDashboard: 'واپس',
     lead: 'آج کے صحت کے ریکارڈ شامل یا اپ ڈیٹ کرنے کے لیے نیچے ایک قسم منتخب کریں۔',
     essentialsTitle: 'روزانہ ضروریات',
     essentialsNote: 'گلوکوز، کھانا، انسولین، ادویات، اور ورزش',

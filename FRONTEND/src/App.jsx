@@ -96,6 +96,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-otp" element={<VerifyOtp />} />
+          <Route path="/learn" element={<DiabetesTypesPage />} />
           <Route path="/learn/warning-signs" element={<WarningSignsPage />} />
           <Route path="/learn/diabetes-types" element={<DiabetesTypesPage />} />
           <Route path="/learn/risk-assessment" element={<RiskAssessment />} />

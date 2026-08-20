@@ -561,14 +561,19 @@ button:active {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--ink-faint);
+  color: var(--ink-soft, #4F4A44);
   font-family: var(--font-body, 'DM Sans', system-ui, sans-serif);
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 700;
   letter-spacing: 0.01em;
   padding: 4px 2px;
   border-radius: 12px;
   -webkit-tap-highlight-color: transparent;
+}
+
+.db-app-tab svg {
+  color: var(--ink-soft, #4F4A44);
+  stroke-width: 2;
 }
 
 .db-app-tab span {
@@ -581,22 +586,24 @@ button:active {
 
 @media (max-width: 380px) {
   .db-app-tab {
-    font-size: 9px;
+    font-size: 9.5px;
     padding: 4px 1px;
     gap: 2px;
   }
   .db-app-tab svg {
-    width: 18px;
-    height: 18px;
+    width: 19px;
+    height: 19px;
   }
 }
 
 .db-app-tab.is-active {
-  color: var(--forest);
+  color: var(--forest, #27392E);
+  font-weight: 800;
 }
 
 .db-app-tab.is-active svg {
-  color: var(--sage-deep);
+  color: var(--forest, #27392E);
+  stroke-width: 2.4;
 }
 
 .db-app-drawer {

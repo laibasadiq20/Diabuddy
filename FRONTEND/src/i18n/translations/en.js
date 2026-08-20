@@ -914,7 +914,7 @@ export default {
   logs: {
     eyebrow: 'Track your day',
     title: 'Health logs',
-    backToDashboard: 'Back to dashboard',
+    backToDashboard: 'Back',
     lead: 'Select a category below to add or update today’s health records.',
     essentialsTitle: 'Daily Essentials',
     essentialsNote: 'Glucose, meals, insulin, medications, and exercise',
