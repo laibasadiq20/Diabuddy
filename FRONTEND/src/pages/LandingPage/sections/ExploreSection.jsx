@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useI18n } from '../../../i18n/I18nContext';
-import learnIllustration from '../../../assets/learn.png';
 
 const ExploreSection = () => {
   const { t: tr } = useI18n();
@@ -43,71 +42,64 @@ const ExploreSection = () => {
   ];
 
   return (
-    <section id="learn" className="w-full bg-[var(--cream-soft)] px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 pb-3 sm:pb-5 scroll-mt-24">
+    <section id="learn" className="w-full bg-[var(--cream-soft)] px-5 sm:px-8 lg:px-12 py-4 sm:py-6 scroll-mt-24">
       <div className="mx-auto w-full max-w-[1400px]">
         
-        {/* Main Beige/Parchment Card matching the Reference Design */}
-        <div className="relative overflow-hidden rounded-[32px] sm:rounded-[40px] lg:rounded-[44px] border border-[#E7DFCE] bg-[#F8F5EE] px-6 py-8 sm:px-10 sm:py-10 lg:px-14 lg:py-12 shadow-[0_12px_40px_rgba(30,42,36,0.06)]">
+        {/* Main Beige/Parchment Card with Crisp, Defined Borders */}
+        <div className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] lg:rounded-[40px] border-2 border-[#C9BDA8] bg-[#F8F5EE] px-6 py-7 sm:px-10 sm:py-9 lg:px-12 lg:py-10 shadow-[0_8px_32px_rgba(58,46,36,0.06)]">
           
-          <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1.3fr] lg:gap-10">
+          <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1.35fr] lg:gap-10">
             
-            {/* Left Column: Heading & Illustration */}
-            <div className="flex flex-col justify-between h-full">
-              <div>
-                {/* Kicker with Green Dot */}
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="h-2 w-2 rounded-full bg-[#3D5A45]" />
-                  <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#3D5A45]">
-                    Learn at your pace
-                  </span>
-                </div>
-
-                {/* Big Title */}
-                <h2 className="font-serif text-[2.25rem] sm:text-4xl lg:text-[3.25rem] font-normal leading-[1.12] tracking-tight text-[#1E2A24]">
-                  Knowledge that <br />
-                  <span className="italic font-semibold text-[#3D5A45]">
-                    empowers you.
-                  </span>
-                </h2>
+            {/* Left Column: Heading */}
+            <div className="flex flex-col justify-center">
+              {/* Kicker with Green Dot */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E7EFE5] border border-[#A8C4A5] w-fit mb-3 sm:mb-4 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#2E6B3E]" />
+                <span className="text-[10.5px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#2E6B3E]">
+                  Learn at your pace
+                </span>
               </div>
 
-              {/* Bottom Illustration (Books + Mug + Leaves) */}
-              <div className="mt-5 sm:mt-6 max-w-[220px] sm:max-w-[260px]">
-                <img
-                  src={learnIllustration}
-                  alt="Knowledge and learning illustration"
-                  className="w-full h-auto max-h-[160px] sm:max-h-[190px] object-contain pointer-events-none select-none drop-shadow-sm"
-                />
-              </div>
+              {/* Big Title */}
+              <h2 className="font-serif text-[2.25rem] sm:text-4xl lg:text-[3.25rem] font-normal leading-[1.12] tracking-tight text-[#1E2A24]">
+                Knowledge that <br />
+                <span className="italic font-semibold text-[#2E6B3E]">
+                  empowers you.
+                </span>
+              </h2>
+
+              <p className="mt-3 max-w-md text-xs sm:text-sm text-[var(--brown-soft)] leading-relaxed font-medium">
+                Short, doctor-reviewed guides designed to help you understand diabetes, identify symptoms early, and manage daily health with confidence.
+              </p>
             </div>
 
-            {/* Right Column: 4 Clean White Stacked Cards */}
+            {/* Right Column: 4 Clean White Stacked Cards with Visible Defined Borders */}
             <div className="flex flex-col gap-2.5 sm:gap-3">
               {learnTopics.map((topic) => (
                 <Link
                   key={topic.num}
                   to={topic.to}
-                  className="group relative flex items-center justify-between rounded-2xl border border-black/5 bg-white px-5 py-3 sm:px-6 sm:py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[#3D5A45]/30 hover:shadow-[0_8px_24px_rgba(46,107,62,0.08)] hover:-translate-y-0.5"
+                  className="group relative flex items-center justify-between rounded-2xl border border-[#C8BDAB] bg-white px-5 py-3 sm:px-6 sm:py-3.5 shadow-2xs transition-all duration-200 hover:border-[#2E6B3E]/60 hover:shadow-md hover:-translate-y-0.5"
                 >
                   {/* Left: Number + Content */}
                   <div className="flex items-start gap-4 sm:gap-6 min-w-0 pr-3">
-                    <span className="font-serif text-base sm:text-lg font-bold text-[#7A8B7B] mt-0.5 shrink-0">
+                    <span className="font-serif text-base sm:text-lg font-bold text-[#2E6B3E] mt-0.5 shrink-0">
                       {topic.num}
                     </span>
                     <div className="min-w-0">
-                      <h3 className="font-serif text-[1.05rem] sm:text-[1.2rem] font-semibold text-[#1E2A24] transition-colors group-hover:text-[#3D5A45]">
+                      <h3 className="font-serif text-[1.05rem] sm:text-[1.2rem] font-semibold text-[#1E2A24] transition-colors group-hover:text-[#2E6B3E]">
                         {topic.title}
                       </h3>
-                      <p className="mt-0.5 text-xs sm:text-[13px] leading-relaxed text-[#6B5645] line-clamp-2 sm:line-clamp-1">
+                      <p className="mt-0.5 text-xs sm:text-[13px] leading-relaxed text-[var(--brown-soft)] line-clamp-2 sm:line-clamp-1 font-medium">
                         {topic.description}
                       </p>
                     </div>
                   </div>
 
                   {/* Right: Read CTA with animated arrow */}
-                  <div className="flex shrink-0 items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#1E2A24] transition-all duration-200 group-hover:text-[#3D5A45] group-hover:gap-2.5">
+                  <div className="flex shrink-0 items-center gap-1.5 text-xs sm:text-sm font-bold text-[#1E2A24] transition-all duration-200 group-hover:text-[#2E6B3E] group-hover:gap-2.5">
                     <span>{tr('landing.explore.read') || 'Read'}</span>
-                    <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+                    <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5 text-[#2E6B3E]" />
                   </div>
                 </Link>
               ))}

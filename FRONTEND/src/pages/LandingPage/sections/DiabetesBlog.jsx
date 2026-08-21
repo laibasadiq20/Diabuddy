@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  ArrowLeft,
   ArrowUpRight,
   Search,
   Bookmark,
   Share2,
   Clock,
   Check,
-  Lightbulb,
   X,
 } from 'lucide-react';
 import { useI18n } from '../../../i18n/I18nContext';
@@ -317,23 +314,15 @@ const DiabetesBlog = ({ showHeader = true }) => {
   return (
     <section
       id="blog"
-      className={`px-4 sm:px-6 lg:px-10 ${
-        showHeader ? 'py-10 sm:py-14 lg:py-16' : 'pt-4 pb-16'
-      } relative`}
+      className={`${
+        showHeader ? 'pt-0 sm:pt-3' : 'pt-0'
+      } relative flex flex-col justify-between`}
       style={{ background: 'var(--cream-soft)' }}
     >
-      <div className="mx-auto w-full max-w-[1360px]">
-        {/* Back Link & Header */}
+      <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10">
+        {/* Header */}
         {showHeader && (
-          <div className="mb-8 sm:mb-10">
-            <Link
-              to="/#learn"
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-[#3D5A45] hover:text-[#1E2A24] transition-colors mb-4 group"
-            >
-              <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
-              <span>{tr('landing.learn.symptoms.backLabel') || 'Back to Learning Hub'}</span>
-            </Link>
-
+          <div className="mb-6 sm:mb-8 pt-1 sm:pt-0">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -397,32 +386,6 @@ const DiabetesBlog = ({ showHeader = true }) => {
             </div>
           </div>
         )}
-
-        {/* Weekly Desi Diabetes Spotlight Banner */}
-        <div className="mb-8 rounded-[22px] sm:rounded-[26px] bg-[#FAF5E8] border border-[#E6DBC6] p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 shadow-2xs">
-          <div className="flex items-start sm:items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#E8DCBF] text-[#7A5B18]">
-              <Lightbulb size={18} />
-            </span>
-            <div>
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#7A5B18] block">
-                Weekly Desi Plate Rule
-              </span>
-              <p className="text-xs sm:text-[13.5px] text-[#4A3D25] font-medium leading-snug">
-                Eating fiber (fresh salad or sabzi) and protein (daal/chicken) 10 minutes before your roti or rice blunts post-meal glucose spikes by up to 35%.
-              </p>
-            </div>
-          </div>
-
-          <a
-            href="https://nayablabs.com/best-pakistani-diet-plan-for-diabetic-patients/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-[#7A5B18] hover:text-[#4A3D25] underline underline-offset-4"
-          >
-            Read Diet Plan <ArrowUpRight size={13} />
-          </a>
-        </div>
 
         {/* DEFAULT HERO LAYOUT (when no active filter or search) */}
         {isDefaultView ? (
@@ -702,11 +665,10 @@ const DiabetesBlog = ({ showHeader = true }) => {
             )}
           </div>
         )}
-
-        {/* Small In-Section Footer */}
-        <LearnFooter className="mt-12 sm:mt-14" />
-
       </div>
+
+      {/* Full-width Learn Footer */}
+      <LearnFooter className="mt-12 sm:mt-16" />
     </section>
   );
 };

@@ -97,8 +97,8 @@ const Navbar = () => {
 
   return (
     <>
-      <header className="fixed top-0 left-0 z-50 w-full border-b border-black/5 bg-[#F6F3EE]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-3.5">
+      <header className="fixed top-0 left-0 z-50 w-full border-b border-black/[0.04] bg-[#F6F3EE]/40 backdrop-blur-md shadow-[0_2px_20px_rgba(0,0,0,0.02)] transition-all duration-300">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-3 sm:px-6 sm:py-3.5">
           {/* Left: brand */}
           <button
             type="button"
@@ -118,12 +118,12 @@ const Navbar = () => {
                 block: 'start',
               });
             }}
-            className="flex min-w-0 items-center gap-1.5"
+            className="flex min-w-0 items-center gap-2 pl-1 sm:pl-0"
           >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-[11px] text-white sm:h-8 sm:w-8 sm:text-sm">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-[11px] text-white sm:h-8 sm:w-8 sm:text-sm shadow-xs">
               ♥
             </span>
-            <span className="truncate font-serif text-[1.05rem] tracking-wide text-[#2F2A25] sm:text-xl">
+            <span className="truncate font-serif text-[1.12rem] tracking-wide text-[#2F2A25] sm:text-xl font-medium">
               DiaBuddy
             </span>
           </button>
@@ -204,7 +204,7 @@ const Navbar = () => {
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="flex h-8 w-8 shrink-0 flex-col items-center justify-center gap-[3px] rounded-lg border border-black/10 bg-white/60 md:hidden"
+              className="flex h-8 w-8 shrink-0 flex-col items-center justify-center gap-[3px] rounded-lg border border-black/10 bg-white/40 backdrop-blur-xs shadow-2xs md:hidden"
               aria-label={tr('nav.openMenu')}
             >
               <span className="h-[1.5px] w-3.5 bg-[#2F2A25]" />

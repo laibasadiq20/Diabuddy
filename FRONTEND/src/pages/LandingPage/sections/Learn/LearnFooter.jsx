@@ -1,58 +1,65 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 const LearnFooter = ({ className = '' }) => {
   const location = useLocation();
   const currentPath = location.pathname;
 
   const links = [
-    { label: 'Wellness Blog', path: '/learn/blog' },
-    { label: 'Warning Signs', path: '/learn/warning-signs' },
-    { label: 'Diabetes Types', path: '/learn/diabetes-types' },
-    { label: 'Risk Assessment', path: '/learn/risk-assessment' },
+    { label: 'Home', path: '/', isHome: true },
+    { label: 'Types', fullLabel: 'Diabetes Types', path: '/learn/diabetes-types' },
+    { label: 'Warning Signs', fullLabel: 'Warning Signs', path: '/learn/warning-signs' },
+    { label: 'Risk Test', fullLabel: 'Risk Assessment', path: '/learn/risk-assessment' },
+    { label: 'Blog', fullLabel: 'Wellness Blog', path: '/learn/blog' },
   ];
 
   return (
-    <div
-      className={`mx-auto w-full max-w-[1360px] rounded-[22px] sm:rounded-[28px] border-2 border-[#5B7E67]/35 bg-white/95 p-4 sm:p-5 md:p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 ${className}`}
+    <footer
+      className={`w-full bg-[#182C1E] border-t border-[#27392E] text-white ${className}`}
     >
-      {/* Medical Note with Top-aligned Icon */}
-      <div className="flex items-start gap-2.5 sm:gap-3 flex-1 min-w-0">
-        <span className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-xl bg-[#E3EBDD] text-[#2E6B3E] mt-0.5">
-          <Sparkles size={15} />
-        </span>
-        <p className="text-xs sm:text-[13px] text-[#5F5446] font-medium leading-relaxed">
-          <span className="font-bold text-[#1E2A24]">Medical Note:</span> All curated articles are for educational wellness awareness. Always consult your doctor for personalized health advice.
-        </p>
-      </div>
+      <div className="mx-auto w-full max-w-[1360px] px-3 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4">
+        {/* Brand & Learning Hub Tag */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="font-serif font-bold text-base sm:text-lg text-white tracking-tight">
+            DiaBuddy
+          </span>
+          <span className="h-3 w-px bg-[#2E4A35]" />
+          <span className="text-[#86EFAC] text-[11px] sm:text-xs font-semibold uppercase tracking-wider">
+            Learning Hub
+          </span>
+        </div>
 
-      {/* Navigation: Responsive 2x2 Grid on Mobile, Clean Links on Desktop */}
-      <div className="w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-[#E7DFCE]/80 shrink-0">
-        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#7A746A] md:hidden block mb-2">
-          Explore Learning Hub:
-        </span>
-
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2 md:gap-3.5 text-xs font-bold">
+        {/* Navigation Links: Compact single-line pill row */}
+        <nav className="flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-semibold overflow-x-auto max-w-full no-scrollbar py-0.5">
           {links.map((link) => {
-            const isActive = currentPath === link.path;
+            const isActive =
+              currentPath === link.path ||
+              (link.path === '/learn/diabetes-types' && currentPath === '/learn');
             return (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`px-3 py-2 md:p-0 rounded-xl md:rounded-none text-center transition-all ${
+                className={`inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full transition-all duration-200 shrink-0 whitespace-nowrap ${
                   isActive
-                    ? 'bg-[#2E6B3E] text-white md:bg-transparent md:text-[#1E2A24] md:underline md:underline-offset-4 pointer-events-none font-bold'
-                    : 'bg-[#F6F3EB] hover:bg-[#E3EBDD] text-[#2E6B3E] md:bg-transparent md:hover:text-[#1E2A24]'
+                    ? 'bg-[#2F6A4F] text-white font-bold shadow-xs'
+                    : 'text-[#D1D5DB] hover:bg-[#27392E] hover:text-white'
                 }`}
               >
-                {link.label}
+                {link.isHome && <Home size={12} className="shrink-0" />}
+                <span className="sm:hidden">{link.label}</span>
+                <span className="hidden sm:inline">{link.fullLabel || link.label}</span>
               </Link>
             );
           })}
-        </div>
+        </nav>
+
+        {/* Copyright (desktop only) */}
+        <p className="text-[11px] text-[#9CA3AF] hidden lg:block shrink-0">
+          © {new Date().getFullYear()} DiaBuddy
+        </p>
       </div>
-    </div>
+    </footer>
   );
 };
 

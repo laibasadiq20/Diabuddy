@@ -503,7 +503,7 @@ const HowItWorks = ({ videoSrc }) => {
   return (
     <section
       id="about"
-      className="relative w-full bg-[var(--cream-soft)] px-5 sm:px-8 lg:px-12 py-14 sm:py-20 scroll-mt-24 sm:scroll-mt-28"
+      className="relative w-full bg-[var(--cream-soft)] px-5 sm:px-8 lg:px-12 py-3 sm:py-5 lg:py-6 scroll-mt-24 sm:scroll-mt-28"
     >
       <div className="mx-auto w-full max-w-[1400px]">
         

@@ -6,7 +6,7 @@ const BlogPage = () => {
   return (
     <div className="min-h-screen bg-[var(--cream-soft)] flex flex-col">
       <Navbar />
-      <div className="pt-[76px] flex-1 pb-10">
+      <div className="pt-[48px] sm:pt-[56px] flex-1">
         <DiabetesBlog showHeader />
       </div>
     </div>

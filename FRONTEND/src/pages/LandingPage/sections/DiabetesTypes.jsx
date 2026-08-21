@@ -14,6 +14,7 @@ import {
 import { useI18n } from '../../../i18n/I18nContext';
 import learnIllustration from '../../../assets/learn.png';
 import type2Illustration from '../../../assets/type2.png';
+import LearnFooter from './Learn/LearnFooter';
 
 const getArcValue = (stat) => {
   if (stat === '1 in 3') return 33;
@@ -119,22 +120,22 @@ const DiabetesTypes = ({ showHeader = true }) => {
   return (
     <section
       id="types"
-      className={`font-sans px-4 sm:px-6 lg:px-10 ${
-        showHeader ? 'pt-8 sm:pt-12 pb-20 sm:pb-28' : 'pt-6 pb-20'
-      } relative overflow-hidden`}
+      className={`font-sans ${
+        showHeader ? 'pt-0 sm:pt-3' : 'pt-0'
+      } relative overflow-hidden flex flex-col justify-between`}
       style={{ background: 'var(--cream-soft, #F6F3EE)' }}
     >
-      <div className="mx-auto w-full max-w-[1360px]">
+      <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10">
 
         {/* =========================================================================
             SECTION 1: HERO HEADER
             FIX: grid is always 2 cols (even on mobile) so img stays beside text
         ========================================================================== */}
         {showHeader && (
-          <header className="mb-12 sm:mb-16 grid grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-8 lg:gap-12 items-center">
+          <header className="mb-8 sm:mb-16 grid grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-8 lg:gap-12 items-center">
             {/* Left: Text */}
-            <div className="col-span-1 lg:col-span-7">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+            <div className="col-span-1 lg:col-span-7 pt-1 sm:pt-0">
+              <div className="flex items-center gap-2 mb-2 sm:mb-4">
                 <span className="h-0.5 w-5 sm:w-6 bg-[#3D5A45]" />
                 <span className="text-[9px] sm:text-xs font-bold uppercase tracking-[0.18em] sm:tracking-[0.22em] text-[#3D5A45]">
                   {tr('landing.learn.diabetesTypes.eyebrow') || 'KNOW THE TYPES'}
@@ -265,10 +266,53 @@ const DiabetesTypes = ({ showHeader = true }) => {
         </div>
 
         {/* =========================================================================
-            SECTION 3: BANNER — full book and leaves completely visible
+            SECTION 3: BANNER
         ========================================================================== */}
+
+        {/* ── MOBILE: text overlaid on the right side of the image ── */}
         <div
-          className="my-8 sm:my-14 rounded-[20px] sm:rounded-[32px] overflow-hidden shadow-sm relative w-full sm:aspect-[1712/578] flex items-center justify-end"
+          className="my-8 sm:hidden rounded-[20px] overflow-hidden shadow-sm relative flex items-center justify-end"
+          style={{
+            backgroundImage: `url(${learnIllustration})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'left center',
+            backgroundRepeat: 'no-repeat',
+            backgroundColor: '#F0EDE4',
+            minHeight: '230px',
+          }}
+        >
+          {/* subtle right-side gradient overlay for readability */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(to right, transparent 20%, rgba(242,236,227,0.75) 50%, rgba(242,236,227,0.95) 100%)',
+            }}
+            aria-hidden="true"
+          />
+          <div className="relative z-10 pl-2 pr-4 py-5 flex flex-col items-start justify-center w-[60%]">
+            <h2 className="font-serif text-[1.05rem] font-bold text-[#1E2A24] leading-[1.18] tracking-tight">
+              Understanding the type
+              <br />
+              <em className="italic font-semibold text-[#2F6A4F]">
+                helps you care better.
+              </em>
+            </h2>
+            <p className="mt-2 text-[11px] text-[#554D43] leading-snug font-normal">
+              Knowing the type of diabetes is the first step towards smarter choices and healthier tomorrows.
+            </p>
+            <Link
+              to="/learn/risk-assessment"
+              className="mt-3.5 inline-flex items-center gap-1.5 rounded-full bg-[#182C1E] hover:bg-[#27392E] text-white px-3.5 py-2 text-[11px] font-bold shadow-sm transition-all duration-200 whitespace-nowrap"
+            >
+              <span>Take Risk Assessment</span>
+              <ArrowRight size={12} />
+            </Link>
+          </div>
+        </div>
+
+        {/* ── DESKTOP: learn.png as full background, text on right ── */}
+        <div
+          className="hidden sm:flex my-14 rounded-[32px] overflow-hidden shadow-sm relative w-full sm:aspect-[1712/578] items-center justify-end"
           style={{
             backgroundImage: `url(${learnIllustration})`,
             backgroundSize: 'cover',
@@ -278,7 +322,7 @@ const DiabetesTypes = ({ showHeader = true }) => {
             minHeight: '260px',
           }}
         >
-          {/* subtle right-side overlay so text is readable */}
+          {/* right-side overlay */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
@@ -286,26 +330,22 @@ const DiabetesTypes = ({ showHeader = true }) => {
             }}
             aria-hidden="true"
           />
-
-          {/* Text floats on the right open space */}
-          <div className="relative z-10 flex items-center justify-end h-full w-full px-6 sm:px-12 lg:px-20 py-8 sm:py-6">
-            <div className="w-full max-w-[55%] sm:max-w-[48%] lg:max-w-[44%]">
-              <h2 className="font-serif text-lg sm:text-2xl lg:text-[2.2rem] font-bold text-[#1E2A24] leading-[1.18] tracking-tight">
+          <div className="relative z-10 flex items-center justify-end h-full w-full px-12 lg:px-20 py-6">
+            <div className="w-full max-w-[48%] lg:max-w-[44%]">
+              <h2 className="font-serif text-2xl lg:text-[2.2rem] font-bold text-[#1E2A24] leading-[1.18] tracking-tight">
                 Understanding the type
                 <br />
                 <em className="italic font-semibold text-[#2F6A4F]">
                   helps you care better.
                 </em>
               </h2>
-
-              <p className="mt-2.5 sm:mt-3.5 text-xs sm:text-sm lg:text-[14px] text-[#554D43] leading-relaxed font-normal">
+              <p className="mt-3.5 text-sm lg:text-[14px] text-[#554D43] leading-relaxed font-normal">
                 Knowing the type of diabetes is the first step towards smarter choices and healthier tomorrows.
               </p>
-
-              <div className="mt-4 sm:mt-6">
+              <div className="mt-6">
                 <Link
                   to="/learn/risk-assessment"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#182C1E] hover:bg-[#27392E] text-white px-5 sm:px-7 py-2.5 sm:py-3.5 text-xs sm:text-sm font-bold shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#182C1E] hover:bg-[#27392E] text-white px-7 py-3.5 text-sm font-bold shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.98] whitespace-nowrap"
                 >
                   <span>Take Risk Assessment</span>
                   <ArrowRight size={14} />
@@ -328,7 +368,7 @@ const DiabetesTypes = ({ showHeader = true }) => {
               <span className="h-px w-6 sm:w-8 bg-[#8B9D8B]" />
             </div>
 
-            <h2 className="font-serif text-xl sm:text-3xl lg:text-4xl font-bold text-[#1E2A24] tracking-tight text-center sm:translate-x-2.5">
+            <h2 className="font-serif text-xl sm:text-3xl lg:text-4xl font-bold text-[#1E2A24] tracking-tight text-center translate-x-10 sm:translate-x-20 lg:translate-x-28">
               Small knowledge.{' '}
               <span className="italic font-medium text-[#2F6A4F]">
                 Big difference.
@@ -340,26 +380,27 @@ const DiabetesTypes = ({ showHeader = true }) => {
             </p>
           </div>
 
-          {/* Always 3 cols */}
-          <div className="grid grid-cols-3 gap-3 sm:gap-6">
+          {/* Clean row without boxes */}
+          <div className="grid grid-cols-3 gap-3 sm:gap-8 lg:gap-12 mt-4 sm:mt-6">
             {WHY_IT_MATTERS.map((card) => (
               <div
                 key={card.id}
-                className="rounded-[16px] sm:rounded-[30px] border border-[#E6DFD2] bg-white p-4 sm:p-8 text-center flex flex-col items-center shadow-[0_4px_20px_rgba(30,42,36,0.02)] hover:shadow-[0_12px_30px_rgba(46,107,62,0.06)] hover:-translate-y-1 transition-all duration-300"
+                className="group text-center flex flex-col items-center p-1 sm:p-3"
               >
                 <div
-                  className="flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-full mb-3 sm:mb-4"
+                  className="flex h-12 w-12 sm:h-18 sm:w-18 lg:h-22 lg:w-22 items-center justify-center rounded-full mb-3 sm:mb-5 transition-transform duration-300 group-hover:scale-105 shadow-2xs"
                   style={{ background: card.iconBg, color: card.iconColor }}
                 >
-                  <card.Icon size={18} strokeWidth={2} className="sm:hidden" />
-                  <card.Icon size={24} strokeWidth={2} className="hidden sm:block" />
+                  <card.Icon size={22} strokeWidth={2} className="sm:hidden" />
+                  <card.Icon size={34} strokeWidth={1.75} className="hidden sm:block lg:hidden" />
+                  <card.Icon size={40} strokeWidth={1.75} className="hidden lg:block" />
                 </div>
 
-                <h3 className="font-serif text-xs sm:text-xl font-bold text-[#1E2A24] leading-snug">
+                <h3 className="font-serif text-xs sm:text-xl lg:text-2xl font-bold text-[#1E2A24] leading-snug">
                   {card.title}
                 </h3>
 
-                <p className="mt-1 sm:mt-2 text-[9px] sm:text-[13.5px] text-[#554D43] leading-relaxed">
+                <p className="mt-1 sm:mt-2 text-[10px] sm:text-sm lg:text-[14.5px] text-[#554D43] leading-relaxed max-w-xs">
                   {card.desc}
                 </p>
               </div>
@@ -368,6 +409,9 @@ const DiabetesTypes = ({ showHeader = true }) => {
         </section>
 
       </div>
+
+      {/* Actual full-width bottom footer */}
+      <LearnFooter className="mt-8 sm:mt-12" />
     </section>
   );
 };

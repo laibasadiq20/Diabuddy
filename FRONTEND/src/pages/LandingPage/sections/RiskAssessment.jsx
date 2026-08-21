@@ -235,7 +235,196 @@ const RiskAssessment = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    const resultKeyNow = getResultKey();
+    const metaNow = RESULT_META[resultKeyNow];
+    const baseNow = `landing.learn.riskAssessment.results.${resultKeyNow}`;
+    const title = tr(`${baseNow}.title`);
+    const subtitle = tr(`${baseNow}.subtitle`);
+    const badgeLabel = showAlreadyDiagnosed
+      ? 'Living With Diabetes'
+      : `Score: ${score} Points · ${metaNow.badgeLabel}`;
+
+    const adviceRows = metaNow.adviceKeys
+      .map((key) => {
+        const advice = tr(`${baseNow}.advice.${key}`);
+        return `
+          <div class="advice-card">
+            <div class="advice-dot"></div>
+            <div>
+              <p class="advice-title">${advice.emoji ? advice.emoji + ' ' : ''}${advice.title}</p>
+              <p class="advice-body">${advice.body}</p>
+            </div>
+          </div>`;
+      })
+      .join('');
+
+    const answerRows = answers
+      .map((a) => {
+        const label = tr(`landing.learn.riskAssessment.questions.${a.id}.question`);
+        const optionLabel = tr(`landing.learn.riskAssessment.questions.${a.id}.options.${a.value}`);
+        return `<tr><td>${label}</td><td>${optionLabel}</td><td>${a.points}</td></tr>`;
+      })
+      .join('');
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DiaBuddy – Risk Assessment Summary</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #ffffff;
+      color: #1a1a1a;
+      padding: 32px 40px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .header {
+      border-bottom: 2px solid #1a1a1a;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .header h1 { font-size: 22px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.3px; }
+    .header .brand { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px; }
+    .badge {
+      display: inline-block;
+      background: #f0f0f0;
+      color: #1a1a1a;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .result-title { font-size: 20px; font-weight: 700; color: #1a1a1a; margin: 6px 0 4px; }
+    .result-subtitle { font-size: 13px; color: #444; }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #1a1a1a;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 6px;
+      margin: 24px 0 14px;
+    }
+    .advice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .advice-card {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    .advice-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+    .advice-title { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 3px; }
+    .advice-body { font-size: 11.5px; color: #444; }
+    table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    th {
+      text-align: left;
+      background: #f0f0f0;
+      color: #1a1a1a;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+    }
+    td {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      font-size: 12px;
+      color: #1a1a1a;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f9f9f9; }
+    .score-row td:last-child { font-weight: 700; }
+    .footer {
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px solid #ccc;
+      font-size: 10.5px;
+      color: #666;
+    }
+    .disclaimer {
+      margin-top: 10px;
+      padding: 12px 14px;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #444;
+    }
+    @media print {
+      body { padding: 20px; }
+      .advice-card { break-inside: avoid; }
+      tr { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">DiaBuddy &mdash; Your Diabetes Companion</div>
+    <h1>Diabetes Risk Assessment Summary</h1>
+    <p style="font-size:11px;color:#888;margin-top:4px;">Generated: ${new Date().toLocaleString()}</p>
+  </div>
+
+  <div class="badge">${badgeLabel}</div>
+  <div class="result-title">${title}</div>
+  <div class="result-subtitle">${subtitle}</div>
+
+  <div class="section-title">Recommended Next Steps</div>
+  <div class="advice-grid">${adviceRows}</div>
+
+  ${answerRows ? `
+  <div class="section-title">Your Responses</div>
+  <table>
+    <thead>
+      <tr><th>Question</th><th>Your Answer</th><th>Points</th></tr>
+    </thead>
+    <tbody>
+      ${answerRows}
+      <tr class="score-row">
+        <td colspan="2" style="text-align:right;font-weight:700;">Total Risk Score</td>
+        <td>${score}</td>
+      </tr>
+    </tbody>
+  </table>` : ''}
+
+  <div class="disclaimer">
+    <strong>Notice:</strong> This assessment evaluates statistical risk indicators based on the ADA Type 2 Diabetes Risk Test and does not constitute a clinical medical diagnosis.
+    Please consult a qualified healthcare provider for diagnostic laboratory tests (Fasting Plasma Glucose or HbA1c).
+    A score of 5 or higher suggests discussing screening with your doctor.
+  </div>
+
+  <div class="footer">
+    Printed from DiaBuddy &bull; diabuddy.app &bull; For informational purposes only
+  </div>
+
+  <script>
+    window.onload = function () { window.print(); };
+  </script>
+</body>
+</html>`);
+    printWindow.document.close();
   };
 
   const quizComplete = currentQuestion >= quizFlow.length && currentQuestion >= 0 && answers.length > 0;
@@ -607,12 +796,9 @@ const RiskAssessment = () => {
 
           </div>
         )}
-
-        <div className="mt-12 w-full">
-          <LearnFooter />
-        </div>
-
       </main>
+
+      <LearnFooter className="relative z-10" />
     </div>
   );
 };

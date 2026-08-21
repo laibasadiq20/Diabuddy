@@ -63,7 +63,7 @@ const Symptoms = ({
       {showNavbar && <Navbar />}
 
       <section
-        className="dbx-symptoms relative overflow-hidden pb-[120px] font-sans text-[var(--brown)]"
+        className="dbx-symptoms relative overflow-hidden pb-0 font-sans text-[var(--brown)]"
         style={{ background: 'var(--cream-soft)' }}
       >
         {/* Back button */}
@@ -318,9 +318,9 @@ const Symptoms = ({
               </div>
             </div>
           </div>
-
-          <LearnFooter className="mt-14" />
         </div>
+
+        <LearnFooter className="mt-14" />
 
         <style>{`
           /* Darker, deeper palette scoped to this page only */

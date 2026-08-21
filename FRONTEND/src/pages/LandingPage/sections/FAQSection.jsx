@@ -126,7 +126,7 @@ export default function FAQSection() {
   return (
     <section
       id="faq"
-      className="w-full px-6 sm:px-8 lg:px-12 pt-6 sm:pt-10 pb-14 sm:pb-20 scroll-mt-24"
+      className="w-full px-6 sm:px-8 lg:px-12 py-6 sm:py-10 scroll-mt-24"
       style={{
         background: 'linear-gradient(180deg, var(--cream-soft) 0%, rgba(216, 226, 220, 0.38) 50%, var(--cream-soft) 100%)',
       }}
