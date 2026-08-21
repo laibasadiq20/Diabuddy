@@ -8,9 +8,9 @@ const LearnFooter = ({ className = '' }) => {
 
   const links = [
     { label: 'Home', path: '/', isHome: true },
-    { label: 'Types', fullLabel: 'Diabetes Types', path: '/learn/diabetes-types' },
     { label: 'Warning Signs', fullLabel: 'Warning Signs', path: '/learn/warning-signs' },
     { label: 'Risk Test', fullLabel: 'Risk Assessment', path: '/learn/risk-assessment' },
+    { label: 'Types', fullLabel: 'Diabetes Types', path: '/learn/diabetes-types' },
     { label: 'Blog', fullLabel: 'Wellness Blog', path: '/learn/blog' },
   ];
 
