@@ -32,7 +32,14 @@ import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { downloadReportPdf } from './reportExport';
 import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
-import { mlToUsFlOz, round0, round1, mlToLiters } from '../../utils/waterUnits';
+import {
+  resolveWaterUnit,
+  formatWater,
+  mlToDisplayValue,
+  waterUnitLabel,
+  round0,
+  round1,
+} from '../../utils/waterUnits';
 import { formatClock12 } from '../../utils/timezone';
 
 const t = theme;
@@ -318,6 +325,7 @@ export default function Reports() {
   // signed-in user's glucoseUnit preference (Settings page).
   const glucoseUnit = user?.glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
   const unitLabel = glucoseUnitLabel(glucoseUnit);
+  const waterUnit = resolveWaterUnit(user);
 
   const tirPie = useMemo(() => {
     if (!charts?.tir) return [];
@@ -340,14 +348,10 @@ export default function Reports() {
     () =>
       (charts?.daily || []).map((d) => ({
         ...d,
-        waterOz: round0(mlToUsFlOz(d.water || 0)),
+        waterAmount: Number(mlToDisplayValue(d.water || 0, waterUnit)) || 0,
       })),
-    [charts]
+    [charts, waterUnit]
   );
-
-  const totalWaterOz = round0(mlToUsFlOz(metrics?.totalWaterMl || 0));
-  const avgWaterOz = metrics?.avgWaterPerDay != null ? round0(mlToUsFlOz(metrics.avgWaterPerDay)) : null;
-  const totalWaterL = round1(mlToLiters(metrics?.totalWaterMl || 0));
 
   const readingTypeChart = useMemo(
     () => (charts?.glucoseByReadingType || []).map((r) => ({ ...r, avgGlucose: fromMgdl(r.avgGlucose, glucoseUnit) })),
@@ -780,7 +784,7 @@ export default function Reports() {
                         <YAxis yAxisId="right" orientation="right" tick={{ fill: t.inkFaint, fontSize: isNarrow ? 10 : 11 }} axisLine={false} tickLine={false} width={isNarrow ? 28 : 36} />
                         <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
                         <Legend wrapperStyle={{ fontSize: isNarrow ? 11 : 12 }} />
-                        <Line yAxisId="left" type="monotone" dataKey="waterOz" name={tr('reports.chartNames.waterMl')} stroke={t.skyDeep} strokeWidth={2} dot={false} />
+                        <Line yAxisId="left" type="monotone" dataKey="waterAmount" name={`Water (${waterUnitLabel(waterUnit)})`} stroke={t.skyDeep} strokeWidth={2} dot={false} />
                         <Line yAxisId="right" type="monotone" dataKey="exercise" name={tr('reports.chartNames.activityMin')} stroke={t.gold} strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
@@ -864,10 +868,10 @@ export default function Reports() {
                     </p>
                   </div>
                   <div>
+                    <Droplets size={16} />
                     <p>
-                      <strong>{totalWaterOz}</strong> {tr('reports.periodTotals.ozWater')}
-                      {totalWaterL > 0 ? ` (${totalWaterL} L)` : ''} · {tr('reports.periodTotals.avg')}{' '}
-                      <strong>{avgWaterOz ?? '—'}</strong> oz/{tr('reports.periodTotals.day')}
+                      <strong>{formatWater(metrics?.totalWaterMl || 0, waterUnit)}</strong> water · {tr('reports.periodTotals.avg')}{' '}
+                      <strong>{metrics?.avgWaterPerDay != null ? formatWater(metrics.avgWaterPerDay, waterUnit) : '—'}</strong>/{tr('reports.periodTotals.day')}
                     </p>
                   </div>
                   <div>

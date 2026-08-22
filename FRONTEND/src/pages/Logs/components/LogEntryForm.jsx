@@ -1,14 +1,27 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../../../theme';
 import { useAuth } from '../../../context/AuthContext';
 import { useI18n } from '../../../i18n/I18nContext';
 import { API_URL } from '../../../config/api';
-import { Annoyed, AlertTriangle, Check, Frown, Laugh, Loader2, Meh, Smile, Upload } from 'lucide-react';
-import { mlToUsFlOz, usFlOzToMl, OZ_PER_GLASS, round1 } from '../../../utils/waterUnits';
+import { Annoyed, AlertTriangle, Calendar, Check, Clock, Droplets, Edit2, Frown, Laugh, Loader2, Meh, Smile, Upload } from 'lucide-react';
+import {
+  mlToUsFlOz,
+  usFlOzToMl,
+  round1,
+  resolveWaterUnit,
+  waterUnitLabel,
+  mlToDisplayValue,
+  displayValueToMl,
+  formatWater,
+  getWaterQuickPresets,
+  getWaterInputConfig,
+} from '../../../utils/waterUnits';
 import { convertGlucose, fromMgdl, glucoseInputBounds, glucoseUnitLabel } from '../../../utils/glucoseUnits';
 import ThemedSelect from '../../../components/ThemedSelect';
 import SearchSelect from '../../../components/SearchSelect';
+import LowGlucoseModal from '../../../components/LowGlucoseModal';
+import HighGlucoseModal from '../../../components/HighGlucoseModal';
 import { peekMealNutritionPrefill, clearMealNutritionPrefill } from '../../../utils/mealNutritionPrefill';
 
 const t = theme;
@@ -158,11 +171,55 @@ const PERIOD_OPTIONS = [
   { value: 'PM', label: 'PM' },
 ];
 
-/** Themed DiaBuddy date + 12h time — same pattern as Reminders (one row each). */
-function DateTimeFields({ value, onChange, tr }) {
+function formatSmartTimestamp(tsStr) {
+  const d = tsStr ? new Date(tsStr) : new Date();
+  if (Number.isNaN(d.getTime())) {
+    return { main: 'Now', time: '', isNow: true };
+  }
+
+  const now = new Date();
+  const isToday =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate();
+
+  const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+  const diffMs = Math.abs(now.getTime() - d.getTime());
+  const isNearNow = isToday && diffMs < 2 * 60 * 1000;
+
+  if (isNearNow) {
+    return { main: 'Just now', time: timeStr, isNow: true };
+  }
+  if (isToday) {
+    return { main: 'Today', time: timeStr, isNow: false };
+  }
+  if (isYesterday) {
+    return { main: 'Yesterday', time: timeStr, isNow: false };
+  }
+
+  const dateStr = d.toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
+    year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+  });
+  return { main: dateStr, time: timeStr, isNow: false };
+}
+
+/** Smart Single-Row Timestamp Bar with 1-Tap Quick Actions [Now] [-15m] [-1h] and Expandable [Edit] */
+function DateTimeFields({ value, onChange, tr, label: customLabel }) {
+  const [isEditing, setIsEditing] = useState(false);
   const { date, time } = splitLocal(value);
   const dateParts = splitDateParts(date);
   const timeParts = splitTime12(time);
+
+  const smartInfo = formatSmartTimestamp(value);
 
   const setDate = (year, month, day) => {
     onChange(joinLocal(joinDateParts(year, month, day), time));
@@ -176,6 +233,40 @@ function DateTimeFields({ value, onChange, tr }) {
     );
   };
 
+  const handleSetNow = () => {
+    onChange(toLocalInput(new Date()));
+  };
+
+  const handleMinusMinutes = (mins) => {
+    const current = value ? new Date(value) : new Date();
+    const base = Number.isNaN(current.getTime()) ? Date.now() : current.getTime();
+    onChange(toLocalInput(new Date(base - mins * 60 * 1000)));
+  };
+
+  const handleSetRelativeDay = (dayOffset) => {
+    const target = new Date();
+    target.setDate(target.getDate() + dayOffset);
+    setDate(String(target.getFullYear()), String(target.getMonth() + 1), String(target.getDate()));
+  };
+
+  const quickPillStyle = (active) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    padding: '6px 11px',
+    borderRadius: 9,
+    border: `1px solid ${active ? t.forest : t.lineStrong}`,
+    background: active ? t.surfaceSunken : t.surface,
+    color: active ? t.forest : t.ink,
+    fontSize: 12,
+    fontWeight: 650,
+    cursor: 'pointer',
+    fontFamily: t.fontBody,
+    transition: 'all 0.15s ease',
+    whiteSpace: 'nowrap',
+  });
+
   const rowStyle = {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -184,53 +275,218 @@ function DateTimeFields({ value, onChange, tr }) {
   };
 
   return (
-    <div className="db-log-datetime" style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%' }}>
-      <div>
-        <label style={label}>{tr('logEntryForm.common.date')}</label>
-        <div className="db-log-datetime-row" style={rowStyle}>
-          <ThemedSelect
-            aria-label="Day"
-            value={dateParts.day}
-            onChange={(day) => setDate(dateParts.year, dateParts.month, day)}
-            options={buildDayOptions(dateParts.year, dateParts.month)}
-          />
-          <ThemedSelect
-            aria-label="Month"
-            value={dateParts.month}
-            onChange={(month) => setDate(dateParts.year, month, dateParts.day)}
-            options={buildMonthOptions()}
-          />
-          <ThemedSelect
-            aria-label="Year"
-            value={dateParts.year}
-            onChange={(year) => setDate(year, dateParts.month, dateParts.day)}
-            options={buildYearOptions()}
-          />
+    <div
+      className="db-log-smart-datetime"
+      style={{
+        width: '100%',
+        boxSizing: 'border-box',
+        background: t.surface,
+        border: `1.5px solid ${isEditing ? t.forest : t.lineStrong}`,
+        borderRadius: 14,
+        padding: '12px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      }}
+    >
+      {/* Top Header Row: Icon + Label/Time Badge + 1-Tap Quick Action Pills */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 10,
+        }}
+      >
+        {/* Left Side: Clock Icon + Timestamp Summary */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              background: t.surfaceSunken,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: t.forest,
+              flexShrink: 0,
+            }}
+          >
+            <Clock size={17} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: t.inkFaint }}>
+              {customLabel || tr('logEntryForm.common.dateTime', 'Date & time')}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 750, color: t.ink, lineHeight: 1.25, marginTop: 1 }}>
+              {smartInfo.main}
+              {smartInfo.time ? (
+                <span style={{ color: t.inkSoft, fontWeight: 600 }}> · {smartInfo.time}</span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Quick Action Pills */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handleSetNow}
+            style={quickPillStyle(smartInfo.isNow)}
+            title="Set timestamp to right now"
+          >
+            Now
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMinusMinutes(5)}
+            style={quickPillStyle(false)}
+            title="Log 5 minutes ago"
+          >
+            -5m
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMinusMinutes(15)}
+            style={quickPillStyle(false)}
+            title="Log 15 minutes ago"
+          >
+            -15m
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMinusMinutes(60)}
+            style={quickPillStyle(false)}
+            title="Log 1 hour ago"
+          >
+            -1h
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsEditing((prev) => !prev)}
+            style={{
+              ...quickPillStyle(isEditing),
+              background: isEditing ? t.forest : t.surfaceSunken,
+              color: isEditing ? '#ffffff' : t.ink,
+              borderColor: isEditing ? t.forest : t.lineStrong,
+            }}
+            title={isEditing ? 'Close manual date/time picker' : 'Edit date and time'}
+          >
+            {isEditing ? (
+              <>
+                <Check size={13} />
+                <span>Done</span>
+              </>
+            ) : (
+              <>
+                <Edit2 size={12} />
+                <span>Edit</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
-      <div>
-        <label style={label}>{tr('logEntryForm.common.time')}</label>
-        <div className="db-log-datetime-row" style={rowStyle}>
-          <ThemedSelect
-            aria-label="Hour"
-            value={timeParts.hour12}
-            onChange={(hour12) => setTime(hour12, timeParts.minute, timeParts.period)}
-            options={buildHourOptions()}
-          />
-          <ThemedSelect
-            aria-label="Minute"
-            value={timeParts.minute}
-            onChange={(minute) => setTime(timeParts.hour12, minute, timeParts.period)}
-            options={buildMinuteOptions()}
-          />
-          <ThemedSelect
-            aria-label="AM/PM"
-            value={timeParts.period}
-            onChange={(period) => setTime(timeParts.hour12, timeParts.minute, period)}
-            options={PERIOD_OPTIONS}
-          />
+
+      {/* Expanded Manual Editor (Visible only when user clicks [Edit]) */}
+      {isEditing && (
+        <div
+          style={{
+            paddingTop: 12,
+            borderTop: `1px dashed ${t.lineStrong}`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          {/* Quick Day Chips */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, fontWeight: 650, color: t.inkFaint }}>Quick day:</span>
+            <button
+              type="button"
+              onClick={() => handleSetRelativeDay(0)}
+              style={{
+                padding: '4px 9px',
+                borderRadius: 7,
+                border: `1px solid ${t.lineStrong}`,
+                background: t.surfaceSunken,
+                color: t.ink,
+                fontSize: 11.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetRelativeDay(-1)}
+              style={{
+                padding: '4px 9px',
+                borderRadius: 7,
+                border: `1px solid ${t.lineStrong}`,
+                background: t.surfaceSunken,
+                color: t.ink,
+                fontSize: 11.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Yesterday
+            </button>
+          </div>
+
+          <div>
+            <label style={{ ...label, fontSize: 12, marginBottom: 5 }}>{tr('logEntryForm.common.date')}</label>
+            <div className="db-log-datetime-row" style={rowStyle}>
+              <ThemedSelect
+                aria-label="Day"
+                value={dateParts.day}
+                onChange={(day) => setDate(dateParts.year, dateParts.month, day)}
+                options={buildDayOptions(dateParts.year, dateParts.month)}
+              />
+              <ThemedSelect
+                aria-label="Month"
+                value={dateParts.month}
+                onChange={(month) => setDate(dateParts.year, month, dateParts.day)}
+                options={buildMonthOptions()}
+              />
+              <ThemedSelect
+                aria-label="Year"
+                value={dateParts.year}
+                onChange={(year) => setDate(year, dateParts.month, dateParts.day)}
+                options={buildYearOptions()}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ ...label, fontSize: 12, marginBottom: 5 }}>{tr('logEntryForm.common.time')}</label>
+            <div className="db-log-datetime-row" style={rowStyle}>
+              <ThemedSelect
+                aria-label="Hour"
+                value={timeParts.hour12}
+                onChange={(hour12) => setTime(hour12, timeParts.minute, timeParts.period)}
+                options={buildHourOptions()}
+              />
+              <ThemedSelect
+                aria-label="Minute"
+                value={timeParts.minute}
+                onChange={(minute) => setTime(timeParts.hour12, minute, timeParts.period)}
+                options={buildMinuteOptions()}
+              />
+              <ThemedSelect
+                aria-label="AM/PM"
+                value={timeParts.period}
+                onChange={(period) => setTime(timeParts.hour12, timeParts.minute, period)}
+                options={PERIOD_OPTIONS}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -351,18 +607,47 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
     });
   }, [initialRaw, preferredUnit]);
 
+  const [lowModalOpen, setLowModalOpen] = useState(false);
+  const [highModalOpen, setHighModalOpen] = useState(false);
+
   const afterMealContext = /after/i.test(form.readingType);
   const lowCut = afterMealContext ? ranges.postMealMin : ranges.fastingMin;
   const highCut = afterMealContext ? ranges.postMealMax : ranges.fastingMax;
   const levelNum = form.glucoseLevel === '' ? null : Number(form.glucoseLevel);
+  const isOutOfRange =
+    levelNum != null &&
+    !Number.isNaN(levelNum) &&
+    (levelNum < bounds.min || levelNum > bounds.max);
   const glucoseAlert =
-    levelNum != null && !Number.isNaN(levelNum)
+    levelNum != null && !Number.isNaN(levelNum) && !isOutOfRange
       ? levelNum < lowCut
         ? 'low'
         : levelNum > highCut
           ? 'high'
           : null
       : null;
+
+  const handleGlucoseChange = (e) => {
+    const rawVal = e.target.value;
+    if (rawVal === '') {
+      setForm((prev) => ({ ...prev, glucoseLevel: '' }));
+      return;
+    }
+
+    if (preferredUnit === 'mmol/L') {
+      if (rawVal.length > 4) return;
+      if (!/^\d{0,2}(\.\d{0,1})?$/.test(rawVal)) return;
+      const num = parseFloat(rawVal);
+      if (!Number.isNaN(num) && num > bounds.max) return;
+      setForm((prev) => ({ ...prev, glucoseLevel: rawVal }));
+    } else {
+      if (rawVal.length > 3) return;
+      if (!/^\d{0,3}$/.test(rawVal)) return;
+      const num = parseInt(rawVal, 10);
+      if (!Number.isNaN(num) && num > bounds.max) return;
+      setForm((prev) => ({ ...prev, glucoseLevel: rawVal }));
+    }
+  };
 
   const formatRangeNum = (n) =>
     preferredUnit === 'mmol/L' ? (Math.round(Number(n) * 10) / 10).toFixed(1).replace(/\.0$/, '') : String(Math.round(Number(n)));
@@ -375,194 +660,340 @@ function GlucoseFields({ initialRaw, submitting, isEdit, onSubmit }) {
     .replace('{unit}', unitLabel);
 
   return (
-    <form
-      style={row}
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (form.glucoseLevel === '') {
-          alert('Please enter a glucose level reading.');
-          return;
-        }
-        const body = {
-          glucoseLevel: Number(form.glucoseLevel),
-          unit: preferredUnit,
-          readingType: form.readingType,
-          notes: form.notes || undefined,
-        };
-        body.timestamp = new Date(form.timestamp).toISOString();
-        onSubmit(body);
-      }}
-    >
-      <Field title={tr('logEntryForm.glucose.contextLabel', 'Context')}>
-        <ThemedSelect
-          value={form.readingType}
-          onChange={(v) => setForm({ ...form, readingType: v })}
-          options={[
-            'Fasting',
-            'Before Breakfast',
-            'After Breakfast',
-            'Before Lunch',
-            'After Lunch',
-            'Before Dinner',
-            'After Dinner',
-            'Bedtime',
-            'Random',
-            'Before Exercise',
-            'After Exercise',
-            'Night',
-          ].map((o) => ({
-            value: o,
-            label: tr(`logEntryForm.glucose.context.${GLUCOSE_CONTEXT_KEYS[o]}`, o),
-          }))}
-        />
-      </Field>
-
-      <div
-        style={{
-          display: 'flex',
-          gap: 10,
-          alignItems: 'center',
-          padding: '10px 12px',
-          borderRadius: 10,
-          border: `1px solid ${t.sage}55`,
-          background: t.sageTint,
-          color: t.inkSoft,
+    <>
+      <form
+        style={row}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (form.glucoseLevel === '') {
+            alert(tr('logEntryForm.glucose.enterReading', 'Please enter a glucose level reading.'));
+            return;
+          }
+          const numLevel = Number(form.glucoseLevel);
+          if (Number.isNaN(numLevel) || numLevel < bounds.min || numLevel > bounds.max) {
+            alert(
+              preferredUnit === 'mmol/L'
+                ? `Please enter a valid glucose reading between ${bounds.min} and ${bounds.max} mmol/L.`
+                : `Please enter a valid glucose reading between ${bounds.min} and ${bounds.max} mg/dL.`
+            );
+            return;
+          }
+          const body = {
+            glucoseLevel: numLevel,
+            unit: preferredUnit,
+            readingType: form.readingType,
+            notes: form.notes || undefined,
+          };
+          body.timestamp = new Date(form.timestamp).toISOString();
+          onSubmit(body);
         }}
       >
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: t.sageDeep }}>
-            {tr('logEntryForm.glucose.targetTitle', 'Target range')}
-          </p>
-          <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 650, color: t.ink, lineHeight: 1.35 }}>
-            {targetRangeText}
-          </p>
-        </div>
-        <Check size={18} strokeWidth={2.5} style={{ flexShrink: 0, color: t.sageDeep }} aria-hidden />
-      </div>
-
-      <div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
-          <label style={{ ...label, marginBottom: 0 }}>{tr('logEntryForm.glucose.value', 'Reading')}</label>
-          <button
-            type="button"
-            onClick={() => navigate('/settings')}
-            style={{
-              border: 'none',
-              background: 'none',
-              padding: 0,
-              fontSize: 12,
-              fontWeight: 650,
-              color: t.forest,
-              cursor: 'pointer',
-              fontFamily: t.fontBody,
-              textDecoration: 'none',
-            }}
-          >
-            {tr('logEntryForm.glucose.changeUnitInSettings', 'Change unit in Settings')}
-          </button>
-        </div>
-        <div style={{ position: 'relative' }}>
-          <input
-            required
-            type="number"
-            step={bounds.step}
-            min={bounds.min}
-            max={bounds.max}
-            value={form.glucoseLevel}
-            onChange={(e) => setForm({ ...form, glucoseLevel: e.target.value })}
-            style={{ ...field, paddingRight: 72 }}
-            placeholder={
-              preferredUnit === 'mmol/L'
-                ? tr('logEntryForm.glucose.placeholderMmol', 'e.g. 7.1')
-                : tr('logEntryForm.glucose.placeholderMgdl', 'e.g. 128')
-            }
+        <Field title={tr('logEntryForm.glucose.contextLabel', 'Context')}>
+          <ThemedSelect
+            value={form.readingType}
+            onChange={(v) => setForm({ ...form, readingType: v })}
+            options={[
+              'Fasting',
+              'Before Breakfast',
+              'After Breakfast',
+              'Before Lunch',
+              'After Lunch',
+              'Before Dinner',
+              'After Dinner',
+              'Bedtime',
+              'Random',
+              'Before Exercise',
+              'After Exercise',
+              'Night',
+            ].map((o) => ({
+              value: o,
+              label: tr(`logEntryForm.glucose.context.${GLUCOSE_CONTEXT_KEYS[o]}`, o),
+            }))}
           />
-          <span
+        </Field>
+
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            alignItems: 'center',
+            padding: '10px 12px',
+            borderRadius: 10,
+            border: `1px solid ${t.sage}55`,
+            background: t.sageTint,
+            color: t.inkSoft,
+          }}
+        >
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: t.sageDeep }}>
+              {tr('logEntryForm.glucose.targetTitle', 'Target range')}
+            </p>
+            <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 650, color: t.ink, lineHeight: 1.35 }}>
+              {targetRangeText}
+            </p>
+          </div>
+          <Check size={18} strokeWidth={2.5} style={{ flexShrink: 0, color: t.sageDeep }} aria-hidden />
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+            <label style={{ ...label, marginBottom: 0 }}>{tr('logEntryForm.glucose.value', 'Reading')}</label>
+            <button
+              type="button"
+              onClick={() => navigate('/settings')}
+              style={{
+                border: 'none',
+                background: 'none',
+                padding: 0,
+                fontSize: 12,
+                fontWeight: 650,
+                color: t.forest,
+                cursor: 'pointer',
+                fontFamily: t.fontBody,
+                textDecoration: 'none',
+              }}
+            >
+              {tr('logEntryForm.glucose.changeUnitInSettings', 'Change unit in Settings')}
+            </button>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <input
+              required
+              type="number"
+              step={bounds.step}
+              min={bounds.min}
+              max={bounds.max}
+              maxLength={preferredUnit === 'mmol/L' ? 4 : 3}
+              value={form.glucoseLevel}
+              onChange={handleGlucoseChange}
+              style={{ ...field, paddingRight: 72 }}
+              placeholder={
+                preferredUnit === 'mmol/L'
+                  ? tr('logEntryForm.glucose.placeholderMmol', 'e.g. 7.1')
+                  : tr('logEntryForm.glucose.placeholderMgdl', 'e.g. 128')
+              }
+            />
+            <span
+              style={{
+                position: 'absolute',
+                right: 14,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: 13,
+                fontWeight: 700,
+                color: t.inkSoft,
+                pointerEvents: 'none',
+              }}
+            >
+              {unitLabel}
+            </span>
+          </div>
+          <p style={{ ...hint, marginTop: 4 }}>
+            {preferredUnit === 'mmol/L'
+              ? `Standard meter range: ${bounds.min}–${bounds.max} mmol/L`
+              : `Standard meter range: ${bounds.min}–${bounds.max} mg/dL`}
+          </p>
+        </div>
+
+        {isOutOfRange ? (
+          <div
+            role="status"
             style={{
-              position: 'absolute',
-              right: 14,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: 13,
-              fontWeight: 700,
-              color: t.inkSoft,
-              pointerEvents: 'none',
+              display: 'flex',
+              gap: 10,
+              alignItems: 'flex-start',
+              padding: '12px 14px',
+              borderRadius: 12,
+              border: `1px solid ${t.clay}66`,
+              background: t.claySoft,
+              color: t.clayDeep,
             }}
           >
-            {unitLabel}
-          </span>
-        </div>
-      </div>
-
-      {glucoseAlert === 'low' ? (
-        <div
-          role="status"
-          style={{
-            display: 'flex',
-            gap: 10,
-            alignItems: 'flex-start',
-            padding: '12px 14px',
-            borderRadius: 12,
-            border: `1px solid ${t.clay}55`,
-            background: t.claySoft,
-            color: t.clayDeep,
-          }}
-        >
-          <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
-          <div>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{tr('logEntryForm.glucose.alertLowTitle', 'Low glucose')}</p>
-            <p style={{ margin: '4px 0 0', fontSize: 12, lineHeight: 1.45 }}>
-              {tr(
-                'logEntryForm.glucose.alertLowBody',
-                "This reading is below the recommended range. Consider following your clinician's advice."
-              )}
-            </p>
+            <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+            <div>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>
+                {tr('logEntryForm.glucose.alertOutOfRangeTitle', 'Out of realistic range')}
+              </p>
+              <p style={{ margin: '4px 0 0', fontSize: 12, lineHeight: 1.45 }}>
+                {preferredUnit === 'mmol/L'
+                  ? `Please enter a realistic reading between ${bounds.min} and ${bounds.max} mmol/L.`
+                  : `Please enter a realistic reading between ${bounds.min} and ${bounds.max} mg/dL.`}
+              </p>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {glucoseAlert === 'high' ? (
-        <div
-          role="status"
-          style={{
-            display: 'flex',
-            gap: 10,
-            alignItems: 'flex-start',
-            padding: '12px 14px',
-            borderRadius: 12,
-            border: `1px solid ${t.clay}55`,
-            background: t.claySoft,
-            color: t.clayDeep,
-          }}
-        >
-          <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
-          <div>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{tr('logEntryForm.glucose.alertHighTitle', 'High glucose')}</p>
-            <p style={{ margin: '4px 0 0', fontSize: 12, lineHeight: 1.45 }}>
-              {tr('logEntryForm.glucose.alertHighBody', 'Consider rechecking or following your treatment plan.')}
-            </p>
+        {glucoseAlert === 'low' ? (
+          <div
+            role="status"
+            style={{
+              display: 'flex',
+              gap: 12,
+              alignItems: 'flex-start',
+              padding: '14px 16px',
+              borderRadius: 14,
+              border: `1.5px solid ${t.skySoft}`,
+              background: `linear-gradient(180deg, ${t.skyTint} 0%, ${t.surface} 100%)`,
+              color: t.ink,
+              boxShadow: '0 2px 6px rgba(94, 135, 160, 0.08)',
+            }}
+          >
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: t.skySoft,
+                color: t.skyDeep,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                marginTop: '1px',
+              }}
+            >
+              <Droplets size={18} strokeWidth={2.5} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                <p style={{ margin: 0, fontSize: '13.5px', fontWeight: 750, color: t.forest }}>
+                  Your blood sugar is low
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setLowModalOpen(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    border: `1px solid ${t.skyDeep}`,
+                    background: t.skyDeep,
+                    color: '#FFFFFF',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: t.fontBody,
+                    transition: 'background 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = t.forest)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = t.skyDeep)}
+                >
+                  What should I do?
+                </button>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '12.5px', lineHeight: 1.45, color: t.inkSoft }}>
+                If your reading is below 70 mg/dL (3.9 mmol/L), treat it promptly with 15 g of fast-acting carbohydrate.
+              </p>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      <DateTimeFields value={form.timestamp} onChange={(timestamp) => setForm({ ...form, timestamp })} tr={tr} />
-      <Field title={tr('logEntryForm.common.notesOptional', 'Notes (optional)')}>
-        <input
-          type="text"
-          value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
-          style={field}
-          placeholder={tr('logEntryForm.glucose.notesPlaceholder', 'Optional context for this reading')}
+        {glucoseAlert === 'high' ? (
+          <div
+            role="status"
+            style={{
+              display: 'flex',
+              gap: 12,
+              alignItems: 'flex-start',
+              padding: '14px 16px',
+              borderRadius: 14,
+              border: `1.5px solid ${t.claySoft}`,
+              background: `linear-gradient(180deg, ${t.clayTint} 0%, ${t.surface} 100%)`,
+              color: t.ink,
+              boxShadow: '0 2px 6px rgba(194, 114, 79, 0.08)',
+            }}
+          >
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: t.claySoft,
+                color: t.clayDeep,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                marginTop: '1px',
+              }}
+            >
+              <AlertTriangle size={18} strokeWidth={2.4} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                <p style={{ margin: 0, fontSize: '13.5px', fontWeight: 750, color: t.forest }}>
+                  Your blood sugar is high
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setHighModalOpen(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    border: `1px solid ${t.clayDeep}`,
+                    background: t.clayDeep,
+                    color: '#FFFFFF',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: t.fontBody,
+                    transition: 'background 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = t.forest)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = t.clayDeep)}
+                >
+                  What should I do?
+                </button>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '12.5px', lineHeight: 1.45, color: t.inkSoft }}>
+                Your reading is above your {afterMealContext ? 'post-meal' : 'fasting'} target of {formatRangeNum(activeMax)} {unitLabel}. Drink water and follow your care plan.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        <DateTimeFields value={form.timestamp} onChange={(timestamp) => setForm({ ...form, timestamp })} tr={tr} />
+        <Field title={tr('logEntryForm.common.notesOptional', 'Notes (optional)')}>
+          <input
+            type="text"
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            style={field}
+            placeholder={tr('logEntryForm.glucose.notesPlaceholder', 'Optional context for this reading')}
+          />
+        </Field>
+        <Submit
+          submitting={submitting}
+          isEdit={isEdit}
+          tr={tr}
+          label={tr('logEntryForm.common.saveGlucose', 'Save glucose reading')}
+          editLabel={tr('logEntryForm.common.updateGlucose', 'Update glucose reading')}
         />
-      </Field>
-      <Submit
-        submitting={submitting}
-        isEdit={isEdit}
-        tr={tr}
-        label={tr('logEntryForm.common.saveGlucose', 'Save glucose reading')}
-        editLabel={tr('logEntryForm.common.updateGlucose', 'Update glucose reading')}
+      </form>
+
+      {/* Actionable Low Blood Sugar Popup Modal */}
+      <LowGlucoseModal
+        isOpen={lowModalOpen}
+        onClose={() => setLowModalOpen(false)}
+        glucoseLevel={form.glucoseLevel}
+        unit={unitLabel}
       />
-    </form>
+
+      {/* Actionable High Blood Sugar Popup Modal */}
+      <HighGlucoseModal
+        isOpen={highModalOpen}
+        onClose={() => setHighModalOpen(false)}
+        glucoseLevel={form.glucoseLevel}
+        unit={unitLabel}
+        targetMax={formatRangeNum(activeMax)}
+        context={form.readingType}
+      />
+    </>
   );
 }
 
@@ -571,7 +1002,9 @@ const MEAL_TYPE_KEYS = { Breakfast: 'breakfast', Lunch: 'lunch', Dinner: 'dinner
 function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
   const navigate = useNavigate();
   const { t: tr } = useI18n();
-  const { authHeaders } = useAuth();
+  const { user, authHeaders } = useAuth();
+  const preferredWaterUnit = resolveWaterUnit(user);
+  const waterInputConfig = getWaterInputConfig(preferredWaterUnit);
   const fileInputRef = useRef(null);
   const [form, setForm] = useState({
     mealType: 'Breakfast',
@@ -580,7 +1013,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
     protein: '',
     fat: '',
     calories: '',
-    waterOz: '',
+    waterAmount: '',
     bloodSugarImpact: '',
     notes: '',
     timestamp: toLocalInput(),
@@ -626,9 +1059,9 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           : initialRaw?.calories != null
             ? String(initialRaw.calories)
             : '',
-      waterOz:
+      waterAmount:
         initialRaw?.waterConsumed != null && Number(initialRaw.waterConsumed) > 0
-          ? String(round1(mlToUsFlOz(initialRaw.waterConsumed)))
+          ? mlToDisplayValue(initialRaw.waterConsumed, preferredWaterUnit)
           : '',
       bloodSugarImpact: initialRaw?.bloodSugarImpact || '',
       notes: initialRaw?.notes || '',
@@ -903,7 +1336,7 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
           protein: Number(form.protein) || 0,
           fat: Number(form.fat) || 0,
           calories: Number(form.calories) || 0,
-          waterConsumed: form.waterOz ? Math.round(usFlOzToMl(form.waterOz)) : 0,
+          waterConsumed: form.waterAmount ? displayValueToMl(form.waterAmount, preferredWaterUnit) : 0,
           bloodSugarImpact: form.bloodSugarImpact || '',
           notes: form.notes || undefined,
         };
@@ -1214,23 +1647,23 @@ function MealFields({ initialRaw, submitting, isEdit, onSubmit }) {
         )}
       </div>
 
-      <Field title={tr('logEntryForm.meal.waterIntakeOz')}>
+      <Field title={`${tr('logEntryForm.water.intake')} (${waterInputConfig.unitLabel})`}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <input
             type="number"
             min="0"
-            step="0.5"
+            max={waterInputConfig.max}
+            step={waterInputConfig.step}
             inputMode="decimal"
-            value={form.waterOz}
-            onChange={(e) => setForm({ ...form, waterOz: e.target.value })}
+            value={form.waterAmount}
+            onChange={(e) => setForm({ ...form, waterAmount: e.target.value })}
             style={{ ...field, flex: 1 }}
-            placeholder="8"
+            placeholder={waterInputConfig.placeholder}
           />
           <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>
-            {tr('logEntryForm.water.unitOz')}
+            {waterInputConfig.unitLabel}
           </span>
         </div>
-        <p style={hint}>{tr('logEntryForm.water.glassHint')}</p>
       </Field>
 
       <div>
@@ -1520,8 +1953,22 @@ function parseDose(doseStr) {
   };
 }
 
+const USER_MEDS_STORAGE_KEY = 'diabuddy_user_medications';
+
+function getSavedMedicineList() {
+  try {
+    const raw = localStorage.getItem(USER_MEDS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (_) {}
+  return [...MEDICATION_NAMES];
+}
+
 function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
   const { t: tr } = useI18n();
+  const [medList, setMedList] = useState(getSavedMedicineList);
   const [form, setForm] = useState({
     medicineName: '',
     doseAmount: '',
@@ -1532,10 +1979,38 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
     timestamp: toLocalInput(),
   });
 
+  const saveMedicine = (name) => {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return;
+    setMedList((prev) => {
+      if (prev.some((m) => m.toLowerCase() === trimmed.toLowerCase())) return prev;
+      const updated = [trimmed, ...prev];
+      try {
+        localStorage.setItem(USER_MEDS_STORAGE_KEY, JSON.stringify(updated));
+      } catch (_) {}
+      return updated;
+    });
+  };
+
+  const deleteMedicine = (name) => {
+    const target = (name || '').trim().toLowerCase();
+    setMedList((prev) => {
+      const updated = prev.filter((m) => m.toLowerCase() !== target);
+      try {
+        localStorage.setItem(USER_MEDS_STORAGE_KEY, JSON.stringify(updated));
+      } catch (_) {}
+      return updated;
+    });
+    if (form.medicineName.toLowerCase() === target) {
+      setForm((f) => ({ ...f, medicineName: '' }));
+    }
+  };
+
   useEffect(() => {
     const next = parseDose(initialRaw?.dose);
+    const initialName = initialRaw?.medicineName || '';
     setForm({
-      medicineName: initialRaw?.medicineName || '',
+      medicineName: initialName,
       doseAmount: next.amount,
       doseUnit: next.unit,
       status: initialRaw?.status || 'Taken',
@@ -1543,6 +2018,9 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
+    if (initialName && !medList.some((m) => m.toLowerCase() === initialName.toLowerCase())) {
+      saveMedicine(initialName);
+    }
   }, [initialRaw]);
 
   return (
@@ -1550,7 +2028,8 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
-        if (!form.medicineName.trim()) {
+        const medName = form.medicineName.trim();
+        if (!medName) {
           alert('Please enter the medication name.');
           return;
         }
@@ -1562,8 +2041,9 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
           alert('Please select a dosage unit.');
           return;
         }
+        saveMedicine(medName);
         const body = {
-          medicineName: form.medicineName.trim(),
+          medicineName: medName,
           dose: `${form.doseAmount} ${form.doseUnit}`.trim(),
           status: form.status,
           route: form.route || '',
@@ -1577,9 +2057,15 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
         <SearchSelect
           required
           value={form.medicineName}
-          onChange={(v) => setForm({ ...form, medicineName: v })}
-          options={MEDICATION_NAMES}
-          topCount={5}
+          onChange={(v) => {
+            setForm({ ...form, medicineName: v });
+            saveMedicine(v);
+          }}
+          options={medList}
+          customValues={medList.filter((m) => !MEDICATION_NAMES.includes(m))}
+          onDeleteOption={deleteMedicine}
+          onAddCustom={saveMedicine}
+          topCount={Math.max(5, medList.length)}
           allowCustom
           placeholder={tr('logEntryForm.medication.namePlaceholder')}
           searchPlaceholder={tr('logEntryForm.medication.searchPlaceholder')}
@@ -1681,61 +2167,88 @@ function MedicationFields({ initialRaw, submitting, isEdit, onSubmit }) {
   );
 }
 
-const WATER_QUICK_OZ = [OZ_PER_GLASS, OZ_PER_GLASS * 2, OZ_PER_GLASS * 3];
-
 function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { t: tr } = useI18n();
+  const preferredWaterUnit = resolveWaterUnit(user);
+  const inputConfig = getWaterInputConfig(preferredWaterUnit);
+  const quickPresets = getWaterQuickPresets(preferredWaterUnit);
+
   const [form, setForm] = useState({
-    amountOz: String(OZ_PER_GLASS),
+    amount: inputConfig.defaultVal,
     notes: '',
     timestamp: toLocalInput(),
   });
 
   useEffect(() => {
     setForm({
-      amountOz:
-        initialRaw?.amount != null ? String(round1(mlToUsFlOz(initialRaw.amount))) : String(OZ_PER_GLASS),
+      amount:
+        initialRaw?.amount != null
+          ? mlToDisplayValue(initialRaw.amount, preferredWaterUnit)
+          : inputConfig.defaultVal,
       notes: initialRaw?.notes || '',
       timestamp: toLocalInput(initialRaw?.timestamp),
     });
-  }, [initialRaw]);
+  }, [initialRaw, preferredWaterUnit, inputConfig.defaultVal]);
 
   return (
     <form
       style={row}
       onSubmit={(e) => {
         e.preventDefault();
-        if (form.amountOz === '') {
-          alert('Please enter the water intake amount.');
+        if (form.amount === '' || Number(form.amount) <= 0) {
+          alert('Please enter a valid water intake amount.');
           return;
         }
         const body = {
-          amount: Math.round(usFlOzToMl(form.amountOz)),
+          amount: displayValueToMl(form.amount, preferredWaterUnit),
           notes: form.notes || undefined,
         };
         body.timestamp = new Date(form.timestamp).toISOString();
         onSubmit(body);
       }}
     >
-      <Field title={tr('logEntryForm.water.intake')}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+          <label style={{ ...label, marginBottom: 0 }}>{tr('logEntryForm.water.intake')}</label>
+          <button
+            type="button"
+            onClick={() => navigate('/settings')}
+            style={{
+              border: 'none',
+              background: 'none',
+              padding: 0,
+              fontSize: 12,
+              fontWeight: 650,
+              color: t.forest,
+              cursor: 'pointer',
+              fontFamily: t.fontBody,
+              textDecoration: 'none',
+            }}
+          >
+            {tr('logEntryForm.glucose.changeUnitInSettings', 'Change unit in Settings')}
+          </button>
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <input
             required
             type="number"
-            min="0.5"
-            step="0.5"
+            min={inputConfig.min}
+            max={inputConfig.max}
+            step={inputConfig.step}
             inputMode="decimal"
-            value={form.amountOz}
-            onChange={(e) => setForm({ ...form, amountOz: e.target.value })}
+            value={form.amount}
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
             style={{ ...field, flex: 1 }}
-            placeholder={String(OZ_PER_GLASS)}
+            placeholder={inputConfig.placeholder}
           />
           <span style={{ fontSize: 14, fontWeight: 650, color: t.inkSoft, flexShrink: 0 }}>
-            {tr('logEntryForm.water.unitOz')}
+            {inputConfig.unitLabel}
           </span>
         </div>
-        <p style={hint}>{tr('logEntryForm.water.glassHint')}</p>
-      </Field>
+      </div>
 
       <div
         style={{
@@ -1744,14 +2257,13 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
           gap: 8,
         }}
       >
-        {WATER_QUICK_OZ.map((oz) => {
-          const active = Number(form.amountOz) === oz;
-          const glasses = oz / OZ_PER_GLASS;
+        {quickPresets.map((preset) => {
+          const active = Number(form.amount) === preset.amountDisplay;
           return (
             <button
-              key={oz}
+              key={preset.label}
               type="button"
-              onClick={() => setForm({ ...form, amountOz: String(oz) })}
+              onClick={() => setForm({ ...form, amount: String(preset.amountDisplay) })}
               style={{
                 padding: '10px 8px',
                 borderRadius: 10,
@@ -1767,11 +2279,12 @@ function WaterFields({ initialRaw, submitting, isEdit, onSubmit }) {
                 whiteSpace: 'normal',
               }}
             >
-              +{oz} oz
-              <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: t.inkFaint, marginTop: 2 }}>
-                {glasses}{' '}
-                {glasses === 1 ? tr('logEntryForm.water.glass') : tr('logEntryForm.water.glasses')}
-              </span>
+              {preset.label}
+              {preset.sub ? (
+                <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: t.inkFaint, marginTop: 2 }}>
+                  {preset.sub}
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -2168,16 +2681,14 @@ function SleepFields({ initialRaw, submitting, isEdit, onSubmit }) {
       }}
     >
       <div>
-      <p style={{ ...label, marginBottom: 8 }}>{tr('logEntryForm.sleep.bedtime')}</p>
-      <DateTimeFields value={form.sleepTime} onChange={setSleepTime} tr={tr} />
-      <p style={hint}>{tr('logEntryForm.sleep.bedtimeHint')}</p>
-    </div>
+        <DateTimeFields value={form.sleepTime} onChange={setSleepTime} tr={tr} label={tr('logEntryForm.sleep.bedtime')} />
+        <p style={hint}>{tr('logEntryForm.sleep.bedtimeHint')}</p>
+      </div>
 
       <div>
-      <p style={{ ...label, marginBottom: 8 }}>{tr('logEntryForm.sleep.wakeTime')}</p>
-      <DateTimeFields value={form.wakeTime} onChange={setWakeTime} tr={tr} />
-      <p style={hint}>{tr('logEntryForm.sleep.wakeTimeHint')}</p>
-    </div>
+        <DateTimeFields value={form.wakeTime} onChange={setWakeTime} tr={tr} label={tr('logEntryForm.sleep.wakeTime')} />
+        <p style={hint}>{tr('logEntryForm.sleep.wakeTimeHint')}</p>
+      </div>
 
       <div>
         <label style={label}>{tr('logEntryForm.sleep.duration')}</label>

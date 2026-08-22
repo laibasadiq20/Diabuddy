@@ -27,9 +27,10 @@ import {
   Settings as SettingsIcon,
   LogOut,
   ArrowUpDown,
+  Plus,
 } from 'lucide-react';
 import { LOG_TYPES } from './logsConfig';
-import { mlToUsFlOz, round0 } from '../../utils/waterUnits';
+import { resolveWaterUnit, formatWater } from '../../utils/waterUnits';
 import { fromMgdl, glucoseUnitLabel, resolveGlucoseUnit } from '../../utils/glucoseUnits';
 import { getCachedData, setCachedData } from '../../utils/appCache';
 import { formatClock12 } from '../../utils/timezone';
@@ -56,6 +57,7 @@ export default function Logs() {
   const { user, logout, authHeaders } = useAuth();
   const { t: tr } = useI18n();
   const glucoseUnit = resolveGlucoseUnit(user);
+  const waterUnit = resolveWaterUnit(user);
 
   const [summary, setSummary] = useState(() => getCachedData('logs_summary') || null);
   const [streak, setStreak] = useState(() => getCachedData('logs_streak') || null);
@@ -243,7 +245,7 @@ export default function Logs() {
         const pct = Math.min(Math.round((ml / goalMl) * 100), 100);
         return {
           hasData: ml > 0,
-          title: `${(ml / 1000).toFixed(1)} L / ${(goalMl / 1000).toFixed(1)} L`,
+          title: `${formatWater(ml, waterUnit)} / ${formatWater(goalMl, waterUnit)}`,
           subtitle: `${pct}% of daily hydration goal`,
           progress: pct,
         };
@@ -570,64 +572,145 @@ export default function Logs() {
               <span className="db-section-counter">{filteredTypes.length} Categories</span>
             </div>
 
-            <div className="db-category-grid">
-              {filteredTypes.map((item) => {
-                const Icon = item.icon;
-                const status = getCardStatus(item.id);
+            {filteredTypes.length === 0 ? (
+              <div className="db-logs-empty-search">
+                <div className="db-empty-search-icon-wrap">
+                  <Search size={24} />
+                </div>
+                <h3 className="db-empty-search-title">No categories found</h3>
+                <p className="db-empty-search-text">
+                  No log types matching &ldquo;{searchQuery}&rdquo;. Try searching for blood sugar, meals, water, insulin, medication, or sleep.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="db-empty-search-btn"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              <div className="db-category-grid">
+                {filteredTypes.map((item) => {
+                  const Icon = item.icon;
+                  const status = getCardStatus(item.id);
 
-                return (
-                  <div key={item.id} className="db-cat-card">
-                    {/* Top Row: Number & Green Icon */}
-                    <div className="db-cat-top">
-                      <span className="db-cat-number">{item.num}</span>
-                      <div className="db-cat-icon-wrap">
-                        <Icon size={19} strokeWidth={2} />
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="db-cat-info">
-                      <div className="db-cat-title-row">
-                        <h3 className="db-cat-name">{item.label}</h3>
-                        {status.badge && (
-                          <span className={`db-cat-badge db-badge-${status.badgeType}`}>
-                            {status.badge}
-                          </span>
-                        )}
-                      </div>
-                      <p className="db-cat-desc">{item.hubLine}</p>
-                    </div>
-
-                    {/* Live Preview Box / Uniform Height Widget */}
-                    <div className="db-cat-widget">
-                      <div className="db-cat-widget-header">
-                        <span className="db-cat-widget-label">Status</span>
-                        {status.hasData && (
-                          <span className="db-cat-logged-tag">
-                            <Check size={10} strokeWidth={3} /> Logged
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="db-cat-widget-main">
-                        <strong className="db-cat-widget-val">{status.title}</strong>
-                        <span className="db-cat-widget-sub">{status.subtitle}</span>
-                      </div>
-                    </div>
-
-                    {/* Bottom CTA Action Button (Pinned to exact same bottom line) */}
-                    <button
-                      type="button"
-                      className="db-cat-action-btn"
+                  return (
+                    <div
+                      key={item.id}
+                      className="db-cat-card"
                       onClick={() => navigate(`/logs/${item.path}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/logs/${item.path}`);
+                        }
+                      }}
                     >
-                      <span>Add New</span>
-                      <ArrowUpRight size={15} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                      {/* Desktop Card View */}
+                      <div className="db-cat-desktop-inner">
+                        {/* Top Row: Number & Green Icon */}
+                        <div className="db-cat-top">
+                          <span className="db-cat-number">{item.num}</span>
+                          <div className="db-cat-icon-wrap">
+                            <Icon size={19} strokeWidth={2} />
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="db-cat-info">
+                          <div className="db-cat-title-row">
+                            <h3 className="db-cat-name">{item.label}</h3>
+                            {status.badge && (
+                              <span className={`db-cat-badge db-badge-${status.badgeType}`}>
+                                {status.badge}
+                              </span>
+                            )}
+                          </div>
+                          <p className="db-cat-desc">{item.hubLine}</p>
+                        </div>
+
+                        {/* Live Preview Box / Uniform Height Widget */}
+                        <div className="db-cat-widget">
+                          <div className="db-cat-widget-header">
+                            <span className="db-cat-widget-label">Status</span>
+                            {status.hasData && (
+                              <span className="db-cat-logged-tag">
+                                <Check size={10} strokeWidth={3} /> Logged
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="db-cat-widget-main">
+                            <strong className="db-cat-widget-val">{status.title}</strong>
+                            <span className="db-cat-widget-sub">{status.subtitle}</span>
+                          </div>
+                        </div>
+
+                        {/* Bottom CTA Action Button (Pinned to exact same bottom line) */}
+                        <button
+                          type="button"
+                          className="db-cat-action-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/logs/${item.path}`);
+                          }}
+                        >
+                          <span>Add New</span>
+                          <ArrowUpRight size={15} />
+                        </button>
+                      </div>
+
+                      {/* Mobile List Row View */}
+                      <div className="db-cat-mobile-inner">
+                        <div className="db-cat-mobile-left">
+                          <div className="db-cat-mobile-icon-wrap">
+                            <Icon size={20} strokeWidth={2} />
+                          </div>
+                          <div className="db-cat-mobile-info">
+                            <div className="db-cat-mobile-title-row">
+                              <h3 className="db-cat-mobile-name">{item.label}</h3>
+                              {status.badge && (
+                                <span className={`db-cat-badge db-badge-${status.badgeType}`}>
+                                  {status.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div className="db-cat-mobile-sub-row">
+                              {status.hasData ? (
+                                <span className="db-cat-mobile-recent-val">
+                                  {status.title}
+                                  <span className="db-cat-mobile-dot"> • </span>
+                                  <span className="db-cat-mobile-recent-sub">{status.subtitle}</span>
+                                </span>
+                              ) : (
+                                <span className="db-cat-mobile-recent-empty">No entries logged today</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Mobile Plus Quick-Add Button */}
+                        <button
+                          type="button"
+                          className="db-cat-mobile-plus-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/logs/${item.path}`);
+                          }}
+                          aria-label={`Add ${item.label}`}
+                          title={`Add ${item.label}`}
+                        >
+                          <Plus size={18} strokeWidth={2.4} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           {/* Section: Bottom Health Tip & Secure Guidance Banner */}
@@ -1071,44 +1154,7 @@ export default function Logs() {
           font-weight: 800;
         }
 
-        /* Search & Filter Toolbar */
-        .db-logs-filter-bar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-        .db-logs-search-wrapper {
-          flex: 1;
-          min-width: 240px;
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-        .db-search-icon {
-          position: absolute;
-          left: 12px;
-          color: ${t.inkFaint};
-          pointer-events: none;
-        }
-        .db-logs-search-input {
-          width: 100%;
-          padding: 9px 34px 9px 36px;
-          border-radius: 11px;
-          border: 1px solid ${t.lineStrong};
-          background: ${t.surface};
-          color: ${t.ink};
-          font-size: 13px;
-          font-family: ${t.fontBody};
-          outline: none;
-          transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-        .db-logs-search-input:focus {
-          border-color: ${t.forest};
-          box-shadow: 0 0 0 3px rgba(39, 57, 46, 0.06);
-        }
-        /* Search Bar */
+        /* Search Toolbar */
         .db-logs-search-wrapper {
           position: relative;
           display: flex;
@@ -1123,12 +1169,12 @@ export default function Logs() {
         }
         .db-logs-search-input {
           width: 100%;
-          padding: 11px 36px 11px 40px;
+          padding: 12px 38px 12px 42px;
           border-radius: 12px;
           border: 1px solid ${t.lineStrong};
           background: ${t.surface};
           color: ${t.ink};
-          font-size: 13px;
+          font-size: 13.5px;
           font-family: ${t.fontBody};
           outline: none;
           transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -1141,14 +1187,77 @@ export default function Logs() {
           position: absolute;
           right: 12px;
           border: none;
-          background: none;
+          background: ${t.surfaceSunken};
           color: ${t.inkFaint};
           cursor: pointer;
-          font-size: 13px;
-          padding: 4px;
+          font-size: 12px;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s ease;
         }
         .db-clear-search-btn:hover {
+          color: ${t.ink};
+          background: ${t.lineStrong};
+        }
+
+        /* Empty Search State */
+        .db-logs-empty-search {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 40px 20px;
+          background: ${t.surface};
+          border: 1px dashed ${t.lineStrong};
+          border-radius: 16px;
+          gap: 10px;
+        }
+        .db-empty-search-icon-wrap {
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
+          background: ${t.surfaceSunken};
+          color: ${t.inkSoft};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 2px;
+        }
+        .db-empty-search-title {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 700;
+          color: ${t.ink};
+          font-family: ${t.fontDisplay};
+        }
+        .db-empty-search-text {
+          margin: 0;
+          font-size: 13px;
+          color: ${t.inkSoft};
+          max-width: 420px;
+          line-height: 1.45;
+        }
+        .db-empty-search-btn {
+          margin-top: 6px;
+          padding: 8px 16px;
+          border-radius: 9px;
+          border: 1px solid ${t.lineStrong};
+          background: ${t.surfaceSunken};
           color: ${t.forest};
+          font-size: 12.5px;
+          font-weight: 650;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .db-empty-search-btn:hover {
+          background: ${t.forest};
+          color: #ffffff;
+          border-color: ${t.forest};
         }
 
         /* Section Headings */
@@ -1185,7 +1294,6 @@ export default function Logs() {
           padding: 20px 18px;
           display: flex;
           flex-direction: column;
-          gap: 14px;
           box-shadow: ${t.shadowCard};
           position: relative;
           height: 100%;
@@ -1195,6 +1303,15 @@ export default function Logs() {
           transform: translateY(-2px);
           box-shadow: ${t.shadowLifted};
           border-color: ${t.forest};
+        }
+        .db-cat-desktop-inner {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          height: 100%;
+        }
+        .db-cat-mobile-inner {
+          display: none;
         }
         .db-cat-top {
           display: flex;
@@ -1303,29 +1420,42 @@ export default function Logs() {
           color: ${t.inkFaint};
         }
 
-        /* Card Action Button (Pinned to bottom of each card) */
+        /* Card Action Button (Pinned to bottom of each card - Rich Dimensional Green) */
         .db-cat-action-btn {
           width: 100%;
           margin-top: auto;
-          padding: 9px 12px;
-          border-radius: 11px;
-          border: 1px solid ${t.lineStrong};
-          background: ${t.sageSoft};
-          color: ${t.forest};
-          font-size: 12px;
+          padding: 10px 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          background: linear-gradient(135deg, ${t.forest} 0%, #1c3024 100%);
+          color: #ffffff;
+          font-size: 12.5px;
           font-weight: 700;
           font-family: ${t.fontBody};
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 5px;
+          gap: 6px;
           cursor: pointer;
-          transition: all 0.15s ease;
+          box-shadow: 0 4px 12px -2px rgba(39, 57, 46, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .db-cat-action-btn svg {
+          transition: transform 0.2s ease;
         }
         .db-cat-action-btn:hover {
-          background: ${t.forest};
+          background: linear-gradient(135deg, #1d3225 0%, #15241b 100%);
           color: #ffffff;
-          border-color: ${t.forest};
+          border-color: rgba(255, 255, 255, 0.25);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px -2px rgba(39, 57, 46, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        }
+        .db-cat-action-btn:hover svg {
+          transform: translate(2px, -2px);
+        }
+        .db-cat-action-btn:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 6px rgba(39, 57, 46, 0.3);
         }
 
 
@@ -1540,73 +1670,122 @@ export default function Logs() {
             border-radius: 11px;
           }
 
-          /* 8 Category Cards: 2 Columns on mobile - Spacious & Breathable */
+          /* 8 Category List on Mobile - High-End Clinical List Layout */
           .db-category-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .db-cat-desktop-inner {
+            display: none;
+          }
+          .db-cat-mobile-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             gap: 12px;
+            width: 100%;
           }
           .db-cat-card {
-            padding: 15px 12px;
-            border-radius: 16px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            gap: 0;
+            min-height: 68px;
+            cursor: pointer;
+          }
+          .db-cat-card:active {
+            transform: scale(0.99);
+            background: ${t.surfaceSunken};
+          }
+          .db-cat-mobile-left {
+            display: flex;
+            align-items: center;
             gap: 12px;
+            min-width: 0;
+            flex: 1;
           }
-          .db-cat-number {
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 6px;
+          .db-cat-mobile-icon-wrap {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: ${t.sageSoft};
+            color: ${t.forest};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
           }
-          .db-cat-icon-wrap {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
+          .db-cat-mobile-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+            flex: 1;
           }
-          .db-cat-icon-wrap svg {
-            width: 17px;
-            height: 17px;
+          .db-cat-mobile-title-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
           }
-          .db-cat-info {
-            min-height: auto;
-            gap: 4px;
-          }
-          .db-cat-name {
-            font-size: 14px;
+          .db-cat-mobile-name {
+            margin: 0;
+            font-size: 15px;
             font-weight: 700;
+            color: ${t.ink};
+            line-height: 1.25;
+            font-family: ${t.fontBody};
           }
-          .db-cat-desc {
-            font-size: 11px;
-            line-height: 1.38;
-            min-height: 30px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-          }
-          .db-cat-widget {
-            padding: 8px 10px;
-            min-height: 52px;
-            border-radius: 10px;
-            gap: 3px;
-          }
-          .db-cat-widget-label {
-            font-size: 9px;
-            font-weight: 700;
-          }
-          .db-cat-widget-val {
+          .db-cat-mobile-sub-row {
             font-size: 12px;
-            font-weight: 700;
+            line-height: 1.35;
+            min-width: 0;
           }
-          .db-cat-widget-sub {
-            font-size: 10px;
-            white-space: nowrap;
+          .db-cat-mobile-recent-val {
+            color: ${t.forest};
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
             overflow: hidden;
             text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
           }
-          .db-cat-action-btn {
-            padding: 8px 10px;
+          .db-cat-mobile-dot {
+            color: ${t.inkFaint};
+            font-weight: 400;
+            margin: 0 2px;
+          }
+          .db-cat-mobile-recent-sub {
+            color: ${t.inkSoft};
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .db-cat-mobile-recent-empty {
+            color: ${t.inkFaint};
             font-size: 12px;
-            font-weight: 700;
-            border-radius: 10px;
-            gap: 6px;
+          }
+          .db-cat-mobile-plus-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: ${t.forest};
+            color: #ffffff;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(39, 57, 46, 0.25);
+            transition: transform 0.15s ease, background 0.15s ease;
+          }
+          .db-cat-mobile-plus-btn:active {
+            transform: scale(0.92);
+            background: ${t.forestDeep};
           }
 
           /* Bottom Botanical Banner - Mobile Visibility */

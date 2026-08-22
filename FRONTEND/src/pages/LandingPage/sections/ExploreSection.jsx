@@ -34,10 +34,10 @@ const ExploreSection = () => {
     {
       num: '04',
       to: '/learn/blog',
-      title: tr('landing.explore.items.blog.title') || 'Measuring & tracking',
+      title: tr('landing.explore.items.blog.title') || 'Blogs',
       description:
         tr('landing.explore.items.blog.description') ||
-        'Learn how to track your numbers the right way.',
+        'Read calm guides, recipes, and lifestyle tips for glucose balance.',
     },
   ];
 

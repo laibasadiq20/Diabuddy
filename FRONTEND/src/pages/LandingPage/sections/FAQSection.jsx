@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Utensils,
   FileText,
+  Bell,
 } from 'lucide-react';
 import { useI18n } from '../../../i18n/I18nContext';
 
@@ -110,6 +111,29 @@ export default function FAQSection() {
         },
       ],
     },
+    {
+      id: 'reminders',
+      name: 'Medications & Reminders',
+      icon: Bell,
+      faqs: [
+        {
+          q: 'Can I set daily reminders for blood sugar checks and insulin doses?',
+          a: 'Yes. You can set custom daily notifications for fasting checks, post-meal glucose tests, medication schedules, and bedtime readings so you never miss a dose or log.',
+        },
+        {
+          q: 'Does DiaBuddy support both mg/dL and mmol/L units?',
+          a: 'Yes. You can toggle between mg/dL (commonly used in Pakistan and the US) and mmol/L (used in the UK and UAE) at any time in your profile settings.',
+        },
+        {
+          q: 'Can I track my HbA1c lab history over time?',
+          a: 'Yes. You can log your lab-tested HbA1c percentage alongside your daily readings to visualize your long-term glucose trends over months and years.',
+        },
+        {
+          q: 'Does DiaBuddy offer guidance during Ramadan and religious fasting?',
+          a: 'Yes. DiaBuddy includes dedicated tips and adjusted log schedules for Suhoor and Iftar checks to help you manage blood sugar safely while fasting.',
+        },
+      ],
+    },
   ];
 
   const handleCategoryChange = (idx) => {
@@ -134,7 +158,7 @@ export default function FAQSection() {
       <div className="mx-auto max-w-6xl">
 
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+        <div className="text-left max-w-3xl mb-8 sm:mb-10">
           <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-[0.24em] text-[var(--sage-deep)]">
             HELP &amp; ANSWERS
           </p>
@@ -144,7 +168,7 @@ export default function FAQSection() {
               We got answers.
             </span>
           </h2>
-          <p className="mt-2 text-xs sm:text-sm text-[var(--brown-soft)] font-medium leading-relaxed max-w-lg mx-auto">
+          <p className="mt-2 text-xs sm:text-sm text-[var(--brown-soft)] font-medium leading-relaxed max-w-xl">
             Everything you need to know about logging, doctor reports, privacy, and getting started.
           </p>
         </div>

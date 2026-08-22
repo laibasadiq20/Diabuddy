@@ -11,12 +11,12 @@ const LearnFooter = ({ className = '' }) => {
     { label: 'Warning Signs', fullLabel: 'Warning Signs', path: '/learn/warning-signs' },
     { label: 'Risk Test', fullLabel: 'Risk Assessment', path: '/learn/risk-assessment' },
     { label: 'Types', fullLabel: 'Diabetes Types', path: '/learn/diabetes-types' },
-    { label: 'Blog', fullLabel: 'Wellness Blog', path: '/learn/blog' },
+    { label: 'Blogs', fullLabel: 'Wellness Blogs', path: '/learn/blog' },
   ];
 
   return (
     <footer
-      className={`w-full bg-[#182C1E] border-t border-[#27392E] text-white ${className}`}
+      className={`w-full bg-[#182C1E] border-t border-[#27392E] text-white sm:hidden ${className}`}
     >
       <div className="mx-auto w-full max-w-[1360px] px-3 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4">
         {/* Brand & Learning Hub Tag */}

@@ -58,7 +58,8 @@ export function resolveGlucoseUnit(userOrUnit) {
 /** Input bounds for a glucose reading in the given unit. */
 export function glucoseInputBounds(unit) {
   if (unit === 'mmol/L') {
-    return { min: 1, max: 33, step: 0.1 };
+    return { min: 1.1, max: 33.3, step: 0.1 };
   }
   return { min: 20, max: 600, step: 1 };
 }
+

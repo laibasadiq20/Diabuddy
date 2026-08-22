@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
@@ -194,10 +195,44 @@ export default function AppSidebar() {
 
   useEffect(() => {
     if (!mobileOpen) return undefined;
-    const prev = document.body.style.overflow;
+
+    const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    const originalBodyStyle = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow,
+    };
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    const preventBackgroundTouch = (e) => {
+      if (!e.target.closest('.db-app-drawer-panel')) {
+        if (e.cancelable) e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchmove', preventBackgroundTouch, { passive: false });
+
     return () => {
-      document.body.style.overflow = prev;
+      document.removeEventListener('touchmove', preventBackgroundTouch);
+      document.body.style.position = originalBodyStyle.position;
+      document.body.style.top = originalBodyStyle.top;
+      document.body.style.left = originalBodyStyle.left;
+      document.body.style.right = originalBodyStyle.right;
+      document.body.style.width = originalBodyStyle.width;
+      document.body.style.overflow = originalBodyStyle.overflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      window.scrollTo(0, scrollY);
     };
   }, [mobileOpen]);
 
@@ -636,27 +671,29 @@ export default function AppSidebar() {
         })}
       </nav>
 
-      {mobileOpen && (
-        <div className="db-app-drawer" role="dialog" aria-modal="true" aria-label={tr('nav.navigationMenu')}>
-          <button
-            type="button"
-            className="db-app-drawer-backdrop"
-            aria-label={tr('nav.closeMenu')}
-            onClick={() => setMobileOpen(false)}
-          />
-          <div className="db-app-drawer-panel">
+      {mobileOpen &&
+        createPortal(
+          <div className="db-app-drawer" role="dialog" aria-modal="true" aria-label={tr('nav.navigationMenu')}>
             <button
               type="button"
-              onClick={() => setMobileOpen(false)}
-              className="db-app-drawer-close"
+              className="db-app-drawer-backdrop"
               aria-label={tr('nav.closeMenu')}
-            >
-              <X size={18} />
-            </button>
-            <SidebarInner />
-          </div>
-        </div>
-      )}
+              onClick={() => setMobileOpen(false)}
+            />
+            <div className="db-app-drawer-panel">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="db-app-drawer-close"
+                aria-label={tr('nav.closeMenu')}
+              >
+                <X size={18} />
+              </button>
+              <SidebarInner />
+            </div>
+          </div>,
+          document.body
+        )}
 
       <AlarmPopupModal />
     </>

@@ -37,6 +37,7 @@ export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -218,14 +219,17 @@ export default function ResetPassword() {
               <div style={{ position: 'relative' }}>
                 <Lock size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  style={inputStyle}
+                  style={{ ...inputStyle, paddingRight: '38px' }}
                   onFocus={focus}
                   onBlur={blur}
                 />
+                <button type="button" tabIndex={-1} onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#666', padding: 0 }}>
+                  {showConfirmPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
               </div>
             </div>
 

@@ -1,16 +1,38 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { theme } from '../../theme';
 import AppSidebar from '../../components/AppSidebar';
 import { useI18n } from '../../i18n/I18nContext';
-import { Annoyed, ArrowLeft, CheckCircle2, Frown, Laugh, Loader2, Meh, Smile, Trash2 } from 'lucide-react';
+import {
+  Annoyed,
+  ArrowLeft,
+  CheckCircle2,
+  Frown,
+  Laugh,
+  Loader2,
+  Meh,
+  Smile,
+  Trash2,
+  Bell,
+  ChevronDown,
+  User as UserIcon,
+  Settings as SettingsIcon,
+  LogOut,
+  Lightbulb,
+  Edit3,
+  Calendar,
+  Sparkles,
+} from 'lucide-react';
 import api from '../../config/axios';
 import { getLogType } from './logsConfig';
 import { LogEntryForm } from './components/LogEntryForm';
-import { mlToUsFlOz, round0, round1 } from '../../utils/waterUnits';
+import WaterWaveTracker from './components/WaterWaveTracker';
+import { resolveWaterUnit, formatWater } from '../../utils/waterUnits';
 import { formatGlucoseReading, resolveGlucoseUnit } from '../../utils/glucoseUnits';
 import { useAuth } from '../../context/AuthContext';
 import { formatClock12 } from '../../utils/timezone';
+import noLogImg from '../../assets/nolog.png';
+import logBannerImg from '../../assets/logBanner.png';
 
 const t = theme;
 
@@ -57,8 +79,9 @@ export default function LogTypePage() {
   const { typeId } = useParams();
   const navigate = useNavigate();
   const { t: tr } = useI18n();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const glucoseUnit = resolveGlucoseUnit(user);
+  const waterUnit = resolveWaterUnit(user);
   const config = getLogType(typeId);
 
   const [entries, setEntries] = useState([]);
@@ -69,6 +92,40 @@ export default function LogTypePage() {
   const [showAllEntries, setShowAllEntries] = useState(false);
   const [toast, setToast] = useState({ message: '', type: '', visible: false });
   const [error, setError] = useState('');
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef(null);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch unread notifications
+  useEffect(() => {
+    if (!user) return undefined;
+    let cancelled = false;
+    const loadNotifs = async () => {
+      try {
+        const res = await api.get('/notifications?limit=20');
+        if (!cancelled && res.data?.unreadCount != null) {
+          setUnreadNotifsCount(res.data.unreadCount);
+        }
+      } catch (err) {
+        // silent fail
+      }
+    };
+    loadNotifs();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type, visible: true });
@@ -133,14 +190,14 @@ export default function LogTypePage() {
   }
 
   const typeLabel = tr(`logs.types.${config.id}.label`, config.label);
+  const userName = user?.name || user?.fullName || user?.email?.split('@')[0] || 'User';
+  const userInitial = userName.charAt(0).toUpperCase();
 
   const Icon = config.icon;
   const waterGoalMl = Number(user?.dailyGoals?.waterMl) > 0 ? Number(user.dailyGoals.waterMl) : 2000;
   const todayWaterMl = config.id === 'water'
     ? entries.reduce((sum, item) => sum + (Number(item.raw?.amount) || 0), 0)
     : 0;
-  const todayWaterOz = round0(mlToUsFlOz(todayWaterMl));
-  const waterGoalOz = round0(mlToUsFlOz(waterGoalMl));
   const waterPct = Math.min(100, Math.round((todayWaterMl / waterGoalMl) * 100));
   const PREVIEW_COUNT = 5;
   const visibleEntries = showAllEntries ? entries : entries.slice(0, PREVIEW_COUNT);
@@ -183,6 +240,38 @@ export default function LogTypePage() {
     }
   };
 
+  const handleQuickAddWater = async (amountMl) => {
+    setSaving(true);
+    try {
+      await api.post('/health-logs/water', {
+        amount: amountMl,
+        timestamp: new Date().toISOString(),
+      });
+      showToast(`+${formatWater(amountMl, waterUnit)} logged! 💧`);
+      await loadEntries();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Could not log water', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleQuickRemoveWater = async () => {
+    if (!entries || entries.length === 0) return;
+    const latest = entries[0];
+    if (!latest?._id) return;
+    setSaving(true);
+    try {
+      await api.delete(`/health-logs/water/${latest._id}`);
+      showToast('Removed last water log', 'success');
+      await loadEntries();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Could not remove entry', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const renderEntryCard = (item) => {
     const isMeal = config.id === 'meal';
     const isInsulin = config.id === 'insulin';
@@ -205,125 +294,118 @@ export default function LogTypePage() {
       raw.mealRelation && raw.mealRelation !== 'None' ? raw.mealRelation : item.valueStr;
     const EntryIcon = config.icon;
     const titleRow = (text) => (
-      <p
-        style={{
-          margin: 0,
-          fontWeight: 650,
-          fontSize: 15,
-          color: t.ink,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          minWidth: 0,
-        }}
-      >
-        {EntryIcon ? <EntryIcon size={17} strokeWidth={1.85} color={t.forest} aria-hidden style={{ flexShrink: 0 }} /> : null}
-        <span style={{ minWidth: 0, wordBreak: 'break-word' }}>{text}</span>
-      </p>
+      <div className="db-entry-card-title-row">
+        {EntryIcon ? (
+          <span className="db-entry-icon-wrap">
+            <EntryIcon size={16} strokeWidth={2} />
+          </span>
+        ) : null}
+        <strong className="db-entry-card-title">{text}</strong>
+      </div>
     );
 
     return (
-      <div key={item._id} className="db-log-entry-row" style={entryRow}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+      <div key={item._id} className="db-log-entry-row">
+        <div className="db-entry-card-main">
           {isMeal ? (
             <>
               {titleRow(raw.mealType || item.title)}
               {raw.foodItems ? (
-                <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft, wordBreak: 'break-word' }}>
-                  {raw.foodItems}
-                </p>
+                <p className="db-entry-food-desc">{raw.foodItems}</p>
               ) : null}
-              <p style={{ margin: '4px 0 0', fontSize: 14, color: t.inkSoft }}>
+              <div className="db-entry-tags-row">
                 {[
-                  tr('logTypePage.entry.gCarbsTemplate').replace('{n}', raw.carbohydrates ?? 0),
+                  raw.carbohydrates != null ? tr('logTypePage.entry.gCarbsTemplate').replace('{n}', raw.carbohydrates) : null,
                   raw.protein ? tr('logTypePage.entry.gProteinTemplate').replace('{n}', raw.protein) : null,
                   raw.fat ? tr('logTypePage.entry.gFatTemplate').replace('{n}', raw.fat) : null,
                   raw.calories ? tr('logTypePage.entry.kcalTemplate').replace('{n}', raw.calories) : null,
                 ]
                   .filter(Boolean)
-                  .join(' · ')}
-              </p>
+                  .map((tVal, idx) => (
+                    <span key={idx} className="db-entry-macro-pill">{tVal}</span>
+                  ))}
+              </div>
               {impact ? (
-                <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
+                <p className="db-entry-impact-line">
                   {tr('logTypePage.entry.afterMeal')} {impact === 'High' ? '⬆' : impact === 'Low' ? '⬇' : '➖'}{' '}
                   {tr(`logTypePage.entry.impact${impact === 'High' ? 'High' : impact === 'Low' ? 'Low' : 'Normal'}`, impact)}
                 </p>
               ) : null}
-              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp, tr)}
-              </p>
+              {raw.notes ? <p className="db-entry-notes-line">{raw.notes}</p> : null}
+              <span className="db-entry-time-badge">{formatTodayTime(item.timestamp, tr)}</span>
             </>
           ) : isInsulin ? (
             <>
               {titleRow(raw.insulinType || item.title)}
-              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                {tr('logTypePage.entry.unitsTemplate').replace('{n}', raw.units ?? 0)}
-              </p>
-              {insulinReason ? (
-                <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>{insulinReason}</p>
-              ) : null}
-              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp, tr)}
-              </p>
+              <div className="db-entry-tags-row">
+                <span className="db-entry-macro-pill is-highlight">
+                  {tr('logTypePage.entry.unitsTemplate').replace('{n}', raw.units ?? 0)}
+                </span>
+                {insulinReason ? (
+                  <span className="db-entry-macro-pill">{insulinReason}</span>
+                ) : null}
+                {raw.injectionSite ? (
+                  <span className="db-entry-macro-pill">{raw.injectionSite}</span>
+                ) : null}
+              </div>
+              {raw.notes ? <p className="db-entry-notes-line">{raw.notes}</p> : null}
+              <span className="db-entry-time-badge">{formatTodayTime(item.timestamp, tr)}</span>
             </>
           ) : isMedication ? (
             <>
               {titleRow(raw.medicineName || item.title)}
-              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                {raw.dose || item.subtitle}
-              </p>
-              <p style={{ margin: '2px 0 0', fontSize: 14, color: t.inkSoft }}>
-                {raw.status || item.valueStr}
-              </p>
-              {raw.route ? (
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: t.inkFaint }}>{raw.route}</p>
-              ) : null}
-              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp, tr)}
-              </p>
+              <div className="db-entry-tags-row">
+                <span className="db-entry-macro-pill is-highlight">{raw.dose || item.subtitle}</span>
+                <span className={`db-entry-macro-pill db-status-${(raw.status || item.valueStr || '').toLowerCase()}`}>
+                  {raw.status || item.valueStr}
+                </span>
+                {raw.route ? <span className="db-entry-macro-pill">{raw.route}</span> : null}
+              </div>
+              {raw.notes ? <p className="db-entry-notes-line">{raw.notes}</p> : null}
+              <span className="db-entry-time-badge">{formatTodayTime(item.timestamp, tr)}</span>
             </>
           ) : isWater ? (
             <>
               {titleRow(
                 raw.amount != null
-                  ? `${round1(mlToUsFlOz(raw.amount))} oz`
+                  ? formatWater(raw.amount, waterUnit)
                   : item.title
               )}
-              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp, tr)}
-              </p>
+              {raw.notes ? <p className="db-entry-notes-line">{raw.notes}</p> : null}
+              <span className="db-entry-time-badge">{formatTodayTime(item.timestamp, tr)}</span>
             </>
           ) : isExercise ? (
             <>
               {titleRow(raw.activity || item.title)}
-              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                {[
-                  raw.duration > 0 ? tr('logTypePage.entry.minTemplate').replace('{n}', raw.duration) : null,
-                  raw.steps ? tr('logTypePage.entry.stepsTemplate').replace('{n}', Number(raw.steps).toLocaleString()) : null,
-                  raw.caloriesBurned ? tr('logTypePage.entry.kcalTemplate').replace('{n}', raw.caloriesBurned) : null,
-                  raw.distance ? tr('logTypePage.entry.kmTemplate').replace('{n}', raw.distance) : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
-              {(raw.intensity || (raw.source && raw.source !== 'Manual')) ? (
-                <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
-                  {[
-                    raw.intensity ? tr(`logEntryForm.exercise.intensities.${INTENSITY_LABEL_KEYS[intensityFromApiLabel(raw.intensity)]}`, intensityFromApiLabel(raw.intensity)) : null,
-                    raw.source && raw.source !== 'Manual' ? raw.source : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
-              ) : null}
-              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp, tr)}
-              </p>
+              <div className="db-entry-tags-row">
+                {raw.duration > 0 ? (
+                  <span className="db-entry-macro-pill is-highlight">
+                    {tr('logTypePage.entry.minTemplate').replace('{n}', raw.duration)}
+                  </span>
+                ) : null}
+                {raw.steps ? (
+                  <span className="db-entry-macro-pill">
+                    {tr('logTypePage.entry.stepsTemplate').replace('{n}', Number(raw.steps).toLocaleString())}
+                  </span>
+                ) : null}
+                {raw.caloriesBurned ? (
+                  <span className="db-entry-macro-pill">
+                    {tr('logTypePage.entry.kcalTemplate').replace('{n}', raw.caloriesBurned)}
+                  </span>
+                ) : null}
+                {raw.distance ? (
+                  <span className="db-entry-macro-pill">
+                    {tr('logTypePage.entry.kmTemplate').replace('{n}', raw.distance)}
+                  </span>
+                ) : null}
+                {raw.intensity ? (
+                  <span className="db-entry-macro-pill">
+                    {tr(`logEntryForm.exercise.intensities.${INTENSITY_LABEL_KEYS[intensityFromApiLabel(raw.intensity)]}`, intensityFromApiLabel(raw.intensity))}
+                  </span>
+                ) : null}
+              </div>
+              {raw.notes ? <p className="db-entry-notes-line">{raw.notes}</p> : null}
+              <span className="db-entry-time-badge">{formatTodayTime(item.timestamp, tr)}</span>
             </>
           ) : isSleep ? (
             <>
@@ -332,102 +414,86 @@ export default function LogTypePage() {
                   ? tr('logTypePage.entry.hoursTemplate').replace('{n}', Number(raw.totalHours).toFixed(1))
                   : item.title
               )}
-              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                {raw.quality
-                  ? tr(`logEntryForm.sleep.qualities.${raw.quality === 'Average' ? 'fair' : (raw.quality || '').toLowerCase()}`, raw.quality === 'Average' ? 'Fair' : raw.quality)
-                  : '—'}
-              </p>
-              <p style={{ margin: '2px 0 0', fontSize: 13, color: t.inkSoft }}>
-                {item.valueStr || ''}
-              </p>
-              {raw.notes ? <p style={{ ...noteLine }}>{raw.notes}</p> : null}
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(raw.wakeTime || item.timestamp, tr)}
-              </p>
+              <div className="db-entry-tags-row">
+                {raw.quality ? (
+                  <span className="db-entry-macro-pill is-highlight">
+                    {tr(`logEntryForm.sleep.qualities.${raw.quality === 'Average' ? 'fair' : (raw.quality || '').toLowerCase()}`, raw.quality === 'Average' ? 'Fair' : raw.quality)}
+                  </span>
+                ) : null}
+                {item.valueStr ? (
+                  <span className="db-entry-macro-pill">{item.valueStr}</span>
+                ) : null}
+              </div>
+              {raw.notes ? <p className="db-entry-notes-line">{raw.notes}</p> : null}
+              <span className="db-entry-time-badge">{formatTodayTime(raw.wakeTime || item.timestamp, tr)}</span>
             </>
           ) : isMood ? (
             <>
-              <p
-                style={{
-                  margin: 0,
-                  fontWeight: 650,
-                  fontSize: 15,
-                  color: t.ink,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <MoodIcon size={17} strokeWidth={1.85} color={t.forest} aria-hidden />
-                {moodLabel}
-              </p>
-              <p style={{ margin: '6px 0 0', fontSize: 14, color: t.inkSoft }}>
-                {tr('logTypePage.entry.stressTemplate').replace(
-                  '{level}',
-                  tr(`logEntryForm.mood.stress.${STRESS_LABEL_KEYS[raw.stressLevel] || 'low'}`, raw.stressLevel || 'Low')
-                )}
-              </p>
-              {raw.journalEntry ? <p style={{ ...noteLine }}>{raw.journalEntry}</p> : null}
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp, tr)}
-              </p>
+              <div className="db-entry-card-title-row">
+                <span className="db-entry-icon-wrap">
+                  <MoodIcon size={16} strokeWidth={2} />
+                </span>
+                <strong className="db-entry-card-title">{moodLabel}</strong>
+              </div>
+              <div className="db-entry-tags-row">
+                <span className="db-entry-macro-pill">
+                  {tr('logTypePage.entry.stressTemplate').replace(
+                    '{level}',
+                    tr(`logEntryForm.mood.stress.${STRESS_LABEL_KEYS[raw.stressLevel] || 'low'}`, raw.stressLevel || 'Low')
+                  )}
+                </span>
+              </div>
+              {raw.journalEntry ? <p className="db-entry-notes-line">{raw.journalEntry}</p> : null}
+              <span className="db-entry-time-badge">{formatTodayTime(item.timestamp, tr)}</span>
             </>
           ) : isGlucose ? (
             <>
               {titleRow(glucoseTitle)}
-              {item.subtitle && (
-                <p style={{ margin: '3px 0 0', fontSize: 13, color: t.inkSoft, wordBreak: 'break-word' }}>
-                  {item.subtitle}
-                </p>
-              )}
-              {item.valueStr && (
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>{item.valueStr}</p>
-              )}
+              <div className="db-entry-tags-row">
+                {item.subtitle && <span className="db-entry-macro-pill is-highlight">{item.subtitle}</span>}
+                {item.valueStr && <span className="db-entry-macro-pill">{item.valueStr}</span>}
+              </div>
               {(raw.notes || item.notes) ? (
-                <p style={{ ...noteLine }}>{raw.notes || item.notes}</p>
+                <p className="db-entry-notes-line">{raw.notes || item.notes}</p>
               ) : null}
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp, tr)}
-              </p>
+              <span className="db-entry-time-badge">{formatTodayTime(item.timestamp, tr)}</span>
             </>
           ) : (
             <>
               {titleRow(item.title)}
-              {item.subtitle && (
-                <p style={{ margin: '3px 0 0', fontSize: 13, color: t.inkSoft, wordBreak: 'break-word' }}>
-                  {item.subtitle}
-                </p>
-              )}
-              {item.valueStr && (
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: t.inkSoft }}>{item.valueStr}</p>
-              )}
+              <div className="db-entry-tags-row">
+                {item.subtitle && <span className="db-entry-macro-pill">{item.subtitle}</span>}
+                {item.valueStr && <span className="db-entry-macro-pill">{item.valueStr}</span>}
+              </div>
               {(raw.notes || item.notes) ? (
-                <p style={{ ...noteLine }}>{raw.notes || item.notes}</p>
+                <p className="db-entry-notes-line">{raw.notes || item.notes}</p>
               ) : null}
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: t.inkFaint }}>
-                {formatTodayTime(item.timestamp, tr)}
-              </p>
+              <span className="db-entry-time-badge">{formatTodayTime(item.timestamp, tr)}</span>
             </>
           )}
         </div>
-        <div className="db-log-entry-actions" style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+
+        <div className="db-log-entry-actions">
           {config.apiPath !== 'water' && (
             <button
               type="button"
+              className="db-entry-action-btn is-edit"
               onClick={() => {
                 setEditRaw(item.raw || item);
                 scrollToForm();
               }}
-              style={smallBtn}
+              title="Edit entry"
             >
-              {tr('logTypePage.edit')}
+              <Edit3 size={13} />
+              <span>{tr('logTypePage.edit')}</span>
             </button>
           )}
           <button
             type="button"
+            className="db-entry-action-btn is-delete"
             aria-label={tr('logTypePage.deleteAria')}
             onClick={() => handleDelete(item)}
-            style={{ ...smallBtn, color: t.clayDeep }}
+            title="Delete entry"
           >
             <Trash2 size={14} />
           </button>
@@ -437,256 +503,1084 @@ export default function LogTypePage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        background: `linear-gradient(180deg, ${t.pageFadeTop} 0%, ${t.bg} 40%)`,
-        fontFamily: t.fontBody,
-      }}
-    >
+    <div className="db-logtype-page">
       <AppSidebar />
-      <main className="db-logs-main" style={{ flex: 1, minWidth: 0, padding: '20px 20px 110px' }}>
-        <div className="db-logs-wrap" style={{ maxWidth: 1080, margin: '0 auto', width: '100%' }}>
-          <button type="button" onClick={() => navigate('/logs')} style={backBtn}>
-            <ArrowLeft size={16} /> {tr('common.back')}
-          </button>
 
-          <div className="db-logs-title-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 14, margin: '14px 0 0' }}>
-            <span
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                background: t.surfaceSunken,
-                color: t.forest,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
+      <main className="db-logtype-main">
+        <div className="db-logtype-container">
+          {/* Unified Top Nav Bar */}
+          <div className="db-logs-top-bar">
+            <button
+              type="button"
+              className="db-logs-back-btn"
+              onClick={() => navigate('/logs')}
+              aria-label={tr('common.back')}
             >
-              <Icon size={22} strokeWidth={1.75} />
-            </span>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <h1
-                style={{
-                  margin: 0,
-                  fontFamily: t.fontDisplay,
-                  fontSize: 'clamp(24px, 6vw, 32px)',
-                  fontWeight: 500,
-                  color: t.ink,
-                  lineHeight: 1.35,
-                }}
-              >
-                {typeLabel}
-              </h1>
-            </div>
-          </div>
+              <ArrowLeft size={15} />
+              <span>Back to Logs</span>
+            </button>
 
-          {config.id === 'water' && (
-            <section className="db-log-water-box" style={waterProgressBox}>
-              <p style={{ ...guideTitle, margin: 0 }}>{tr('logTypePage.todaysWaterIntake')}</p>
-              <p
-                style={{
-                  margin: '10px 0 0',
-                  fontFamily: t.fontDisplay,
-                  fontSize: 24,
-                  fontWeight: 500,
-                  color: t.ink,
-                }}
+            {/* Notification Bell & User Profile */}
+            <div className="db-logs-header-actions">
+              <button
+                type="button"
+                className="db-header-notif-btn"
+                onClick={() => navigate('/notifications')}
+                aria-label="Notifications"
+                title="Notifications"
               >
-                {todayWaterOz} / {waterGoalOz} oz
-              </p>
-              <div
-                style={{
-                  marginTop: 12,
-                  height: 12,
-                  borderRadius: 999,
-                  background: t.surfaceSunken,
-                  overflow: 'hidden',
-                }}
-                aria-label={tr('logTypePage.waterGoalAriaTemplate').replace('{pct}', waterPct)}
-              >
-                <div
-                  style={{
-                    width: `${waterPct}%`,
-                    height: '100%',
-                    borderRadius: 999,
-                    background: t.sky,
-                    transition: 'width 0.25s ease',
-                  }}
-                />
-              </div>
-              <p style={{ margin: '8px 0 0', fontSize: 13, fontWeight: 650, color: t.inkSoft }}>{waterPct}%</p>
-            </section>
-          )}
-
-          <section className="db-log-guide-box" style={guideBox}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: 2, color: t.sageDeep }} aria-hidden />
-              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: t.inkSoft }}>
-                <span style={{ fontWeight: 700, color: t.sageDeep }}>{tr('logTypePage.quickTip', 'Quick tip')}: </span>
-                {tr(`logs.types.${config.id}.tip`, config.tip)}
-              </p>
-            </div>
-          </section>
-
-          <div className="db-log-split">
-            <section id="db-log-form-anchor" className="db-log-split-form">
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
-                <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 18, fontWeight: 500, color: t.ink }}>
-                  {editRaw ? tr('logTypePage.editEntry') : tr('logTypePage.newEntry')}
-                </h2>
-                {editRaw && (
-                  <button
-                    type="button"
-                    onClick={() => setEditRaw(null)}
-                    style={{ ...linkBtn, padding: 0, border: 'none', background: 'none', marginTop: 0 }}
-                  >
-                    {tr('logTypePage.cancelEdit')}
-                  </button>
-                )}
-              </div>
-              <div className="db-log-form-card" style={formCard}>
-                <LogEntryForm
-                  key={`${config.id}-${editRaw?._id || 'new'}-${formKey}`}
-                  typeId={config.id}
-                  initialRaw={editRaw}
-                  submitting={saving}
-                  onSubmit={handleSubmit}
-                />
-              </div>
-            </section>
-
-            <section className="db-log-split-entries">
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  marginBottom: 10,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <h2 style={{ margin: 0, fontFamily: t.fontDisplay, fontSize: 18, fontWeight: 500, color: t.ink }}>
-                  {tr('logTypePage.todaysEntries')}
-                </h2>
-                {!loading && entries.length > 0 ? (
-                  <span style={{ fontSize: 12, fontWeight: 650, color: t.inkFaint }}>
-                    {tr('logTypePage.todayCountTemplate').replace('{n}', entries.length)}
+                <Bell size={18} />
+                {unreadNotifsCount > 0 && (
+                  <span className="db-header-notif-badge">
+                    {unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}
                   </span>
-                ) : null}
-              </div>
-              <div className="db-log-entries-panel">
-                {loading ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: t.inkSoft, padding: '12px 0' }}>
-                    <Loader2 size={18} className="db-spin" /> {tr('common.loading')}
-                  </div>
-                ) : error ? (
-                  <p style={{ color: t.clayDeep, fontSize: 14, margin: 0 }}>{error}</p>
-                ) : entries.length === 0 ? (
-                  <div style={emptyStateBox}>
-                    <span style={emptyStateIcon}>
-                      <Icon size={20} strokeWidth={1.75} />
-                    </span>
-                    <p style={emptyStateText}>
-                      {tr('logTypePage.noEntriesTemplate').replace('{type}', typeLabel.toLowerCase())}
-                    </p>
-                    <button type="button" onClick={scrollToForm} style={emptyStateCta}>
-                      {tr('logTypePage.logNowTemplate').replace('{type}', typeLabel.toLowerCase())}
+                )}
+              </button>
+
+              <div className="db-profile-dropdown-wrapper" ref={profileDropdownRef}>
+                <button
+                  type="button"
+                  className="db-header-profile-btn"
+                  onClick={() => setProfileDropdownOpen((prev) => !prev)}
+                  aria-expanded={profileDropdownOpen}
+                >
+                  <span className="db-header-avatar">
+                    {user?.profilePicture ? (
+                      <img src={user.profilePicture} alt={userName} className="db-avatar-img" />
+                    ) : (
+                      userInitial
+                    )}
+                  </span>
+                  <span className="db-header-username">{userName}</span>
+                  <ChevronDown
+                    size={14}
+                    className={`db-header-chevron ${profileDropdownOpen ? 'is-open' : ''}`}
+                  />
+                </button>
+
+                {profileDropdownOpen && (
+                  <div className="db-profile-menu">
+                    <div className="db-profile-menu-header">
+                      <strong>{userName}</strong>
+                      <span className="db-profile-menu-email">{user?.email}</span>
+                    </div>
+                    <div className="db-profile-menu-divider" />
+                    <button
+                      type="button"
+                      className="db-profile-menu-item"
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        navigate('/account');
+                      }}
+                    >
+                      <UserIcon size={15} />
+                      <span>Account Profile</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="db-profile-menu-item"
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        navigate('/settings');
+                      }}
+                    >
+                      <SettingsIcon size={15} />
+                      <span>Settings</span>
+                    </button>
+                    <div className="db-profile-menu-divider" />
+                    <button
+                      type="button"
+                      className="db-profile-menu-item is-logout"
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        logout();
+                      }}
+                    >
+                      <LogOut size={15} />
+                      <span>Logout</span>
                     </button>
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {visibleEntries.map(renderEntryCard)}
-                    {hasMoreEntries ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowAllEntries((v) => !v)}
-                        style={viewAllBtn}
-                      >
-                        {showAllEntries ? tr('logTypePage.showLess') : tr('logTypePage.viewAllTemplate').replace('{n}', entries.length)}
-                      </button>
-                    ) : null}
-                  </div>
                 )}
               </div>
-            </section>
+            </div>
           </div>
+
+          {/* Header Banner Card */}
+          <header className="db-logtype-header-card">
+            <div className="db-logtype-header-left">
+              <div className="db-logtype-icon-badge">
+                <Icon size={24} strokeWidth={2} />
+              </div>
+              <div className="db-logtype-title-box">
+                <h1 className="db-logtype-title">{typeLabel}</h1>
+                <p className="db-logtype-desc">{config.hubLine}</p>
+              </div>
+            </div>
+            <div className="db-logtype-header-stats">
+              <div className="db-logtype-stat-pill">
+                <span className="db-logtype-stat-label">Today</span>
+                <strong className="db-logtype-stat-val">
+                  {config.id === 'water'
+                    ? `${formatWater(todayWaterMl, waterUnit)} / ${formatWater(waterGoalMl, waterUnit)}`
+                    : `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`}
+                </strong>
+              </div>
+            </div>
+          </header>
+
+          {/* Water Log Special Layout: Interactive Animated Wave Tracker + Timeline Entries (No redundant manual form) */}
+          {config.id === 'water' ? (
+            <div className="db-water-full-layout">
+              {/* 1. Animated Wave Tracker with 1-Tap Quick Logging */}
+              <WaterWaveTracker
+                preferredWaterUnit={waterUnit}
+                todayWaterMl={todayWaterMl}
+                waterGoalMl={waterGoalMl}
+                entries={entries}
+                onQuickAdd={handleQuickAddWater}
+                onQuickRemove={handleQuickRemoveWater}
+                submitting={saving}
+              />
+
+              {/* 2. Today's Water Timeline History */}
+              <section className="db-water-entries-section">
+                <div className="db-entries-heading-row">
+                  <h2 className="db-entries-heading">{tr('logTypePage.todaysEntries')}</h2>
+                  {!loading && entries.length > 0 ? (
+                    <span className="db-entries-count-pill">
+                      {tr('logTypePage.todayCountTemplate').replace('{n}', entries.length)}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="db-log-entries-panel">
+                  {loading ? (
+                    <div className="db-entries-loading">
+                      <Loader2 size={18} className="db-spin" />
+                      <span>{tr('common.loading')}</span>
+                    </div>
+                  ) : error ? (
+                    <p className="db-entries-error">{error}</p>
+                  ) : entries.length === 0 ? (
+                    <div className="db-entries-empty-box">
+                      <img
+                        src={noLogImg}
+                        alt="No logs recorded"
+                        className="db-entries-empty-img"
+                      />
+                      <h3 className="db-entries-empty-title">No water logged yet today</h3>
+                      <p className="db-entries-empty-text">
+                        Tap +250 mL or any preset button above to log your first glass of water!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="db-entries-list">
+                      {visibleEntries.map(renderEntryCard)}
+                      {hasMoreEntries ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllEntries((v) => !v)}
+                          className="db-entries-view-all-btn"
+                        >
+                          {showAllEntries
+                            ? tr('logTypePage.showLess')
+                            : tr('logTypePage.viewAllTemplate').replace('{n}', entries.length)}
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+          ) : (
+            <>
+              {/* Quick Tip Box for other log types */}
+              <section className="db-log-guide-box">
+                <div className="db-guide-icon-wrap">
+                  <Lightbulb size={18} />
+                </div>
+                <div className="db-guide-content">
+                  <p className="db-guide-text">
+                    <strong className="db-guide-title">{tr('logTypePage.quickTip', 'Quick tip')}: </strong>
+                    {tr(`logs.types.${config.id}.tip`, config.tip)}
+                  </p>
+                </div>
+              </section>
+
+              {/* Split Container: Form on Left, Today's Entries Timeline on Right */}
+              <div className="db-log-split">
+                {/* Form Section */}
+                <section id="db-log-form-anchor" className="db-log-split-form">
+                  <div className="db-form-heading-row">
+                    <h2 className="db-form-heading">
+                      {editRaw ? tr('logTypePage.editEntry') : tr('logTypePage.newEntry')}
+                    </h2>
+                    {editRaw && (
+                      <button
+                        type="button"
+                        onClick={() => setEditRaw(null)}
+                        className="db-cancel-edit-btn"
+                      >
+                        {tr('logTypePage.cancelEdit')}
+                      </button>
+                    )}
+                  </div>
+                  <div className="db-log-form-card">
+                    <LogEntryForm
+                      key={`${config.id}-${editRaw?._id || 'new'}-${formKey}`}
+                      typeId={config.id}
+                      initialRaw={editRaw}
+                      submitting={saving}
+                      onSubmit={handleSubmit}
+                    />
+                  </div>
+                </section>
+
+                {/* Today's Entries Section */}
+                <section className="db-log-split-entries">
+                  <div className="db-entries-heading-row">
+                    <h2 className="db-entries-heading">{tr('logTypePage.todaysEntries')}</h2>
+                    {!loading && entries.length > 0 ? (
+                      <span className="db-entries-count-pill">
+                        {tr('logTypePage.todayCountTemplate').replace('{n}', entries.length)}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="db-log-entries-panel">
+                    {loading ? (
+                      <div className="db-entries-loading">
+                        <Loader2 size={18} className="db-spin" />
+                        <span>{tr('common.loading')}</span>
+                      </div>
+                    ) : error ? (
+                      <p className="db-entries-error">{error}</p>
+                    ) : entries.length === 0 ? (
+                      <div className="db-entries-empty-box">
+                        <img
+                          src={noLogImg}
+                          alt="No logs recorded"
+                          className="db-entries-empty-img"
+                        />
+                        <h3 className="db-entries-empty-title">No entries logged yet today</h3>
+                        <p className="db-entries-empty-text">
+                          {tr('logTypePage.noEntriesTemplate').replace('{type}', typeLabel.toLowerCase())}
+                        </p>
+                        <button type="button" onClick={scrollToForm} className="db-entries-empty-cta">
+                          {tr('logTypePage.logNowTemplate').replace('{type}', typeLabel.toLowerCase())}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="db-entries-list">
+                        {visibleEntries.map(renderEntryCard)}
+                        {hasMoreEntries ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowAllEntries((v) => !v)}
+                            className="db-entries-view-all-btn"
+                          >
+                            {showAllEntries
+                              ? tr('logTypePage.showLess')
+                              : tr('logTypePage.viewAllTemplate').replace('{n}', entries.length)}
+                          </button>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
+            </>
+          )}
         </div>
       </main>
 
+      {/* Floating Toast Notification */}
       {toast.visible && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 96,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 200,
-            padding: '12px 18px',
-            borderRadius: 10,
-            background: toast.type === 'error' ? t.claySoft : t.forest,
-            color: toast.type === 'error' ? t.clayDeep : '#F7F3EC',
-            fontSize: 13,
-            fontWeight: 650,
-            boxShadow: t.shadowLifted,
-            maxWidth: '90vw',
-          }}
-        >
-          {toast.message}
+        <div className={`db-logs-toast ${toast.type === 'error' ? 'is-error' : 'is-success'}`}>
+          <CheckCircle2 size={16} />
+          <span>{toast.message}</span>
         </div>
       )}
 
+      {/* Scoped Styles for LogTypePage */}
       <style>{`
-        .db-logs-wrap,
-        .db-logs-main {
-          box-sizing: border-box;
+        .db-logtype-page {
+          min-height: 100vh;
+          display: flex;
+          background: ${t.bg};
+          font-family: ${t.fontBody};
+          color: ${t.ink};
         }
-        .db-logs-wrap input,
-        .db-logs-wrap select,
-        .db-logs-wrap textarea,
-        .db-logs-wrap button {
-          max-width: 100%;
+        .db-logtype-main {
+          flex: 1;
+          min-width: 0;
+          padding: 28px 24px 120px;
         }
-        .db-logs-wrap input[type='datetime-local'],
-        .db-logs-wrap input[type='date'],
-        .db-logs-wrap input[type='time'],
-        .db-logs-wrap input[type='number'],
-        .db-logs-wrap input[type='text'],
-        .db-logs-wrap textarea,
-        .db-logs-wrap select {
-          font-size: 16px;
+        .db-logtype-container {
+          max-width: 1080px;
+          margin: 0 auto;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
         }
+
+        /* Top Nav Bar */
+        .db-logs-top-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          gap: 16px;
+        }
+        .db-logs-back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 10px;
+          border-radius: 9px;
+          border: 1px solid transparent;
+          background: none;
+          color: ${t.inkFaint};
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .db-logs-back-btn:hover {
+          color: ${t.forest};
+          background: ${t.surfaceSunken};
+          border-color: ${t.lineStrong};
+        }
+
+        /* Header Actions */
+        .db-logs-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .db-header-notif-btn {
+          position: relative;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border: 1px solid ${t.lineStrong};
+          background: ${t.surface};
+          color: ${t.ink};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .db-header-notif-btn:hover {
+          background: ${t.surfaceSunken};
+          border-color: ${t.forest};
+          transform: translateY(-1px);
+        }
+        .db-header-notif-badge {
+          position: absolute;
+          top: -2px;
+          right: -2px;
+          background: ${t.clay};
+          color: #ffffff;
+          font-size: 10px;
+          font-weight: 800;
+          min-width: 17px;
+          height: 17px;
+          border-radius: 999px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 4px;
+          border: 2px solid ${t.surface};
+        }
+        .db-profile-dropdown-wrapper {
+          position: relative;
+        }
+        .db-header-profile-btn {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 4px 12px 4px 5px;
+          border-radius: 999px;
+          border: 1px solid ${t.lineStrong};
+          background: ${t.surface};
+          color: ${t.ink};
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .db-header-profile-btn:hover {
+          background: ${t.surfaceSunken};
+          border-color: ${t.forest};
+        }
+        .db-header-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: ${t.forest};
+          color: #ffffff;
+          font-size: 13px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+        .db-avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .db-header-username {
+          font-size: 13px;
+          font-weight: 600;
+          color: ${t.ink};
+        }
+        .db-header-chevron {
+          color: ${t.inkFaint};
+          transition: transform 0.2s ease;
+        }
+        .db-header-chevron.is-open {
+          transform: rotate(180deg);
+        }
+        .db-profile-menu {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          width: 210px;
+          background: ${t.surface};
+          border: 1px solid ${t.lineStrong};
+          border-radius: 14px;
+          box-shadow: ${t.shadowLifted};
+          padding: 6px;
+          z-index: 100;
+          display: flex;
+          flex-direction: column;
+          animation: dbFadeIn 0.15s ease;
+        }
+        @keyframes dbFadeIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .db-profile-menu-header {
+          padding: 8px 10px;
+          display: flex;
+          flex-direction: column;
+        }
+        .db-profile-menu-header strong {
+          font-size: 13px;
+          color: ${t.ink};
+        }
+        .db-profile-menu-email {
+          font-size: 11px;
+          color: ${t.inkFaint};
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .db-profile-menu-divider {
+          height: 1px;
+          background: ${t.line};
+          margin: 4px 0;
+        }
+        .db-profile-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 10px;
+          border-radius: 8px;
+          border: none;
+          background: none;
+          color: ${t.ink};
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          width: 100%;
+          text-align: left;
+          transition: background 0.12s ease;
+        }
+        .db-profile-menu-item:hover {
+          background: ${t.surfaceSunken};
+        }
+        .db-profile-menu-item.is-logout {
+          color: ${t.clay};
+        }
+        .db-profile-menu-item.is-logout:hover {
+          background: ${t.clayTint};
+        }
+
+        /* Header Banner Card with Custom logBanner.png Art */
+        .db-logtype-header-card {
+          position: relative;
+          background-color: #172a1e;
+          background-image: url(${logBannerImg});
+          background-size: cover;
+          background-position: center right;
+          background-repeat: no-repeat;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          border-radius: 20px;
+          padding: 24px 30px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          box-shadow: 0 10px 30px -4px rgba(18, 30, 22, 0.35), 0 2px 6px rgba(0, 0, 0, 0.08);
+          overflow: hidden;
+        }
+        .db-logtype-header-card::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, rgba(19, 34, 25, 0.76) 0%, rgba(19, 34, 25, 0.46) 45%, rgba(19, 34, 25, 0.08) 100%);
+          pointer-events: none;
+          border-radius: inherit;
+          z-index: 1;
+        }
+        /* Water Special Full-Width Layout */
+        .db-water-full-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          width: 100%;
+        }
+        .db-water-entries-section {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          width: 100%;
+        }
+        .db-logtype-header-left {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          min-width: 0;
+          position: relative;
+          z-index: 2;
+        }
+        .db-logtype-icon-badge {
+          width: 54px;
+          height: 54px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.14);
+          border: 1px solid rgba(255, 255, 255, 0.24);
+          color: #FFFFFF;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          backdrop-filter: blur(8px);
+        }
+        .db-logtype-title-box {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+          min-width: 0;
+        }
+        .db-logtype-tag-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .db-logtype-num-tag {
+          font-size: 11px;
+          font-weight: 800;
+          color: #FFFFFF;
+          background: rgba(255, 255, 255, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          padding: 2px 8px;
+          border-radius: 6px;
+          font-family: ${t.fontDisplay};
+          letter-spacing: 0.04em;
+        }
+        .db-logtype-sublabel {
+          font-size: 12px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.75);
+        }
+        .db-logtype-title {
+          margin: 0;
+          font-family: ${t.fontDisplay};
+          font-size: clamp(24px, 3.5vw, 30px);
+          font-weight: 700;
+          color: #FFFFFF;
+          line-height: 1.2;
+          letter-spacing: -0.01em;
+          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+        }
+        .db-logtype-desc {
+          margin: 0;
+          font-size: 13.5px;
+          color: rgba(255, 255, 255, 0.88);
+          line-height: 1.4;
+          text-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+        }
+        .db-logtype-header-stats {
+          flex-shrink: 0;
+          position: relative;
+          z-index: 2;
+        }
+        .db-logtype-stat-pill {
+          background: rgba(255, 255, 255, 0.14);
+          border: 1px solid rgba(255, 255, 255, 0.24);
+          padding: 10px 18px;
+          border-radius: 14px;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 2px;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+        }
+        .db-logtype-stat-label {
+          font-size: 10.5px;
+          font-weight: 750;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: rgba(255, 255, 255, 0.72);
+        }
+        .db-logtype-stat-val {
+          font-size: 15px;
+          font-weight: 800;
+          color: #FFFFFF;
+        }
+
+        /* Water Intake Tracker */
+        .db-log-water-box {
+          background: ${t.surface};
+          border: 1px solid ${t.lineStrong};
+          border-radius: 14px;
+          padding: 16px 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          box-shadow: ${t.shadowCard};
+        }
+        .db-water-box-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .db-water-box-label {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: ${t.inkFaint};
+        }
+        .db-water-box-val {
+          margin: 2px 0 0;
+          font-size: 18px;
+          font-weight: 700;
+          color: ${t.ink};
+          font-family: ${t.fontDisplay};
+        }
+        .db-water-box-metric {
+          font-size: 13px;
+          font-weight: 600;
+          color: ${t.inkSoft};
+          font-family: ${t.fontBody};
+        }
+        .db-water-pct-tag {
+          font-size: 13px;
+          font-weight: 800;
+          color: #2B70B6;
+          background: rgba(74, 144, 226, 0.12);
+          padding: 4px 10px;
+          border-radius: 999px;
+        }
+        .db-water-progress-track {
+          height: 10px;
+          border-radius: 999px;
+          background: ${t.surfaceSunken};
+          overflow: hidden;
+        }
+        .db-water-progress-fill {
+          height: 100%;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #5E87A0 0%, #4A90E2 100%);
+          transition: width 0.3s ease;
+        }
+
+        /* Quick Tip Guide */
+        .db-log-guide-box {
+          background: ${t.sageTint};
+          border: 1px solid rgba(124, 148, 112, 0.35);
+          border-radius: 12px;
+          padding: 12px 16px;
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+        .db-guide-icon-wrap {
+          width: 28px;
+          height: 28px;
+          border-radius: 8px;
+          background: ${t.sageSoft};
+          color: ${t.forest};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+        .db-guide-content {
+          flex: 1;
+          min-width: 0;
+        }
+        .db-guide-text {
+          margin: 0;
+          font-size: 13px;
+          line-height: 1.5;
+          color: ${t.ink};
+        }
+        .db-guide-title {
+          font-weight: 750;
+          color: ${t.forest};
+        }
+
+        /* Split Section */
         .db-log-split {
           display: grid;
-          grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+          grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.85fr);
           gap: 24px;
           align-items: start;
-          margin-top: 18px;
         }
+
+        /* Left Column: Form */
+        .db-form-heading-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        .db-form-heading {
+          margin: 0;
+          font-family: ${t.fontDisplay};
+          font-size: 18px;
+          font-weight: 700;
+          color: ${t.ink};
+        }
+        .db-cancel-edit-btn {
+          border: none;
+          background: none;
+          color: ${t.clay};
+          font-size: 13px;
+          font-weight: 650;
+          cursor: pointer;
+          padding: 0;
+        }
+        .db-cancel-edit-btn:hover {
+          text-decoration: underline;
+        }
+        .db-log-form-card {
+          background: ${t.surface};
+          border: 1px solid ${t.lineStrong};
+          border-radius: 16px;
+          padding: 22px 20px;
+          box-shadow: ${t.shadowCard};
+        }
+
+        /* Right Column: Today's Entries */
         .db-log-split-entries {
           position: sticky;
           top: 16px;
         }
+        .db-entries-heading-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        .db-entries-heading {
+          margin: 0;
+          font-family: ${t.fontDisplay};
+          font-size: 18px;
+          font-weight: 700;
+          color: ${t.ink};
+        }
+        .db-entries-count-pill {
+          font-size: 11.5px;
+          font-weight: 700;
+          color: ${t.forest};
+          background: ${t.sageTint};
+          padding: 2px 8px;
+          border-radius: 999px;
+        }
         .db-log-entries-panel {
           background: ${t.surface};
           border: 1px solid ${t.lineStrong};
-          border-radius: 14px;
-          padding: 14px;
-          max-height: min(70vh, 720px);
+          border-radius: 16px;
+          padding: 16px;
+          max-height: min(72vh, 750px);
           overflow-y: auto;
-          box-shadow: 0 1px 2px rgba(43,42,40,0.04);
+          box-shadow: ${t.shadowCard};
         }
-        .db-log-form-card {
-          overflow: hidden;
+        .db-entries-loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          color: ${t.inkSoft};
+          padding: 30px 0;
+          font-size: 14px;
         }
+        .db-entries-error {
+          color: ${t.clayDeep};
+          font-size: 13.5px;
+          margin: 0;
+          padding: 12px;
+        }
+        .db-entries-empty-box {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 20px 16px 28px;
+          gap: 6px;
+        }
+        .db-entries-empty-img {
+          width: 240px;
+          max-width: 88%;
+          height: auto;
+          object-fit: contain;
+          margin-bottom: 10px;
+          display: block;
+          filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.04));
+        }
+        .db-entries-empty-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: ${t.surfaceSunken};
+          color: ${t.forest};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 4px;
+        }
+        .db-entries-empty-title {
+          margin: 0;
+          font-size: 15px;
+          font-weight: 700;
+          color: ${t.ink};
+        }
+        .db-entries-empty-text {
+          margin: 0;
+          font-size: 12.5px;
+          color: ${t.inkSoft};
+          max-width: 260px;
+          line-height: 1.45;
+        }
+        .db-entries-empty-cta {
+          margin-top: 8px;
+          padding: 9px 18px;
+          border-radius: 10px;
+          border: none;
+          background: ${t.forest};
+          color: #ffffff;
+          font-size: 12.5px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .db-entries-empty-cta:hover {
+          opacity: 0.9;
+          transform: translateY(-1px);
+        }
+
+        /* Entry Cards inside timeline */
+        .db-entries-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .db-log-entry-row {
+          background: ${t.surface};
+          border: 1px solid ${t.line};
+          border-radius: 12px;
+          padding: 13px 14px;
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .db-log-entry-row:hover {
+          border-color: ${t.lineStrong};
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .db-entry-card-main {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .db-entry-card-title-row {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+        }
+        .db-entry-icon-wrap {
+          width: 24px;
+          height: 24px;
+          border-radius: 6px;
+          background: ${t.sageSoft};
+          color: ${t.forest};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .db-entry-card-title {
+          font-size: 14px;
+          font-weight: 700;
+          color: ${t.ink};
+          word-break: break-word;
+        }
+        .db-entry-food-desc {
+          margin: 2px 0 0;
+          font-size: 13px;
+          color: ${t.inkSoft};
+          word-break: break-word;
+        }
+        .db-entry-tags-row {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          flex-wrap: wrap;
+          margin-top: 3px;
+        }
+        .db-entry-macro-pill {
+          font-size: 11px;
+          font-weight: 600;
+          color: ${t.inkSoft};
+          background: ${t.surfaceSunken};
+          padding: 2px 7px;
+          border-radius: 6px;
+        }
+        .db-entry-macro-pill.is-highlight {
+          color: ${t.forest};
+          background: ${t.sageTint};
+          font-weight: 700;
+        }
+        .db-entry-macro-pill.db-status-taken {
+          background: ${t.sageTint};
+          color: ${t.sageDeep};
+        }
+        .db-entry-macro-pill.db-status-missed,
+        .db-entry-macro-pill.db-status-skipped {
+          background: ${t.clayTint};
+          color: ${t.clayDeep};
+        }
+        .db-entry-impact-line {
+          margin: 3px 0 0;
+          font-size: 11.5px;
+          font-weight: 650;
+          color: ${t.inkFaint};
+        }
+        .db-entry-notes-line {
+          margin: 3px 0 0;
+          font-size: 12px;
+          color: ${t.inkSoft};
+          line-height: 1.4;
+          font-style: italic;
+          word-break: break-word;
+        }
+        .db-entry-time-badge {
+          margin-top: 4px;
+          font-size: 11px;
+          font-weight: 600;
+          color: ${t.inkFaint};
+        }
+
+        /* Action Buttons on each entry */
+        .db-log-entry-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .db-entry-action-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 5px 8px;
+          border-radius: 7px;
+          border: 1px solid ${t.line};
+          background: ${t.surfaceSunken};
+          color: ${t.inkSoft};
+          font-size: 11.5px;
+          font-weight: 650;
+          cursor: pointer;
+          transition: all 0.12s ease;
+        }
+        .db-entry-action-btn:hover {
+          background: ${t.surface};
+          border-color: ${t.forest};
+          color: ${t.forest};
+        }
+        .db-entry-action-btn.is-delete:hover {
+          background: ${t.clayTint};
+          border-color: ${t.clay};
+          color: ${t.clayDeep};
+        }
+        .db-entries-view-all-btn {
+          width: 100%;
+          padding: 10px;
+          border-radius: 10px;
+          border: 1px solid ${t.lineStrong};
+          background: ${t.surfaceSunken};
+          color: ${t.forest};
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: background 0.15s ease;
+          margin-top: 4px;
+        }
+        .db-entries-view-all-btn:hover {
+          background: ${t.sageTint};
+        }
+
+        /* Toast notification */
+        .db-logs-toast {
+          position: fixed;
+          bottom: 30px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 300;
+          padding: 10px 18px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          font-weight: 650;
+          box-shadow: ${t.shadowLifted};
+          animation: dbToastUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .db-logs-toast.is-success {
+          background: ${t.forest};
+          color: #ffffff;
+        }
+        .db-logs-toast.is-error {
+          background: ${t.clayDeep};
+          color: #ffffff;
+        }
+        @keyframes dbToastUp {
+          from { opacity: 0; transform: translate(-50%, 10px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+
+        /* Responsive Breakpoints */
         @media (max-width: 900px) {
           .db-log-split {
             grid-template-columns: 1fr;
-            gap: 22px;
+            gap: 20px;
           }
           .db-log-split-entries {
             position: static;
@@ -694,109 +1588,82 @@ export default function LogTypePage() {
           .db-log-entries-panel {
             max-height: none;
             overflow: visible;
-            background: transparent;
-            border: none;
-            padding: 0;
-            box-shadow: none;
+          }
+        }
+        @media (max-width: 768px) {
+          .db-logs-header-actions {
+            display: none !important;
+          }
+          .db-logtype-main {
+            padding: 16px 14px 100px;
+          }
+          .db-logtype-header-card {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 20px 18px;
+            gap: 14px;
+            border-radius: 18px;
+            background-position: right -10px center;
+            background-size: auto 118%;
+            min-height: 120px;
+          }
+          .db-logtype-header-card::before {
+            background: linear-gradient(90deg, rgba(19, 34, 25, 0.92) 0%, rgba(19, 34, 25, 0.68) 52%, rgba(19, 34, 25, 0.05) 78%, transparent 100%);
+          }
+          .db-logtype-header-left {
+            gap: 12px;
+            max-width: 64%;
+          }
+          .db-logtype-icon-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+          }
+          .db-logtype-title {
+            font-size: 22px;
+          }
+          .db-logtype-desc {
+            font-size: 12.5px;
+            line-height: 1.35;
+          }
+          .db-logtype-header-stats {
+            width: auto;
+            align-self: flex-start;
+          }
+          .db-logtype-stat-pill {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.12);
+          }
+          .db-logtype-stat-label {
+            font-size: 10px;
+          }
+          .db-logtype-stat-val {
+            font-size: 13px;
           }
         }
         @media (max-width: 640px) {
-          .db-logs-main {
-            padding: 12px 12px 120px !important;
-          }
-          .db-logs-wrap {
-            max-width: 100% !important;
-          }
-          .db-log-form-card {
-            padding: 14px 12px !important;
-            border-radius: 12px !important;
-          }
-          .db-log-guide-box,
-          .db-log-water-box {
-            padding: 10px 12px !important;
-          }
           .db-log-entry-row {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            padding: 12px !important;
-            gap: 10px !important;
+            flex-direction: column;
+            gap: 10px;
           }
           .db-log-entry-actions {
             width: 100%;
             justify-content: flex-end;
-            padding-top: 2px;
+            border-top: 1px solid ${t.line};
+            padding-top: 8px;
           }
-          .db-log-source-grid,
-          .db-log-quality-grid {
-            grid-template-columns: 1fr !important;
+          .db-log-form-card {
+            padding: 16px 14px;
           }
-          .db-log-macro-grid {
-            grid-template-columns: 1fr 1fr !important;
-          }
-          .db-log-segment-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .db-log-mood-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-          }
-          .db-log-intensity-grid,
-          .db-log-stress-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-          }
-          .db-log-dose-row {
-            flex-wrap: wrap !important;
-          }
-          .db-log-dose-row select {
-            width: 100% !important;
-            max-width: 100% !important;
-          }
-        }
-        @media (max-width: 380px) {
-          .db-log-mood-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          }
-          .db-log-intensity-grid,
-          .db-log-stress-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-          }
-          .db-log-datetime-row {
-            gap: 6px !important;
-          }
-        }
-        .db-log-datetime {
-          display: flex !important;
-          flex-direction: column !important;
-          gap: 14px !important;
-          width: 100% !important;
-        }
-        .db-log-datetime-row {
-          display: grid !important;
-          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-          gap: 8px !important;
-          width: 100% !important;
-        }
-        .db-log-datetime-row .db-themed-select {
-          width: 100% !important;
-          min-width: 0 !important;
         }
       `}</style>
     </div>
   );
 }
-
-const backBtn = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  padding: 0,
-  border: 'none',
-  background: 'none',
-  color: t.inkSoft,
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: 'pointer',
-  fontFamily: t.fontBody,
-};
 
 const linkBtn = {
   marginTop: 12,
@@ -807,133 +1674,3 @@ const linkBtn = {
   fontFamily: t.fontBody,
 };
 
-const guideBox = {
-  marginTop: 12,
-  padding: '10px 12px',
-  borderRadius: 10,
-  border: `1px solid ${t.sage}55`,
-  background: t.sageTint,
-};
-
-const waterProgressBox = {
-  marginTop: 20,
-  padding: '18px 18px',
-  borderRadius: 12,
-  border: `1px solid ${t.lineStrong}`,
-  background: t.surface,
-  boxShadow: '0 1px 2px rgba(43,42,40,0.04)',
-};
-
-const guideTitle = {
-  margin: 0,
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
-  color: t.inkFaint,
-};
-
-const guideText = {
-  margin: '8px 0 0',
-  fontSize: 14,
-  color: t.inkSoft,
-  lineHeight: 1.65,
-};
-
-const formCard = {
-  background: t.surface,
-  border: `1px solid ${t.lineStrong}`,
-  borderRadius: 14,
-  padding: '18px 16px',
-  boxShadow: '0 1px 2px rgba(43,42,40,0.04)',
-};
-
-const entryRow = {
-  display: 'flex',
-  gap: 12,
-  alignItems: 'flex-start',
-  padding: '14px 14px',
-  borderRadius: 12,
-  border: `1px solid ${t.line}`,
-  background: t.surface,
-};
-
-const noteLine = {
-  margin: '4px 0 0',
-  fontSize: 13,
-  color: t.inkSoft,
-  lineHeight: 1.45,
-  wordBreak: 'break-word',
-};
-
-const smallBtn = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '6px 10px',
-  borderRadius: 8,
-  border: `1px solid ${t.line}`,
-  background: t.surfaceSunken,
-  color: t.inkSoft,
-  fontSize: 12,
-  fontWeight: 650,
-  cursor: 'pointer',
-  fontFamily: t.fontBody,
-};
-
-const viewAllBtn = {
-  marginTop: 4,
-  width: '100%',
-  padding: '12px 14px',
-  borderRadius: 10,
-  border: `1px solid ${t.lineStrong}`,
-  background: t.surfaceSunken,
-  color: t.forest,
-  fontSize: 14,
-  fontWeight: 700,
-  cursor: 'pointer',
-  fontFamily: t.fontBody,
-};
-
-const emptyStateBox = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'flex-start',
-  gap: 10,
-  padding: '18px 4px 4px',
-};
-
-const emptyStateIcon = {
-  width: 38,
-  height: 38,
-  borderRadius: 10,
-  background: t.surfaceSunken,
-  color: t.forest,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-};
-
-const emptyStateText = {
-  margin: 0,
-  fontSize: 14,
-  color: t.inkSoft,
-  lineHeight: 1.55,
-  maxWidth: '32ch',
-};
-
-const emptyStateCta = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '10px 16px',
-  borderRadius: 10,
-  border: 'none',
-  background: t.forest,
-  color: '#fff',
-  fontSize: 13,
-  fontWeight: 700,
-  cursor: 'pointer',
-  fontFamily: t.fontBody,
-};

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowUpRight,
   Search,
-  Bookmark,
   Share2,
   Clock,
   Check,
@@ -257,39 +256,38 @@ const DiabetesBlog = ({ showHeader = true }) => {
   const { t: tr } = useI18n();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [savedIds, setSavedIds] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('diabuddy_saved_articles') || '[]');
-    } catch {
-      return [];
-    }
-  });
   const [copiedId, setCopiedId] = useState(null);
 
-  useEffect(() => {
+  const fallbackCopyText = (text) => {
     try {
-      localStorage.setItem('diabuddy_saved_articles', JSON.stringify(savedIds));
-    } catch {
-      // ignore
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    } catch (err) {
+      console.error('Fallback copy failed', err);
     }
-  }, [savedIds]);
-
-  const toggleSave = (e, id) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSavedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
   };
 
   const handleShare = (e, post) => {
     e.preventDefault();
     e.stopPropagation();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(post.url);
-      setCopiedId(post.id);
-      setTimeout(() => setCopiedId(null), 2200);
+    const shareUrl = post.url || window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareUrl).catch(() => {
+        fallbackCopyText(shareUrl);
+      });
+    } else {
+      fallbackCopyText(shareUrl);
     }
+    setCopiedId(post.id);
+    setTimeout(() => {
+      setCopiedId((current) => (current === post.id ? null : current));
+    }, 2200);
   };
 
   // Filter posts based on category and search query
@@ -325,10 +323,10 @@ const DiabetesBlog = ({ showHeader = true }) => {
           <div className="mb-6 sm:mb-8 pt-1 sm:pt-0">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="h-2 w-2 rounded-full bg-[#3D5A45]" />
-                  <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#3D5A45]">
-                    Wellness &amp; Health Blog
+                <div className="flex items-center gap-2 mb-2 sm:mb-4">
+                  <span className="h-0.5 w-5 sm:w-6 bg-[#3D5A45]" />
+                  <span className="text-[9px] sm:text-xs font-bold uppercase tracking-[0.18em] sm:tracking-[0.22em] text-[#3D5A45]">
+                    WELLNESS &amp; HEALTH BLOGS
                   </span>
                 </div>
                 <h1 className="font-serif text-3xl sm:text-4xl lg:text-[2.75rem] font-normal leading-[1.14] tracking-tight text-[#1E2A24]">
@@ -401,49 +399,47 @@ const DiabetesBlog = ({ showHeader = true }) => {
                 className="lg:col-span-8 rounded-[30px] sm:rounded-[38px] bg-[#F6F3EB] border-2 border-[#5B7E67]/35 p-6 sm:p-8 flex flex-col md:flex-row items-center gap-6 sm:gap-8 shadow-[0_8px_30px_rgba(30,42,36,0.04)] group hover:shadow-[0_16px_40px_rgba(46,107,62,0.1)] hover:border-[#3D5A45] hover:-translate-y-1 transition-all duration-300 relative"
               >
                 {/* Left Sage Artwork Container */}
-                <div className="w-full md:w-[280px] lg:w-[310px] h-[220px] md:h-[250px] shrink-0 rounded-[20px] overflow-hidden">
+                <div className="w-full md:w-[280px] lg:w-[310px] h-[220px] md:h-[250px] shrink-0 rounded-[20px] overflow-hidden relative">
                   <img
                     src={featuredArticle.image}
                     alt={featuredArticle.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  <div
+                    className="absolute top-2.5 right-2.5 flex items-center bg-black/40 backdrop-blur-xs rounded-full p-1 text-white z-10"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {copiedId === featuredArticle.id && (
+                      <div
+                        role="status"
+                        className="absolute top-full right-0 mt-1.5 px-2 py-0.5 bg-[#1E2A24] text-white text-[10px] font-semibold rounded-md shadow-lg flex items-center gap-1 whitespace-nowrap z-30 pointer-events-none"
+                        style={{ animation: 'dbFadeInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) both' }}
+                      >
+                        <Check size={11} className="text-[#A3D9A5]" />
+                        <span>Copied!</span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => handleShare(e, featuredArticle)}
+                      className="p-1 hover:text-[#A3D9A5] transition-colors cursor-pointer"
+                      title="Copy article link"
+                    >
+                      {copiedId === featuredArticle.id ? <Check size={13} className="text-[#A3D9A5]" /> : <Share2 size={13} />}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Right Content */}
                 <div className="flex flex-col justify-between flex-1 min-w-0 h-full py-1">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider text-[#2E6B3E] bg-[#E3EBDD]">
-                          {featuredArticle.category}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#7A746A]">
-                          <Clock size={12} /> {featuredArticle.readTime}
-                        </span>
-                      </div>
-
-                      {/* Quick Action Icons */}
-                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={(e) => toggleSave(e, featuredArticle.id)}
-                          className="p-1.5 rounded-full hover:bg-black/5 text-[#7A746A] hover:text-[#2E6B3E] transition-colors"
-                          title={savedIds.includes(featuredArticle.id) ? 'Saved' : 'Save article'}
-                        >
-                          <Bookmark
-                            size={16}
-                            className={savedIds.includes(featuredArticle.id) ? 'fill-[#2E6B3E] text-[#2E6B3E]' : ''}
-                          />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => handleShare(e, featuredArticle)}
-                          className="p-1.5 rounded-full hover:bg-black/5 text-[#7A746A] hover:text-[#2E6B3E] transition-colors"
-                          title="Copy article link"
-                        >
-                          {copiedId === featuredArticle.id ? <Check size={16} className="text-[#2E6B3E]" /> : <Share2 size={16} />}
-                        </button>
-                      </div>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider text-[#2E6B3E] bg-[#E3EBDD]">
+                        {featuredArticle.category}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#7A746A]">
+                        <Clock size={12} /> {featuredArticle.readTime}
+                      </span>
                     </div>
 
                     <h2 className="font-serif text-2xl sm:text-3xl lg:text-[2.2rem] font-bold text-[#1E2A24] leading-tight mb-3 group-hover:text-[#2E6B3E] transition-colors">
@@ -469,15 +465,38 @@ const DiabetesBlog = ({ showHeader = true }) => {
                 href={topSecondaryArticle.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="lg:col-span-4 rounded-[30px] sm:rounded-[38px] bg-white border-2 border-[#5B7E67]/35 p-5 sm:p-6 flex flex-col justify-between shadow-[0_8px_30px_rgba(30,42,36,0.04)] group hover:shadow-[0_16px_40px_rgba(46,107,62,0.1)] hover:border-[#3D5A45] hover:-translate-y-1 transition-all duration-300"
+                className="lg:col-span-4 rounded-[30px] sm:rounded-[38px] bg-white border-2 border-[#5B7E67]/35 p-5 sm:p-6 flex flex-col justify-between shadow-[0_8px_30px_rgba(30,42,36,0.04)] group hover:shadow-[0_16px_40px_rgba(46,107,62,0.1)] hover:border-[#3D5A45] hover:-translate-y-1 transition-all duration-300 relative"
               >
                 {/* Top Photo */}
-                <div className="w-full h-[200px] sm:h-[220px] rounded-[20px] overflow-hidden bg-[#F0EBE1]">
+                <div className="w-full h-[200px] sm:h-[220px] rounded-[20px] overflow-hidden bg-[#F0EBE1] relative">
                   <img
                     src={topSecondaryArticle.image}
                     alt={topSecondaryArticle.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  <div
+                    className="absolute top-2.5 right-2.5 flex items-center bg-black/40 backdrop-blur-xs rounded-full p-1 text-white z-10"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {copiedId === topSecondaryArticle.id && (
+                      <div
+                        role="status"
+                        className="absolute top-full right-0 mt-1.5 px-2 py-0.5 bg-[#1E2A24] text-white text-[10px] font-semibold rounded-md shadow-lg flex items-center gap-1 whitespace-nowrap z-30 pointer-events-none"
+                        style={{ animation: 'dbFadeInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) both' }}
+                      >
+                        <Check size={11} className="text-[#A3D9A5]" />
+                        <span>Copied!</span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => handleShare(e, topSecondaryArticle)}
+                      className="p-1 hover:text-[#A3D9A5] transition-colors cursor-pointer"
+                      title="Copy article link"
+                    >
+                      {copiedId === topSecondaryArticle.id ? <Check size={13} className="text-[#A3D9A5]" /> : <Share2 size={13} />}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Bottom Content */}
@@ -526,17 +545,27 @@ const DiabetesBlog = ({ showHeader = true }) => {
                       alt={post.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-black/40 backdrop-blur-xs rounded-full p-1 text-white">
+                    <div
+                      className="absolute top-2.5 right-2.5 flex items-center bg-black/40 backdrop-blur-xs rounded-full p-1 text-white z-10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {copiedId === post.id && (
+                        <div
+                          role="status"
+                          className="absolute top-full right-0 mt-1.5 px-2 py-0.5 bg-[#1E2A24] text-white text-[10px] font-semibold rounded-md shadow-lg flex items-center gap-1 whitespace-nowrap z-30 pointer-events-none"
+                          style={{ animation: 'dbFadeInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) both' }}
+                        >
+                          <Check size={11} className="text-[#A3D9A5]" />
+                          <span>Copied!</span>
+                        </div>
+                      )}
                       <button
                         type="button"
-                        onClick={(e) => toggleSave(e, post.id)}
-                        className="p-1 hover:text-[#A3D9A5] transition-colors"
-                        title={savedIds.includes(post.id) ? 'Saved' : 'Save'}
+                        onClick={(e) => handleShare(e, post)}
+                        className="p-1 hover:text-[#A3D9A5] transition-colors cursor-pointer"
+                        title="Copy article link"
                       >
-                        <Bookmark
-                          size={13}
-                          className={savedIds.includes(post.id) ? 'fill-white text-white' : ''}
-                        />
+                        {copiedId === post.id ? <Check size={13} className="text-[#A3D9A5]" /> : <Share2 size={13} />}
                       </button>
                     </div>
                   </div>
@@ -589,22 +618,24 @@ const DiabetesBlog = ({ showHeader = true }) => {
                         alt={post.title}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                      <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-xs rounded-full p-1 text-white">
-                        <button
-                          type="button"
-                          onClick={(e) => toggleSave(e, post.id)}
-                          className="p-1 hover:text-[#A3D9A5] transition-colors"
-                          title="Save article"
-                        >
-                          <Bookmark
-                            size={14}
-                            className={savedIds.includes(post.id) ? 'fill-white text-white' : ''}
-                          />
-                        </button>
+                      <div
+                        className="absolute top-3 right-3 flex items-center bg-black/40 backdrop-blur-xs rounded-full p-1 text-white z-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {copiedId === post.id && (
+                          <div
+                            role="status"
+                            className="absolute top-full right-0 mt-1.5 px-2 py-0.5 bg-[#1E2A24] text-white text-[10px] font-semibold rounded-md shadow-lg flex items-center gap-1 whitespace-nowrap z-30 pointer-events-none"
+                            style={{ animation: 'dbFadeInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) both' }}
+                          >
+                            <Check size={11} className="text-[#A3D9A5]" />
+                            <span>Copied!</span>
+                          </div>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => handleShare(e, post)}
-                          className="p-1 hover:text-[#A3D9A5] transition-colors"
+                          className="p-1 hover:text-[#A3D9A5] transition-colors cursor-pointer"
                           title="Share link"
                         >
                           {copiedId === post.id ? <Check size={14} className="text-[#A3D9A5]" /> : <Share2 size={14} />}
@@ -666,6 +697,21 @@ const DiabetesBlog = ({ showHeader = true }) => {
           </div>
         )}
       </div>
+
+      {/* Toast Notification for Copied Link */}
+      {copiedId && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#1E2A24] text-white text-xs sm:text-sm font-medium shadow-[0_10px_30px_rgba(0,0,0,0.28)] border border-[#3D5A45]/40 transition-all duration-300 pointer-events-none"
+          style={{ animation: 'dbFadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) both' }}
+        >
+          <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#2E6B3E] text-white">
+            <Check size={11} strokeWidth={3} />
+          </span>
+          <span>Copied</span>
+        </div>
+      )}
 
       {/* Full-width Learn Footer */}
       <LearnFooter className="mt-12 sm:mt-16" />

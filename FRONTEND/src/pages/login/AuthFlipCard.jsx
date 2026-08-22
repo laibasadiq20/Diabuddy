@@ -22,10 +22,12 @@ export default function AuthFlipCard({ startFlipped = false }) {
   const { user, loading } = useAuth();
 
   const syncHeight = () => {
-    const el = isFlipped ? backRef.current : frontRef.current;
-    if (el) {
-      setCardHeight(`${el.offsetHeight}px`);
-    }
+    requestAnimationFrame(() => {
+      const el = isFlipped ? backRef.current : frontRef.current;
+      if (el) {
+        setCardHeight(`${el.offsetHeight}px`);
+      }
+    });
   };
 
   useEffect(() => {
@@ -164,7 +166,7 @@ export default function AuthFlipCard({ startFlipped = false }) {
             {/* BACK PAGE: REGISTER (Pure Neutral Glass) */}
             <div
               ref={backRef}
-              className="absolute inset-0 w-full rounded-[32px] sm:rounded-[38px] p-7 sm:p-9 flex flex-col justify-center"
+              className="absolute top-0 left-0 w-full min-h-full rounded-[32px] sm:rounded-[38px] p-6 sm:p-8 flex flex-col justify-center"
               style={{
                 ...neutralGlassStyle,
                 backfaceVisibility: 'hidden',

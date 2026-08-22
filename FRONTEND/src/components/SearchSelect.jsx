@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Search, Check } from 'lucide-react';
+import { ChevronDown, Search, Check, Plus, Trash2 } from 'lucide-react';
 import { theme as t } from '../theme';
 
 /**
@@ -10,6 +10,10 @@ export default function SearchSelect({
   value = '',
   onChange,
   options = [],
+  customValues = [],
+  onDeleteOption,
+  onDeleteCustom,
+  onAddCustom,
   topCount = 5,
   placeholder = 'Search…',
   allowCustom = true,
@@ -88,25 +92,51 @@ export default function SearchSelect({
     if (!allowCustom) return;
     const next = query.trim();
     if (!next) return;
+    onAddCustom?.(next);
     onChange?.(next);
     setOpen(false);
     setQuery('');
   };
 
   const renderOption = (opt) => {
+    const isCustom = customValues.some(
+      (cv) => String(cv).toLowerCase() === String(opt.value).toLowerCase()
+    );
     const active = opt.value === value;
+    const canDelete = Boolean(onDeleteOption || (isCustom && onDeleteCustom));
+    const handleDelete = onDeleteOption || onDeleteCustom;
+
     return (
-      <button
+      <div
         key={opt.value}
-        type="button"
-        role="option"
-        aria-selected={active}
-        className={`db-search-select-option${active ? ' is-active' : ''}`}
-        onClick={() => pick(opt)}
+        className={`db-search-select-option-row${active ? ' is-active' : ''}`}
       >
-        <span>{opt.label}</span>
-        {active ? <Check size={14} strokeWidth={2.5} aria-hidden /> : null}
-      </button>
+        <button
+          type="button"
+          role="option"
+          aria-selected={active}
+          className="db-search-select-option"
+          onClick={() => pick(opt)}
+        >
+          <span className="db-search-select-opt-text">{opt.label}</span>
+          {active ? <Check size={14} strokeWidth={2.5} aria-hidden /> : null}
+        </button>
+        {canDelete ? (
+          <button
+            type="button"
+            className="db-search-select-del-btn"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDelete(opt.value);
+            }}
+            title={`Delete "${opt.label}" from list`}
+            aria-label={`Delete ${opt.label}`}
+          >
+            <Trash2 size={13.5} strokeWidth={2} />
+          </button>
+        ) : null}
+      </div>
     );
   };
 
@@ -168,10 +198,22 @@ export default function SearchSelect({
           {!q ? (
             <div className="db-search-select-body">
               <p className="db-search-select-section">{popularLabel}</p>
-              <div className="db-search-select-options">{topPicks.map(renderOption)}</div>
+              <div className="db-search-select-options">
+                {topPicks.map(renderOption)}
+                {allowCustom ? (
+                  <button
+                    type="button"
+                    className="db-search-select-custom-row"
+                    onClick={() => inputRef.current?.focus()}
+                  >
+                    <Plus size={14} strokeWidth={2.5} />
+                    <span>Type custom medicine name…</span>
+                  </button>
+                ) : null}
+              </div>
               {normalized.length > topCount ? (
                 <p className="db-search-select-hint">
-                  {searchMoreLabel || 'Type above to search'}
+                  {searchMoreLabel || 'Type above to search or add custom medicine'}
                 </p>
               ) : null}
             </div>
@@ -182,12 +224,21 @@ export default function SearchSelect({
                   <span>{emptyLabel}</span>
                   {allowCustom && query.trim() ? (
                     <button type="button" className="db-search-select-custom" onClick={commitCustom}>
-                      Use “{query.trim()}”
+                      <Plus size={14} strokeWidth={2.5} />
+                      <span>Add “<strong>{query.trim()}</strong>” as medicine</span>
                     </button>
                   ) : null}
                 </div>
               ) : (
-                <div className="db-search-select-options">{filtered.map(renderOption)}</div>
+                <div className="db-search-select-options">
+                  {filtered.map(renderOption)}
+                  {allowCustom && query.trim() && !normalized.some((o) => o.label.toLowerCase() === q) ? (
+                    <button type="button" className="db-search-select-custom-row" onClick={commitCustom}>
+                      <Plus size={14} strokeWidth={2.5} />
+                      <span>Add “<strong>{query.trim()}</strong>” as custom medicine</span>
+                    </button>
+                  ) : null}
+                </div>
               )}
             </div>
           )}
@@ -269,13 +320,22 @@ export default function SearchSelect({
           color: ${t.inkFaint};
           flex-shrink: 0;
           margin-bottom: 8px;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
-        .db-search-select-input {
+        .db-search-select-search:focus-within {
+          border-color: ${t.forest};
+          box-shadow: 0 0 0 3px rgba(35, 59, 46, 0.12);
+        }
+        .db-search-select-input,
+        .db-search-select-input:focus,
+        .db-search-select-input:focus-visible {
           flex: 1;
           min-width: 0;
-          border: none;
-          background: transparent;
-          outline: none;
+          border: none !important;
+          outline: none !important;
+          outline-offset: 0 !important;
+          box-shadow: none !important;
+          background: transparent !important;
           font-size: 14px;
           font-family: ${t.fontBody};
           color: ${t.ink};
@@ -310,12 +370,27 @@ export default function SearchSelect({
           flex-direction: column;
           gap: 2px;
         }
-        .db-search-select-option {
-          width: 100%;
+        .db-search-select-option-row {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 10px;
+          border-radius: 10px;
+          transition: background 0.12s ease;
+        }
+        .db-search-select-option-row:hover,
+        .db-search-select-option-row:focus-within {
+          background: ${t.surfaceSunken};
+        }
+        .db-search-select-option-row.is-active {
+          background: ${t.surfaceSunken};
+        }
+        .db-search-select-option {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
           min-height: 44px;
           padding: 10px 12px;
           border: none;
@@ -328,16 +403,65 @@ export default function SearchSelect({
           text-align: left;
           cursor: pointer;
         }
+        .db-search-select-opt-text {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .db-search-select-del-btn {
+          width: 32px;
+          height: 32px;
+          margin-right: 6px;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
+          color: ${t.inkFaint};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: all 0.15s ease;
+        }
+        .db-search-select-del-btn:hover {
+          background: ${t.clayTint};
+          color: ${t.clayDeep};
+        }
         .db-search-select-option:hover,
         .db-search-select-option:focus-visible {
-          background: ${t.surfaceSunken};
+          background: transparent;
           outline: none;
         }
         .db-search-select-option.is-active {
-          background: ${t.surfaceSunken};
           color: ${t.ink};
           font-weight: 650;
           box-shadow: inset 2px 0 0 ${t.forest};
+        }
+        .db-search-select-custom-row {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-height: 42px;
+          padding: 10px 12px;
+          border: 1px dashed ${t.lineStrong};
+          border-radius: 10px;
+          background: ${t.surfaceSunken};
+          color: ${t.forest};
+          font-size: 13px;
+          font-family: ${t.fontBody};
+          font-weight: 650;
+          text-align: left;
+          cursor: pointer;
+          margin-top: 4px;
+          transition: all 0.15s ease;
+        }
+        .db-search-select-custom-row:hover {
+          background: ${t.sageTint};
+          border-color: ${t.forest};
+          border-style: solid;
         }
         .db-search-select-hint {
           margin: 10px 4px 4px;
@@ -357,15 +481,23 @@ export default function SearchSelect({
           gap: 10px;
         }
         .db-search-select-custom {
-          border: 1.5px solid ${t.lineStrong};
-          background: ${t.surface};
-          color: ${t.ink};
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border: 1.5px solid ${t.forest};
+          background: ${t.sageTint};
+          color: ${t.forest};
           border-radius: 8px;
           padding: 10px 14px;
           font-size: 13px;
-          font-weight: 650;
+          font-weight: 700;
           font-family: ${t.fontBody};
           cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .db-search-select-custom:hover {
+          background: ${t.forest};
+          color: #FFFFFF;
         }
         @media (max-width: 640px) {
           .db-search-select-trigger,

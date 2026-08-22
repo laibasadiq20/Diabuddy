@@ -16,7 +16,13 @@ import { theme } from '../../theme';
 import { API_URL } from '../../config/api';
 import AppSidebar from '../../components/AppSidebar';
 import { fromMgdl, glucoseUnitLabel } from '../../utils/glucoseUnits';
-import { formatWaterShort, mlToLiters, mlToUsFlOz, round0, round1 } from '../../utils/waterUnits';
+import {
+  formatWater,
+  resolveWaterUnit,
+  waterUnitLabel,
+  round0,
+  round1,
+} from '../../utils/waterUnits';
 import { formatClock12, getUserTzOffset } from '../../utils/timezone';
 import { getCachedData, setCachedData } from '../../utils/appCache';
 import {
@@ -243,6 +249,7 @@ export default function Dashboard() {
 
   const glucoseUnit = user?.glucoseUnit === 'mmol/L' ? 'mmol/L' : 'mg/dL';
   const unitLabel = glucoseUnitLabel(glucoseUnit);
+  const waterUnit = resolveWaterUnit(user);
   const latestGlucose = fromMgdl(summary?.glucose?.valueMgDl, glucoseUnit);
   const glucoseCount = summary?.glucose?.count || 0;
   const tirLow = fromMgdl(TIR_LOW_MGDL, glucoseUnit);
@@ -293,11 +300,11 @@ export default function Dashboard() {
       id: 'water',
       title: 'Drink water',
       subtitle: null,
-      completed: waterToday >= 2000,
-      value: `${round1(waterToday / 1000)} / 2 L`,
+      completed: waterToday >= waterGoal,
+      value: `${formatWater(waterToday, waterUnit)} / ${formatWater(waterGoal, waterUnit)}`,
       route: '/logs/water',
     },
-  ], [glucoseCount, latestGlucose, unitLabel, mealsToday, stepsToday, exerciseToday, medsToday, insulinToday, waterToday]);
+  ], [glucoseCount, latestGlucose, unitLabel, mealsToday, stepsToday, exerciseToday, medsToday, insulinToday, waterToday, waterGoal, waterUnit]);
 
   const planCompletedCount = todayPlanItems.filter((i) => i.completed).length;
 
@@ -416,10 +423,6 @@ export default function Dashboard() {
       window.removeEventListener('focus', onRemindersRefresh);
     };
   }, [user]);
-
-  const waterLabel = formatWaterShort(waterToday);
-  const waterGoalL = round1(mlToLiters(waterGoal));
-  const waterGoalOz = round0(mlToUsFlOz(waterGoal));
 
   const waterPct = Math.min(100, Math.round((waterToday / waterGoal) * 100));
   const stepsPct = Math.min(100, Math.round((stepsToday / stepsGoal) * 100));
@@ -650,25 +653,14 @@ export default function Dashboard() {
                 <span className="db-home-glance-label">{tr('dashboard.glance.water')}</span>
                 {!waterEmpty ? (
                   <strong>
-                    {waterToday >= 1000 ? (
-                      <>
-                        {round1(mlToLiters(waterToday))}
-                        <small>L</small>
-                      </>
-                    ) : (
-                      <>
-                        {round0(mlToUsFlOz(waterToday))}
-                        <small>oz</small>
-                      </>
-                    )}
+                    {formatWater(waterToday, waterUnit, { showUnit: false })}
+                    <small>{waterUnitLabel(waterUnit, waterToday)}</small>
                   </strong>
                 ) : (
                   <strong className="is-empty">{tr('dashboard.glance.ctaWater')}</strong>
                 )}
                 <span className="db-home-glance-sub">
-                  {tr('dashboard.glance.ofGoalLOz')
-                    .replace('{L}', String(waterGoalL))
-                    .replace('{oz}', String(waterGoalOz))}
+                  of {formatWater(waterGoal, waterUnit)} goal
                   {!waterEmpty ? ` · ${waterPct}%` : ''}
                 </span>
               </div>

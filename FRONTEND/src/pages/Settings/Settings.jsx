@@ -13,6 +13,8 @@ import {
   round0,
   round1,
   usFlOzToMl,
+  resolveWaterUnit,
+  formatWater,
 } from '../../utils/waterUnits';
 import { resolveHeightUnit, resolveWeightUnit } from '../../utils/bodyUnits';
 import AppSidebar from '../../components/AppSidebar';
@@ -25,6 +27,8 @@ import {
   GlassWater,
   Languages,
   Moon,
+  Ruler,
+  Scale,
   Sun,
   Target,
 } from 'lucide-react';
@@ -74,6 +78,7 @@ export default function Settings() {
   const [glucoseUnit, setGlucoseUnit] = useState('mg/dL');
   const [weightUnit, setWeightUnit] = useState('kg');
   const [heightUnit, setHeightUnit] = useState('cm');
+  const [waterUnit, setWaterUnit] = useState('ml');
   const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
   const [ranges, setRanges] = useState(rangesToDisplay(DEFAULT_RANGES_MGDL, 'mg/dL'));
   const [waterLiters, setWaterLiters] = useState('2');
@@ -89,6 +94,7 @@ export default function Settings() {
     setGlucoseUnit(unit);
     setWeightUnit(resolveWeightUnit(user));
     setHeightUnit(resolveHeightUnit(user));
+    setWaterUnit(resolveWaterUnit(user));
     setTimezone(resolveTimezone(user));
     setRanges(rangesToDisplay(user.targetRanges, unit));
     const ml = user.dailyGoals?.waterMl ?? 2000;
@@ -164,6 +170,16 @@ export default function Settings() {
     if (!ok) {
       setHeightUnit(prev);
       if (user) setUser({ ...user, heightUnit: prev });
+    }
+  };
+
+  const handleWaterUnitChange = async (next) => {
+    const prev = waterUnit;
+    setWaterUnit(next);
+    const ok = await saveProfile({ waterUnit: next }, 'waterUnit');
+    if (!ok) {
+      setWaterUnit(prev);
+      if (user) setUser({ ...user, waterUnit: prev });
     }
   };
 
@@ -395,52 +411,146 @@ export default function Settings() {
           </div>
 
           <div className="db-account-card" style={cardStyle}>
-            <p style={cardTitleStyle}>{tr('settings.units')}</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <p style={{ ...cardTitleStyle, margin: 0 }}>{tr('settings.units')}</p>
+              {savingKey && ['unit', 'weightUnit', 'heightUnit', 'waterUnit'].includes(savingKey) && (
+                <span style={{ fontSize: 12, color: t.forest, fontWeight: 700 }}>{tr('settings.saving')}</span>
+              )}
+            </div>
 
-            <label style={labelStyle}>
-              <Droplet size={12} style={{ marginRight: 5 }} />
-              {tr('settings.glucoseUnit')}
-            </label>
-            <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.glucoseUnitHint')}</p>
-            <ThemedSelect
-              className="db-settings-select"
-              style={{ maxWidth: 240, marginBottom: 18 }}
-              value={glucoseUnit}
-              onChange={handleGlucoseUnitChange}
-              disabled={savingKey === 'unit'}
-              options={[
-                { value: 'mg/dL', label: 'mg/dL' },
-                { value: 'mmol/L', label: 'mmol/L' },
-              ]}
-            />
+            {/* 1. Blood Glucose Unit */}
+            <div style={{ marginBottom: 22 }}>
+              <label style={labelStyle}>
+                <Droplet size={13} style={{ marginRight: 6 }} />
+                {tr('settings.glucoseUnit')}
+              </label>
+              <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.glucoseUnitHint')}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
+                <button
+                  type="button"
+                  style={segmentBtnStyle(glucoseUnit === 'mg/dL')}
+                  onClick={() => handleGlucoseUnitChange('mg/dL')}
+                  disabled={savingKey === 'unit'}
+                >
+                  <span style={{ fontWeight: 800 }}>mg/dL</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>(Standard)</span>
+                </button>
+                <button
+                  type="button"
+                  style={segmentBtnStyle(glucoseUnit === 'mmol/L')}
+                  onClick={() => handleGlucoseUnitChange('mmol/L')}
+                  disabled={savingKey === 'unit'}
+                >
+                  <span style={{ fontWeight: 800 }}>mmol/L</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>(Intl)</span>
+                </button>
+              </div>
+            </div>
 
-            <label style={labelStyle}>{tr('settings.weightUnit')}</label>
-            <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.weightUnitHint')}</p>
-            <ThemedSelect
-              className="db-settings-select"
-              style={{ maxWidth: 240, marginBottom: 18 }}
-              value={weightUnit}
-              onChange={handleWeightUnitChange}
-              disabled={savingKey === 'weightUnit'}
-              options={[
-                { value: 'kg', label: tr('settings.unitKg') },
-                { value: 'lbs', label: tr('settings.unitLbs') },
-              ]}
-            />
+            {/* 2. Water & Hydration Unit */}
+            <div style={{ marginBottom: 22 }}>
+              <label style={labelStyle}>
+                <GlassWater size={13} style={{ marginRight: 6 }} />
+                {tr('settings.waterUnit')}
+              </label>
+              <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.waterUnitHint')}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
+                <button
+                  type="button"
+                  style={segmentBtnStyle(waterUnit === 'ml')}
+                  onClick={() => handleWaterUnitChange('ml')}
+                  disabled={savingKey === 'waterUnit'}
+                >
+                  <span style={{ fontWeight: 800 }}>mL</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>(Metric)</span>
+                </button>
+                <button
+                  type="button"
+                  style={segmentBtnStyle(waterUnit === 'oz')}
+                  onClick={() => handleWaterUnitChange('oz')}
+                  disabled={savingKey === 'waterUnit'}
+                >
+                  <span style={{ fontWeight: 800 }}>fl oz</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>(US oz)</span>
+                </button>
+                <button
+                  type="button"
+                  style={segmentBtnStyle(waterUnit === 'L')}
+                  onClick={() => handleWaterUnitChange('L')}
+                  disabled={savingKey === 'waterUnit'}
+                >
+                  <span style={{ fontWeight: 800 }}>L</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>(Liters)</span>
+                </button>
+                <button
+                  type="button"
+                  style={segmentBtnStyle(waterUnit === 'glasses')}
+                  onClick={() => handleWaterUnitChange('glasses')}
+                  disabled={savingKey === 'waterUnit'}
+                >
+                  <span style={{ fontWeight: 800 }}>Glasses</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>(250 mL)</span>
+                </button>
+              </div>
+            </div>
 
-            <label style={labelStyle}>{tr('settings.heightUnit')}</label>
-            <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.heightUnitHint')}</p>
-            <ThemedSelect
-              className="db-settings-select"
-              style={{ maxWidth: 240 }}
-              value={heightUnit}
-              onChange={handleHeightUnitChange}
-              disabled={savingKey === 'heightUnit'}
-              options={[
-                { value: 'cm', label: tr('settings.unitCm') },
-                { value: 'ft_in', label: tr('settings.unitFtIn') },
-              ]}
-            />
+            {/* 3. Weight Unit */}
+            <div style={{ marginBottom: 22 }}>
+              <label style={labelStyle}>
+                <Scale size={13} style={{ marginRight: 6 }} />
+                {tr('settings.weightUnit')}
+              </label>
+              <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.weightUnitHint')}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
+                <button
+                  type="button"
+                  style={segmentBtnStyle(weightUnit === 'kg')}
+                  onClick={() => handleWeightUnitChange('kg')}
+                  disabled={savingKey === 'weightUnit'}
+                >
+                  <span style={{ fontWeight: 800 }}>kg</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>({tr('settings.unitKg')})</span>
+                </button>
+                <button
+                  type="button"
+                  style={segmentBtnStyle(weightUnit === 'lbs')}
+                  onClick={() => handleWeightUnitChange('lbs')}
+                  disabled={savingKey === 'weightUnit'}
+                >
+                  <span style={{ fontWeight: 800 }}>lbs</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>({tr('settings.unitLbs')})</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 4. Height Unit */}
+            <div>
+              <label style={labelStyle}>
+                <Ruler size={13} style={{ marginRight: 6 }} />
+                {tr('settings.heightUnit')}
+              </label>
+              <p style={{ margin: '0 0 10px', fontSize: 12, color: t.inkFaint }}>{tr('settings.heightUnitHint')}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
+                <button
+                  type="button"
+                  style={segmentBtnStyle(heightUnit === 'cm')}
+                  onClick={() => handleHeightUnitChange('cm')}
+                  disabled={savingKey === 'heightUnit'}
+                >
+                  <span style={{ fontWeight: 800 }}>cm</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>({tr('settings.unitCm')})</span>
+                </button>
+                <button
+                  type="button"
+                  style={segmentBtnStyle(heightUnit === 'ft_in')}
+                  onClick={() => handleHeightUnitChange('ft_in')}
+                  disabled={savingKey === 'heightUnit'}
+                >
+                  <span style={{ fontWeight: 800 }}>ft & in</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>({tr('settings.unitFtIn')})</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <form className="db-account-card" style={cardStyle} onSubmit={handleSaveRanges}>

@@ -120,16 +120,16 @@ const RESULT_META = {
 };
 
 const AdviceCard = ({ title, body, accentColor }) => (
-  <div className="flex gap-3.5 items-start p-4 sm:p-5 rounded-2xl bg-white border border-[#E2DCD0] shadow-2xs hover:shadow-sm hover:-translate-y-0.5 transition-all">
+  <div className="flex gap-3 items-start p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-[#E2DCD0] shadow-2xs hover:shadow-xs transition-all">
     <div
-      className="w-2.5 h-2.5 rounded-full shrink-0 mt-1.5"
+      className="w-2.5 h-2.5 rounded-full shrink-0 mt-1"
       style={{ background: accentColor }}
     />
     <div>
-      <p className="font-serif text-sm sm:text-base font-bold text-[#1E2A24] leading-snug">
+      <p className="font-serif text-xs sm:text-sm font-bold text-[#1E2A24] leading-snug">
         {title}
       </p>
-      <p className="text-xs sm:text-[13px] text-[var(--brown-soft)] leading-relaxed mt-1 font-normal">
+      <p className="text-[11px] sm:text-xs text-[var(--brown-soft)] leading-relaxed mt-0.5 font-normal">
         {body}
       </p>
     </div>
@@ -461,78 +461,85 @@ const RiskAssessment = () => {
       />
 
       {/* Main Content Area */}
-      <main className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-36 pb-12 sm:pb-16 lg:pb-20">
+      <main className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-24 pb-6 sm:pb-8 flex-1 flex flex-col justify-center">
 
         {/* -------------------------------------------------------------------------
             VIEW A: ASSESSMENT & NUMBERS CARD
         -------------------------------------------------------------------------- */}
         {!isFinished ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-6 sm:gap-10 lg:gap-16 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-5 sm:gap-8 lg:gap-12 items-center">
             
             {/* Left Column: Heading & Numbers Card */}
-            <div className="flex flex-col gap-6 sm:gap-8 lg:gap-10 pt-1">
+            <div className="flex flex-col gap-4 sm:gap-6 pt-1">
               <div>
-                <h1 className="font-serif text-2xl sm:text-4xl lg:text-[3.25rem] font-bold text-[#1E2A24] tracking-tight leading-[1.14]">
+                <div className="flex items-center gap-2 mb-2 sm:mb-4">
+                  <span className="h-0.5 w-5 sm:w-6 bg-[#3D5A45]" />
+                  <span className="text-[9px] sm:text-xs font-bold uppercase tracking-[0.18em] sm:tracking-[0.22em] text-[#3D5A45]">
+                    ASSESS YOUR RISK
+                  </span>
+                </div>
+
+                <h1 className="font-serif text-2xl sm:text-3xl lg:text-[2.75rem] font-bold text-[#1E2A24] tracking-tight leading-[1.12]">
                   Know Your <br className="hidden sm:inline" />
                   <span className="italic text-[#2E6B3E] font-medium">
                     Diabetes Risk
                   </span>
                 </h1>
 
-                <p className="mt-3 sm:mt-4 text-xs sm:text-sm lg:text-[15px] text-[var(--brown-soft)] leading-relaxed max-w-xl font-medium">
-                  Inspired by the ADA Type 2 Diabetes Risk Test. Answer a few questions — a score of 5+ means talk to your doctor about screening.
+                <p className="mt-2.5 sm:mt-4 text-xs sm:text-base text-[#554D43] leading-relaxed font-normal">
+                  A simple 1-minute check-in inspired by official ADA guidelines — spot risk factors early, take charge, and protect your tomorrow.
                 </p>
               </div>
 
               {/* "Diabetes by the Numbers" Card */}
-              <div className="rounded-[24px] sm:rounded-[32px] bg-[#FAF8F3]/90 backdrop-blur-[2px] p-5 sm:p-6 border border-[#DDD5C5] shadow-xs relative overflow-hidden text-[#1E2A24]">
+              <div className="rounded-[22px] sm:rounded-[28px] bg-[#FAF8F3]/95 backdrop-blur-[2px] p-4 sm:p-5 border border-[#DDD5C5] shadow-xs relative overflow-hidden text-[#1E2A24]">
                 <div className="min-w-0">
-                  <p className="text-[9.5px] sm:text-[10.5px] font-bold uppercase tracking-[0.2em] text-[#2E6B3E]">
+                  <p className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-[#2E6B3E]">
                     DIABETES BY THE NUMBERS
                   </p>
-                  <h2 className="font-serif text-base sm:text-lg lg:text-xl font-bold text-[#1E2A24] mt-0.5 leading-snug">
+                  <h2 className="font-serif text-sm sm:text-base lg:text-lg font-bold text-[#1E2A24] mt-0.5 leading-snug">
                     Knowledge today, healthier tomorrow.
                   </h2>
-                  <div className="w-8 h-0.5 bg-[#B8AFA0] my-2.5 rounded-full" />
+                  <div className="w-8 h-0.5 bg-[#B8AFA0] my-2 rounded-full" />
 
                   {/* 3 Animated Stats Columns */}
-                  <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-2">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-2">
                     {/* Stat 1 */}
-                    <div className="flex flex-col items-start">
-                      <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[#EAE5D8] text-[#2E6B3E] shadow-2xs mb-1.5 border border-[#DDD5C5]">
-                        <Users size={13} className="sm:w-4 sm:h-4" />
+                    <div className="flex flex-col items-start min-w-0">
+                      <span className="flex h-6 w-6 sm:h-7.5 sm:w-7.5 items-center justify-center rounded-full bg-[#EAE5D8] text-[#2E6B3E] shadow-2xs mb-1 border border-[#DDD5C5]">
+                        <Users size={11} className="sm:w-3.5 sm:h-3.5" />
                       </span>
-                      <p className="font-serif text-base sm:text-lg lg:text-xl font-bold text-[#1E2A24] leading-none tabular-nums">
+                      <p className="font-serif text-sm sm:text-base lg:text-lg font-bold text-[#1E2A24] leading-none tabular-nums">
                         {stats.diabetes}M+
                       </p>
-                      <p className="text-[9.5px] sm:text-[11px] text-[#4A4339] mt-1 leading-tight font-medium">
-                        Adults living with diabetes
+                      <p className="text-[9.5px] sm:text-[10.5px] text-[#4A4339] mt-0.5 leading-snug font-medium">
+                        Adults with diabetes
                       </p>
                     </div>
 
                     {/* Stat 2 */}
-                    <div className="flex flex-col items-start">
-                      <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[#EAE5D8] text-[#2E6B3E] shadow-2xs mb-1.5 border border-[#DDD5C5]">
-                        <TrendingUp size={13} className="sm:w-4 sm:h-4" />
+                    <div className="flex flex-col items-start min-w-0">
+                      <span className="flex h-6 w-6 sm:h-7.5 sm:w-7.5 items-center justify-center rounded-full bg-[#EAE5D8] text-[#2E6B3E] shadow-2xs mb-1 border border-[#DDD5C5]">
+                        <TrendingUp size={11} className="sm:w-3.5 sm:h-3.5" />
                       </span>
-                      <p className="font-serif text-base sm:text-lg lg:text-xl font-bold text-[#1E2A24] leading-none tabular-nums">
+                      <p className="font-serif text-sm sm:text-base lg:text-lg font-bold text-[#1E2A24] leading-none tabular-nums">
                         {stats.undiagnosed}%
                       </p>
-                      <p className="text-[9.5px] sm:text-[11px] text-[#4A4339] mt-1 leading-tight font-medium">
-                        Cases undiagnosed today
+                      <p className="text-[9.5px] sm:text-[10.5px] text-[#4A4339] mt-0.5 leading-snug font-medium">
+                        Undiagnosed cases
                       </p>
                     </div>
 
                     {/* Stat 3 */}
-                    <div className="flex flex-col items-start">
-                      <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[#EAE5D8] text-[#2E6B3E] shadow-2xs mb-1.5 border border-[#DDD5C5]">
-                        <ShieldCheck size={13} className="sm:w-4 sm:h-4" />
+                    <div className="flex flex-col items-start min-w-0">
+                      <span className="flex h-6 w-6 sm:h-7.5 sm:w-7.5 items-center justify-center rounded-full bg-[#EAE5D8] text-[#2E6B3E] shadow-2xs mb-1 border border-[#DDD5C5]">
+                        <ShieldCheck size={11} className="sm:w-3.5 sm:h-3.5" />
                       </span>
-                      <p className="font-serif text-base sm:text-lg lg:text-xl font-bold text-[#2E6B3E] leading-none tabular-nums">
+                      <p className="font-serif text-sm sm:text-base lg:text-lg font-bold text-[#2E6B3E] leading-none tabular-nums">
                         {stats.prevented}%
                       </p>
-                      <p className="text-[9.5px] sm:text-[11px] text-[#4A4339] mt-1 leading-tight font-medium">
-                        Type 2 cases preventable
+                      <p className="text-[9.5px] sm:text-[10.5px] text-[#4A4339] mt-0.5 leading-snug font-medium">
+                        Cases preventable
                       </p>
                     </div>
                   </div>
@@ -542,46 +549,50 @@ const RiskAssessment = () => {
 
             {/* Right Column: Quiz Card */}
             <div className="w-full flex justify-center lg:justify-end">
-              <div className="w-full max-w-[440px] min-h-[460px] sm:min-h-[520px] rounded-[28px] sm:rounded-[36px] bg-white p-5 sm:p-9 lg:p-10 shadow-[0_20px_50px_-15px_rgba(30,42,36,0.10)] border border-[#E2D8C7] flex flex-col justify-between">
+              <div className="w-full max-w-[440px] h-auto sm:min-h-[460px] rounded-[24px] sm:rounded-[32px] bg-white p-5 sm:p-7 lg:p-8 shadow-[0_20px_50px_-15px_rgba(30,42,36,0.10)] border border-[#E2D8C7] flex flex-col justify-between">
                 
                 {/* Intro Screen */}
                 {currentQuestion === -1 && (
-                  <div className="flex flex-col w-full text-left">
-                    <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#E8F0E6] text-[#2E6B3E] mb-5 sm:mb-6 shadow-2xs">
-                      <Activity size={20} className="sm:w-5.5 sm:h-5.5 stroke-[2.2]" />
+                  <div className="flex flex-col w-full text-left h-full justify-between">
+                    <div>
+                      <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#E8F0E6] text-[#2E6B3E] mb-3.5 sm:mb-5 shadow-2xs">
+                        <Activity size={18} className="sm:w-5 sm:h-5 stroke-[2.2]" />
+                      </div>
+
+                      <h2 className="font-serif text-xl sm:text-2xl lg:text-3xl font-bold text-[#1E2A24] tracking-tight">
+                        Let's check in.
+                      </h2>
+                      <p className="mt-1.5 sm:mt-2 text-xs sm:text-[14px] text-[var(--brown-soft)] leading-relaxed font-medium">
+                        A few simple questions can help you understand your risk. It takes about a minute.
+                      </p>
                     </div>
 
-                    <h2 className="font-serif text-xl sm:text-3xl font-bold text-[#1E2A24] tracking-tight">
-                      Let's check in.
-                    </h2>
-                    <p className="mt-2 text-xs sm:text-[14px] text-[var(--brown-soft)] leading-relaxed font-medium">
-                      A few simple questions can help you understand your risk. It takes about a minute.
-                    </p>
+                    <div className="mt-5 sm:mt-6">
+                      <div className="flex flex-col gap-2.5 sm:gap-3 w-full">
+                        {/* Primary Button */}
+                        <button
+                          type="button"
+                          onClick={() => setCurrentQuestion(0)}
+                          className="w-full flex items-center justify-between rounded-full bg-[#182C1E] hover:bg-[#27392E] text-white py-3 sm:py-3.5 px-5 sm:px-6 font-bold text-xs sm:text-sm shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.99]"
+                        >
+                          <span>Start assessment</span>
+                          <ArrowRight size={16} />
+                        </button>
 
-                    <div className="mt-6 sm:mt-8 flex flex-col gap-2.5 sm:gap-3 w-full">
-                      {/* Primary Button */}
-                      <button
-                        type="button"
-                        onClick={() => setCurrentQuestion(0)}
-                        className="w-full flex items-center justify-between rounded-full bg-[#182C1E] hover:bg-[#27392E] text-white py-3.5 sm:py-4 px-5 sm:px-6 font-bold text-xs sm:text-sm shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.99]"
-                      >
-                        <span>Start assessment</span>
-                        <ArrowRight size={16} />
-                      </button>
+                        {/* Secondary Centered Outlined Button */}
+                        <button
+                          type="button"
+                          onClick={() => setShowAlreadyDiagnosed(true)}
+                          className="w-full flex items-center justify-center text-center rounded-full border border-[#D9D1C2] bg-white hover:bg-[#F8F5EE] text-[#4A4339] py-2.5 sm:py-3 px-5 text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer shadow-2xs"
+                        >
+                          <span>I already live with diabetes</span>
+                        </button>
+                      </div>
 
-                      {/* Secondary Centered Outlined Button */}
-                      <button
-                        type="button"
-                        onClick={() => setShowAlreadyDiagnosed(true)}
-                        className="w-full flex items-center justify-center text-center rounded-full border border-[#D9D1C2] bg-white hover:bg-[#F8F5EE] text-[#4A4339] py-3 sm:py-3.5 px-5 text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer shadow-2xs"
-                      >
-                        <span>I already live with diabetes</span>
-                      </button>
-                    </div>
-
-                    <div className="mt-6 sm:mt-7 flex items-center justify-center gap-1.5 w-full text-center text-[10px] sm:text-[11.5px] text-[#7A746B] font-medium">
-                      <Lock size={12} className="shrink-0 text-[#2E6B3E]" />
-                      <span>Anonymous. Private. Secure. Your answers are never shared.</span>
+                      <div className="mt-4 sm:mt-5 flex items-center justify-center gap-1.5 w-full text-center text-[10.5px] sm:text-[11.5px] text-[#7A746B] font-medium">
+                        <Lock size={12} className="shrink-0 text-[#2E6B3E]" />
+                        <span>Anonymous. Private. Secure. Your answers are never shared.</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -681,22 +692,22 @@ const RiskAssessment = () => {
           /* -------------------------------------------------------------------------
               VIEW B: COMPREHENSIVE OVERVIEW AFTER THE TEST
           -------------------------------------------------------------------------- */
-          <div className="max-w-4xl mx-auto animate-in fade-in duration-300">
+          <div className="max-w-4xl mx-auto flex flex-col justify-center w-full py-2">
             
             {/* Top Result Banner */}
-            <div className="relative overflow-hidden rounded-[28px] sm:rounded-[40px] bg-gradient-to-br from-[#182C1E] via-[#213828] to-[#122216] p-6 sm:p-10 text-white shadow-xl mb-6 sm:mb-8 border border-[#3D5A45]">
-              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div className="relative overflow-hidden rounded-[20px] sm:rounded-[28px] bg-gradient-to-br from-[#182C1E] via-[#213828] to-[#122216] p-4 sm:p-6 lg:p-7 text-white shadow-lg mb-4 sm:mb-5 border border-[#3D5A45]">
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <span
-                    className="inline-block text-[10.5px] sm:text-[11px] font-bold uppercase tracking-wider px-3.5 py-1 rounded-full mb-2.5"
+                    className="inline-block text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full mb-2"
                     style={{ background: meta.bgColor, color: meta.color }}
                   >
                     {showAlreadyDiagnosed ? 'Living With Diabetes' : `Score: ${score} Points · ${meta.badgeLabel}`}
                   </span>
-                  <h2 className="font-serif text-xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white leading-snug">
+                  <h2 className="font-serif text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight text-white leading-snug">
                     {resultTitle}
                   </h2>
-                  <p className="mt-2 text-xs sm:text-sm text-white/80 max-w-xl leading-relaxed">
+                  <p className="mt-1.5 text-xs sm:text-sm text-white/85 max-w-xl leading-relaxed font-normal">
                     {resultSubtitle}
                   </p>
                 </div>
@@ -705,18 +716,18 @@ const RiskAssessment = () => {
                   <button
                     type="button"
                     onClick={resetAssessment}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white border border-white/20 px-4 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white border border-white/20 px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer"
                   >
-                    <RotateCcw size={13} />
+                    <RotateCcw size={12} />
                     <span>Retake</span>
                   </button>
                   <button
                     type="button"
                     onClick={handlePrint}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white text-[#182C1E] px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all hover:bg-[#F8F5EE] cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white text-[#182C1E] px-3.5 py-1.5 text-xs font-bold shadow-sm transition-all hover:bg-[#F8F5EE] cursor-pointer"
                     title="Print or Save PDF for Doctor Visit"
                   >
-                    <Printer size={13} />
+                    <Printer size={12} />
                     <span className="hidden sm:inline">Print Summary</span>
                   </button>
                 </div>
@@ -724,17 +735,14 @@ const RiskAssessment = () => {
             </div>
 
             {/* "What You Should Do" Header */}
-            <div className="mb-3.5 sm:mb-4 flex items-center justify-between">
-              <h3 className="font-serif text-lg sm:text-2xl font-bold text-[#1E2A24]">
+            <div className="mb-2.5 sm:mb-3">
+              <h3 className="font-serif text-base sm:text-xl font-bold text-[#1E2A24]">
                 {tr('landing.learn.riskAssessment.whatYouShouldDo') || 'What you should do next'}
               </h3>
-              <span className="text-[11px] sm:text-xs text-[#2E6B3E] bg-[#E8F2E6] px-2.5 py-0.5 rounded-full font-bold">
-                Clinical Steps
-              </span>
             </div>
 
             {/* 4 Clinical Advice Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
               {meta.adviceKeys.map((key) => {
                 const advice = tr(`${base}.advice.${key}`);
                 return (
@@ -746,52 +754,6 @@ const RiskAssessment = () => {
                   />
                 );
               })}
-            </div>
-
-            {/* Action Buttons Row */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => navigate(user ? '/dashboard' : '/register')}
-                className="w-full sm:w-auto rounded-full bg-[#182C1E] hover:bg-[#27392E] text-white py-3.5 px-8 text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>{user ? 'Go to Dashboard' : (tr('landing.learn.riskAssessment.joinCommunity') || 'Get Started Free on DiaBuddy')}</span>
-                <ArrowRight size={15} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/community')}
-                className="w-full sm:w-auto rounded-full border border-[#D9D1C2] bg-white hover:bg-[#F8F5EE] text-[#4A4339] py-3.5 px-7 text-xs sm:text-sm font-semibold transition-all cursor-pointer text-center"
-              >
-                {tr('landing.learn.riskAssessment.openCommunity') || 'Explore Community'}
-              </button>
-            </div>
-
-            {/* Clinical Evidence Accordion at Bottom */}
-            <div className="mt-8 pt-6 border-t border-[#E0D8CA]">
-              <button
-                type="button"
-                onClick={() => setShowClinicalDisclaimer(!showClinicalDisclaimer)}
-                className="flex items-center justify-between w-full text-left text-xs text-[var(--brown-soft)] hover:text-[#1E2A24] font-semibold cursor-pointer"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Stethoscope size={14} className="text-[#2E6B3E]" />
-                  <span>Clinical References &amp; Scientific Methodology</span>
-                </span>
-                <ChevronDown size={14} className={`transition-transform duration-200 ${showClinicalDisclaimer ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showClinicalDisclaimer && (
-                <div className="mt-3 p-4 rounded-2xl bg-[#F8F5EE] border border-[#E3DACE] text-xs text-[var(--brown-soft)] leading-relaxed space-y-2 animate-in fade-in duration-200">
-                  <p>
-                    <strong>American Diabetes Association (ADA) 7-Point Screening:</strong> The risk scoring algorithm is based on clinical guidelines from the American Diabetes Association (ADA) and CDC Diabetes Prevention Program (DPP).
-                  </p>
-                  <p>
-                    <strong>Educational Screener Notice:</strong> This assessment evaluates statistical risk indicators and does not constitute a clinical medical diagnosis. Please consult a qualified endocrinologist or healthcare provider for diagnostic laboratory tests (Fasting Plasma Glucose or HbA1c).
-                  </p>
-                </div>
-              )}
             </div>
 
           </div>

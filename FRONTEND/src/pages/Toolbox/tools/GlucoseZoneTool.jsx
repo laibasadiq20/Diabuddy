@@ -4,6 +4,8 @@ import { fieldStyle, labelStyle, resultPanel, eyebrow, ResultBadge, disclaimerSt
 import { useI18n } from '../../../i18n/I18nContext';
 import { useUnits } from '../../../hooks/useUnits';
 import { convertGlucose, fromMgdl, glucoseInputBounds, readingToMgdl } from '../../../utils/glucoseUnits';
+import LowGlucoseModal from '../../../components/LowGlucoseModal';
+import HighGlucoseModal from '../../../components/HighGlucoseModal';
 
 /**
  * Context-aware educational zones (canonical thresholds in mg/dL). Not a diagnosis.
@@ -66,6 +68,8 @@ export default function GlucoseZoneTool() {
   const defaultReading = glucoseUnit === 'mmol/L' ? '6.1' : '110';
   const [reading, setReading] = useState(defaultReading);
   const [context, setContext] = useState('random');
+  const [lowModalOpen, setLowModalOpen] = useState(false);
+  const [highModalOpen, setHighModalOpen] = useState(false);
   const prevUnitRef = useRef(glucoseUnit);
 
   useEffect(() => {
@@ -169,12 +173,79 @@ export default function GlucoseZoneTool() {
               <li key={step} style={{ fontSize: 13, color: t.inkSoft, lineHeight: 1.45 }}>{step}</li>
             ))}
           </ul>
+
+          {zone.tone === 'low' && (
+            <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-start' }}>
+              <button
+                type="button"
+                onClick={() => setLowModalOpen(true)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: t.skyDeep,
+                  color: '#FFFFFF',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = t.forest)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = t.skyDeep)}
+              >
+                View Clinical Guidance (15-15 Rule)
+              </button>
+            </div>
+          )}
+
+          {(zone.tone === 'high' || zone.tone === 'urgent') && (
+            <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-start' }}>
+              <button
+                type="button"
+                onClick={() => setHighModalOpen(true)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: t.clayDeep,
+                  color: '#FFFFFF',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: t.fontBody,
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = t.forest)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = t.clayDeep)}
+              >
+                View Clinical Guidance (Hyperglycemia)
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       <p style={{ margin: 0, fontSize: 11.5, color: t.inkFaint, lineHeight: 1.5 }}>
         {tr('toolboxTools.glucoseZone.footerNote')}
       </p>
+
+      {/* Low Glucose Popup Modal */}
+      <LowGlucoseModal
+        isOpen={lowModalOpen}
+        onClose={() => setLowModalOpen(false)}
+        glucoseLevel={zone?.value}
+        unit={glucoseUnitLabel}
+      />
+
+      {/* High Glucose Popup Modal */}
+      <HighGlucoseModal
+        isOpen={highModalOpen}
+        onClose={() => setHighModalOpen(false)}
+        glucoseLevel={zone?.value}
+        unit={glucoseUnitLabel}
+        context={context}
+      />
     </div>
   );
 }

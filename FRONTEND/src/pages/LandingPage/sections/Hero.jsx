@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   BookOpen,
   Users,
+  Heart,
 } from 'lucide-react';
 import heroImage from '../../../assets/hero-illustration.png';
 
@@ -53,7 +54,7 @@ const Hero = () => {
       <div className="relative z-10 mx-auto w-full max-w-[1400px] px-6 sm:px-10 md:px-16 lg:px-20">
         <div className="max-w-[580px] lg:max-w-[620px] flex flex-col items-start">
           
-          {/* Main Headline matching reference */}
+          {/* Main Headline matching reference design */}
           <h1 className="font-display font-normal leading-[1.04] text-[#1E2A24] text-[2.75rem] sm:text-[3.6rem] lg:text-[4.5rem] tracking-tight">
             {tr('landing.hero.titleStart') || 'A'}{' '}
             <span className="italic font-semibold text-[#3D5A45]">
@@ -66,10 +67,9 @@ const Hero = () => {
             {tr('landing.hero.titleEnd') || 'diabetes.'}
           </h1>
 
-          {/* Subtitle / Lead text */}
-          <p className="mt-5 sm:mt-6 text-[0.95rem] sm:text-[1.05rem] leading-[1.65] text-[#554D43] max-w-[460px] font-normal">
-            {tr('landing.hero.lead') ||
-              'Track your health, understand your patterns, stay consistent, and connect with people who understand you.'}
+          {/* Subtitle / Lead text with DiaBuddy highlighted */}
+          <p className="mt-5 sm:mt-6 text-[0.95rem] sm:text-[1.05rem] leading-[1.65] text-[#554D43] max-w-[480px] font-normal">
+            <strong className="font-bold text-[#1E2A24]">DiaBuddy</strong> gives you a softer way to track your health, understand your patterns, and feel more in control — with people who understand.
           </p>
 
           {/* Action Buttons */}
